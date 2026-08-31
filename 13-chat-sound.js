@@ -104,25 +104,25 @@ function toggleSound() {
 // Звук нового сообщения
 // ===============================
 
-function playMessageSound() {
+function playMessageSound(chatId) {
 
-    // В текущем открытом чате
-    // звук не воспроизводится.
-    //
-    // Эта проверка остаётся здесь
-    // как дополнительная защита.
+    if (!soundEnabled) {
+        return;
+    }
+
+
+    // Если сообщение пришло
+    // в открытый сейчас чат —
+    // звук не нужен.
 
     if (
-        currentChatId
+        currentChatId &&
+        Number(chatId) ===
+        Number(currentChatId)
     ) {
 
         return;
 
-    }
-
-
-    if (!soundEnabled) {
-        return;
     }
 
 
@@ -154,7 +154,6 @@ function playMessageSound() {
         );
 
 }
-
 
 
 // ===============================
