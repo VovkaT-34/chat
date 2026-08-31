@@ -83,7 +83,8 @@ async function loadChats() {
                     gap:6px;
                     margin-left:8px;
                     flex-shrink:0;
-                    width:56px;
+                    width:58px;
+                    height:28px;
                 "
             >
 
@@ -98,12 +99,12 @@ async function loadChats() {
                         display:flex;
                         align-items:center;
                         justify-content:center;
+                        flex:0 0 22px;
                         border:none;
                         background:none;
                         font-size:12px;
-                        line-height:1;
+                        line-height:22px;
                         cursor:pointer;
-                        flex-shrink:0;
                     "
                     title="Звук"
                 >
@@ -116,17 +117,20 @@ async function loadChats() {
                     style="
                         width:28px;
                         height:28px;
+                        padding:0;
+                        margin:0;
                         display:none;
                         align-items:center;
                         justify-content:center;
+                        flex:0 0 28px;
                         box-sizing:border-box;
                         background:#ff9800;
                         color:white;
                         border-radius:50%;
-                        padding:0;
                         font-size:14px;
                         font-weight:bold;
-                        flex-shrink:0;
+                        line-height:28px;
+                        text-align:center;
                     "
                 >
                 </span>
@@ -172,7 +176,7 @@ async function loadChats() {
 
 
         // =================================
-        // Состояние кнопки звука
+        // Кнопка звука
         // =================================
 
         const soundButton =
