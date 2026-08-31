@@ -83,17 +83,13 @@ async function loadChats() {
                     gap:6px;
                     margin-left:8px;
                     flex-shrink:0;
-                    width:52px;
+                    width:56px;
                 "
             >
 
                 <button
                     type="button"
                     data-sound-chat-id="${chatId}"
-                    onclick="
-                        event.stopPropagation();
-                        toggleChatSound(${chatId});
-                    "
                     style="
                         width:22px;
                         height:22px;
@@ -173,6 +169,51 @@ async function loadChats() {
 
 
         chatList.appendChild(div);
+
+
+        // =================================
+        // Состояние кнопки звука
+        // =================================
+
+        const soundButton =
+            div.querySelector(
+                `[data-sound-chat-id="${chatId}"]`
+            );
+
+
+        if (soundButton) {
+
+            soundButton.onclick =
+                event => {
+
+                    event.stopPropagation();
+
+
+                    const key =
+                        `chatSound-${chatId}`;
+
+
+                    const enabled =
+                        localStorage.getItem(
+                            key
+                        ) !== "false";
+
+
+                    localStorage.setItem(
+                        key,
+                        enabled
+                            ? "false"
+                            : "true"
+                    );
+
+
+                    updateChatSoundButton(
+                        Number(chatId)
+                    );
+
+                };
+
+        }
 
 
         // =================================
@@ -281,7 +322,7 @@ async function loadChats() {
     if (privateChatsError) {
 
         console.log(
-            "Ошибка загрузки личных чатов:",
+            "Ошибка личных чатов:",
             privateChatsError
         );
 
@@ -333,7 +374,7 @@ async function loadChats() {
     if (groupChatsError) {
 
         console.log(
-            "Ошибка загрузки групповых чатов:",
+            "Ошибка групповых чатов:",
             groupChatsError
         );
 
