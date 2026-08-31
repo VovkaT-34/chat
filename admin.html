@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Панель администратора</title>
+
+
+<meta name="robots" content="noindex,nofollow,noarchive">
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="auth-check.js"></script>
+
+
+<style>
+
+body {
+
+    font-family: Arial, sans-serif;
+    background:#f5f5f5;
+    margin:0;
+    padding:20px;
+
+}
+
+
+.container {
+
+    max-width:1000px;
+    margin:auto;
+    background:white;
+    padding:30px;
+    border-radius:20px;
+
+}
+
+
+h1 {
+
+    text-align:center;
+    color:#800020;
+
+}
+
+
+h2 {
+
+    color:#800020;
+    margin-top:35px;
+
+}
+
+
+
+table {
+
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+
+}
+
+
+
+th {
+
+    background:#800020;
+    color:white;
+    padding:12px;
+
+}
+
+
+
+td {
+
+    padding:12px;
+    border-bottom:1px solid #ddd;
+
+}
+
+
+
+button {
+
+    padding:8px 15px;
+    border:none;
+    border-radius:20px;
+    cursor:pointer;
+    background:#800020;
+    color:white;
+    font-weight:bold;
+
+}
+
+
+
+button:hover {
+
+    opacity:0.8;
+
+}
+
+
+
+.home-button {
+
+    display:inline-block;
+    margin-top:25px;
+    padding:14px 35px;
+    text-decoration:none;
+    text-align:center;
+    background:#f39c12;
+    color:white;
+    font-size:22px;
+    font-weight:bold;
+    border-radius:30px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.15);
+
+}
+
+
+
+.pending-info {
+
+    margin-top:20px;
+    font-size:24px;
+    font-weight:bold;
+    color:#800020;
+
+}
+
+
+
+.badge {
+
+    display:inline-block;
+    background:#f39c12;
+    color:white;
+    border-radius:50%;
+    width:34px;
+    height:34px;
+    line-height:34px;
+    text-align:center;
+    font-size:20px;
+    margin-left:8px;
+
+}
+
+
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+<h1>
+⚙ Панель администратора
+</h1>
+
+
+
+<h2>
+⏳ Ожидают одобрения
+<span id="pendingBadge" class="badge"></span>
+</h2>
+
+
+
+<table id="pendingTable" style="display:none;">
+
+
+<thead>
+
+<tr>
+
+<th>
+Email
+</th>
+
+<th>
+Имя
+</th>
+
+<th>
+Статус
+</th>
+
+<th>
+Роль
+</th>
+
+<th>
+Действие
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody id="pendingList">
+
+</tbody>
+
+
+</table>
+
+
+
+
+
+
+    
+<h2>
+✅ Одобренные пользователи
+</h2>
+
+
+
+<table id="approvedTable" style="display:none;">
+
+
+<thead>
+
+<tr>
+
+<th>
+Email
+</th>
+
+<th>
+Имя
+</th>
+
+<th>
+Статус
+</th>
+
+<th>
+Роль
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody id="approvedList">
+
+</tbody>
+
+
+</table>
+
+
+
+
+<a href="index.html"
+class="home-button">
+
+🏠 На главную
+
+</a>
+
+
+
+</div>
+
+
+
+
+<script>
+
+
+async function checkAdmin(){
+
+
+
+    const {
+        data:{
+            user
+        }
+    } = await supabaseClient.auth.getUser();
+
+
+
+
+    if(!user){
+
+        window.location.href="login.html";
+        return;
+
+    }
+
+
+
+
+
+    const {
+        data:profile,
+        error
+    } = await supabaseClient
+
+        .from("profiles")
+
+        .select("*")
+
+        .eq("id",user.id)
+
+        .single();
+
+
+
+
+
+    if(error || !profile){
+
+        window.location.href="index.html";
+        return;
+
+    }
+
+
+
+
+
+    if(
+        profile.role !== "admin" ||
+        profile.approved !== true
+    ){
+
+        window.location.href="index.html";
+        return;
+
+    }
+
+
+
+
+
+    document.getElementById("pendingTable")
+    .style.display="table";
+
+
+
+    document.getElementById("approvedTable")
+    .style.display="table";
+
+
+
+
+    loadUsers();
+
+
+
+}
+
+
+
+
+
+
+async function loadUsers(){
+
+
+
+    const {
+        count
+    } = await supabaseClient
+
+        .from("profiles")
+
+        .select("*",{count:"exact",head:true})
+
+        .eq("approved",false);
+
+
+
+
+
+
+    const badge =
+    document.getElementById("pendingBadge");
+
+
+
+    if(count > 0){
+
+        badge.textContent=count;
+        badge.style.display="inline-block";
+
+    }
+    else{
+
+        badge.style.display="none";
+
+    }
+
+
+
+
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+
+        .from("profiles")
+
+        .select("*")
+
+        .order("username");
+
+
+
+
+
+    if(error){
+
+        console.log(error);
+        return;
+
+    }
+
+
+
+
+
+    const pendingList =
+    document.getElementById("pendingList");
+
+
+
+    const approvedList =
+    document.getElementById("approvedList");
+
+
+
+
+    pendingList.innerHTML="";
+    approvedList.innerHTML="";
+
+
+
+
+
+    data.forEach(profile=>{
+
+
+
+        if(profile.approved === false){
+
+
+
+            const row =
+            document.createElement("tr");
+
+
+
+            row.innerHTML = `
+
+            <td>
+            ${profile.email ?? ""}
+            </td>
+
+
+            <td>
+            ${profile.username ?? ""}
+            </td>
+
+
+            <td>
+            ⏳ Ожидает
+            </td>
+
+
+            <td>
+            ${profile.role ?? "user"}
+            </td>
+
+
+            <td>
+
+            <button onclick="approveUser('${profile.id}')">
+
+            Одобрить
+
+            </button>
+
+            </td>
+
+            `;
+
+
+
+            pendingList.appendChild(row);
+
+
+
+        }
+
+
+
+
+
+
+        if(profile.approved === true){
+
+
+
+            const row =
+            document.createElement("tr");
+
+
+
+            row.innerHTML = `
+
+            <td>
+            ${profile.email ?? ""}
+            </td>
+
+
+            <td>
+            ${profile.username ?? ""}
+            </td>
+
+
+            <td>
+            ✅ Одобрен
+            </td>
+
+
+            <td>
+            ${profile.role ?? "user"}
+            </td>
+
+            `;
+
+
+
+            approvedList.appendChild(row);
+
+
+
+        }
+
+
+
+    });
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+    
+async function approveUser(id){
+
+
+    console.log(
+        "Одобряем ID:",
+        id
+    );
+
+
+
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+
+        .from("profiles")
+
+        .update({
+
+            approved:true
+
+        })
+
+        .eq("id",id)
+
+        .select();
+
+
+
+
+
+    console.log(
+        "Ответ Supabase:",
+        data
+    );
+
+
+
+
+
+    if(error){
+
+
+        alert(
+            error.message
+        );
+
+
+        console.log(error);
+
+
+        return;
+
+
+    }
+
+
+
+
+
+    alert(
+        "Пользователь одобрен"
+    );
+
+
+
+    loadUsers();
+
+
+
+}
+
+
+
+
+
+checkAdmin();
+
+
+
+</script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="robots" content="noindex,nofollow,noarchive">
+
+<title>Вход | Чат</title>
+
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+
+body{
+
+    margin:0;
+
+    min-height:100vh;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-family:Arial,sans-serif;
+
+    background:linear-gradient(
+        135deg,
+        #f3eadf,
+        #eadcf0
+    );
+
+}
+
+
+
+.login-box{
+
+    width:400px;
+
+    background:#ffffff;
+
+    border-radius:20px;
+
+    padding:35px;
+
+    text-align:center;
+
+    box-shadow:0 12px 35px rgba(0,0,0,.18);
+
+}
+
+
+
+.logo{
+
+    font-size:44px;
+
+}
+
+
+
+h1{
+
+    margin-top:10px;
+
+    color:#6b3f6e;
+
+}
+
+
+
+.subtitle{
+
+    color:#666;
+
+    margin-bottom:25px;
+
+}
+
+
+
+input{
+
+    width:100%;
+
+    padding:14px;
+
+    margin-bottom:15px;
+
+    border-radius:10px;
+
+    border:1px solid #d7c7d7;
+
+    font-size:16px;
+
+}
+
+
+
+button{
+
+    width:100%;
+
+    padding:15px;
+
+    border:none;
+
+    border-radius:10px;
+
+    font-size:17px;
+
+    color:white;
+
+    cursor:pointer;
+
+    background:linear-gradient(
+        135deg,
+        #b38a59,
+        #8b5f9d
+    );
+
+}
+
+
+
+button:hover{
+
+    opacity:.9;
+
+}
+
+
+
+#error{
+
+    color:#b00020;
+
+    margin-top:15px;
+
+    min-height:22px;
+
+}
+
+
+
+.register-link{
+
+    margin-top:20px;
+
+}
+
+
+
+.register-link a{
+
+    color:#8b5f9d;
+
+    text-decoration:none;
+
+    font-weight:bold;
+
+}
+
+
+
+.register-link a:hover{
+
+    text-decoration:underline;
+
+}
+
+
+
+.footer{
+
+    margin-top:25px;
+
+    color:#888;
+
+    font-size:13px;
+
+}
+
+
+</style>
+
+</head>
+
+
+
+<body>
+
+
+<div class="login-box">
+
+
+<div class="logo">
+💬
+</div>
+
+
+<h1>
+Чат
+</h1>
+
+
+<div class="subtitle">
+Войдите в свой аккаунт
+</div>
+
+
+
+<form id="loginForm">
+
+
+
+<input
+id="email"
+type="email"
+placeholder="E-mail"
+required
+>
+
+
+
+<input
+id="password"
+type="password"
+placeholder="Пароль"
+required
+>
+
+
+
+<button type="submit">
+Войти
+</button>
+
+
+
+</form>
+
+
+
+<div id="error"></div>
+
+
+
+<div class="register-link">
+
+<a href="register.html">
+Нет аккаунта? Зарегистрироваться
+</a>
+
+</div>
+
+
+
+<div class="footer">
+
+© Чат
+
+</div>
+
+
+
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="supabase.js"></script>
+
+<script src="auth.js"></script>
+
+
+</body>
+
+</html>

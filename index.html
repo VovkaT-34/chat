@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Чат</title>
+
+<link rel="stylesheet" href="chat.css">
+
+</head>
+
+<body>
+
+<div style="
+display:flex;
+justify-content:flex-end;
+align-items:center;
+margin:20px 0 30px 0;
+">
+
+<button onclick="logout()"
+style="
+display:inline-block;
+padding:7px 12px;
+background:linear-gradient(135deg,#1f1f1f,#5a0a0a,#d50000);
+color:#ffffff;
+border:1px solid #ff4d4d;
+border-radius:10px;
+font-size:16px;
+font-weight:700;
+cursor:pointer;
+box-shadow:0 4px 12px rgba(213,0,0,.35);
+transition:.2s;
+">
+
+🚪 Выйти
+
+</button>
+
+</div>
+
+
+<h1 align="center">
+
+💬 Чат
+
+</h1>
+
+
+<div class="chat-container">
+
+
+<div class="chat-list">
+
+<h2>Чаты</h2>
+
+<div id="chatList">
+
+Загрузка...
+
+</div>
+
+</div>
+
+
+<div class="chat-window">
+
+
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:10px;
+">
+
+<h2 id="chatTitle" style="margin:0;">
+
+Выберите чат
+
+</h2>
+
+
+<div style="position:relative;">
+
+<button id="newChatButton"
+style="
+padding:4px 7px;
+background:#ff9800;
+color:white;
+border:none;
+border-radius:6px;
+font-size:11px;
+font-weight:bold;
+cursor:pointer;
+white-space:nowrap;
+transition:background 0.2s ease, transform 0.15s ease;
+">
+
+➕ Новый чат
+
+</button>
+
+
+<div id="newChatMenu"
+style="
+display:none;
+position:absolute;
+right:0;
+top:32px;
+z-index:1000;
+background:white;
+border:1px solid #ddd;
+border-radius:8px;
+box-shadow:0 4px 12px rgba(0,0,0,.15);
+overflow:hidden;
+min-width:160px;
+">
+
+
+<button id="newPrivateChatMenuButton"
+style="
+display:block;
+width:100%;
+padding:10px;
+border:none;
+background:white;
+text-align:left;
+cursor:pointer;
+">
+
+🔒 Личный чат
+
+</button>
+
+
+<button id="newGroupChatMenuButton"
+style="
+display:block;
+width:100%;
+padding:10px;
+border:none;
+background:white;
+text-align:left;
+cursor:pointer;
+">
+
+👥 Групповой чат
+
+</button>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+<div id="messages">
+
+</div>
+
+
+<div id="typingIndicator"
+style="
+display:none;
+color:#777;
+font-style:italic;
+margin:10px;
+">
+
+</div>
+
+
+<div class="send-box">
+
+
+<div style="
+display:flex;
+flex-direction:column;
+width:100%;
+">
+
+
+<div id="replyBox"
+style="
+display:none;
+background:#eeeeee;
+padding:8px;
+border-left:4px solid #8E44AD;
+border-radius:6px;
+margin-bottom:5px;
+font-size:14px;
+">
+
+<span id="replyText"></span>
+
+
+<button
+onclick="cancelReply()"
+style="
+float:right;
+border:none;
+background:none;
+cursor:pointer;
+color:red;
+font-weight:bold;
+">
+
+❌
+
+</button>
+
+</div>
+
+
+<input
+id="messageInput"
+type="text"
+placeholder="Введите сообщение..."
+>
+
+
+</div>
+
+
+<button id="sendButton" title="Отправить сообщение">
+
+✈
+
+</button>
+
+
+</div>
+
+
+</div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="supabase.js"></script>
+
+<script src="auth-check.js"></script>
+
+<script src="logout.js"></script>
+
+<audio id="messageSound" src="message.mp3"></audio>
+
+<script src="01-chat-state.js"></script>
+<script src="02-chat-user.js"></script>
+<script src="03-chat-list.js"></script>
+<script src="04-chat-private.js"></script>
+<script src="05-chat-messages.js"></script>
+<script src="06-chat-send.js"></script>
+<script src="07-chat-read.js"></script>
+<script src="08-chat-realtime.js"></script>
+<script src="09-chat-unread.js"></script>
+<script src="10-chat-typing.js"></script>
+<script src="11-chat-reply.js"></script>
+<script src="12-chat-init.js"></script>
+
+
+</body>
+
+</html>
