@@ -2,40 +2,7 @@ let chatSoundEnabled =
 localStorage.getItem("chatSoundEnabled") !== "false";
 
 // ===============================
-// Воспроизведение звука
-// ===============================
-
-function playMessageSound() {
-
-```
-if (!chatSoundEnabled) {
-    return;
-}
-
-if (
-    currentChatId &&
-    arguments.length > 0 &&
-    Number(arguments[0]) === Number(currentChatId)
-) {
-    return;
-}
-
-const sound =
-    document.getElementById("messageSound");
-
-if (!sound) {
-    return;
-}
-
-sound.currentTime = 0;
-
-sound.play().catch(() => {});
-```
-
-}
-
-// ===============================
-// Обновление кнопки
+// Обновление кнопки звука
 // ===============================
 
 function updateSoundButton() {
