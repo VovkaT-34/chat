@@ -1,66 +1,101 @@
 // ===============================
-// Управление звуком сообщений
+// Настройки звука чатов
 // ===============================
 
-let soundEnabled = true;
+const CHAT_SOUND_KEY = "chatSoundSettings";
 
 
 // ===============================
-// Загрузка состояния звука
+// Получение настроек
 // ===============================
 
-function loadSoundState() {
+function getChatSoundSettings() {
 
-    const saved =
-        localStorage.getItem(
-            "chatSoundEnabled"
-        );
+    try {
 
+        return JSON.parse(
+            localStorage.getItem(
+                CHAT_SOUND_KEY
+            )
+        ) || {};
 
-    if (saved === null) {
+    } catch {
 
-        soundEnabled = true;
+        return {};
 
     }
-
-    else {
-
-        soundEnabled =
-            saved === "true";
-
-    }
-
-
-    updateSoundButton();
 
 }
 
+
+// ===============================
+// Проверка звука конкретного чата
+// ===============================
+
+function isChatSoundEnabled(chatId) {
+
+    const settings =
+        getChatSoundSettings();
+
+    return settings[
+        String(chatId)
+    ] !== false;
+
+}
+
+
+// ===============================
+// Переключение звука конкретного чата
+// ===============================
+
+function toggleChatSound(chatId) {
+
+    const settings =
+        getChatSoundSettings();
+
+    const key =
+        String(chatId);
+
+    settings[key] =
+        settings[key] === false;
+
+    localStorage.setItem(
+        CHAT_SOUND_KEY,
+        JSON.stringify(settings)
+    );
+
+    updateChatSoundButton(
+        chatId
+    );
+
+}
 
 
 // ===============================
 // Обновление кнопки звука
 // ===============================
 
-function updateSoundButton() {
+function updateChatSoundButton(chatId) {
 
     const button =
-        document.getElementById(
-            "soundToggleButton"
+        document.querySelector(
+            `[data-sound-chat-id="${chatId}"]`
         );
-
 
     if (!button) {
         return;
     }
 
 
-    if (soundEnabled) {
+    if (
+        isChatSoundEnabled(chatId)
+    ) {
 
         button.textContent =
             "🔊";
 
         button.title =
-            "Звук включён";
+            "Выключить звук";
 
     }
 
@@ -70,55 +105,22 @@ function updateSoundButton() {
             "🔇";
 
         button.title =
-            "Звук выключен";
+            "Включить звук";
 
     }
 
 }
 
 
-
 // ===============================
-// Переключение звука
-// ===============================
-
-function toggleSound() {
-
-    soundEnabled =
-        !soundEnabled;
-
-
-    localStorage.setItem(
-        "chatSoundEnabled",
-        soundEnabled
-    );
-
-
-    updateSoundButton();
-
-}
-
-
-
-// ===============================
-// Звук нового сообщения
+// Воспроизведение звука
 // ===============================
 
 function playMessageSound(chatId) {
 
-    if (!soundEnabled) {
-        return;
-    }
-
-
-    // Если сообщение пришло
-    // в открытый сейчас чат —
-    // звук не нужен.
-
     if (
-        currentChatId &&
-        Number(chatId) ===
-        Number(currentChatId)
+        !chatId ||
+        !isChatSoundEnabled(chatId)
     ) {
 
         return;
@@ -154,31 +156,3 @@ function playMessageSound(chatId) {
         );
 
 }
-
-
-// ===============================
-// Кнопка звука
-// ===============================
-
-const soundToggleButton =
-    document.getElementById(
-        "soundToggleButton"
-    );
-
-
-if (soundToggleButton) {
-
-    soundToggleButton.addEventListener(
-        "click",
-        toggleSound
-    );
-
-}
-
-
-
-// ===============================
-// Инициализация
-// ===============================
-
-loadSoundState();
