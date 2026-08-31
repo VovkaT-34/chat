@@ -369,11 +369,13 @@ box-shadow:
 
 #sendButton {
 
-```
-width: 48px;
-height: 48px;
+    width: 48px;
+    height: 48px;
 
-flex-shrink: 0;
+    min-width: 48px;
+    min-height: 48px;
+
+    flex-shrink: 0;
 
 display: flex;
 align-items: center;
