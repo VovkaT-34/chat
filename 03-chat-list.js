@@ -71,28 +71,7 @@ async function loadChats() {
                 "
             >
 
-                ${
-                    isPublicChat
-                    ?
-                    `<span
-                        class="chat-sound-toggle"
-                        data-sound-chat-id="${chatId}"
-                        title="Звук"
-                        style="
-                            font-size:12px;
-                            line-height:14px;
-                            margin-right:6px;
-                            flex-shrink:0;
-                            cursor:pointer;
-                            position:relative;
-                            top:-2px;
-                        "
-                    >
-                        ${soundIcon}
-                    </span>`
-                    :
-                    ""
-                }
+
 
                 <span
                     style="
@@ -119,6 +98,11 @@ async function loadChats() {
                     data-sound-chat-id="${chatId}"
                     onclick="event.stopPropagation(); toggleChatSound(${chatId})"
                     style="
+                        width:22px;
+                        height:22px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
                         border:none;
                         background:none;
                         padding:0;
@@ -126,8 +110,9 @@ async function loadChats() {
                         font-size:12px;
                         line-height:1;
                         cursor:pointer;
+                        flex-shrink:0;
                     "
-                    title="Выключить звук"
+                    title="Звук"
                 >
                     🔊
                 </button>
@@ -142,6 +127,7 @@ async function loadChats() {
                         font-size:14px;
                         font-weight:bold;
                         display:none;
+                        flex-shrink:0;
                     ">
                 </span>
 
@@ -189,61 +175,6 @@ async function loadChats() {
 );
 
 
-        // =================================
-        // Переключатель звука
-        // =================================
-
-        if (isPublicChat) {
-
-            const soundButton =
-                div.querySelector(
-                    `[data-sound-chat-id="${chatId}"]`
-                );
-
-
-            if (soundButton) {
-
-                soundButton.onclick =
-                    event => {
-
-                        event.stopPropagation();
-
-
-                        const key =
-                            `chatSound-${chatId}`;
-
-
-                        const enabled =
-                            localStorage.getItem(
-                                key
-                            ) !== "false";
-
-
-                        localStorage.setItem(
-                            key,
-                            enabled
-                                ? "false"
-                                : "true"
-                        );
-
-
-                        soundButton.textContent =
-                            enabled
-                                ? "🔇"
-                                : "🔊";
-
-                    };
-
-            }
-
-        }
-
-
-        updateUnreadCount(
-            Number(chatId)
-        );
-
-    }
 
 
     // =================================
