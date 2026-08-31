@@ -73,24 +73,21 @@ async function loadChats() {
                 <button
                     type="button"
                     data-sound-chat-id="${chatId}"
-                    onclick="
-                        event.stopPropagation();
-                        toggleChatSound(${chatId});
-                    "
+                    onclick="event.stopPropagation(); toggleChatSound(${chatId})"
                     style="
-                        width:22px;
-                        height:22px;
-                        padding:0;
-                        margin:0;
+                        width:34px;
+                        height:34px;
                         display:flex;
                         align-items:center;
                         justify-content:center;
-                        flex:0 0 22px;
                         border:none;
                         background:none;
-                        font-size:12px;
+                        padding:0;
+                        margin:0;
+                        font-size:16px;
                         line-height:1;
                         cursor:pointer;
+                        flex-shrink:0;
                     "
                     title="Звук"
                 >
