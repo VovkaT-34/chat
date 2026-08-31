@@ -44,11 +44,67 @@ async function loadChats() {
             chatId;
 
 
+        const isPublicChat =
+            extraClass === "";
+
+
+        const soundIcon =
+            isPublicChat
+                ? (
+                    localStorage.getItem(
+                        `chatSound-${chatId}`
+                    ) !== "false"
+                        ? "🔊"
+                        : "🔇"
+                )
+                : "";
+
+
         div.innerHTML = `
 
-            <span>
-                ${icon} ${chatName}
+            <span
+                style="
+                    display:flex;
+                    align-items:flex-start;
+                    min-width:0;
+                    flex:1;
+                "
+            >
+
+                ${
+                    isPublicChat
+                    ?
+                    `<span
+                        class="chat-sound-toggle"
+                        data-sound-chat-id="${chatId}"
+                        title="Звук"
+                        style="
+                            font-size:12px;
+                            line-height:14px;
+                            margin-right:6px;
+                            flex-shrink:0;
+                            cursor:pointer;
+                            position:relative;
+                            top:-2px;
+                        "
+                    >
+                        ${soundIcon}
+                    </span>`
+                    :
+                    ""
+                }
+
+                <span
+                    style="
+                        min-width:0;
+                        overflow-wrap:anywhere;
+                    "
+                >
+                    ${icon} ${chatName}
+                </span>
+
             </span>
+
 
             <span
                 id="count-${chatId}"
@@ -61,6 +117,7 @@ async function loadChats() {
                     font-weight:bold;
                     margin-left:10px;
                     display:none;
+                    flex-shrink:0;
                 ">
             </span>
 
@@ -100,6 +157,56 @@ async function loadChats() {
 
 
         chatList.appendChild(div);
+
+
+        // =================================
+        // Переключатель звука
+        // =================================
+
+        if (isPublicChat) {
+
+            const soundButton =
+                div.querySelector(
+                    `[data-sound-chat-id="${chatId}"]`
+                );
+
+
+            if (soundButton) {
+
+                soundButton.onclick =
+                    event => {
+
+                        event.stopPropagation();
+
+
+                        const key =
+                            `chatSound-${chatId}`;
+
+
+                        const enabled =
+                            localStorage.getItem(
+                                key
+                            ) !== "false";
+
+
+                        localStorage.setItem(
+                            key,
+                            enabled
+                                ? "false"
+                                : "true"
+                        );
+
+
+                        soundButton.textContent =
+                            enabled
+                                ? "🔇"
+                                : "🔊";
+
+                    };
+
+            }
+
+        }
 
 
         updateUnreadCount(
