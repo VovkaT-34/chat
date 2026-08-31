@@ -5,6 +5,11 @@
 
 function playMessageSound() {
 
+    if (!chatSoundEnabled) {
+        return;
+    }
+
+
     const sound =
         document.getElementById(
             "messageSound"
