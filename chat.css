@@ -54,7 +54,7 @@ justify-content: space-between;
 padding: 10px 12px;
 margin-bottom: 9px;
 
-background: #8E44AD;
+background: #6A1B9A;
 color: white;
 
 border-radius: 9px;
@@ -75,7 +75,7 @@ transition:
 }
 
 .chat-item:hover {
-background: #73358f;
+background: #4A148C;
 transform: translateY(-1px);
 box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
 }
@@ -85,11 +85,11 @@ box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
 ========================================= */
 
 .private-chat {
-background: #229ED9;
+background: #008C95;
 }
 
 .private-chat:hover {
-background: #168ac2;
+background: #00727A;
 }
 
 /* =========================================
