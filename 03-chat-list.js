@@ -56,22 +56,12 @@ async function loadChats() {
 
             <span
                 style="
-                    display:flex;
-                    align-items:center;
                     min-width:0;
                     flex:1;
+                    overflow-wrap:anywhere;
                 "
             >
-
-                <span
-                    style="
-                        min-width:0;
-                        overflow-wrap:anywhere;
-                    "
-                >
-                    ${icon} ${chatName}
-                </span>
-
+                ${icon} ${chatName}
             </span>
 
 
@@ -91,6 +81,10 @@ async function loadChats() {
                 <button
                     type="button"
                     data-sound-chat-id="${chatId}"
+                    onclick="
+                        event.stopPropagation();
+                        toggleChatSound(${chatId});
+                    "
                     style="
                         width:22px;
                         height:22px;
@@ -99,12 +93,12 @@ async function loadChats() {
                         display:flex;
                         align-items:center;
                         justify-content:center;
-                        flex:0 0 22px;
                         border:none;
                         background:none;
                         font-size:12px;
-                        line-height:22px;
+                        line-height:1;
                         cursor:pointer;
+                        flex-shrink:0;
                     "
                     title="Звук"
                 >
@@ -122,7 +116,6 @@ async function loadChats() {
                         display:none;
                         align-items:center;
                         justify-content:center;
-                        flex:0 0 28px;
                         box-sizing:border-box;
                         background:#ff9800;
                         color:white;
@@ -131,6 +124,7 @@ async function loadChats() {
                         font-weight:bold;
                         line-height:28px;
                         text-align:center;
+                        flex-shrink:0;
                     "
                 >
                 </span>
@@ -173,51 +167,6 @@ async function loadChats() {
 
 
         chatList.appendChild(div);
-
-
-        // =================================
-        // Кнопка звука
-        // =================================
-
-        const soundButton =
-            div.querySelector(
-                `[data-sound-chat-id="${chatId}"]`
-            );
-
-
-        if (soundButton) {
-
-            soundButton.onclick =
-                event => {
-
-                    event.stopPropagation();
-
-
-                    const key =
-                        `chatSound-${chatId}`;
-
-
-                    const enabled =
-                        localStorage.getItem(
-                            key
-                        ) !== "false";
-
-
-                    localStorage.setItem(
-                        key,
-                        enabled
-                            ? "false"
-                            : "true"
-                    );
-
-
-                    updateChatSoundButton(
-                        Number(chatId)
-                    );
-
-                };
-
-        }
 
 
         // =================================
