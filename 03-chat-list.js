@@ -106,20 +106,46 @@ async function loadChats() {
             </span>
 
 
-            <span
-                id="count-${chatId}"
-                style="
-                    background:#ff9800;
-                    color:white;
-                    border-radius:50%;
-                    padding:3px 9px;
-                    font-size:14px;
-                    font-weight:bold;
-                    margin-left:10px;
-                    display:none;
-                    flex-shrink:0;
-                ">
-            </span>
+            <div style="
+                display:flex;
+                align-items:center;
+                gap:6px;
+                margin-left:8px;
+                flex-shrink:0;
+            ">
+
+                <button
+                    type="button"
+                    data-sound-chat-id="${chatId}"
+                    onclick="event.stopPropagation(); toggleChatSound(${chatId})"
+                    style="
+                        border:none;
+                        background:none;
+                        padding:0;
+                        margin:0;
+                        font-size:12px;
+                        line-height:1;
+                        cursor:pointer;
+                    "
+                    title="Выключить звук"
+                >
+                    🔊
+                </button>
+
+                <span
+                    id="count-${chatId}"
+                    style="
+                        background:#ff9800;
+                        color:white;
+                        border-radius:50%;
+                        padding:3px 9px;
+                        font-size:14px;
+                        font-weight:bold;
+                        display:none;
+                    ">
+                </span>
+
+            </div>
 
         `;
 
@@ -157,6 +183,10 @@ async function loadChats() {
 
 
         chatList.appendChild(div);
+
+        updateChatSoundButton(
+    Number(chatId)
+);
 
 
         // =================================
