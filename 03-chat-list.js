@@ -44,20 +44,12 @@ async function loadChats() {
             chatId;
 
 
-        const isPublicChat =
-            extraClass === "";
-
-
         const soundIcon =
-            isPublicChat
-                ? (
-                    localStorage.getItem(
-                        `chatSound-${chatId}`
-                    ) !== "false"
-                        ? "🔊"
-                        : "🔇"
-                )
-                : "";
+            localStorage.getItem(
+                `chatSound-${chatId}`
+            ) !== "false"
+                ? "🔊"
+                : "🔇";
 
 
         div.innerHTML = `
@@ -65,13 +57,11 @@ async function loadChats() {
             <span
                 style="
                     display:flex;
-                    align-items:flex-start;
+                    align-items:center;
                     min-width:0;
                     flex:1;
                 "
             >
-
-
 
                 <span
                     style="
@@ -85,28 +75,35 @@ async function loadChats() {
             </span>
 
 
-            <div style="
-                display:flex;
-                align-items:center;
-                gap:6px;
-                margin-left:8px;
-                flex-shrink:0;
-            ">
+            <div
+                style="
+                    display:flex;
+                    align-items:center;
+                    justify-content:flex-end;
+                    gap:6px;
+                    margin-left:8px;
+                    flex-shrink:0;
+                    width:52px;
+                "
+            >
 
                 <button
                     type="button"
                     data-sound-chat-id="${chatId}"
-                    onclick="event.stopPropagation(); toggleChatSound(${chatId})"
+                    onclick="
+                        event.stopPropagation();
+                        toggleChatSound(${chatId});
+                    "
                     style="
                         width:22px;
                         height:22px;
+                        padding:0;
+                        margin:0;
                         display:flex;
                         align-items:center;
                         justify-content:center;
                         border:none;
                         background:none;
-                        padding:0;
-                        margin:0;
                         font-size:12px;
                         line-height:1;
                         cursor:pointer;
@@ -114,21 +111,28 @@ async function loadChats() {
                     "
                     title="Звук"
                 >
-                    🔊
+                    ${soundIcon}
                 </button>
+
 
                 <span
                     id="count-${chatId}"
                     style="
+                        width:28px;
+                        height:28px;
+                        display:none;
+                        align-items:center;
+                        justify-content:center;
+                        box-sizing:border-box;
                         background:#ff9800;
                         color:white;
                         border-radius:50%;
-                        padding:3px 9px;
+                        padding:0;
                         font-size:14px;
                         font-weight:bold;
-                        display:none;
                         flex-shrink:0;
-                    ">
+                    "
+                >
                 </span>
 
             </div>
@@ -170,11 +174,25 @@ async function loadChats() {
 
         chatList.appendChild(div);
 
+
+        // =================================
+        // Обновляем состояние звука
+        // =================================
+
         updateChatSoundButton(
-    Number(chatId)
-);
+            Number(chatId)
+        );
 
 
+        // =================================
+        // Обновляем счётчик
+        // =================================
+
+        updateUnreadCount(
+            Number(chatId)
+        );
+
+    }
 
 
     // =================================
