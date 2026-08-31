@@ -44,14 +44,6 @@ async function loadChats() {
             chatId;
 
 
-        const soundIcon =
-            localStorage.getItem(
-                `chatSound-${chatId}`
-            ) !== "false"
-                ? "🔊"
-                : "🔇";
-
-
         div.innerHTML = `
 
             <span
@@ -93,16 +85,16 @@ async function loadChats() {
                         display:flex;
                         align-items:center;
                         justify-content:center;
+                        flex:0 0 22px;
                         border:none;
                         background:none;
                         font-size:12px;
                         line-height:1;
                         cursor:pointer;
-                        flex-shrink:0;
                     "
                     title="Звук"
                 >
-                    ${soundIcon}
+                    🔊
                 </button>
 
 
@@ -116,6 +108,7 @@ async function loadChats() {
                         display:none;
                         align-items:center;
                         justify-content:center;
+                        flex:0 0 28px;
                         box-sizing:border-box;
                         background:#ff9800;
                         color:white;
@@ -124,7 +117,6 @@ async function loadChats() {
                         font-weight:bold;
                         line-height:28px;
                         text-align:center;
-                        flex-shrink:0;
                     "
                 >
                 </span>
@@ -133,6 +125,10 @@ async function loadChats() {
 
         `;
 
+
+        // =================================
+        // Открытие чата
+        // =================================
 
         div.onclick = async () => {
 
@@ -170,7 +166,7 @@ async function loadChats() {
 
 
         // =================================
-        // Обновляем состояние звука
+        // Устанавливаем правильный значок
         // =================================
 
         updateChatSoundButton(
@@ -179,7 +175,7 @@ async function loadChats() {
 
 
         // =================================
-        // Обновляем счётчик
+        // Обновляем количество сообщений
         // =================================
 
         updateUnreadCount(
