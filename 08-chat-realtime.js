@@ -84,7 +84,9 @@ async function subscribeToMessages() {
                             currentUser.id
                         ) {
 
-                            playMessageSound();
+                            playMessageSound(
+                            newMessage.chat_id
+                        );
 
                         }
 
