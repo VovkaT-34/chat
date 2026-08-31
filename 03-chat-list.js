@@ -48,12 +48,22 @@ async function loadChats() {
 
             <span
                 style="
+                    display:flex;
+                    align-items:center;
                     min-width:0;
                     flex:1;
-                    overflow-wrap:anywhere;
                 "
             >
-                ${icon} ${chatName}
+
+                <span
+                    style="
+                        min-width:0;
+                        overflow-wrap:anywhere;
+                    "
+                >
+                    ${icon} ${chatName}
+                </span>
+
             </span>
 
 
@@ -65,10 +75,40 @@ async function loadChats() {
                     gap:6px;
                     margin-left:8px;
                     flex-shrink:0;
-                    width:58px;
-                    height:28px;
+                    width:68px;
+                    height:34px;
                 "
             >
+
+                <span
+                    style="
+                        width:34px;
+                        height:34px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        flex-shrink:0;
+                    "
+                >
+
+                    <span
+                        id="count-${chatId}"
+                        style="
+                            background:#ff9800;
+                            color:white;
+                            border-radius:50%;
+                            padding:3px 9px;
+                            font-size:14px;
+                            font-weight:bold;
+                            display:none;
+                            white-space:nowrap;
+                            box-sizing:border-box;
+                        "
+                    >
+                    </span>
+
+                </span>
+
 
                 <button
                     type="button"
@@ -94,38 +134,10 @@ async function loadChats() {
                     🔊
                 </button>
 
-
-                <span
-                    id="count-${chatId}"
-                    style="
-                        width:28px;
-                        height:28px;
-                        padding:0;
-                        margin:0;
-                        display:none;
-                        align-items:center;
-                        justify-content:center;
-                        flex:0 0 28px;
-                        box-sizing:border-box;
-                        background:#ff9800;
-                        color:white;
-                        border-radius:50%;
-                        font-size:14px;
-                        font-weight:bold;
-                        line-height:28px;
-                        text-align:center;
-                    "
-                >
-                </span>
-
             </div>
 
         `;
 
-
-        // =================================
-        // Открытие чата
-        // =================================
 
         div.onclick = async () => {
 
@@ -163,7 +175,7 @@ async function loadChats() {
 
 
         // =================================
-        // Устанавливаем правильный значок
+        // Обновляем состояние звука
         // =================================
 
         updateChatSoundButton(
@@ -268,7 +280,7 @@ async function loadChats() {
     if (privateChatsError) {
 
         console.log(
-            "Ошибка личных чатов:",
+            "Ошибка загрузки личных чатов:",
             privateChatsError
         );
 
@@ -320,7 +332,7 @@ async function loadChats() {
     if (groupChatsError) {
 
         console.log(
-            "Ошибка групповых чатов:",
+            "Ошибка загрузки групповых чатов:",
             groupChatsError
         );
 
