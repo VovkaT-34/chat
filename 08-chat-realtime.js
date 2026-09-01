@@ -42,12 +42,14 @@ async function subscribeToMessages() {
 
 
                     if (!newMessage) {
+
                         return;
+
                     }
 
 
                     // =================================
-                    // Подтверждаем доставку сообщения
+                    // Подтверждаем доставку
                     // =================================
 
                     if (
@@ -82,7 +84,7 @@ async function subscribeToMessages() {
 
 
                     // =================================
-                    // Новое сообщение в открытом чате
+                    // Сообщение в текущем чате
                     // =================================
 
                     if (
@@ -96,9 +98,9 @@ async function subscribeToMessages() {
                             currentUser.id
                         ) {
 
-                        appendMessage(
-                            newMessage
-                        );
+                            await appendMessage(
+                                newMessage
+                            );
 
                         }
 
@@ -110,8 +112,6 @@ async function subscribeToMessages() {
                     // =================================
 
                     else {
-
-                        // Свой звук не воспроизводим.
 
                         if (
                             currentUser &&
@@ -129,7 +129,7 @@ async function subscribeToMessages() {
 
 
                     // =================================
-                    // Обновляем счётчик конкретного чата
+                    // Обновляем счётчик
                     // =================================
 
                     if (
