@@ -1,3 +1,4 @@
+
 // ===============================
 // Загрузка сообщений
 // ===============================
@@ -213,6 +214,20 @@ async function loadMessages() {
 
 
     // =================================
+    // Обновляем кнопку перехода вниз
+    // =================================
+
+    if (
+        typeof updateScrollToBottomButton ===
+        "function"
+    ) {
+
+        updateScrollToBottomButton();
+
+    }
+
+
+    // =================================
     // Обновляем статус последнего
     // собственного сообщения
     // =================================
@@ -350,6 +365,21 @@ async function appendMessage(message) {
 
 
     // =================================
+    // Ещё раз проверяем дубликат
+    // =================================
+
+    if (
+        box.querySelector(
+            `[data-message-id="${fullMessage.id}"]`
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    // =================================
     // Отрисовываем через 14-й файл
     // =================================
 
@@ -390,7 +420,7 @@ async function appendMessage(message) {
         //
         // Никакого перехода вниз.
         // Никакого сдвига позиции.
-        // Возвращаем ровно прежнее положение.
+        // Возвращаем прежнее положение.
         // =================================
 
         box.scrollTop =
@@ -402,6 +432,15 @@ async function appendMessage(message) {
 
                 box.scrollTop =
                     previousScrollTop;
+
+                if (
+                    typeof updateScrollToBottomButton ===
+                    "function"
+                ) {
+
+                    updateScrollToBottomButton();
+
+                }
 
             }
         );
@@ -440,3 +479,4 @@ async function appendMessage(message) {
     }
 
 }
+
