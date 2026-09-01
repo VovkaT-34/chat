@@ -34,6 +34,7 @@ function isMessagesBoxNearBottom() {
 }
 
 
+
 // ===============================
 // Создание кнопки перехода вниз
 // ===============================
@@ -60,6 +61,17 @@ function createScrollToBottomButton() {
 
 
     if (!messagesContainer) {
+
+        return null;
+
+    }
+
+
+    const chatWindow =
+        messagesContainer.parentElement;
+
+
+    if (!chatWindow) {
 
         return null;
 
@@ -135,14 +147,14 @@ function createScrollToBottomButton() {
                     updateScrollToBottomButton();
 
                 },
-                350
+                500
             );
 
         }
     );
 
 
-    messagesContainer.appendChild(
+    chatWindow.appendChild(
         button
     );
 
@@ -150,6 +162,7 @@ function createScrollToBottomButton() {
     return button;
 
 }
+
 
 
 // ===============================
@@ -188,6 +201,7 @@ function updateScrollToBottomButton() {
     }
 
 }
+
 
 
 // ===============================
