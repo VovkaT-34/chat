@@ -1,3 +1,4 @@
+```javascript
 // ===============================
 // Отправка сообщения
 // ===============================
@@ -28,8 +29,9 @@ async function sendMessage() {
     }
 
 
-    // Если имя пользователя ещё не загрузилось,
-    // получаем его непосредственно перед отправкой.
+    // =================================
+    // Получаем имя пользователя
+    // =================================
 
     if (
         !currentUsername ||
@@ -94,12 +96,6 @@ async function sendMessage() {
     }
 
 
-    console.log(
-        "Имя перед отправкой:",
-        senderName
-    );
-
-
     const chatId =
         currentChatId;
 
@@ -107,6 +103,99 @@ async function sendMessage() {
     const replyTo =
         replyMessageId;
 
+
+    // =================================
+    // Индикатор отправки
+    // =================================
+
+    const temporaryId =
+        `sending-${Date.now()}`;
+
+
+    const box =
+        document.getElementById(
+            "messages"
+        );
+
+
+    let temporaryMessage =
+        null;
+
+
+    if (box) {
+
+        temporaryMessage =
+            document.createElement(
+                "div"
+            );
+
+
+        temporaryMessage.className =
+            "message";
+
+
+        temporaryMessage.dataset.messageId =
+            temporaryId;
+
+
+        temporaryMessage.innerHTML = `
+
+            <div>
+
+                <span class="message-user">
+                    ${senderName}
+                </span>
+
+                <span class="message-time">
+                    ${new Date().toLocaleDateString(
+                        "ru-RU"
+                    )}
+                    ${new Date().toLocaleTimeString(
+                        "ru-RU",
+                        {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                        }
+                    )}
+                </span>
+
+                <span
+                    class="message-status"
+                    style="
+                        margin-left:6px;
+                        font-size:13px;
+                        font-weight:bold;
+                        white-space:nowrap;
+                        color:#999999;
+                    "
+                    title="Отправляется"
+                >
+                    ⟳
+                </span>
+
+            </div>
+
+            <div class="message-text">
+                ${text}
+            </div>
+
+        `;
+
+
+        box.appendChild(
+            temporaryMessage
+        );
+
+
+        box.scrollTop =
+            box.scrollHeight;
+
+    }
+
+
+    // =================================
+    // Отправляем сообщение в Supabase
+    // =================================
 
     const {
         data,
@@ -155,6 +244,10 @@ async function sendMessage() {
         .single();
 
 
+    // =================================
+    // Ошибка отправки
+    // =================================
+
     if (error) {
 
         console.log(
@@ -162,18 +255,41 @@ async function sendMessage() {
             error
         );
 
+
+        if (temporaryMessage) {
+
+            temporaryMessage.remove();
+
+        }
+
+
         return;
 
     }
 
 
-    // Очищаем поле сразу после успешной отправки.
+    // =================================
+    // Удаляем временное сообщение
+    // =================================
+
+    if (temporaryMessage) {
+
+        temporaryMessage.remove();
+
+    }
+
+
+    // =================================
+    // Очищаем поле
+    // =================================
 
     input.value = "";
 
 
-    // Собственное отправленное сообщение
-    // сразу считаем прочитанным.
+    // =================================
+    // Собственное сообщение сразу
+    // считаем прочитанным
+    // =================================
 
     const {
         error: ownReadError
@@ -216,6 +332,10 @@ async function sendMessage() {
     }
 
 
+    // =================================
+    // Сбрасываем ответ
+    // =================================
+
     replyMessageId =
         null;
 
@@ -239,50 +359,40 @@ async function sendMessage() {
 
 
     // =================================
-    // Сразу добавляем своё сообщение
-    // через общий рендерер 14-го файла
+    // Добавляем настоящее сообщение
     // =================================
 
-    const box =
-        document.getElementById(
-            "messages"
-        );
+    const messageForRender = {
+
+        id:
+            data.id,
+
+        user_id:
+            currentUser.id,
+
+        text:
+            data.text,
+
+        created_at:
+            data.created_at,
+
+        reply_to:
+            data.reply_to,
+
+        profiles: {
+
+            username:
+                senderName
+
+        },
+
+        reply_message:
+            data.reply_message
+
+    };
 
 
-    if (
-        box &&
-        data
-    ) {
-
-        const messageForRender = {
-
-            id:
-                data.id,
-
-            user_id:
-                currentUser.id,
-
-            text:
-                data.text,
-
-            created_at:
-                data.created_at,
-
-            reply_to:
-                data.reply_to,
-
-            profiles: {
-
-                username:
-                    senderName
-
-            },
-
-            reply_message:
-                data.reply_message
-
-        };
-
+    if (box) {
 
         const div =
             renderMessage(
@@ -305,11 +415,15 @@ async function sendMessage() {
     }
 
 
-    // Если Realtime сработает —
-    // он обновит чат самостоятельно.
-    //
-    // Поэтому здесь специально
-    // НЕ вызываем loadMessages().
+    // =================================
+    // Начальный статус:
+    // сообщение записано в БД
+    // =================================
+
+    updateMessageStatus(
+        data.id,
+        1
+    );
 
 }
 
@@ -337,7 +451,7 @@ if (sendButton) {
 
 
 // ===============================
-// Enter для отправки сообщения
+// Enter для отправки
 // ===============================
 
 const messageInput =
@@ -386,3 +500,4 @@ if (messageInput) {
     );
 
 }
+```
