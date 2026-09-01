@@ -1,265 +1,4 @@
 // ===============================
-// Количество сообщений для статусов
-// ===============================
-
-const MESSAGE_STATUS_LIMIT = 20;
-
-
-// ===============================
-// Получение статуса прочтения
-// ===============================
-
-async function getMessageReadStatus(
-    messageId
-) {
-
-    if (!currentUser) {
-        return false;
-    }
-
-
-    const {
-        data,
-        error
-    } = await supabaseClient.rpc(
-        "get_message_read_status",
-        {
-            p_message_id:
-                messageId
-        }
-    );
-
-
-    if (error) {
-
-        console.log(
-            "Ошибка получения статуса прочтения:",
-            error
-        );
-
-        return false;
-
-    }
-
-
-    return data === true;
-
-}
-
-
-
-// ===============================
-// Получение статуса доставки
-// ===============================
-
-async function getMessageDeliveredStatus(
-    messageId
-) {
-
-    if (!currentUser) {
-        return false;
-    }
-
-
-    const {
-        data,
-        error
-    } = await supabaseClient
-
-        .from("message_deliveries")
-
-        .select("id")
-
-        .eq(
-            "message_id",
-            messageId
-        )
-
-        .neq(
-            "user_id",
-            currentUser.id
-        )
-
-        .limit(1);
-
-
-    if (error) {
-
-        console.log(
-            "Ошибка получения доставки:",
-            error
-        );
-
-        return false;
-
-    }
-
-
-    return (
-        Array.isArray(data) &&
-        data.length > 0
-    );
-
-}
-
-
-
-// ===============================
-// Обновление статуса одного сообщения
-// ===============================
-
-async function updateMessageStatus(
-    message
-) {
-
-    if (
-        !currentUser ||
-        !message ||
-        message.user_id !== currentUser.id
-    ) {
-
-        return;
-
-    }
-
-
-    const div =
-        document.querySelector(
-            `[data-message-id="${message.id}"]`
-        );
-
-
-    if (!div) {
-
-        return;
-
-    }
-
-
-    const status =
-        div.querySelector(
-            ".message-status"
-        );
-
-
-    if (!status) {
-
-        return;
-
-    }
-
-
-    const isDelivered =
-        await getMessageDeliveredStatus(
-            message.id
-        );
-
-
-    const isRead =
-        await getMessageReadStatus(
-            message.id
-        );
-
-
-    if (isRead) {
-
-        status.textContent =
-            "✓✓";
-
-        status.title =
-            "Прочитано";
-
-        status.style.color =
-            "#20b85a";
-
-        status.style.letterSpacing =
-            "-2px";
-
-    }
-
-    else if (isDelivered) {
-
-        status.textContent =
-            "✓";
-
-        status.title =
-            "Доставлено";
-
-        status.style.color =
-            "#39a852";
-
-        status.style.letterSpacing =
-            "normal";
-
-    }
-
-    else {
-
-        status.textContent =
-            "✓";
-
-        status.title =
-            "Отправлено";
-
-        status.style.color =
-            "#999999";
-
-        status.style.letterSpacing =
-            "normal";
-
-    }
-
-}
-
-
-
-// ===============================
-// Обновление статусов последних сообщений
-// ===============================
-
-function updateRecentMessageStatuses(
-    messages
-) {
-
-    if (
-        !currentUser ||
-        !Array.isArray(messages)
-    ) {
-
-        return;
-
-    }
-
-
-    const ownMessages =
-        messages.filter(
-            message =>
-                message.user_id ===
-                currentUser.id
-        );
-
-
-    const recentMessages =
-        ownMessages.slice(
-            -MESSAGE_STATUS_LIMIT
-        );
-
-
-    recentMessages.forEach(
-        message => {
-
-            updateMessageStatus(
-                message
-            );
-
-        }
-    );
-
-}
-
-
-
-// ===============================
 // Загрузка сообщений
 // ===============================
 
@@ -301,9 +40,7 @@ async function loadMessages() {
 
     if (readError) {
 
-        console.log(
-            readError
-        );
+        console.log(readError);
 
     }
 
@@ -359,9 +96,7 @@ async function loadMessages() {
 
     if (error) {
 
-        console.log(
-            error
-        );
+        console.log(error);
 
         return;
 
@@ -374,110 +109,95 @@ async function loadMessages() {
         );
 
 
-    if (!box) {
-
-        return;
-
-    }
+    if (!box) return;
 
 
-    box.innerHTML =
-        "";
+    box.innerHTML = "";
 
 
     let unreadDividerAdded =
         false;
 
 
-    // =================================
-    // Отрисовываем всю историю
-    // =================================
+    data.forEach(message => {
 
-    (data || []).forEach(
-        message => {
-
-            const div =
-                document.createElement(
-                    "div"
-                );
+        const div =
+            document.createElement("div");
 
 
-            div.className =
-                "message";
+        div.className =
+            "message";
 
 
-            div.dataset.messageId =
-                message.id;
+        div.dataset.messageId =
+            message.id;
 
 
-            div.dataset.userId =
-                message.user_id;
+        div.dataset.userId =
+            message.user_id;
 
 
-            const username =
-                message.profiles?.username ||
-                "Пользователь";
+        const username =
+            message.profiles?.username ||
+            "Пользователь";
 
 
-            const date =
-                new Date(
-                    message.created_at
-                );
+        const date =
+            new Date(
+                message.created_at
+            );
 
 
-            const dateText =
-                date.toLocaleDateString(
-                    "ru-RU"
-                );
+        const dateText =
+            date.toLocaleDateString(
+                "ru-RU"
+            );
 
 
-            const timeText =
-                date.toLocaleTimeString(
-                    "ru-RU",
-                    {
-                        hour: "2-digit",
-                        minute: "2-digit"
-                    }
-                );
+        const timeText =
+            date.toLocaleTimeString(
+                "ru-RU",
+                {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }
+            );
 
 
-            let unreadDivider =
-                "";
+        let unreadDivider = "";
 
 
-            if (
-                lastReadId &&
-                message.id > lastReadId &&
-                message.user_id !== currentUser.id &&
-                !unreadDividerAdded
-            ) {
+        if (
+            lastReadId &&
+            message.id > lastReadId &&
+            message.user_id !== currentUser.id &&
+            !unreadDividerAdded
+        ) {
 
-                unreadDividerAdded =
-                    true;
-
-
-                unreadDivider = `
-
-                    <div class="unread-divider">
-
-                        ───────── Непрочитанные сообщения ─────────
-
-                    </div>
-
-                `;
-
-            }
+            unreadDividerAdded = true;
 
 
-            const status =
-                message.user_id ===
-                currentUser.id
+            unreadDivider = `
+
+                <div class="unread-divider">
+
+                    ───────── Непрочитанные сообщения ─────────
+
+                </div>
+
+            `;
+
+        }
+
+
+        const messageStatus =
+            message.user_id === currentUser.id
                 ?
                 `
 
                 <span
                     class="message-status"
-                    title="Отправлено"
+                    data-status-message-id="${message.id}"
                     style="
                         margin-left:6px;
                         font-size:13px;
@@ -485,6 +205,7 @@ async function loadMessages() {
                         white-space:nowrap;
                         color:#999999;
                     "
+                    title="Отправлено"
                 >
                     ✓
                 </span>
@@ -494,119 +215,265 @@ async function loadMessages() {
                 "";
 
 
-            div.innerHTML = `
+        div.innerHTML = `
 
-                ${unreadDivider}
+            ${unreadDivider}
 
-                <div>
+            <div>
 
-                    <span class="message-user">
-                        ${username}
-                    </span>
+                <span class="message-user">
+                    ${username}
+                </span>
 
-                    <span class="message-time">
-                        ${dateText} ${timeText}
-                    </span>
+                <span class="message-time">
+                    ${dateText} ${timeText}
+                </span>
 
-                    ${status}
+                ${messageStatus}
 
-                </div>
-
-
-                ${
-                    message.reply_message
-                    ?
-                    `
-
-                    <div style="
-                        background:#eeeeee;
-                        padding:8px;
-                        border-left:4px solid #8E44AD;
-                        border-radius:6px;
-                        margin-bottom:8px;
-                        font-size:14px;
-                        overflow-wrap:anywhere;
-                        word-break:break-word;
-                    ">
-
-                        ↩ ${
-                            message
-                            .reply_message
-                            .profiles
-                            ?.username ||
-                            "Пользователь"
-                        }
-
-                        <br>
-
-                        ${
-                            message
-                            .reply_message
-                            .text
-                        }
-
-                    </div>
-
-                    `
-                    :
-                    ""
-                }
+            </div>
 
 
-                <div class="message-text">
+            ${
+                message.reply_message
+                ?
+                `
 
-                    ${message.text}
+                <div style="
+                    background:#eeeeee;
+                    padding:8px;
+                    border-left:4px solid #8E44AD;
+                    border-radius:6px;
+                    margin-bottom:8px;
+                    font-size:14px;
+                    overflow-wrap:anywhere;
+                    word-break:break-word;
+                ">
+
+                    ↩ ${
+                        message
+                        .reply_message
+                        .profiles
+                        ?.username ||
+                        "Пользователь"
+                    }
+
+                    <br>
+
+                    ${
+                        message
+                        .reply_message
+                        .text
+                    }
 
                 </div>
 
-
-                <button
-                    onclick='replyToMessage(
-                        ${message.id},
-                        ${JSON.stringify(username)},
-                        ${JSON.stringify(message.text)}
-                    )'
-                    style="
-                        margin-top:8px;
-                        padding:4px 10px;
-                        border:none;
-                        border-radius:8px;
-                        background:#8E44AD;
-                        color:white;
-                        cursor:pointer;
-                    "
-                >
-
-                    ↩ Ответить
-
-                </button>
-
-            `;
+                `
+                :
+                ""
+            }
 
 
-            box.appendChild(
-                div
-            );
+            <div class="message-text">
 
-        }
-    );
+                ${message.text}
+
+            </div>
+
+
+            <button
+                onclick='replyToMessage(
+                    ${message.id},
+                    ${JSON.stringify(username)},
+                    ${JSON.stringify(message.text)}
+                )'
+                style="
+                    margin-top:8px;
+                    padding:4px 10px;
+                    border:none;
+                    border-radius:8px;
+                    background:#8E44AD;
+                    color:white;
+                    cursor:pointer;
+                "
+            >
+
+                ↩ Ответить
+
+            </button>
+
+        `;
+
+
+        box.appendChild(div);
+
+    });
 
 
     // =================================
-    // Сразу переходим вниз
+    // Сразу переходим к непрочитанным
     // =================================
 
-    box.scrollTop =
-        box.scrollHeight;
+    const divider =
+        box.querySelector(
+            ".unread-divider"
+        );
+
+
+    if (divider) {
+
+        divider.scrollIntoView({
+
+            behavior: "instant",
+
+            block: "start"
+
+        });
+
+    }
+
+    else {
+
+        box.scrollTop =
+            box.scrollHeight;
+
+    }
 
 
     // =================================
-    // Только последние сообщения
+    // Статус только последнего
+    // отправленного сообщения
     // =================================
 
-    updateRecentMessageStatuses(
-        data || []
-    );
+    const ownMessages =
+        (data || []).filter(
+            message =>
+                message.user_id ===
+                currentUser.id
+        );
+
+
+    const lastOwnMessage =
+        ownMessages[
+            ownMessages.length - 1
+        ];
+
+
+    if (lastOwnMessage) {
+
+        updateMessageStatus(
+            lastOwnMessage.id
+        );
+
+    }
+
+}
+
+
+
+// ===============================
+// Обновление статуса сообщения
+// ===============================
+
+async function updateMessageStatus(
+    messageId
+) {
+
+    if (
+        !currentUser ||
+        !messageId
+    ) {
+
+        return;
+
+    }
+
+
+    const status =
+        document.querySelector(
+            `[data-status-message-id="${messageId}"]`
+        );
+
+
+    if (!status) {
+
+        return;
+
+    }
+
+
+    // =================================
+    // Проверяем доставку
+    // =================================
+
+    const {
+        data: deliveryData,
+        error: deliveryError
+    } = await supabaseClient
+
+        .from("message_deliveries")
+
+        .select("id")
+
+        .eq(
+            "message_id",
+            messageId
+        )
+
+        .neq(
+            "user_id",
+            currentUser.id
+        )
+
+        .limit(1);
+
+
+    if (deliveryError) {
+
+        console.log(
+            "Ошибка проверки доставки:",
+            deliveryError
+        );
+
+        return;
+
+    }
+
+
+    const delivered =
+        Array.isArray(deliveryData) &&
+        deliveryData.length > 0;
+
+
+    // =================================
+    // Пока проверяем только доставку.
+    // =================================
+
+    if (delivered) {
+
+        status.textContent =
+            "✓";
+
+        status.style.color =
+            "#39a852";
+
+        status.title =
+            "Доставлено";
+
+    }
+
+    else {
+
+        status.textContent =
+            "✓";
+
+        status.style.color =
+            "#999999";
+
+        status.title =
+            "Отправлено";
+
+    }
 
 }
 
@@ -630,6 +497,8 @@ async function appendMessage(message) {
 
     }
 
+
+    // Не добавляем сообщение второй раз.
 
     if (
         box.querySelector(
@@ -699,9 +568,7 @@ async function appendMessage(message) {
 
 
     const div =
-        document.createElement(
-            "div"
-        );
+        document.createElement("div");
 
 
     div.className =
@@ -743,29 +610,30 @@ async function appendMessage(message) {
         );
 
 
-    const status =
+    const messageStatus =
         fullMessage.user_id ===
         currentUser.id
-        ?
-        `
+            ?
+            `
 
-        <span
-            class="message-status"
-            title="Отправлено"
-            style="
-                margin-left:6px;
-                font-size:13px;
-                font-weight:bold;
-                white-space:nowrap;
-                color:#999999;
-            "
-        >
-            ✓
-        </span>
+            <span
+                class="message-status"
+                data-status-message-id="${fullMessage.id}"
+                style="
+                    margin-left:6px;
+                    font-size:13px;
+                    font-weight:bold;
+                    white-space:nowrap;
+                    color:#999999;
+                "
+                title="Отправлено"
+            >
+                ✓
+            </span>
 
-        `
-        :
-        "";
+            `
+            :
+            "";
 
 
     div.innerHTML = `
@@ -780,7 +648,7 @@ async function appendMessage(message) {
                 ${dateText} ${timeText}
             </span>
 
-            ${status}
+            ${messageStatus}
 
         </div>
 
@@ -856,9 +724,7 @@ async function appendMessage(message) {
     `;
 
 
-    box.appendChild(
-        div
-    );
+    box.appendChild(div);
 
 
     // =================================
@@ -870,11 +736,19 @@ async function appendMessage(message) {
 
 
     // =================================
-    // Обновляем статус только этого сообщения
+    // Если сообщение наше —
+    // проверяем только его
     // =================================
 
-    updateMessageStatus(
-        fullMessage
-    );
+    if (
+        fullMessage.user_id ===
+        currentUser.id
+    ) {
+
+        updateMessageStatus(
+            fullMessage.id
+        );
+
+    }
 
 }
