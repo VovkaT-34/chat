@@ -1,3 +1,4 @@
+```javascript
 // ===============================
 // Загрузка списка чатов
 // ===============================
@@ -25,7 +26,7 @@ async function loadChats() {
 
         if (
             chatList.querySelector(
-                `[data-chat-id="${chatId}"]`
+                '[data-chat-id="' + chatId + '"]'
             )
         ) {
             return;
@@ -357,3 +358,4 @@ async function loadChats() {
     );
 
 }
+```
