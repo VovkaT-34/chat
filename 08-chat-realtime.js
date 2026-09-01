@@ -96,11 +96,9 @@ async function subscribeToMessages() {
                             currentUser.id
                         ) {
 
-                            appendMessage(
-                                newMessage
-                            );
-
-                            markChatAsRead();
+                        appendMessage(
+                            newMessage
+                        );
 
                         }
 
