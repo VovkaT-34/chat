@@ -1,43 +1,4 @@
 
-// ===============================
-// Звук нового сообщения
-// ===============================
-
-function playMessageSound() {
-
-    if (!chatSoundEnabled) {
-        return;
-    }
-
-
-    const sound =
-        document.getElementById(
-            "messageSound"
-        );
-
-
-    if (!sound) {
-        return;
-    }
-
-
-    sound.currentTime = 0;
-
-
-    sound.play()
-
-        .catch(
-            error => {
-
-                console.log(
-                    "Звук не воспроизведён:",
-                    error
-                );
-
-            }
-        );
-
-}
 
 
 // ===============================
