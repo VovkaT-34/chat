@@ -75,6 +75,12 @@ function createScrollToBottomButton() {
         "Перейти к новым сообщениям";
 
 
+    button.setAttribute(
+        "aria-label",
+        "Перейти к новым сообщениям"
+    );
+
+
     button.style.position =
         "absolute";
 
@@ -146,7 +152,9 @@ function createScrollToBottomButton() {
 
 
             if (!box) {
+
                 return;
+
             }
 
 
@@ -161,6 +169,10 @@ function createScrollToBottomButton() {
             });
 
 
+            // После перехода вниз
+            // сообщения действительно становятся
+            // просмотренными.
+
             setTimeout(
                 () => {
 
@@ -169,7 +181,7 @@ function createScrollToBottomButton() {
                     updateScrollToBottomButton();
 
                 },
-                300
+                350
             );
 
         }
@@ -234,7 +246,9 @@ function updateScrollToBottomButton() {
 
 
     if (!button) {
+
         return;
+
     }
 
 
@@ -277,7 +291,9 @@ function initMessagesScrollNavigation() {
 
 
     if (!box) {
+
         return;
+
     }
 
 
