@@ -1,503 +1,80 @@
+```css
 /* =========================================
-ОСНОВНАЯ СТРАНИЦА
-========================================= */
-
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
-    background: #f3f6fa;
-    color: #263238;
-}
-
-/* =========================================
-ОСНОВНОЙ БЛОК ЧАТА
-========================================= */
-
-.chat-container {
-    display: flex;
-    gap: 20px;
-    max-width: 1200px;
-    margin: 25px auto;
-    align-items: stretch;
-}
-
-/* =========================================
-СПИСОК ЧАТОВ
-========================================= */
-
-.chat-list {
-    width: 260px;
-    background: #ffffff;
-    border-radius: 14px;
-    padding: 18px;
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
-    box-sizing: border-box;
-}
-
-.chat-list h2 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    color: #37474f;
-}
-
-/* =========================================
-ОБЩИЕ ЧАТЫ
-========================================= */
-
-.chat-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    padding: 10px 12px;
-    margin-bottom: 9px;
-
-    background: #6A1B9A;
-    color: white;
-
-    border-radius: 9px;
-
-    cursor: pointer;
-
-    font-size: 16px;
-    font-weight: 600;
-
-    box-sizing: border-box;
-
-    transition:
-        background 0.2s ease,
-        transform 0.15s ease,
-        box-shadow 0.2s ease;
-}
-
-.chat-item:hover {
-    background: #4A148C;
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* =========================================
-ЛИЧНЫЕ ЧАТЫ
-========================================= */
-
-.private-chat {
-    background: #087F5B;
-}
-
-.private-chat:hover {
-    background: #066B4C;
-}
-
-/* =========================================
-ГРУППОВЫЕ ЧАТЫ
-========================================= */
-
-.group-chat {
-    background: #1E3A8A;
-}
-
-.group-chat:hover {
-    background: #162E6B;
-}
-
-/* =========================================
-ЗАМОЧЕК ЛИЧНОГО ЧАТА
-========================================= */
-
-.private-chat-lock {
-    margin-right: 7px;
-    font-size: 15px;
-}
-
-/* =========================================
-КНОПКА «НОВЫЙ ЛИЧНЫЙ ЧАТ»
-========================================= */
-
-#newPrivateChatButton {
-    width: 100%;
-
-    margin-bottom: 15px;
-
-    padding: 9px 12px;
-
-    background: #ff9800;
-    color: white;
-
-    border: none;
-    border-radius: 9px;
-
-    font-size: 15px;
-    font-weight: bold;
-
-    cursor: pointer;
-
-    transition:
-        background 0.2s ease,
-        transform 0.15s ease;
-}
-
-#newPrivateChatButton:hover {
-    background: #e68900;
-    transform: translateY(-1px);
-}
-
-/* =========================================
-СЧЁТЧИК НЕПРОЧИТАННЫХ
-========================================= */
-
-.chat-item span[id^="count-"] {
-    flex-shrink: 0;
-}
-
-/* =========================================
-ОКНО СООБЩЕНИЙ
-========================================= */
-
-.chat-window {
-    flex: 1;
-    min-width: 0;
-
-    background: #ffffff;
-
-    border-radius: 14px;
-
-    padding: 18px;
-
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
-
-    box-sizing: border-box;
-}
-
-.chat-window h2 {
-    margin-top: 0;
-    margin-bottom: 15px;
-
-    color: #37474f;
-
-    overflow-wrap: anywhere;
-}
-
-/* =========================================
-ОБЛАСТЬ СООБЩЕНИЙ
+КНОПКА ПЕРЕХОДА К ПОСЛЕДНИМ СООБЩЕНИЯМ
 ========================================= */
 
 #messages {
-    height: 400px;
-
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    border: 1px solid #d9e0e6;
-
-    border-radius: 10px;
-
-    padding: 15px;
-
-    margin-bottom: 15px;
-
-    background: #fafbfc;
-
-    box-sizing: border-box;
+    position: relative;
 }
 
-/* =========================================
-СООБЩЕНИЯ
-========================================= */
+#scrollToBottomButton {
+    position: absolute;
 
-.message {
-    margin-bottom: 12px;
+    left: 50%;
+    bottom: 18px;
 
-    padding: 10px;
+    transform: translateX(-50%) scale(0.85);
 
-    background: #eeeeee;
-
-    border-radius: 10px;
-
-    overflow-wrap: anywhere;
-}
-
-/* =========================================
-ИМЯ ПОЛЬЗОВАТЕЛЯ
-========================================= */
-
-.message-user {
-    display: inline-block;
-
-    font-weight: bold;
-
-    color: #198754;
-
-    background: #f3fff7;
-
-    border: 2px solid #ff9800;
-
-    padding: 4px 10px;
-
-    border-radius: 9px;
-
-    margin-right: 6px;
-
-    font-size: 15px;
-
-    transition: 0.2s ease;
-}
-
-.message-user:hover {
-    background: #fff8e7;
-    transform: scale(1.03);
-    cursor: pointer;
-}
-
-/* =========================================
-ВРЕМЯ СООБЩЕНИЯ
-========================================= */
-
-.message-time {
-    color: #777;
-
-    font-size: 12px;
-
-    margin-left: 6px;
-
-    font-weight: normal;
-}
-
-/* =========================================
-ТЕКСТ СООБЩЕНИЯ
-========================================= */
-
-.message-text {
-    margin-top: 8px;
-
-    color: #333;
-
-    max-width: 100%;
-
-    overflow-wrap: anywhere;
-    word-wrap: break-word;
-    word-break: break-word;
-
-    white-space: pre-wrap;
-}
-
-/* =========================================
-ПОЛЕ ОТПРАВКИ
-========================================= */
-
-.send-box {
-    display: flex;
-
-    gap: 10px;
-
-    align-items: center;
-}
-
-/* =========================================
-ПОЛЕ ВВОДА
-========================================= */
-
-#messageInput {
-    flex: 1;
-
-    min-width: 0;
-
-    padding: 11px 12px;
-
-    font-size: 16px;
-
-    border-radius: 8px;
-
-    border: 1px solid #cbd5dc;
-
-    box-sizing: border-box;
-
-    outline: none;
-
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
-}
-
-#messageInput:focus {
-    border-color: #229ED9;
-
-    box-shadow:
-        0 0 0 2px rgba(34, 158, 217, 0.15);
-}
-
-/* =========================================
-КНОПКА ОТПРАВКИ
-========================================= */
-
-#sendButton {
-    width: 48px;
-    height: 48px;
-
-    min-width: 48px;
-    min-height: 48px;
-
-    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
-    background: linear-gradient(135deg, #22c55e, #16a34a);
+    padding: 0;
 
-    color: white;
-
-    border: none;
+    border: 1px solid rgba(80, 80, 80, 0.25);
     border-radius: 50%;
+
+    background: rgba(255, 255, 255, 0.72);
+
+    color: #37474f;
+
+    font-size: 30px;
+    font-family: Arial, sans-serif;
+    font-weight: normal;
+    line-height: 1;
 
     cursor: pointer;
 
-    font-size: 22px;
+    opacity: 0;
+    visibility: hidden;
+
+    pointer-events: none;
+
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.18);
+
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 
     transition:
-        transform 0.18s ease,
-        box-shadow 0.18s ease,
-        background 0.18s ease;
-
-    box-shadow:
-        0 4px 12px rgba(34, 197, 94, 0.35);
+        opacity 0.2s ease,
+        visibility 0.2s ease,
+        transform 0.2s ease,
+        background 0.2s ease;
 }
 
-#sendButton:hover {
-    background: linear-gradient(135deg, #34d399, #22c55e);
+#scrollToBottomButton.scroll-to-bottom-visible {
+    opacity: 0.85;
 
-    transform: scale(1.08);
+    visibility: visible;
 
-    box-shadow:
-        0 6px 16px rgba(34, 197, 94, 0.45);
+    pointer-events: auto;
+
+    transform: translateX(-50%) scale(1);
 }
 
-#sendButton:active {
-    transform: scale(0.94);
+#scrollToBottomButton:hover {
+    opacity: 1;
+
+    background: rgba(255, 255, 255, 0.92);
+
+    transform: translateX(-50%) scale(1.08);
 }
 
-/* =========================================
-ИНДИКАТОР «ПЕЧАТАЕТ...»
-========================================= */
-
-#typingIndicator {
-    color: #777;
-
-    font-style: italic;
-
-    margin: 8px 5px;
+#scrollToBottomButton:active {
+    transform: translateX(-50%) scale(0.94);
 }
-
-/* =========================================
-РАЗДЕЛИТЕЛЬ НЕПРОЧИТАННЫХ
-========================================= */
-
-.unread-divider {
-    color: #ff9800;
-
-    font-size: 13px;
-
-    font-weight: bold;
-
-    text-align: center;
-
-    margin: 12px 0;
-}
-
-/* =========================================
-АДАПТАЦИЯ ДЛЯ ПЛАНШЕТА
-========================================= */
-
-@media (max-width: 900px) {
-
-    .chat-container {
-        gap: 12px;
-    }
-
-    .chat-list {
-        width: 220px;
-        padding: 14px;
-    }
-
-    .chat-window {
-        padding: 14px;
-    }
-
-}
-
-/* =========================================
-АДАПТАЦИЯ ДЛЯ ТЕЛЕФОНА
-========================================= */
-
-@media (max-width: 700px) {
-
-    body {
-        padding: 10px;
-    }
-
-    .chat-container {
-        flex-direction: column;
-        gap: 12px;
-        margin: 15px auto;
-    }
-
-    .chat-list {
-        width: 100%;
-    }
-
-    .chat-window {
-        width: 100%;
-    }
-
-    #messages {
-        height: 55vh;
-        min-height: 300px;
-    }
-
-    .send-box {
-        gap: 6px;
-    }
-
-    #sendButton {
-        padding: 10px 13px;
-    }
-
-}
-
-/* =========================================
-ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ
-========================================= */
-
-@media (max-width: 450px) {
-
-    .chat-window {
-        padding: 10px;
-    }
-
-    #messages {
-        padding: 10px;
-    }
-
-    .message {
-        padding: 8px;
-    }
-
-    .message-user {
-        font-size: 14px;
-        padding: 3px 8px;
-    }
-
-    .message-time {
-        font-size: 11px;
-    }
-
-    #messageInput {
-        font-size: 15px;
-    }
-
-    #sendButton {
-        font-size: 14px;
-        padding: 10px 11px;
-    }
-
-}
+```
