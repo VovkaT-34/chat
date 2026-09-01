@@ -108,10 +108,6 @@ async function sendMessage() {
         replyMessageId;
 
 
-    const tempId =
-        crypto.randomUUID();
-
-
     const {
         data,
         error
@@ -242,8 +238,10 @@ async function sendMessage() {
         "Введите сообщение...";
 
 
+    // =================================
     // Сразу добавляем своё сообщение
-    // в открытый чат.
+    // через общий рендерер 14-го файла
+    // =================================
 
     const box =
         document.getElementById(
@@ -251,136 +249,58 @@ async function sendMessage() {
         );
 
 
-    if (box && data) {
+    if (
+        box &&
+        data
+    ) {
+
+        const messageForRender = {
+
+            id:
+                data.id,
+
+            user_id:
+                currentUser.id,
+
+            text:
+                data.text,
+
+            created_at:
+                data.created_at,
+
+            reply_to:
+                data.reply_to,
+
+            profiles: {
+
+                username:
+                    senderName
+
+            },
+
+            reply_message:
+                data.reply_message
+
+        };
+
 
         const div =
-            document.createElement("div");
-
-
-        div.className =
-            "message";
-
-
-        div.dataset.messageId =
-            data.id;
-
-
-        div.dataset.userId =
-            currentUser.id;
-
-
-        const date =
-            new Date(
-                data.created_at
+            renderMessage(
+                messageForRender
             );
 
 
-        const dateText =
-            date.toLocaleDateString(
-                "ru-RU"
+        if (div) {
+
+            box.appendChild(
+                div
             );
 
 
-        const timeText =
-            date.toLocaleTimeString(
-                "ru-RU",
-                {
-                    hour: "2-digit",
-                    minute: "2-digit"
-                }
-            );
+            box.scrollTop =
+                box.scrollHeight;
 
-
-        div.innerHTML = `
-
-            <div>
-
-                <span class="message-user">
-                    ${senderName}
-                </span>
-
-                <span class="message-time">
-                    ${dateText} ${timeText}
-                </span>
-
-            </div>
-
-
-            ${
-                data.reply_message
-                ?
-                `
-
-                <div style="
-                    background:#eeeeee;
-                    padding:8px;
-                    border-left:4px solid #8E44AD;
-                    border-radius:6px;
-                    margin-bottom:8px;
-                    font-size:14px;
-                    overflow-wrap:anywhere;
-                    word-break:break-word;
-                ">
-
-                    ↩ ${
-                        data
-                        .reply_message
-                        .profiles
-                        ?.username ||
-                        "Пользователь"
-                    }
-
-                    <br>
-
-                    ${
-                        data
-                        .reply_message
-                        .text
-                    }
-
-                </div>
-
-                `
-                :
-                ""
-            }
-
-
-            <div class="message-text">
-
-                ${data.text}
-
-            </div>
-
-
-            <button
-                onclick='replyToMessage(
-                    ${data.id},
-                    ${JSON.stringify(senderName)},
-                    ${JSON.stringify(data.text)}
-                )'
-                style="
-                    margin-top:8px;
-                    padding:4px 10px;
-                    border:none;
-                    border-radius:8px;
-                    background:#8E44AD;
-                    color:white;
-                    cursor:pointer;
-                ">
-
-                ↩ Ответить
-
-            </button>
-
-        `;
-
-
-        box.appendChild(div);
-
-
-        box.scrollTop =
-            box.scrollHeight;
+        }
 
     }
 
