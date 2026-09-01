@@ -1,4 +1,3 @@
-
 // ===============================
 // Realtime сообщений
 // ===============================
@@ -48,6 +47,41 @@ async function subscribeToMessages() {
 
 
                     // =================================
+                    // Подтверждаем доставку сообщения
+                    // =================================
+
+                    if (
+                        currentUser &&
+                        newMessage.user_id !==
+                        currentUser.id
+                    ) {
+
+                        const {
+                            error:
+                                deliveryError
+                        } =
+                            await supabaseClient.rpc(
+                                "mark_message_delivered",
+                                {
+                                    p_message_id:
+                                        newMessage.id
+                                }
+                            );
+
+
+                        if (deliveryError) {
+
+                            console.log(
+                                "Ошибка подтверждения доставки:",
+                                deliveryError
+                            );
+
+                        }
+
+                    }
+
+
+                    // =================================
                     // Новое сообщение в открытом чате
                     // =================================
 
@@ -58,10 +92,13 @@ async function subscribeToMessages() {
 
                         if (
                             currentUser &&
-                            newMessage.user_id !== currentUser.id
+                            newMessage.user_id !==
+                            currentUser.id
                         ) {
 
-                            appendMessage(newMessage);
+                            appendMessage(
+                                newMessage
+                            );
 
                             markChatAsRead();
 
@@ -85,19 +122,22 @@ async function subscribeToMessages() {
                         ) {
 
                             playMessageSound(
-                            newMessage.chat_id
-                        );
+                                newMessage.chat_id
+                            );
 
                         }
 
                     }
 
 
-                    // Обновляем счётчик конкретного чата.
+                    // =================================
+                    // Обновляем счётчик конкретного чата
+                    // =================================
 
                     if (
                         currentUser &&
-                        newMessage.user_id !== currentUser.id
+                        newMessage.user_id !==
+                        currentUser.id
                     ) {
 
                         await updateUnreadCount(
@@ -113,4 +153,3 @@ async function subscribeToMessages() {
             .subscribe();
 
 }
-
