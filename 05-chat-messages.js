@@ -1,5 +1,12 @@
 // ===============================
-// Получение статуса сообщения
+// Количество сообщений для статусов
+// ===============================
+
+const MESSAGE_STATUS_LIMIT = 20;
+
+
+// ===============================
+// Получение статуса прочтения
 // ===============================
 
 async function getMessageReadStatus(
@@ -15,21 +22,18 @@ async function getMessageReadStatus(
         data,
         error
     } = await supabaseClient.rpc(
-
         "get_message_read_status",
-
         {
             p_message_id:
                 messageId
         }
-
     );
 
 
     if (error) {
 
         console.log(
-            "Ошибка получения статуса сообщения:",
+            "Ошибка получения статуса прочтения:",
             error
         );
 
@@ -101,41 +105,46 @@ async function getMessageDeliveredStatus(
 
 
 // ===============================
-// Индикатор статуса сообщения
+// Обновление статуса одного сообщения
 // ===============================
 
-async function getMessageStatusIcon(
+async function updateMessageStatus(
     message
 ) {
 
     if (
         !currentUser ||
+        !message ||
         message.user_id !== currentUser.id
     ) {
 
-        return "";
+        return;
 
     }
 
 
-    const isRead =
-        await getMessageReadStatus(
-            message.id
+    const div =
+        document.querySelector(
+            `[data-message-id="${message.id}"]`
         );
 
 
-    if (isRead) {
+    if (!div) {
 
-        return `
+        return;
 
-            <span
-                class="message-status message-status-read"
-                title="Прочитано"
-            >
-                ✓✓
-            </span>
+    }
 
-        `;
+
+    const status =
+        div.querySelector(
+            ".message-status"
+        );
+
+
+    if (!status) {
+
+        return;
 
     }
 
@@ -146,32 +155,105 @@ async function getMessageStatusIcon(
         );
 
 
-    if (isDelivered) {
+    const isRead =
+        await getMessageReadStatus(
+            message.id
+        );
 
-        return `
 
-            <span
-                class="message-status message-status-delivered"
-                title="Доставлено"
-            >
-                ✓
-            </span>
+    if (isRead) {
 
-        `;
+        status.textContent =
+            "✓✓";
+
+        status.title =
+            "Прочитано";
+
+        status.style.color =
+            "#20b85a";
+
+        status.style.letterSpacing =
+            "-2px";
+
+    }
+
+    else if (isDelivered) {
+
+        status.textContent =
+            "✓";
+
+        status.title =
+            "Доставлено";
+
+        status.style.color =
+            "#39a852";
+
+        status.style.letterSpacing =
+            "normal";
+
+    }
+
+    else {
+
+        status.textContent =
+            "✓";
+
+        status.title =
+            "Отправлено";
+
+        status.style.color =
+            "#999999";
+
+        status.style.letterSpacing =
+            "normal";
+
+    }
+
+}
+
+
+
+// ===============================
+// Обновление статусов последних сообщений
+// ===============================
+
+function updateRecentMessageStatuses(
+    messages
+) {
+
+    if (
+        !currentUser ||
+        !Array.isArray(messages)
+    ) {
+
+        return;
 
     }
 
 
-    return `
+    const ownMessages =
+        messages.filter(
+            message =>
+                message.user_id ===
+                currentUser.id
+        );
 
-        <span
-            class="message-status message-status-sent"
-            title="Отправлено"
-        >
-            ✓
-        </span>
 
-    `;
+    const recentMessages =
+        ownMessages.slice(
+            -MESSAGE_STATUS_LIMIT
+        );
+
+
+    recentMessages.forEach(
+        message => {
+
+            updateMessageStatus(
+                message
+            );
+
+        }
+    );
 
 }
 
@@ -219,7 +301,9 @@ async function loadMessages() {
 
     if (readError) {
 
-        console.log(readError);
+        console.log(
+            readError
+        );
 
     }
 
@@ -275,7 +359,9 @@ async function loadMessages() {
 
     if (error) {
 
-        console.log(error);
+        console.log(
+            error
+        );
 
         return;
 
@@ -288,215 +374,239 @@ async function loadMessages() {
         );
 
 
-    if (!box) return;
+    if (!box) {
+
+        return;
+
+    }
 
 
-    box.innerHTML = "";
+    box.innerHTML =
+        "";
 
 
     let unreadDividerAdded =
         false;
 
 
-    for (
-        const message of data
-    ) {
+    // =================================
+    // Отрисовываем всю историю
+    // =================================
 
-        const div =
-            document.createElement(
-                "div"
-            );
+    (data || []).forEach(
+        message => {
 
-
-        div.className =
-            "message";
-
-
-        div.dataset.messageId =
-            message.id;
+            const div =
+                document.createElement(
+                    "div"
+                );
 
 
-        div.dataset.userId =
-            message.user_id;
+            div.className =
+                "message";
 
 
-        const username =
-            message.profiles?.username ||
-            "Пользователь";
+            div.dataset.messageId =
+                message.id;
 
 
-        const date =
-            new Date(
-                message.created_at
-            );
+            div.dataset.userId =
+                message.user_id;
 
 
-        const dateText =
-            date.toLocaleDateString(
-                "ru-RU"
-            );
+            const username =
+                message.profiles?.username ||
+                "Пользователь";
 
 
-        const timeText =
-            date.toLocaleTimeString(
-                "ru-RU",
-                {
-                    hour: "2-digit",
-                    minute: "2-digit"
-                }
-            );
+            const date =
+                new Date(
+                    message.created_at
+                );
 
 
-        let unreadDivider = "";
+            const dateText =
+                date.toLocaleDateString(
+                    "ru-RU"
+                );
 
 
-        if (
-            lastReadId &&
-            message.id > lastReadId &&
-            message.user_id !== currentUser.id &&
-            !unreadDividerAdded
-        ) {
-
-            unreadDividerAdded = true;
-
-
-            unreadDivider = `
-
-                <div class="unread-divider">
-
-                    ───────── Непрочитанные сообщения ─────────
-
-                </div>
-
-            `;
-
-        }
-
-
-        const statusIcon =
-            await getMessageStatusIcon(
-                message
-            );
-
-
-        div.innerHTML = `
-
-            ${unreadDivider}
-
-            <div>
-
-                <span class="message-user">
-                    ${username}
-                </span>
-
-                <span class="message-time">
-                    ${dateText} ${timeText}
-                </span>
-
-                ${statusIcon}
-
-            </div>
-
-
-            ${
-                message.reply_message
-                ?
-                `
-
-                <div style="
-                    background:#eeeeee;
-                    padding:8px;
-                    border-left:4px solid #8E44AD;
-                    border-radius:6px;
-                    margin-bottom:8px;
-                    font-size:14px;
-                    overflow-wrap:anywhere;
-                    word-break:break-word;
-                ">
-
-                    ↩ ${
-                        message
-                        .reply_message
-                        .profiles
-                        ?.username ||
-                        "Пользователь"
+            const timeText =
+                date.toLocaleTimeString(
+                    "ru-RU",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
                     }
+                );
 
-                    <br>
 
-                    ${
-                        message
-                        .reply_message
-                        .text
-                    }
+            let unreadDivider =
+                "";
 
-                </div>
 
-                `
-                :
-                ""
+            if (
+                lastReadId &&
+                message.id > lastReadId &&
+                message.user_id !== currentUser.id &&
+                !unreadDividerAdded
+            ) {
+
+                unreadDividerAdded =
+                    true;
+
+
+                unreadDivider = `
+
+                    <div class="unread-divider">
+
+                        ───────── Непрочитанные сообщения ─────────
+
+                    </div>
+
+                `;
+
             }
 
 
-            <div class="message-text">
+            const status =
+                message.user_id ===
+                currentUser.id
+                ?
+                `
 
-                ${message.text}
+                <span
+                    class="message-status"
+                    title="Отправлено"
+                    style="
+                        margin-left:6px;
+                        font-size:13px;
+                        font-weight:bold;
+                        white-space:nowrap;
+                        color:#999999;
+                    "
+                >
+                    ✓
+                </span>
 
-            </div>
-
-
-            <button
-                onclick='replyToMessage(
-                    ${message.id},
-                    ${JSON.stringify(username)},
-                    ${JSON.stringify(message.text)}
-                )'
-                style="
-                    margin-top:8px;
-                    padding:4px 10px;
-                    border:none;
-                    border-radius:8px;
-                    background:#8E44AD;
-                    color:white;
-                    cursor:pointer;
-                ">
-
-                ↩ Ответить
-
-            </button>
-
-        `;
+                `
+                :
+                "";
 
 
-        box.appendChild(div);
+            div.innerHTML = `
 
-    }
+                ${unreadDivider}
+
+                <div>
+
+                    <span class="message-user">
+                        ${username}
+                    </span>
+
+                    <span class="message-time">
+                        ${dateText} ${timeText}
+                    </span>
+
+                    ${status}
+
+                </div>
 
 
-    const divider =
-        box.querySelector(
-            ".unread-divider"
-        );
+                ${
+                    message.reply_message
+                    ?
+                    `
+
+                    <div style="
+                        background:#eeeeee;
+                        padding:8px;
+                        border-left:4px solid #8E44AD;
+                        border-radius:6px;
+                        margin-bottom:8px;
+                        font-size:14px;
+                        overflow-wrap:anywhere;
+                        word-break:break-word;
+                    ">
+
+                        ↩ ${
+                            message
+                            .reply_message
+                            .profiles
+                            ?.username ||
+                            "Пользователь"
+                        }
+
+                        <br>
+
+                        ${
+                            message
+                            .reply_message
+                            .text
+                        }
+
+                    </div>
+
+                    `
+                    :
+                    ""
+                }
 
 
-    if (divider) {
+                <div class="message-text">
 
-        divider.scrollIntoView({
+                    ${message.text}
 
-            behavior: "instant",
+                </div>
 
-            block: "start"
 
-        });
+                <button
+                    onclick='replyToMessage(
+                        ${message.id},
+                        ${JSON.stringify(username)},
+                        ${JSON.stringify(message.text)}
+                    )'
+                    style="
+                        margin-top:8px;
+                        padding:4px 10px;
+                        border:none;
+                        border-radius:8px;
+                        background:#8E44AD;
+                        color:white;
+                        cursor:pointer;
+                    "
+                >
 
-    }
+                    ↩ Ответить
 
-    else {
+                </button>
 
-        box.scrollTop =
-            box.scrollHeight;
+            `;
 
-    }
+
+            box.appendChild(
+                div
+            );
+
+        }
+    );
+
+
+    // =================================
+    // Сразу переходим вниз
+    // =================================
+
+    box.scrollTop =
+        box.scrollHeight;
+
+
+    // =================================
+    // Только последние сообщения
+    // =================================
+
+    updateRecentMessageStatuses(
+        data || []
+    );
 
 }
 
@@ -633,10 +743,29 @@ async function appendMessage(message) {
         );
 
 
-    const statusIcon =
-        await getMessageStatusIcon(
-            fullMessage
-        );
+    const status =
+        fullMessage.user_id ===
+        currentUser.id
+        ?
+        `
+
+        <span
+            class="message-status"
+            title="Отправлено"
+            style="
+                margin-left:6px;
+                font-size:13px;
+                font-weight:bold;
+                white-space:nowrap;
+                color:#999999;
+            "
+        >
+            ✓
+        </span>
+
+        `
+        :
+        "";
 
 
     div.innerHTML = `
@@ -651,7 +780,7 @@ async function appendMessage(message) {
                 ${dateText} ${timeText}
             </span>
 
-            ${statusIcon}
+            ${status}
 
         </div>
 
@@ -717,7 +846,8 @@ async function appendMessage(message) {
                 background:#8E44AD;
                 color:white;
                 cursor:pointer;
-            ">
+            "
+        >
 
             ↩ Ответить
 
@@ -726,10 +856,25 @@ async function appendMessage(message) {
     `;
 
 
-    box.appendChild(div);
+    box.appendChild(
+        div
+    );
 
+
+    // =================================
+    // Новое сообщение сразу внизу
+    // =================================
 
     box.scrollTop =
         box.scrollHeight;
+
+
+    // =================================
+    // Обновляем статус только этого сообщения
+    // =================================
+
+    updateMessageStatus(
+        fullMessage
+    );
 
 }
