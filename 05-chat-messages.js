@@ -311,31 +311,32 @@ async function loadMessages() {
     // =================================
     // Позиция после загрузки
     // =================================
+const divider =
+    box.querySelector(
+        ".unread-divider"
+    );
 
-    const divider =
-        box.querySelector(
-            ".unread-divider"
+
+if (divider) {
+
+    const dividerOffset =
+        divider.offsetTop;
+
+
+    box.scrollTop =
+        Math.max(
+            0,
+            dividerOffset
         );
 
+}
 
-    if (divider) {
+else {
 
-        divider.scrollIntoView({
+    box.scrollTop =
+        box.scrollHeight;
 
-            behavior: "instant",
-
-            block: "start"
-
-        });
-
-    }
-
-    else {
-
-        box.scrollTop =
-            box.scrollHeight;
-
-    }
+}
 
 
     // =================================
