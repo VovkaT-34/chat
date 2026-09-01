@@ -202,47 +202,25 @@ body {
 }
 
 /* =========================================
-КНОПКА ПЕРЕХОДА К НИЗУ
+КНОПКА ПЕРЕХОДА К НОВЫМ СООБЩЕНИЯМ
 ========================================= */
 
 #scrollToBottomButton {
-    position: absolute;
+    background: rgba(142, 68, 173, 0.45) !important;
 
-    right: 28px;
-    bottom: 78px;
+    color: rgba(255, 255, 255, 0.95) !important;
 
-    width: 42px;
-    height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
 
-    padding: 0;
+    font-size: 0 !important;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border: 1px solid rgba(142, 68, 173, 0.35);
-    border-radius: 50%;
-
-    background: rgba(142, 68, 173, 0.38);
-    color: rgba(255, 255, 255, 0.95);
-
-    font-size: 0;
-
-    cursor: pointer;
-
-    z-index: 1000;
-
-    box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.16);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
 
     backdrop-filter: blur(3px);
+
     -webkit-backdrop-filter: blur(3px);
 
-    transition:
-        background 0.2s ease,
-        transform 0.2s ease,
-        box-shadow 0.2s ease,
-        opacity 0.2s ease;
+    cursor: pointer;
 }
 
 #scrollToBottomButton::before {
@@ -254,24 +232,16 @@ body {
         serif;
 
     font-size: 27px;
-    line-height: 1;
 
-    transform: translateY(-1px);
+    line-height: 1;
 
     pointer-events: none;
 }
 
 #scrollToBottomButton:hover {
-    background: rgba(142, 68, 173, 0.58);
+    background: rgba(142, 68, 173, 0.58) !important;
 
-    transform: scale(1.06);
-
-    box-shadow:
-        0 3px 10px rgba(0, 0, 0, 0.2);
-}
-
-#scrollToBottomButton:active {
-    transform: scale(0.94);
+    cursor: pointer;
 }
 
 #scrollToBottomButton:focus {
@@ -505,11 +475,6 @@ body {
         padding: 14px;
     }
 
-    #scrollToBottomButton {
-        right: 24px;
-        bottom: 76px;
-    }
-
 }
 
 /* =========================================
@@ -549,18 +514,6 @@ body {
         padding: 10px 13px;
     }
 
-    #scrollToBottomButton {
-        right: 20px;
-        bottom: 74px;
-
-        width: 40px;
-        height: 40px;
-    }
-
-    #scrollToBottomButton::before {
-        font-size: 25px;
-    }
-
 }
 
 /* =========================================
@@ -597,18 +550,6 @@ body {
     #sendButton {
         font-size: 14px;
         padding: 10px 11px;
-    }
-
-    #scrollToBottomButton {
-        right: 16px;
-        bottom: 72px;
-
-        width: 38px;
-        height: 38px;
-    }
-
-    #scrollToBottomButton::before {
-        font-size: 24px;
     }
 
 }
