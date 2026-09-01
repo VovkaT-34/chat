@@ -174,3 +174,33 @@ function renderMessage(message) {
     return div;
 
 }
+
+
+
+// ===============================
+// Обновление статуса сообщения
+// ===============================
+
+async function updateMessageStatus(messageId) {
+
+    const statusElement =
+        document.querySelector(
+            `[data-status-message-id="${messageId}"]`
+        );
+
+
+    if (!statusElement) {
+
+        return;
+
+    }
+
+
+    statusElement.textContent =
+        "✓";
+
+
+    statusElement.title =
+        "Отправлено";
+
+}
