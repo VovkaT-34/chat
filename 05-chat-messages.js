@@ -1,4 +1,183 @@
 // ===============================
+// Получение статуса сообщения
+// ===============================
+
+async function getMessageReadStatus(
+    messageId
+) {
+
+    if (!currentUser) {
+        return false;
+    }
+
+
+    const {
+        data,
+        error
+    } = await supabaseClient.rpc(
+
+        "get_message_read_status",
+
+        {
+            p_message_id:
+                messageId
+        }
+
+    );
+
+
+    if (error) {
+
+        console.log(
+            "Ошибка получения статуса сообщения:",
+            error
+        );
+
+        return false;
+
+    }
+
+
+    return data === true;
+
+}
+
+
+
+// ===============================
+// Получение статуса доставки
+// ===============================
+
+async function getMessageDeliveredStatus(
+    messageId
+) {
+
+    if (!currentUser) {
+        return false;
+    }
+
+
+    const {
+        data,
+        error
+    } = await supabaseClient
+
+        .from("message_deliveries")
+
+        .select("id")
+
+        .eq(
+            "message_id",
+            messageId
+        )
+
+        .neq(
+            "user_id",
+            currentUser.id
+        )
+
+        .limit(1);
+
+
+    if (error) {
+
+        console.log(
+            "Ошибка получения доставки:",
+            error
+        );
+
+        return false;
+
+    }
+
+
+    return (
+        Array.isArray(data) &&
+        data.length > 0
+    );
+
+}
+
+
+
+// ===============================
+// Индикатор статуса сообщения
+// ===============================
+
+async function getMessageStatusIcon(
+    message
+) {
+
+    if (
+        !currentUser ||
+        message.user_id !== currentUser.id
+    ) {
+
+        return "";
+
+    }
+
+
+    const isRead =
+        await getMessageReadStatus(
+            message.id
+        );
+
+
+    if (isRead) {
+
+        return `
+
+            <span
+                class="message-status message-status-read"
+                title="Прочитано"
+            >
+                ✓✓
+            </span>
+
+        `;
+
+    }
+
+
+    const isDelivered =
+        await getMessageDeliveredStatus(
+            message.id
+        );
+
+
+    if (isDelivered) {
+
+        return `
+
+            <span
+                class="message-status message-status-delivered"
+                title="Доставлено"
+            >
+                ✓
+            </span>
+
+        `;
+
+    }
+
+
+    return `
+
+        <span
+            class="message-status message-status-sent"
+            title="Отправлено"
+        >
+            ✓
+        </span>
+
+    `;
+
+}
+
+
+
+// ===============================
 // Загрузка сообщений
 // ===============================
 
@@ -119,10 +298,14 @@ async function loadMessages() {
         false;
 
 
-    data.forEach(message => {
+    for (
+        const message of data
+    ) {
 
         const div =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
 
         div.className =
@@ -190,6 +373,12 @@ async function loadMessages() {
         }
 
 
+        const statusIcon =
+            await getMessageStatusIcon(
+                message
+            );
+
+
         div.innerHTML = `
 
             ${unreadDivider}
@@ -203,6 +392,8 @@ async function loadMessages() {
                 <span class="message-time">
                     ${dateText} ${timeText}
                 </span>
+
+                ${statusIcon}
 
             </div>
 
@@ -279,7 +470,7 @@ async function loadMessages() {
 
         box.appendChild(div);
 
-    });
+    }
 
 
     const divider =
@@ -330,8 +521,6 @@ async function appendMessage(message) {
     }
 
 
-    // Не добавляем сообщение второй раз.
-
     if (
         box.querySelector(
             `[data-message-id="${message.id}"]`
@@ -342,13 +531,6 @@ async function appendMessage(message) {
 
     }
 
-
-    // Realtime присылает только данные
-    // самого сообщения.
-    //
-    // Поэтому дополнительно получаем
-    // автора и сообщение, на которое
-    // был дан ответ.
 
     const {
         data: fullMessage,
@@ -407,7 +589,9 @@ async function appendMessage(message) {
 
 
     const div =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
 
     div.className =
@@ -449,6 +633,12 @@ async function appendMessage(message) {
         );
 
 
+    const statusIcon =
+        await getMessageStatusIcon(
+            fullMessage
+        );
+
+
     div.innerHTML = `
 
         <div>
@@ -460,6 +650,8 @@ async function appendMessage(message) {
             <span class="message-time">
                 ${dateText} ${timeText}
             </span>
+
+            ${statusIcon}
 
         </div>
 
