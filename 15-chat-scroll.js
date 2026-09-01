@@ -2,36 +2,37 @@
 // Навигация по сообщениям
 // ===============================
 
+
 // ===============================
 // Проверка положения прокрутки
 // ===============================
 
 function isMessagesBoxNearBottom() {
 
-```
-const box =
-    document.getElementById(
-        "messages"
-    );
+    const box =
+        document.getElementById(
+            "messages"
+        );
 
 
-if (!box) {
+    if (!box) {
 
-    return true;
+        return true;
 
-}
-
-
-const distanceFromBottom =
-    box.scrollHeight -
-    box.scrollTop -
-    box.clientHeight;
+    }
 
 
-return distanceFromBottom <= 50;
-```
+    const distanceFromBottom =
+        box.scrollHeight -
+        box.scrollTop -
+        box.clientHeight;
+
+
+    return distanceFromBottom <= 50;
 
 }
+
+
 
 // ===============================
 // Создание кнопки перехода вниз
@@ -39,129 +40,137 @@ return distanceFromBottom <= 50;
 
 function createScrollToBottomButton() {
 
-```
-let button =
-    document.getElementById(
-        "scrollToBottomButton"
+    let button =
+        document.getElementById(
+            "scrollToBottomButton"
+        );
+
+
+    if (button) {
+
+        return button;
+
+    }
+
+
+    const messagesContainer =
+        document.getElementById(
+            "messages"
+        );
+
+
+    if (!messagesContainer) {
+
+        return null;
+
+    }
+
+
+    const chatWindow =
+        messagesContainer.parentElement;
+
+
+    if (!chatWindow) {
+
+        return null;
+
+    }
+
+
+    button =
+        document.createElement(
+            "button"
+        );
+
+
+    button.id =
+        "scrollToBottomButton";
+
+
+    button.type =
+        "button";
+
+
+    button.setAttribute(
+        "aria-label",
+        "Перейти к последним сообщениям"
     );
 
 
-if (button) {
+    button.title =
+        "Перейти к последним сообщениям";
+
+
+    button.innerHTML =
+        "↓";
+
+
+    button.addEventListener(
+        "click",
+        event => {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+
+            const box =
+                document.getElementById(
+                    "messages"
+                );
+
+
+            if (!box) {
+
+                return;
+
+            }
+
+
+            box.scrollTo({
+
+                top:
+                    box.scrollHeight,
+
+                behavior:
+                    "smooth"
+
+            });
+
+
+            setTimeout(
+                () => {
+
+                    if (
+                        typeof markChatAsRead ===
+                        "function"
+                    ) {
+
+                        markChatAsRead();
+
+                    }
+
+
+                    updateScrollToBottomButton();
+
+                },
+                500
+            );
+
+        }
+    );
+
+
+    chatWindow.appendChild(
+        button
+    );
+
 
     return button;
 
 }
 
 
-const messagesContainer =
-    document.getElementById(
-        "messages"
-    );
-
-
-if (!messagesContainer) {
-
-    return null;
-
-}
-
-
-const chatWindow =
-    messagesContainer.parentElement;
-
-
-if (!chatWindow) {
-
-    return null;
-
-}
-
-
-button =
-    document.createElement(
-        "button"
-    );
-
-
-button.id =
-    "scrollToBottomButton";
-
-
-button.type =
-    "button";
-
-
-button.setAttribute(
-    "aria-label",
-    "Перейти к последним сообщениям"
-);
-
-
-button.title =
-    "Перейти к последним сообщениям";
-
-
-button.innerHTML =
-    "↓";
-
-
-button.addEventListener(
-    "click",
-    event => {
-
-        event.preventDefault();
-
-        event.stopPropagation();
-
-
-        const box =
-            document.getElementById(
-                "messages"
-            );
-
-
-        if (!box) {
-
-            return;
-
-        }
-
-
-        box.scrollTo({
-
-            top:
-                box.scrollHeight,
-
-            behavior:
-                "smooth"
-
-        });
-
-
-        setTimeout(
-            () => {
-
-                markChatAsRead();
-
-                updateScrollToBottomButton();
-
-            },
-            500
-        );
-
-    }
-);
-
-
-chatWindow.appendChild(
-    button
-);
-
-
-return button;
-```
-
-}
 
 // ===============================
 // Обновление кнопки
@@ -169,38 +178,38 @@ return button;
 
 function updateScrollToBottomButton() {
 
-```
-const button =
-    createScrollToBottomButton();
+    const button =
+        createScrollToBottomButton();
 
 
-if (!button) {
+    if (!button) {
 
-    return;
+        return;
 
-}
+    }
 
 
-if (
-    isMessagesBoxNearBottom()
-) {
+    if (
+        isMessagesBoxNearBottom()
+    ) {
 
-    button.classList.remove(
-        "scroll-to-bottom-visible"
-    );
+        button.classList.remove(
+            "scroll-to-bottom-visible"
+        );
 
-}
+    }
 
-else {
+    else {
 
-    button.classList.add(
-        "scroll-to-bottom-visible"
-    );
+        button.classList.add(
+            "scroll-to-bottom-visible"
+        );
 
-}
-```
+    }
 
 }
+
+
 
 // ===============================
 // Инициализация навигации
@@ -208,36 +217,56 @@ else {
 
 function initMessagesScrollNavigation() {
 
-```
-const box =
-    document.getElementById(
-        "messages"
+    const box =
+        document.getElementById(
+            "messages"
+        );
+
+
+    if (!box) {
+
+        return;
+
+    }
+
+
+    createScrollToBottomButton();
+
+
+    box.addEventListener(
+        "scroll",
+        () => {
+
+            updateScrollToBottomButton();
+
+        }
     );
 
 
-if (!box) {
-
-    return;
+    updateScrollToBottomButton();
 
 }
 
 
-createScrollToBottomButton();
 
+// ===============================
+// Запуск после загрузки DOM
+// ===============================
 
-box.addEventListener(
-    "scroll",
-    () => {
+if (
+    document.readyState ===
+    "loading"
+) {
 
-        updateScrollToBottomButton();
-
-    }
-);
-
-
-updateScrollToBottomButton();
-```
+    document.addEventListener(
+        "DOMContentLoaded",
+        initMessagesScrollNavigation
+    );
 
 }
 
-initMessagesScrollNavigation();
+else {
+
+    initMessagesScrollNavigation();
+
+}
