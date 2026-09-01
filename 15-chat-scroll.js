@@ -34,7 +34,6 @@ function isMessagesBoxNearBottom() {
 }
 
 
-
 // ===============================
 // Создание кнопки перехода вниз
 // ===============================
@@ -92,7 +91,7 @@ function createScrollToBottomButton() {
 
 
     button.innerHTML =
-        "⌄";
+        "↓";
 
 
     button.addEventListener(
@@ -153,7 +152,6 @@ function createScrollToBottomButton() {
 }
 
 
-
 // ===============================
 // Обновление кнопки
 // ===============================
@@ -190,7 +188,6 @@ function updateScrollToBottomButton() {
     }
 
 }
-
 
 
 // ===============================
