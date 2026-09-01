@@ -1,3 +1,4 @@
+```javascript
 // ===============================
 // Realtime сообщений
 // ===============================
@@ -151,3 +152,4 @@ async function subscribeToMessages() {
             .subscribe();
 
 }
+```
