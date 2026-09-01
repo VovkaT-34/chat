@@ -1,4 +1,4 @@
-```javascript
+
 // ===============================
 // Навигация по сообщениям
 // ===============================
@@ -242,4 +242,4 @@ function initMessagesScrollNavigation() {
 
 
 initMessagesScrollNavigation();
-```
+
