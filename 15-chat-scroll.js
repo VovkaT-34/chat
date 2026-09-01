@@ -1,4 +1,3 @@
-
 // ===============================
 // Навигация по сообщениям
 // ===============================
@@ -77,6 +76,18 @@ function createScrollToBottomButton() {
 
     }
 
+
+    // =================================
+    // Подготавливаем область чата
+    // =================================
+
+    chatWindow.style.position =
+        "relative";
+
+
+    // =================================
+    // Создаём кнопку
+    // =================================
 
     button =
         document.createElement(
@@ -242,4 +253,3 @@ function initMessagesScrollNavigation() {
 
 
 initMessagesScrollNavigation();
-
