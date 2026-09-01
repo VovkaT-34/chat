@@ -1,6 +1,4 @@
 
-
-
 // ===============================
 // Получение количества непрочитанных
 // ===============================
@@ -8,7 +6,9 @@
 async function getUnreadCount(chatId) {
 
     if (!currentUser) {
+
         return 0;
+
     }
 
 
@@ -57,7 +57,9 @@ async function getUnreadCount(chatId) {
 async function updateUnreadCount(chatId) {
 
     if (!currentUser) {
+
         return;
+
     }
 
 
@@ -83,7 +85,9 @@ async function updateUnreadCount(chatId) {
 
 
                 if (!badge) {
+
                     return;
+
                 }
 
 
