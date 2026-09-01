@@ -40,9 +40,7 @@ async function loadMessages() {
 
     if (readError) {
 
-        console.log(
-            readError
-        );
+        console.log(readError);
 
     }
 
@@ -98,10 +96,7 @@ async function loadMessages() {
 
     if (error) {
 
-        console.log(
-            "Ошибка загрузки сообщений:",
-            error
-        );
+        console.log(error);
 
         return;
 
@@ -128,68 +123,67 @@ async function loadMessages() {
         false;
 
 
-    (data || []).forEach(
-        message => {
+    data.forEach(message => {
 
-            let unreadDivider = "";
-
-
-            if (
-                lastReadId &&
-                message.id > lastReadId &&
-                message.user_id !== currentUser.id &&
-                !unreadDividerAdded
-            ) {
-
-                unreadDividerAdded = true;
+        let unreadDivider = "";
 
 
-                unreadDivider = `
+        if (
+            lastReadId &&
+            message.id > lastReadId &&
+            message.user_id !== currentUser.id &&
+            !unreadDividerAdded
+        ) {
 
-                    <div class="unread-divider">
-
-                        ───────── Непрочитанные сообщения ─────────
-
-                    </div>
-
-                `;
-
-            }
+            unreadDividerAdded = true;
 
 
-            const div =
-                renderMessage(
-                    message
-                );
+            unreadDivider = `
+
+                <div class="unread-divider">
+
+                    ───────── Непрочитанные сообщения ─────────
+
+                </div>
+
+            `;
+
+        }
 
 
-            if (!div) {
-
-                return;
-
-            }
-
-
-            if (unreadDivider) {
-
-                div.insertAdjacentHTML(
-                    "afterbegin",
-                    unreadDivider
-                );
-
-            }
+        const div =
+            renderMessage(
+                message
+            );
 
 
-            box.appendChild(
-                div
+        if (!div) {
+
+            return;
+
+        }
+
+
+        if (unreadDivider) {
+
+            div.insertAdjacentHTML(
+                "afterbegin",
+                unreadDivider
             );
 
         }
-    );
+
+
+        box.appendChild(
+            div
+        );
+
+    });
 
 
     // =================================
-    // Начальная позиция чата
+    // Переход к непрочитанным
+    // только после первоначальной загрузки
     // =================================
 
     const divider =
@@ -202,11 +196,9 @@ async function loadMessages() {
 
         divider.scrollIntoView({
 
-            behavior:
-                "instant",
+            behavior: "instant",
 
-            block:
-                "start"
+            block: "start"
 
         });
 
@@ -221,7 +213,8 @@ async function loadMessages() {
 
 
     // =================================
-    // Статус последнего своего сообщения
+    // Обновляем статус последнего
+    // собственного сообщения
     // =================================
 
     const ownMessages =
@@ -251,106 +244,6 @@ async function loadMessages() {
 
 
 // ===============================
-// Обновление статуса сообщения
-// ===============================
-
-async function updateMessageStatus(
-    messageId
-) {
-
-    if (
-        !currentUser ||
-        !messageId
-    ) {
-
-        return;
-
-    }
-
-
-    const status =
-        document.querySelector(
-            `[data-status-message-id="${messageId}"]`
-        );
-
-
-    if (!status) {
-
-        return;
-
-    }
-
-
-    const {
-        data: deliveryData,
-        error: deliveryError
-    } = await supabaseClient
-
-        .from("message_deliveries")
-
-        .select("id")
-
-        .eq(
-            "message_id",
-            messageId
-        )
-
-        .neq(
-            "user_id",
-            currentUser.id
-        )
-
-        .limit(1);
-
-
-    if (deliveryError) {
-
-        console.log(
-            "Ошибка проверки доставки:",
-            deliveryError
-        );
-
-        return;
-
-    }
-
-
-    const delivered =
-        Array.isArray(deliveryData) &&
-        deliveryData.length > 0;
-
-
-    if (delivered) {
-
-        status.textContent =
-            "✓";
-
-        status.style.color =
-            "#39a852";
-
-        status.title =
-            "Доставлено";
-
-    }
-
-    else {
-
-        status.textContent =
-            "✓";
-
-        status.style.color =
-            "#999999";
-
-        status.title =
-            "Отправлено";
-
-    }
-
-}
-
-
-
-// ===============================
 // Добавление нового сообщения
 // ===============================
 
@@ -362,11 +255,7 @@ async function appendMessage(message) {
         );
 
 
-    if (
-        !box ||
-        !message ||
-        !message.id
-    ) {
+    if (!box) {
 
         return;
 
@@ -386,6 +275,18 @@ async function appendMessage(message) {
         return;
 
     }
+
+
+    // =================================
+    // Запоминаем положение пользователя
+    // =================================
+
+    const wasNearBottom =
+        isMessagesBoxNearBottom();
+
+
+    const previousScrollTop =
+        box.scrollTop;
 
 
     // =================================
@@ -449,22 +350,6 @@ async function appendMessage(message) {
 
 
     // =================================
-    // Запоминаем положение пользователя
-    // =================================
-
-    const wasNearBottom =
-        isMessagesBoxNearBottom();
-
-
-    const previousScrollHeight =
-        box.scrollHeight;
-
-
-    const previousScrollTop =
-        box.scrollTop;
-
-
-    // =================================
     // Отрисовываем через 14-й файл
     // =================================
 
@@ -488,7 +373,7 @@ async function appendMessage(message) {
 
     // =================================
     // Если пользователь был внизу —
-    // переходим к новому сообщению.
+    // остаёмся внизу
     // =================================
 
     if (wasNearBottom) {
@@ -498,25 +383,35 @@ async function appendMessage(message) {
 
     }
 
-    // =================================
-    // Если пользователь читал историю —
-    // полностью сохраняем его позицию.
-    // =================================
-
     else {
 
+        // =================================
+        // Пользователь НЕ был внизу.
+        //
+        // Никакого перехода вниз.
+        // Никакого сдвига позиции.
+        // Возвращаем ровно прежнее положение.
+        // =================================
+
         box.scrollTop =
-            previousScrollTop +
-            (
-                box.scrollHeight -
-                previousScrollHeight
-            );
+            previousScrollTop;
+
+
+        requestAnimationFrame(
+            () => {
+
+                box.scrollTop =
+                    previousScrollTop;
+
+            }
+        );
 
     }
 
 
     // =================================
-    // Статус своего сообщения
+    // Если сообщение наше —
+    // обновляем только его статус
     // =================================
 
     if (
@@ -527,6 +422,20 @@ async function appendMessage(message) {
         updateMessageStatus(
             fullMessage.id
         );
+
+    }
+
+
+    // =================================
+    // Обновляем стрелку
+    // =================================
+
+    if (
+        typeof updateScrollToBottomButton ===
+        "function"
+    ) {
+
+        updateScrollToBottomButton();
 
     }
 
