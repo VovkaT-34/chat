@@ -55,147 +55,43 @@ async function loadMessages() {
         lastReadId;
 
 
-    // =================================
-    // Проверяем, есть ли непрочитанные
-    // сообщения после последнего
-    // прочитанного.
-    // =================================
-
     const {
-        data: unreadCheck,
-        error: unreadCheckError
+        data,
+        error
     } = await supabaseClient
 
         .from("messages")
 
-        .select(
-            "id"
-        )
+        .select(`
+
+            id,
+            user_id,
+            text,
+            created_at,
+            reply_to,
+
+            profiles (
+                username
+            ),
+
+            reply_message:reply_to (
+                text,
+
+                profiles (
+                    username
+                )
+            )
+
+        `)
 
         .eq(
             "chat_id",
             currentChatId
         )
 
-        .gt(
-            "id",
-            lastReadId
-        )
-
-        .neq(
-            "user_id",
-            currentUser.id
-        )
-
         .order(
-            "id",
-            {
-                ascending: true
-            }
-        )
-
-        .limit(1);
-
-
-    if (unreadCheckError) {
-
-        console.log(
-            "Ошибка проверки непрочитанных:",
-            unreadCheckError
+            "created_at"
         );
-
-        return;
-
-    }
-
-
-    const hasUnread =
-        Array.isArray(unreadCheck) &&
-        unreadCheck.length > 0;
-
-
-    // =================================
-    // Загружаем только необходимое
-    // =================================
-
-    let query =
-        supabaseClient
-
-            .from("messages")
-
-            .select(`
-
-                id,
-                user_id,
-                text,
-                created_at,
-                reply_to,
-
-                profiles (
-                    username
-                ),
-
-                reply_message:reply_to (
-                    text,
-
-                    profiles (
-                        username
-                    )
-                )
-
-            `)
-
-            .eq(
-                "chat_id",
-                currentChatId
-            );
-
-
-    if (hasUnread) {
-
-        // Загружаем только непрочитанные.
-
-        query =
-            query
-
-                .gt(
-                    "id",
-                    lastReadId
-                )
-
-                .order(
-                    "created_at",
-                    {
-                        ascending: true
-                    }
-                );
-
-    }
-
-    else {
-
-        // Все старые сообщения уже прочитаны.
-        // Поэтому загружаем только последнее.
-
-        query =
-            query
-
-                .order(
-                    "created_at",
-                    {
-                        ascending: false
-                    }
-                )
-
-                .limit(1);
-
-    }
-
-
-    const {
-        data,
-        error
-    } = await query;
 
 
     if (error) {
@@ -206,23 +102,6 @@ async function loadMessages() {
         );
 
         return;
-
-    }
-
-
-    if (!Array.isArray(data)) {
-
-        return;
-
-    }
-
-
-    // При запросе последнего сообщения
-    // оно пришло в обратном порядке.
-
-    if (!hasUnread) {
-
-        data.reverse();
 
     }
 
@@ -243,110 +122,108 @@ async function loadMessages() {
     box.innerHTML = "";
 
 
-    // =================================
-    // Добавляем сообщения
-    // =================================
-
     let unreadDividerAdded =
         false;
 
 
-    data.forEach(message => {
+    (data || []).forEach(
+        message => {
 
-        let unreadDivider = "";
-
-
-        if (
-            hasUnread &&
-            message.user_id !== currentUser.id &&
-            !unreadDividerAdded
-        ) {
-
-            unreadDividerAdded = true;
+            let unreadDivider = "";
 
 
-            unreadDivider = `
+            if (
+                lastReadId &&
+                message.id > lastReadId &&
+                message.user_id !== currentUser.id &&
+                !unreadDividerAdded
+            ) {
 
-                <div class="unread-divider">
-
-                    ───────── Непрочитанные сообщения ─────────
-
-                </div>
-
-            `;
-
-        }
+                unreadDividerAdded = true;
 
 
-        const div =
-            renderMessage(
-                message
+                unreadDivider = `
+
+                    <div class="unread-divider">
+
+                        ───────── Непрочитанные сообщения ─────────
+
+                    </div>
+
+                `;
+
+            }
+
+
+            const div =
+                renderMessage(
+                    message
+                );
+
+
+            if (!div) {
+
+                return;
+
+            }
+
+
+            if (unreadDivider) {
+
+                div.insertAdjacentHTML(
+                    "afterbegin",
+                    unreadDivider
+                );
+
+            }
+
+
+            box.appendChild(
+                div
             );
 
-
-        if (!div) {
-
-            return;
-
         }
-
-
-        if (unreadDivider) {
-
-            div.insertAdjacentHTML(
-                "afterbegin",
-                unreadDivider
-            );
-
-        }
-
-
-        box.appendChild(
-            div
-        );
-
-    });
-
-
-    // =================================
-    // Позиция после загрузки
-    // =================================
-const divider =
-    box.querySelector(
-        ".unread-divider"
     );
 
 
-if (divider) {
+    // =================================
+    // Переход к непрочитанным
+    // =================================
 
-    const dividerOffset =
-        divider.offsetTop;
-
-
-    box.scrollTop =
-        Math.max(
-            0,
-            dividerOffset
+    const divider =
+        box.querySelector(
+            ".unread-divider"
         );
 
-}
 
-else {
+    if (divider) {
 
-    box.scrollTop =
-        box.scrollHeight;
+        divider.scrollIntoView({
 
-}
+            behavior:
+                "instant",
+
+            block:
+                "start"
+
+        });
+
+    }
+
+    else {
+
+        box.scrollTop =
+            box.scrollHeight;
+
+    }
 
 
     // =================================
-    // Проверяем статус последнего
-    // загруженного собственного
-    // сообщения
+    // Статус последнего своего сообщения
     // =================================
 
     const ownMessages =
-        data.filter(
+        (data || []).filter(
             message =>
                 message.user_id ===
                 currentUser.id
@@ -402,10 +279,6 @@ async function updateMessageStatus(
     }
 
 
-    // =================================
-    // Проверяем доставку
-    // =================================
-
     const {
         data: deliveryData,
         error: deliveryError
@@ -413,9 +286,7 @@ async function updateMessageStatus(
 
         .from("message_deliveries")
 
-        .select(
-            "id"
-        )
+        .select("id")
 
         .eq(
             "message_id",
@@ -496,6 +367,16 @@ async function appendMessage(message) {
     }
 
 
+    if (
+        !message ||
+        !message.id
+    ) {
+
+        return;
+
+    }
+
+
     // Не добавляем сообщение второй раз.
 
     if (
@@ -570,7 +451,23 @@ async function appendMessage(message) {
 
 
     // =================================
-    // Отрисовываем через 14-й файл
+    // Сохраняем положение прокрутки
+    // =================================
+
+    const wasNearBottom =
+        isMessagesBoxNearBottom();
+
+
+    const previousScrollHeight =
+        box.scrollHeight;
+
+
+    const previousScrollTop =
+        box.scrollTop;
+
+
+    // =================================
+    // Отрисовываем сообщение через 14-й
     // =================================
 
     const div =
@@ -591,32 +488,31 @@ async function appendMessage(message) {
     );
 
 
-// =================================
-// Сохраняем позицию пользователя
-// =================================
+    // =================================
+    // Прокрутка
+    // =================================
 
-const wasNearBottom =
-    isMessagesBoxNearBottom();
+    if (wasNearBottom) {
 
+        box.scrollTop =
+            box.scrollHeight;
 
-if (wasNearBottom) {
+    }
 
-    box.scrollTop =
-        box.scrollHeight;
+    else {
 
-}
+        box.scrollTop =
+            previousScrollTop +
+            (
+                box.scrollHeight -
+                previousScrollHeight
+            );
 
-
-// =================================
-// Обновляем кнопку перехода вниз
-// =================================
-
-updateScrollToBottomButton();
+    }
 
 
     // =================================
-    // Если сообщение наше —
-    // проверяем его статус
+    // Проверяем статус своего сообщения
     // =================================
 
     if (
