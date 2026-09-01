@@ -4,530 +4,356 @@
 
 async function loadChats() {
 
-```
-const chatList =
-    document.getElementById("chatList");
+    const chatList =
+        document.getElementById("chatList");
 
-if (!chatList) return;
+    if (!chatList) return;
 
-chatList.innerHTML = "Загрузка...";
-
-
-// =================================
-// Получение статуса последнего
-// собственного сообщения
-// =================================
-
-async function updateChatMessageStatus(
-    chatId
-) {
-
-    if (!currentUser) {
-
-        return;
-
-    }
+    chatList.innerHTML = "Загрузка...";
 
 
-    const {
-        data: messages,
-        error
-    } = await supabaseClient
+    // =================================
+    // Вспомогательная функция
+    // =================================
 
-        .from("messages")
-
-        .select("id")
-
-        .eq(
-            "chat_id",
-            chatId
-        )
-
-        .eq(
-            "user_id",
-            currentUser.id
-        )
-
-        .order(
-            "id",
-            {
-                ascending: false
-            }
-        )
-
-        .limit(1);
-
-
-    if (
-        error ||
-        !messages ||
-        !messages.length
+    function addChatToList(
+        chatId,
+        chatName,
+        icon = "",
+        extraClass = ""
     ) {
 
-        return;
-
-    }
-
-
-    const messageId =
-        messages[0].id;
-
-
-    const {
-        data: status,
-        error: statusError
-    } =
-        await supabaseClient.rpc(
-            "get_message_status",
-            {
-                p_message_id:
-                    messageId
-            }
-        );
+        if (
+            chatList.querySelector(
+                `[data-chat-id="${chatId}"]`
+            )
+        ) {
+            return;
+        }
 
 
-    if (statusError) {
-
-        console.log(
-            "Ошибка статуса чата:",
-            statusError
-        );
-
-        return;
-
-    }
+        const div =
+            document.createElement("div");
 
 
-    const statusElement =
-        document.getElementById(
-            `chat-status-${chatId}`
-        );
+        div.className =
+            `chat-item ${extraClass}`;
 
 
-    if (!statusElement) {
-
-        return;
-
-    }
+        div.dataset.chatId =
+            chatId;
 
 
-    if (status === "read") {
-
-        statusElement.textContent =
-            "✓✓";
-
-        statusElement.style.color =
-            "#00c853";
-
-        statusElement.title =
-            "Прочитано";
-
-        return;
-
-    }
-
-
-    if (status === "delivered") {
-
-        statusElement.textContent =
-            "✓";
-
-        statusElement.style.color =
-            "#00c853";
-
-        statusElement.title =
-            "Доставлено";
-
-        return;
-
-    }
-
-
-    statusElement.textContent =
-        "✓";
-
-    statusElement.style.color =
-        "#999999";
-
-    statusElement.title =
-        "Отправлено";
-
-}
-
-
-// =================================
-// Вспомогательная функция
-// =================================
-
-function addChatToList(
-    chatId,
-    chatName,
-    icon = "",
-    extraClass = ""
-) {
-
-    if (
-        chatList.querySelector(
-            `[data-chat-id="${chatId}"]`
-        )
-    ) {
-        return;
-    }
-
-
-    const div =
-        document.createElement("div");
-
-
-    div.className =
-        `chat-item ${extraClass}`;
-
-
-    div.dataset.chatId =
-        chatId;
-
-
-    div.innerHTML = `
-
-        <span
-            style="
-                display:flex;
-                align-items:center;
-                min-width:0;
-                flex:1;
-            "
-        >
+        div.innerHTML = `
 
             <span
                 style="
-                    min-width:0;
-                    overflow-wrap:anywhere;
-                "
-            >
-                ${icon} ${chatName}
-            </span>
-
-            <span
-                id="chat-status-${chatId}"
-                style="
-                    margin-left:6px;
-                    font-size:13px;
-                    font-weight:bold;
-                    white-space:nowrap;
-                    flex-shrink:0;
-                    color:#999999;
-                "
-                title="Отправлено"
-            >
-                ✓
-            </span>
-
-        </span>
-
-
-        <div
-            style="
-                display:flex;
-                align-items:center;
-                justify-content:flex-end;
-                gap:6px;
-                margin-left:8px;
-                flex-shrink:0;
-                width:68px;
-                height:34px;
-            "
-        >
-
-            <span
-                style="
-                    width:34px;
-                    height:34px;
                     display:flex;
                     align-items:center;
-                    justify-content:center;
-                    flex-shrink:0;
+                    min-width:0;
+                    flex:1;
                 "
             >
 
                 <span
-                    id="count-${chatId}"
                     style="
-                        background:#ff9800;
-                        color:white;
-                        border-radius:50%;
-                        padding:3px 9px;
-                        font-size:14px;
-                        font-weight:bold;
-                        display:none;
-                        white-space:nowrap;
-                        box-sizing:border-box;
+                        min-width:0;
+                        overflow-wrap:anywhere;
                     "
                 >
+                    ${icon} ${chatName}
                 </span>
 
             </span>
 
 
-            <button
-                type="button"
-                data-sound-chat-id="${chatId}"
-                onclick="event.stopPropagation(); toggleChatSound(${chatId})"
+            <div
                 style="
-                    width:34px;
-                    height:34px;
                     display:flex;
                     align-items:center;
-                    justify-content:center;
-                    border:none;
-                    background:none;
-                    padding:0;
-                    margin:0;
-                    font-size:16px;
-                    line-height:1;
-                    cursor:pointer;
+                    justify-content:flex-end;
+                    gap:6px;
+                    margin-left:8px;
                     flex-shrink:0;
+                    width:68px;
+                    height:34px;
                 "
-                title="Звук"
             >
-                🔊
-            </button>
 
-        </div>
+                <span
+                    style="
+                        width:34px;
+                        height:34px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        flex-shrink:0;
+                    "
+                >
 
-    `;
+                    <span
+                        id="count-${chatId}"
+                        style="
+                            background:#ff9800;
+                            color:white;
+                            border-radius:50%;
+                            padding:3px 9px;
+                            font-size:14px;
+                            font-weight:bold;
+                            display:none;
+                            white-space:nowrap;
+                            box-sizing:border-box;
+                        "
+                    >
+                    </span>
+
+                </span>
 
 
-    div.onclick = async () => {
+                <button
+                    type="button"
+                    data-sound-chat-id="${chatId}"
+                    onclick="event.stopPropagation(); toggleChatSound(${chatId})"
+                    style="
+                        width:34px;
+                        height:34px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        border:none;
+                        background:none;
+                        padding:0;
+                        margin:0;
+                        font-size:16px;
+                        line-height:1;
+                        cursor:pointer;
+                        flex-shrink:0;
+                    "
+                    title="Звук"
+                >
+                    🔊
+                </button>
 
-        currentChatId =
-            Number(chatId);
+            </div>
+
+        `;
 
 
-        const chatTitle =
-            document.getElementById(
-                "chatTitle"
+        div.onclick = async () => {
+
+            currentChatId =
+                Number(chatId);
+
+
+            const chatTitle =
+                document.getElementById(
+                    "chatTitle"
+                );
+
+
+            if (chatTitle) {
+
+                chatTitle.textContent =
+                    icon
+                        ? `${icon} ${chatName}`
+                        : chatName;
+
+            }
+
+
+            await loadMessages();
+
+
+            await updateUnreadCount(
+                Number(chatId)
             );
 
-
-        if (chatTitle) {
-
-            chatTitle.textContent =
-                icon
-                    ? `${icon} ${chatName}`
-                    : chatName;
-
-        }
+        };
 
 
-        await loadMessages();
+        chatList.appendChild(div);
 
 
-        await updateUnreadCount(
+        // =================================
+        // Обновляем состояние звука
+        // =================================
+
+        updateChatSoundButton(
             Number(chatId)
         );
 
 
-        await updateChatMessageStatus(
+        // =================================
+        // Обновляем количество сообщений
+        // =================================
+
+        updateUnreadCount(
             Number(chatId)
         );
 
-    };
-
-
-    chatList.appendChild(div);
+    }
 
 
     // =================================
-    // Обновляем состояние звука
+    // 1. Загружаем общие чаты
     // =================================
 
-    updateChatSoundButton(
-        Number(chatId)
-    );
+    const {
+        data: publicChats,
+        error: publicChatsError
+    } = await supabaseClient
+        .from("chats")
+        .select("id,name,type")
+        .eq("type", "public")
+        .order("id");
 
-
-    // =================================
-    // Обновляем количество сообщений
-    // =================================
-
-    updateUnreadCount(
-        Number(chatId)
-    );
-
-
-    // =================================
-    // Обновляем статус последнего
-    // собственного сообщения
-    // =================================
-
-    updateChatMessageStatus(
-        Number(chatId)
-    );
-
-}
-
-
-// =================================
-// 1. Загружаем общие чаты
-// =================================
-
-const {
-    data: publicChats,
-    error: publicChatsError
-} = await supabaseClient
-    .from("chats")
-    .select("id,name,type")
-    .eq("type", "public")
-    .order("id");
-
-
-console.log(
-    "ОБЩИЕ ЧАТЫ:",
-    publicChats
-);
-
-
-console.log(
-    "ОШИБКА ОБЩИХ ЧАТОВ:",
-    publicChatsError
-);
-
-
-if (publicChatsError) {
 
     console.log(
-        "Ошибка загрузки общих чатов:",
+        "ОБЩИЕ ЧАТЫ:",
+        publicChats
+    );
+
+
+    console.log(
+        "ОШИБКА ОБЩИХ ЧАТОВ:",
         publicChatsError
     );
 
-    chatList.innerHTML =
-        "Ошибка загрузки чатов.";
 
-    return;
+    if (publicChatsError) {
 
-}
-
-
-// =================================
-// Добавляем общие чаты
-// =================================
-
-(publicChats || []).forEach(
-    chat => {
-
-        addChatToList(
-            chat.id,
-            chat.name,
-            "🌐",
-            ""
+        console.log(
+            "Ошибка загрузки общих чатов:",
+            publicChatsError
         );
 
+        chatList.innerHTML =
+            "Ошибка загрузки чатов.";
+
+        return;
+
     }
-);
 
 
-// =================================
-// 2. Загружаем личные чаты
-// =================================
+    // =================================
+    // Добавляем общие чаты
+    // =================================
 
-const {
-    data: privateChats,
-    error: privateChatsError
-} = await supabaseClient.rpc(
-    "get_my_private_chats"
-);
+    (publicChats || []).forEach(
+        chat => {
 
+            addChatToList(
+                chat.id,
+                chat.name,
+                "🌐",
+                ""
+            );
 
-console.log(
-    "Личные чаты:",
-    privateChats
-);
-
-
-console.log(
-    "Ошибка личных чатов:",
-    privateChatsError
-);
+        }
+    );
 
 
-if (privateChatsError) {
+    // =================================
+    // 2. Загружаем личные чаты
+    // =================================
+
+    const {
+        data: privateChats,
+        error: privateChatsError
+    } = await supabaseClient.rpc(
+        "get_my_private_chats"
+    );
+
 
     console.log(
-        "Ошибка загрузки личных чатов:",
+        "Личные чаты:",
+        privateChats
+    );
+
+
+    console.log(
+        "Ошибка личных чатов:",
         privateChatsError
     );
 
-}
 
+    if (privateChatsError) {
 
-// =================================
-// Добавляем личные чаты
-// =================================
-
-(privateChats || []).forEach(
-    chat => {
-
-        addChatToList(
-            chat.chat_id,
-            chat.chat_name || "Личный чат",
-            "🔒",
-            "private-chat"
+        console.log(
+            "Ошибка загрузки личных чатов:",
+            privateChatsError
         );
 
     }
-);
 
 
-// =================================
-// 3. Загружаем групповые чаты
-// =================================
+    // =================================
+    // Добавляем личные чаты
+    // =================================
 
-const {
-    data: groupChats,
-    error: groupChatsError
-} = await supabaseClient.rpc(
-    "get_my_group_chats"
-);
+    (privateChats || []).forEach(
+        chat => {
 
+            addChatToList(
+                chat.chat_id,
+                chat.chat_name || "Личный чат",
+                "🔒",
+                "private-chat"
+            );
 
-console.log(
-    "ГРУППОВЫЕ ЧАТЫ:",
-    groupChats
-);
-
-
-console.log(
-    "ОШИБКА ГРУППОВЫХ ЧАТОВ:",
-    groupChatsError
-);
-
-
-if (groupChatsError) {
-
-    console.log(
-        "Ошибка загрузки групповых чатов:",
-    groupChatsError
+        }
     );
 
-}
+
+    // =================================
+    // 3. Загружаем групповые чаты
+    // =================================
+
+    const {
+        data: groupChats,
+        error: groupChatsError
+    } = await supabaseClient.rpc(
+        "get_my_group_chats"
+    );
 
 
-// =================================
-// Добавляем групповые чаты
-// =================================
+    console.log(
+        "ГРУППОВЫЕ ЧАТЫ:",
+        groupChats
+    );
 
-(groupChats || []).forEach(
-    chat => {
 
-        addChatToList(
-            chat.chat_id,
-            chat.chat_name || "Групповой чат",
-            "👥",
-            "group-chat"
+    console.log(
+        "ОШИБКА ГРУППОВЫХ ЧАТОВ:",
+        groupChatsError
+    );
+
+
+    if (groupChatsError) {
+
+        console.log(
+            "Ошибка загрузки групповых чатов:",
+            groupChatsError
         );
 
     }
-);
-```
+
+
+    // =================================
+    // Добавляем групповые чаты
+    // =================================
+
+    (groupChats || []).forEach(
+        chat => {
+
+            addChatToList(
+                chat.chat_id,
+                chat.chat_name || "Групповой чат",
+                "👥",
+                "group-chat"
+            );
+
+        }
+    );
 
 }
