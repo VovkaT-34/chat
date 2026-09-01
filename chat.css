@@ -202,58 +202,6 @@ body {
 }
 
 /* =========================================
-КНОПКА ПЕРЕХОДА К НОВЫМ СООБЩЕНИЯМ
-========================================= */
-
-#scrollToBottomButton {
-    background: rgba(142, 68, 173, 0.45) !important;
-
-    color: rgba(255, 255, 255, 0.95) !important;
-
-    border: 1px solid rgba(255, 255, 255, 0.35) !important;
-
-    font-size: 0 !important;
-
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
-
-    backdrop-filter: blur(3px);
-
-    -webkit-backdrop-filter: blur(3px);
-
-    cursor: pointer;
-}
-
-#scrollToBottomButton::before {
-    content: "⟱";
-
-    font-family:
-        "Times New Roman",
-        "DejaVu Serif",
-        serif;
-
-    font-size: 27px;
-
-    line-height: 1;
-
-    pointer-events: none;
-}
-
-#scrollToBottomButton:hover {
-    background: rgba(142, 68, 173, 0.58) !important;
-
-    cursor: pointer;
-}
-
-#scrollToBottomButton:focus {
-    outline: none;
-}
-
-#scrollToBottomButton:focus-visible {
-    outline: 2px solid rgba(142, 68, 173, 0.45);
-    outline-offset: 2px;
-}
-
-/* =========================================
 СООБЩЕНИЯ
 ========================================= */
 
