@@ -55,50 +55,174 @@ async function loadMessages() {
         lastReadId;
 
 
+    // =================================
+    // Проверяем, есть ли непрочитанные
+    // сообщения после последнего
+    // прочитанного.
+    // =================================
+
     const {
-        data,
-        error
+        data: unreadCheck,
+        error: unreadCheckError
     } = await supabaseClient
 
         .from("messages")
 
-        .select(`
-
-            id,
-            user_id,
-            text,
-            created_at,
-            reply_to,
-
-            profiles (
-                username
-            ),
-
-            reply_message:reply_to (
-                text,
-
-                profiles (
-                    username
-                )
-            )
-
-        `)
+        .select(
+            "id"
+        )
 
         .eq(
             "chat_id",
             currentChatId
         )
 
+        .gt(
+            "id",
+            lastReadId
+        )
+
+        .neq(
+            "user_id",
+            currentUser.id
+        )
+
         .order(
-            "created_at"
+            "id",
+            {
+                ascending: true
+            }
+        )
+
+        .limit(1);
+
+
+    if (unreadCheckError) {
+
+        console.log(
+            "Ошибка проверки непрочитанных:",
+            unreadCheckError
         );
+
+        return;
+
+    }
+
+
+    const hasUnread =
+        Array.isArray(unreadCheck) &&
+        unreadCheck.length > 0;
+
+
+    // =================================
+    // Загружаем только необходимое
+    // =================================
+
+    let query =
+        supabaseClient
+
+            .from("messages")
+
+            .select(`
+
+                id,
+                user_id,
+                text,
+                created_at,
+                reply_to,
+
+                profiles (
+                    username
+                ),
+
+                reply_message:reply_to (
+                    text,
+
+                    profiles (
+                        username
+                    )
+                )
+
+            `)
+
+            .eq(
+                "chat_id",
+                currentChatId
+            );
+
+
+    if (hasUnread) {
+
+        // Загружаем только непрочитанные.
+
+        query =
+            query
+
+                .gt(
+                    "id",
+                    lastReadId
+                )
+
+                .order(
+                    "created_at",
+                    {
+                        ascending: true
+                    }
+                );
+
+    }
+
+    else {
+
+        // Все старые сообщения уже прочитаны.
+        // Поэтому загружаем только последнее.
+
+        query =
+            query
+
+                .order(
+                    "created_at",
+                    {
+                        ascending: false
+                    }
+                )
+
+                .limit(1);
+
+    }
+
+
+    const {
+        data,
+        error
+    } = await query;
 
 
     if (error) {
 
-        console.log(error);
+        console.log(
+            "Ошибка загрузки сообщений:",
+            error
+        );
 
         return;
+
+    }
+
+
+    if (!Array.isArray(data)) {
+
+        return;
+
+    }
+
+
+    // При запросе последнего сообщения
+    // оно пришло в обратном порядке.
+
+    if (!hasUnread) {
+
+        data.reverse();
 
     }
 
@@ -119,6 +243,10 @@ async function loadMessages() {
     box.innerHTML = "";
 
 
+    // =================================
+    // Добавляем сообщения
+    // =================================
+
     let unreadDividerAdded =
         false;
 
@@ -129,8 +257,7 @@ async function loadMessages() {
 
 
         if (
-            lastReadId &&
-            message.id > lastReadId &&
+            hasUnread &&
             message.user_id !== currentUser.id &&
             !unreadDividerAdded
         ) {
@@ -182,7 +309,7 @@ async function loadMessages() {
 
 
     // =================================
-    // Сразу переходим к непрочитанным
+    // Позиция после загрузки
     // =================================
 
     const divider =
@@ -212,12 +339,13 @@ async function loadMessages() {
 
 
     // =================================
-    // Статус только последнего
-    // отправленного сообщения
+    // Проверяем статус последнего
+    // загруженного собственного
+    // сообщения
     // =================================
 
     const ownMessages =
-        (data || []).filter(
+        data.filter(
             message =>
                 message.user_id ===
                 currentUser.id
@@ -284,7 +412,9 @@ async function updateMessageStatus(
 
         .from("message_deliveries")
 
-        .select("id")
+        .select(
+            "id"
+        )
 
         .eq(
             "message_id",
@@ -315,10 +445,6 @@ async function updateMessageStatus(
         Array.isArray(deliveryData) &&
         deliveryData.length > 0;
 
-
-    // =================================
-    // Пока проверяем только доставку.
-    // =================================
 
     if (delivered) {
 
@@ -443,7 +569,7 @@ async function appendMessage(message) {
 
 
     // =================================
-    // Отрисовываем сообщение через 14-й
+    // Отрисовываем через 14-й файл
     // =================================
 
     const div =
@@ -474,7 +600,7 @@ async function appendMessage(message) {
 
     // =================================
     // Если сообщение наше —
-    // проверяем только его
+    // проверяем его статус
     // =================================
 
     if (
