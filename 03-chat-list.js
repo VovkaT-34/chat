@@ -65,6 +65,19 @@ async function loadChats() {
                     ${icon} ${chatName}
                 </span>
 
+                <span
+                    class="chat-message-status"
+                    data-chat-status-id="${chatId}"
+                    style="
+                        margin-left:6px;
+                        font-size:13px;
+                        font-weight:bold;
+                        white-space:nowrap;
+                        flex-shrink:0;
+                    "
+                    title=""
+                ></span>
+
             </span>
 
 
@@ -105,8 +118,7 @@ async function loadChats() {
                             white-space:nowrap;
                             box-sizing:border-box;
                         "
-                    >
-                    </span>
+                    ></span>
 
                 </span>
 
@@ -175,20 +187,17 @@ async function loadChats() {
         chatList.appendChild(div);
 
 
-        // =================================
-        // Обновляем состояние звука
-        // =================================
-
         updateChatSoundButton(
             Number(chatId)
         );
 
 
-        // =================================
-        // Обновляем количество сообщений
-        // =================================
-
         updateUnreadCount(
+            Number(chatId)
+        );
+
+
+        updateChatListMessageStatus(
             Number(chatId)
         );
 
@@ -196,7 +205,7 @@ async function loadChats() {
 
 
     // =================================
-    // 1. Загружаем общие чаты
+    // 1. Общие чаты
     // =================================
 
     const {
@@ -236,10 +245,6 @@ async function loadChats() {
     }
 
 
-    // =================================
-    // Добавляем общие чаты
-    // =================================
-
     (publicChats || []).forEach(
         chat => {
 
@@ -255,7 +260,7 @@ async function loadChats() {
 
 
     // =================================
-    // 2. Загружаем личные чаты
+    // 2. Личные чаты
     // =================================
 
     const {
@@ -288,10 +293,6 @@ async function loadChats() {
     }
 
 
-    // =================================
-    // Добавляем личные чаты
-    // =================================
-
     (privateChats || []).forEach(
         chat => {
 
@@ -307,7 +308,7 @@ async function loadChats() {
 
 
     // =================================
-    // 3. Загружаем групповые чаты
+    // 3. Групповые чаты
     // =================================
 
     const {
@@ -339,10 +340,6 @@ async function loadChats() {
 
     }
 
-
-    // =================================
-    // Добавляем групповые чаты
-    // =================================
 
     (groupChats || []).forEach(
         chat => {
