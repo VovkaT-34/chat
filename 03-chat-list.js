@@ -28,28 +28,64 @@ async function loadChats() {
             return;
         }
 
-        if (window.matchMedia("(max-width: 700px)").matches) {
+        if (!window.matchMedia("(max-width: 700px)").matches) {
+            return;
+        }
 
-            chatWindow.scrollIntoView({
-                behavior: "smooth",
-                block: "start"
-            });
+        // Сначала показываем окно чата.
+        chatWindow.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
 
-            setTimeout(() => {
+        // На Android/iOS клавиатура появляется асинхронно.
+        // Поэтому сначала даём браузеру открыть клавиатуру,
+        // затем ещё раз прокручиваем именно к полю ввода.
+        const placeCursorAndScroll = () => {
 
+            try {
                 messageInput.focus({
                     preventScroll: true
                 });
 
-                try {
-                    const length = messageInput.value.length;
-                    messageInput.setSelectionRange(length, length);
-                } catch (error) {
-                    // iOS может не разрешить изменение позиции курсора.
-                }
+                const length = messageInput.value.length;
+                messageInput.setSelectionRange(length, length);
+            } catch (error) {
+                // iOS может не разрешить изменение позиции курсора.
+            }
 
-            }, 250);
-        }
+            requestAnimationFrame(() => {
+                messageInput.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                    inline: "nearest"
+                });
+            });
+        };
+
+        setTimeout(placeCursorAndScroll, 250);
+
+        // Дополнительная попытка после фактического изменения
+        // viewport клавиатурой — особенно важно для Android/iOS.
+        setTimeout(() => {
+            if (document.activeElement === messageInput) {
+                messageInput.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                    inline: "nearest"
+                });
+            }
+        }, 650);
+
+        setTimeout(() => {
+            if (document.activeElement === messageInput) {
+                messageInput.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                    inline: "nearest"
+                });
+            }
+        }, 1000);
     }
 
 
@@ -161,9 +197,7 @@ async function loadChats() {
             }
 
             // На мобильном сразу переводим пользователя
-            // к окну ввода. Фокус выполняется также после
-            // загрузки истории, чтобы не зависеть от того,
-            // сколько времени занимает запрос Supabase.
+            // к окну ввода.
             focusMessageInputOnMobile();
 
 
@@ -175,6 +209,9 @@ async function loadChats() {
             );
 
 
+            // История могла изменить высоту страницы, поэтому
+            // после её загрузки повторно ставим фокус и поле
+            // ввода в видимую область над клавиатурой.
             focusMessageInputOnMobile();
 
         };
