@@ -266,60 +266,12 @@ async function sendMessage() {
     input.value = "";
 
     // =================================
-    // Считаем своё сообщение прочитанным
-    // для собственного клиента
-    // =================================
-
-    const {
-        error: ownReadError
-    } = await supabaseClient
-        .from("user_chat_reads")
-        .upsert(
-            {
-                user_id:
-                    currentUser.id,
-
-                chat_id:
-                    chatId,
-
-                last_read_message_id:
-                    data.id
-            },
-            {
-                onConflict:
-                    "user_id,chat_id"
-            }
-        );
-
-    if (ownReadError) {
-
-        console.log(
-            "Ошибка отметки собственного сообщения:",
-            ownReadError
-        );
-
-    }
-
-    replyMessageId =
-        null;
-
-    const replyBox =
-        document.getElementById(
-            "replyBox"
-        );
-
-    if (replyBox) {
-
-        replyBox.style.display =
-            "none";
-
-    }
-
-    input.placeholder =
-        "Введите сообщение...";
-
-    // =================================
     // Настоящее сообщение
+    // ВАЖНО: сначала рисуем его как
+    // отправленное (серая ✓), и только
+    // после этого фиксируем собственное
+    // прочтение. Это не даёт Realtime
+    // прочтения обогнать отображение.
     // =================================
 
     const messageForRender = {
@@ -383,6 +335,9 @@ async function sendMessage() {
 
     if (statusElement) {
 
+        statusElement.dataset.messageStatus =
+            "sent";
+
         statusElement.textContent =
             "✓";
 
@@ -405,6 +360,9 @@ async function sendMessage() {
 
     if (chatStatusElement) {
 
+        chatStatusElement.dataset.messageStatus =
+            "sent";
+
         chatStatusElement.textContent =
             "✓";
 
@@ -416,6 +374,59 @@ async function sendMessage() {
 
     }
 
+    // =================================
+    // Считаем своё сообщение прочитанным
+    // для собственного клиента.
+    // Выполняется ПОСЛЕ отображения серой ✓.
+    // =================================
+
+    const {
+        error: ownReadError
+    } = await supabaseClient
+        .from("user_chat_reads")
+        .upsert(
+            {
+                user_id:
+                    currentUser.id,
+
+                chat_id:
+                    chatId,
+
+                last_read_message_id:
+                    data.id
+            },
+            {
+                onConflict:
+                    "user_id,chat_id"
+            }
+        );
+
+    if (ownReadError) {
+
+        console.log(
+            "Ошибка отметки собственного сообщения:",
+            ownReadError
+        );
+
+    }
+
+    replyMessageId =
+        null;
+
+    const replyBox =
+        document.getElementById(
+            "replyBox"
+        );
+
+    if (replyBox) {
+
+        replyBox.style.display =
+            "none";
+
+    }
+
+    input.placeholder =
+        "Введите сообщение...";
 }
 
 
