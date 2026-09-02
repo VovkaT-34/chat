@@ -70,7 +70,7 @@ body {
         max-width: 100%;
         padding: 12px;
         border-radius: 14px;
-        overflow: hidden;
+        overflow: visible;
     }
 
     .chat-window h2 {
@@ -94,11 +94,20 @@ body {
     .send-box {
         width: 100%;
         max-width: 100%;
+        position: sticky;
+        bottom: 0;
+        z-index: 100;
+        padding: 6px 0;
+        background: rgba(255, 251, 245, .97);
+        border-radius: 10px;
+        padding-bottom: max(6px, env(safe-area-inset-bottom));
     }
 
     #messageInput {
         width: 100%;
         min-width: 0;
+        scroll-margin-top: 20px;
+        scroll-margin-bottom: 20px;
     }
 
 }
