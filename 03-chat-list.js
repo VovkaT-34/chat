@@ -33,9 +33,15 @@ async function loadChats() {
             return;
         }
 
-        // Критически важно: первый focus выполняем сразу внутри
-        // клика по чату. iOS/Android могут не открыть клавиатуру,
-        // если focus выполняется только внутри setTimeout.
+        // iOS может менять горизонтальную позицию страницы при focus
+        // и последующем scrollIntoView(). Фиксируем X-координату.
+        const lockedScrollX =
+            window.scrollX ||
+            window.pageXOffset ||
+            0;
+
+        // Первый focus выполняем непосредственно внутри клика по чату,
+        // чтобы мобильный браузер разрешил открыть клавиатуру.
         try {
             messageInput.focus({
                 preventScroll: true
@@ -47,26 +53,64 @@ async function loadChats() {
             // Некоторые браузеры могут ограничить установку курсора.
         }
 
-        // После открытия клавиатуры viewport может изменить размер.
-        // Поэтому дополнительно прокручиваем поле в видимую область.
-        const scrollToInput = () => {
+        // Только вертикальное позиционирование. Не используем
+        // scrollIntoView(), потому что он способен сдвинуть страницу
+        // по горизонтали на iOS/Safari.
+        const keepInputVisible = () => {
 
             try {
-                messageInput.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                    inline: "nearest"
-                });
+                const rect =
+                    messageInput.getBoundingClientRect();
+
+                const viewportHeight =
+                    window.visualViewport
+                        ? window.visualViewport.height
+                        : window.innerHeight;
+
+                const bottomPadding = 24;
+
+                if (
+                    rect.bottom >
+                    viewportHeight - bottomPadding
+                ) {
+                    window.scrollBy({
+                        top:
+                            rect.bottom -
+                            (viewportHeight - bottomPadding),
+                        behavior: "smooth"
+                    });
+                }
+
+                if (rect.top < 10) {
+                    window.scrollBy({
+                        top: rect.top - 10,
+                        behavior: "smooth"
+                    });
+                }
+
             } catch (error) {
-                // Ничего не делаем: focus уже выполнен.
+                // focus уже выполнен, поэтому ничего не делаем.
+            }
+
+            // Восстанавливаем только горизонтальную координату.
+            if (
+                Math.abs(
+                    (window.scrollX || window.pageXOffset || 0) -
+                    lockedScrollX
+                ) > 0
+            ) {
+                window.scrollTo(
+                    lockedScrollX,
+                    window.scrollY
+                );
             }
 
         };
 
-        requestAnimationFrame(scrollToInput);
-        setTimeout(scrollToInput, 150);
-        setTimeout(scrollToInput, 400);
-        setTimeout(scrollToInput, 700);
+        requestAnimationFrame(keepInputVisible);
+        setTimeout(keepInputVisible, 150);
+        setTimeout(keepInputVisible, 400);
+        setTimeout(keepInputVisible, 700);
 
     }
 
