@@ -1,4 +1,3 @@
-
 // ===============================
 // Realtime сообщений
 // ===============================
@@ -143,32 +142,30 @@ async function subscribeToMessages() {
 
 
 // ===============================
-// Автоматическое обновление
-// статусов сообщений
+// Realtime доставки сообщений
 // ===============================
 
-let messageStatusTimer =
-    null;
+function subscribeToMessageDeliveries() {
 
+    supabaseClient
+        .channel(
+            "message-deliveries-realtime"
+        )
+        .on(
+            "postgres_changes",
+            {
+                event: "INSERT",
+                schema: "public",
+                table: "message_deliveries"
+            },
+            async payload => {
 
-function startMessageStatusUpdates() {
-
-    if (messageStatusTimer) {
-
-        clearInterval(
-            messageStatusTimer
-        );
-
-    }
-
-
-    messageStatusTimer =
-        setInterval(
-            async () => {
+                const delivery =
+                    payload.new;
 
                 if (
-                    !currentUser ||
-                    !currentChatId
+                    !delivery ||
+                    !currentUser
                 ) {
 
                     return;
@@ -176,61 +173,175 @@ function startMessageStatusUpdates() {
                 }
 
 
-                const messageElements =
-                    document.querySelectorAll(
-                        "#messages .message"
+                const messageId =
+                    Number(
+                        delivery.message_id
                     );
 
 
-                for (
-                    const messageElement
-                    of messageElements
+                if (!messageId) {
+                    return;
+                }
+
+
+                const {
+                    data: message,
+                    error
+                } = await supabaseClient
+                    .from("messages")
+                    .select(
+                        "id, user_id, chat_id"
+                    )
+                    .eq(
+                        "id",
+                        messageId
+                    )
+                    .maybeSingle();
+
+
+                if (
+                    error ||
+                    !message
                 ) {
 
-                    const messageId =
-                        Number(
-                            messageElement.dataset.messageId
-                        );
-
-
-                    if (!messageId) {
-                        continue;
-                    }
-
-
-                    const userId =
-                        messageElement.dataset.userId;
-
-
-                    if (
-                        userId ===
-                        currentUser.id
-                    ) {
-
-                        await updateMessageStatus(
-                            messageId
-                        );
-
-                    }
+                    return;
 
                 }
 
 
-                await updateChatListMessageStatus(
-                    currentChatId
+                // Обновляем статус только
+                // владельца сообщения.
+
+                if (
+                    message.user_id !==
+                    currentUser.id
+                ) {
+
+                    return;
+
+                }
+
+
+                await updateMessageStatus(
+                    messageId
                 );
 
-            },
-            1500
-        );
+
+                if (
+                    Number(message.chat_id) ===
+                    Number(currentChatId)
+                ) {
+
+                    await updateChatListMessageStatus(
+                        message.chat_id
+                    );
+
+                }
+
+            }
+        )
+        .subscribe();
 
 }
 
 
 
 // ===============================
-// Запускаем обновление статусов
+// Realtime прочтения сообщений
 // ===============================
 
-startMessageStatusUpdates();
+function subscribeToMessageReads() {
 
+    supabaseClient
+        .channel(
+            "user-chat-reads-realtime"
+        )
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "user_chat_reads"
+            },
+            async payload => {
+
+                const readInfo =
+                    payload.new;
+
+                if (
+                    !readInfo ||
+                    !currentUser
+                ) {
+
+                    return;
+
+                }
+
+
+                const chatId =
+                    Number(
+                        readInfo.chat_id
+                    );
+
+
+                if (!chatId) {
+                    return;
+                }
+
+
+                const {
+                    data: ownMessages,
+                    error
+                } = await supabaseClient
+                    .from("messages")
+                    .select("id")
+                    .eq(
+                        "chat_id",
+                        chatId
+                    )
+                    .eq(
+                        "user_id",
+                        currentUser.id
+                    );
+
+
+                if (
+                    error ||
+                    !ownMessages
+                ) {
+
+                    return;
+
+                }
+
+
+                for (
+                    const message
+                    of ownMessages
+                ) {
+
+                    await updateMessageStatus(
+                        message.id
+                    );
+
+                }
+
+
+                await updateChatListMessageStatus(
+                    chatId
+                );
+
+            }
+        )
+        .subscribe();
+
+}
+
+
+
+// ===============================
+// Запуск Realtime
+// ===============================
+
+subscribeToMessageDeliveries();
+subscribeToMessageReads();
