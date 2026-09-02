@@ -21,35 +21,25 @@ async function subscribeToMessages() {
                 "messages-realtime"
             )
             .on(
-
                 "postgres_changes",
-
                 {
-
                     event: "INSERT",
-
                     schema: "public",
-
                     table: "messages"
-
                 },
-
                 async payload => {
 
                     const newMessage =
                         payload.new;
 
-
                     if (!newMessage) {
-
                         return;
-
                     }
 
 
-                    // =================================
+                    // ===============================
                     // Подтверждаем доставку
-                    // =================================
+                    // ===============================
 
                     if (
                         currentUser &&
@@ -82,9 +72,9 @@ async function subscribeToMessages() {
                     }
 
 
-                    // =================================
-                    // Сообщение в текущем чате
-                    // =================================
+                    // ===============================
+                    // Текущий чат
+                    // ===============================
 
                     if (
                         Number(newMessage.chat_id) ===
@@ -106,9 +96,9 @@ async function subscribeToMessages() {
                     }
 
 
-                    // =================================
+                    // ===============================
                     // Другой чат
-                    // =================================
+                    // ===============================
 
                     else {
 
@@ -127,9 +117,9 @@ async function subscribeToMessages() {
                     }
 
 
-                    // =================================
+                    // ===============================
                     // Непрочитанные
-                    // =================================
+                    // ===============================
 
                     if (
                         currentUser &&
@@ -143,27 +133,104 @@ async function subscribeToMessages() {
 
                     }
 
-
-                    // =================================
-                    // Статус в списке чатов
-                    // =================================
-
-                    if (
-                        currentUser &&
-                        newMessage.user_id ===
-                        currentUser.id
-                    ) {
-
-                        updateChatListMessageStatus(
-                            newMessage.chat_id
-                        );
-
-                    }
-
                 }
 
             )
             .subscribe();
 
 }
+
+
+
+// ===============================
+// Автоматическое обновление
+// статусов сообщений
+// ===============================
+
+let messageStatusTimer =
+    null;
+
+
+function startMessageStatusUpdates() {
+
+    if (messageStatusTimer) {
+
+        clearInterval(
+            messageStatusTimer
+        );
+
+    }
+
+
+    messageStatusTimer =
+        setInterval(
+            async () => {
+
+                if (
+                    !currentUser ||
+                    !currentChatId
+                ) {
+
+                    return;
+
+                }
+
+
+                const messageElements =
+                    document.querySelectorAll(
+                        "#messages .message"
+                    );
+
+
+                for (
+                    const messageElement
+                    of messageElements
+                ) {
+
+                    const messageId =
+                        Number(
+                            messageElement.dataset.messageId
+                        );
+
+
+                    if (!messageId) {
+                        continue;
+                    }
+
+
+                    const userId =
+                        messageElement.dataset.userId;
+
+
+                    if (
+                        userId ===
+                        currentUser.id
+                    ) {
+
+                        await updateMessageStatus(
+                            messageId
+                        );
+
+                    }
+
+                }
+
+
+                await updateChatListMessageStatus(
+                    currentChatId
+                );
+
+            },
+            1500
+        );
+
+}
+
+
+
+// ===============================
+// Запускаем обновление статусов
+// ===============================
+
+startMessageStatusUpdates();
 
