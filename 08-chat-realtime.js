@@ -165,21 +165,6 @@ function subscribeToMessageDeliveries() {
 
                 }
 
-                // =================================
-                // Доставка самого сообщения
-                // должна принадлежать другому
-                // пользователю
-                // =================================
-
-                if (
-                    delivery.user_id ===
-                    currentUser.id
-                ) {
-
-                    return;
-
-                }
-
                 const messageId =
                     Number(
                         delivery.message_id
@@ -212,10 +197,10 @@ function subscribeToMessageDeliveries() {
 
                 }
 
-                // =================================
+                // ===============================
                 // Нас интересуют только наши
                 // сообщения
-                // =================================
+                // ===============================
 
                 if (
                     message.user_id !==
@@ -226,9 +211,9 @@ function subscribeToMessageDeliveries() {
 
                 }
 
-                // =================================
+                // ===============================
                 // Доставлено
-                // =================================
+                // ===============================
 
                 const statusElement =
                     document.querySelector(
@@ -262,9 +247,9 @@ function subscribeToMessageDeliveries() {
 
                 }
 
-                // =================================
+                // ===============================
                 // Статус в списке чатов
-                // =================================
+                // ===============================
 
                 const chatStatusElement =
                     document.querySelector(
@@ -337,9 +322,11 @@ function subscribeToMessageReads() {
 
                 }
 
-                // =================================
-                // Собственное прочтение игнорируем
-                // =================================
+                // ===============================
+                // Собственное прочтение
+                // не является прочтением
+                // получателем
+                // ===============================
 
                 if (
                     readInfo.user_id ===
@@ -369,11 +356,11 @@ function subscribeToMessageReads() {
 
                 }
 
-                // =================================
+                // ===============================
                 // Получаем наши сообщения,
-                // которые действительно находятся
-                // до позиции прочтения
-                // =================================
+                // которые прочитал другой
+                // пользователь
+                // ===============================
 
                 const {
                     data: ownMessages,
@@ -404,9 +391,9 @@ function subscribeToMessageReads() {
 
                 }
 
-                // =================================
-                // Только здесь ставим ✓✓
-                // =================================
+                // ===============================
+                // Прочитано = ✓✓
+                // ===============================
 
                 ownMessages.forEach(
                     message => {
@@ -448,9 +435,10 @@ function subscribeToMessageReads() {
                     }
                 );
 
-                // =================================
-                // Список чатов
-                // =================================
+                // ===============================
+                // Статус последнего сообщения
+                // в списке чатов
+                // ===============================
 
                 const chatStatusElement =
                     document.querySelector(
@@ -459,13 +447,15 @@ function subscribeToMessageReads() {
 
                 if (chatStatusElement) {
 
-                    const currentStatus =
-                        chatStatusElement.dataset.messageStatus ||
-                        "sent";
+                    const lastOwnMessage =
+                        ownMessages[
+                            ownMessages.length - 1
+                        ];
 
                     if (
-                        currentStatus !==
-                        "read"
+                        lastOwnMessage &&
+                        Number(lastOwnMessage.id) <=
+                        lastReadMessageId
                     ) {
 
                         chatStatusElement.dataset.messageStatus =
