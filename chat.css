@@ -2,12 +2,27 @@
 ОСНОВНАЯ СТРАНИЦА
 ========================================= */
 
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    min-height: 100%;
+}
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 20px;
-    background: #f3f6fa;
-    color: #263238;
+    color: #3d332b;
+    background-color: #eadfce;
+    background-image:
+        radial-gradient(circle at 20px 20px, rgba(255,255,255,.38) 0 2px, transparent 2.5px),
+        radial-gradient(circle at 70px 55px, rgba(111,82,55,.10) 0 1.5px, transparent 2px),
+        radial-gradient(circle at 110px 15px, rgba(255,255,255,.28) 0 1.5px, transparent 2px),
+        linear-gradient(135deg, rgba(255,255,255,.16), rgba(126,91,57,.06));
+    background-size: 120px 90px, 145px 115px, 170px 130px, 100% 100%;
 }
 
 
@@ -17,8 +32,8 @@ body {
 
 .chat-container {
     display: flex;
-    gap: 20px;
-    max-width: 1200px;
+    gap: 16px;
+    width: min(1200px, 100%);
     margin: 25px auto;
     align-items: stretch;
 }
@@ -29,101 +44,189 @@ body {
 ========================================= */
 
 .chat-list {
-    width: 260px;
+    width: 280px;
     height: 500px;
-
-    background: #ffffff;
-
-    border-radius: 14px;
-
-    padding: 18px;
-
-    box-shadow:
-        0 3px 12px rgba(0, 0, 0, 0.12);
-
-    box-sizing: border-box;
-
+    background: rgba(255, 251, 245, .94);
+    border: 1px solid rgba(117, 82, 50, .13);
+    border-radius: 16px;
+    padding: 14px;
+    box-shadow: 0 8px 28px rgba(72, 49, 31, .12);
     overflow-y: auto;
     overflow-x: hidden;
-
     flex-shrink: 0;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
-
 .chat-list h2 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    color: #37474f;
+    margin: 2px 4px 12px;
+    color: #5a4636;
+    font-size: 18px;
+    font-weight: 700;
 }
 
 
 /* =========================================
-ОБЩИЕ ЧАТЫ
+ЭЛЕМЕНТ СПИСКА ЧАТА
 ========================================= */
 
 .chat-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-
-    padding: 10px 12px;
-    margin-bottom: 9px;
-
-    background: #6A1B9A;
-    color: white;
-
-    border-radius: 9px;
-
+    width: 100%;
+    min-height: 44px;
+    height: 44px;
+    padding: 5px 7px 5px 9px;
+    margin-bottom: 7px;
+    background: #80654f;
+    color: #fffaf5;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 11px;
     cursor: pointer;
-
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
-
-    box-sizing: border-box;
-
-    transition:
-        background 0.2s ease,
-        transform 0.15s ease,
-        box-shadow 0.2s ease;
+    overflow: hidden;
+    transition: background .18s ease, transform .15s ease, box-shadow .18s ease;
 }
 
-
 .chat-item:hover {
-    background: #4A148C;
+    background: #6f5542;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(70, 45, 27, .16);
+}
 
-    transform:
-        translateY(-1px);
+.chat-item:active {
+    transform: translateY(0);
+}
 
-    box-shadow:
-        0 3px 8px rgba(0, 0, 0, 0.15);
+.chat-item-main {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    flex: 1 1 auto;
+    height: 100%;
+    overflow: hidden;
+}
+
+.chat-item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 25px;
+    min-width: 25px;
+    margin-right: 5px;
+    font-size: 17px;
+    line-height: 1;
+}
+
+.chat-item-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.chat-message-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 23px;
+    margin-left: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 
 /* =========================================
-ЛИЧНЫЕ ЧАТЫ
+ТИПЫ ЧАТОВ
 ========================================= */
 
 .private-chat {
-    background: #087F5B;
+    background: #567867;
 }
 
-
 .private-chat:hover {
-    background: #066B4C;
+    background: #496958;
+}
+
+.group-chat {
+    background: #66748a;
+}
+
+.group-chat:hover {
+    background: #58677d;
 }
 
 
 /* =========================================
-ГРУППОВЫЕ ЧАТЫ
+ПРАВАЯ ЧАСТЬ ЭЛЕМЕНТА ЧАТА
 ========================================= */
 
-.group-chat {
-    background: #1E3A8A;
+.chat-item-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px;
+    width: 62px;
+    min-width: 62px;
+    height: 100%;
+    margin-left: 6px;
+    flex-shrink: 0;
 }
 
+.chat-unread-badge-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 27px;
+    height: 34px;
+    flex-shrink: 0;
+}
 
-.group-chat:hover {
-    background: #162E6B;
+.chat-unread-badge {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: #d88942;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 20px;
+    white-space: nowrap;
+}
+
+.chat-sound-button {
+    width: 31px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    border-radius: 8px;
+    opacity: .92;
+    transition: background .15s ease, opacity .15s ease, transform .15s ease;
+}
+
+.chat-sound-button:hover {
+    background: rgba(255,255,255,.13);
+    opacity: 1;
+    transform: scale(1.05);
 }
 
 
@@ -143,42 +246,21 @@ body {
 
 #newPrivateChatButton {
     width: 100%;
-
     margin-bottom: 15px;
-
     padding: 9px 12px;
-
-    background: #ff9800;
+    background: #d88942;
     color: white;
-
     border: none;
     border-radius: 9px;
-
     font-size: 15px;
     font-weight: bold;
-
     cursor: pointer;
-
-    transition:
-        background 0.2s ease,
-        transform 0.15s ease;
+    transition: background .2s ease, transform .15s ease;
 }
-
 
 #newPrivateChatButton:hover {
-    background: #e68900;
-
-    transform:
-        translateY(-1px);
-}
-
-
-/* =========================================
-СЧЁТЧИК НЕПРОЧИТАННЫХ
-========================================= */
-
-.chat-item span[id^="count-"] {
-    flex-shrink: 0;
+    background: #bd7030;
+    transform: translateY(-1px);
 }
 
 
@@ -189,59 +271,97 @@ body {
 .chat-window {
     flex: 1;
     min-width: 0;
-
-    background: #ffffff;
-
-    border-radius: 14px;
-
-    padding: 18px;
-
-    box-shadow:
-        0 3px 12px rgba(0, 0, 0, 0.12);
-
-    box-sizing: border-box;
-
+    background: rgba(255, 251, 245, .95);
+    border: 1px solid rgba(117, 82, 50, .13);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 8px 28px rgba(72, 49, 31, .12);
     position: relative;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
-
-
-/* =========================================
-ЗАГОЛОВОК ЧАТА
-========================================= */
 
 .chat-window h2 {
     margin-top: 0;
     margin-bottom: 15px;
-
-    color: #37474f;
-
+    color: #5a4636;
     overflow-wrap: anywhere;
 }
 
 
 /* =========================================
-ОБЛАСТЬ СООБЩЕНИЙ
+ОБЛАСТЬ СООБЩЕНИЙ — УНИКАЛЬНЫЕ «ОБОИ»
 ========================================= */
 
 #messages {
     height: 400px;
-
     overflow-y: auto;
     overflow-x: hidden;
-
-    border: 1px solid #d9e0e6;
-
-    border-radius: 10px;
-
-    padding: 15px;
-
+    border: 1px solid rgba(117, 82, 50, .14);
+    border-radius: 12px;
+    padding: 14px;
     margin-bottom: 15px;
-
-    background: #fafbfc;
-
-    box-sizing: border-box;
-
+    background-color: #eadcc8;
+    background-image:
+        radial-gradient(circle at 18px 18px, rgba(255,255,255,.28) 0 2px, transparent 2.5px),
+        radial-gradient(circle at 70px 42px, transparent 0 8px, rgba(116,82,54,.09) 8.5px 10px, transparent 10.5px),
+        radial-gradient(circle at 118px 76px, rgba(255,255,255,.22) 0 1.5px, transparent 2px),
+        radial-gradient(circle at 42px 88px, transparent 0 6px, rgba(116,82,54,.07) 6.5px 8px, transparent 8.5px);
+    background-size: 150px 120px, 180px 150px, 130px 110px, 210px 170px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.28);
     position: relative;
+}
+
+
+/* =========================================
+СООБЩЕНИЯ
+========================================= */
+
+.message {
+    margin-bottom: 9px;
+    padding: 8px 10px;
+    background: rgba(255, 250, 243, .88);
+    border: 1px solid rgba(117, 82, 50, .09);
+    border-radius: 10px;
+    overflow-wrap: anywhere;
+    box-shadow: 0 2px 7px rgba(76, 53, 35, .06);
+}
+
+.message-user {
+    display: inline-block;
+    font-weight: 700;
+    color: #55705e;
+    background: rgba(255,255,255,.56);
+    border: 1px solid #d49a62;
+    padding: 3px 8px;
+    border-radius: 7px;
+    margin-right: 5px;
+    font-size: 13px;
+    transition: background .2s ease, transform .2s ease;
+}
+
+.message-user:hover {
+    background: #fff8e7;
+    transform: scale(1.02);
+    cursor: pointer;
+}
+
+.message-time {
+    color: #88786a;
+    font-size: 11px;
+    margin-left: 4px;
+    font-weight: normal;
+}
+
+.message-text {
+    margin-top: 6px;
+    color: #40372f;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap;
+    line-height: 1.38;
 }
 
 
@@ -251,175 +371,47 @@ body {
 
 #scrollToBottomButton {
     position: absolute;
-
     left: 50%;
-
     bottom: 82px;
-
-    transform:
-        translateX(-50%);
-
+    transform: translateX(-50%);
     width: 42px;
     height: 42px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     padding: 0;
-
-    border: 1px solid rgba(80, 80, 80, 0.18);
-
+    border: 1px solid rgba(117,82,50,.18);
     border-radius: 50%;
-
-    background: rgba(255, 255, 255, 0.62);
-
-    color: rgba(55, 71, 79, 0.78);
-
+    background: rgba(255, 249, 240, .78);
+    color: rgba(76, 57, 43, .78);
     backdrop-filter: blur(5px);
-
     -webkit-backdrop-filter: blur(5px);
-
-    box-shadow:
-        0 3px 10px rgba(0, 0, 0, 0.10);
-
+    box-shadow: 0 4px 12px rgba(72,49,31,.12);
     cursor: pointer;
-
     font-size: 25px;
     font-weight: 400;
-
     line-height: 1;
-
     z-index: 20;
-
     opacity: 0;
-
     visibility: hidden;
-
     pointer-events: none;
-
-    transition:
-        opacity 0.2s ease,
-        visibility 0.2s ease,
-        transform 0.2s ease,
-        background 0.2s ease;
+    transition: opacity .2s ease, visibility .2s ease, transform .2s ease, background .2s ease;
 }
 
-
 #scrollToBottomButton.scroll-to-bottom-visible {
-    opacity: 0.85;
-
+    opacity: .9;
     visibility: visible;
-
     pointer-events: auto;
 }
 
-
 #scrollToBottomButton:hover {
-    background: rgba(255, 255, 255, 0.82);
-
+    background: rgba(255, 252, 247, .94);
     opacity: 1;
-
-    transform:
-        translateX(-50%)
-        scale(1.08);
+    transform: translateX(-50%) scale(1.08);
 }
-
 
 #scrollToBottomButton:active {
-    transform:
-        translateX(-50%)
-        scale(0.94);
-}
-
-
-/* =========================================
-СООБЩЕНИЯ
-========================================= */
-
-.message {
-    margin-bottom: 12px;
-
-    padding: 10px;
-
-    background: #eeeeee;
-
-    border-radius: 10px;
-
-    overflow-wrap: anywhere;
-}
-
-
-/* =========================================
-ИМЯ ПОЛЬЗОВАТЕЛЯ
-========================================= */
-
-.message-user {
-    display: inline-block;
-
-    font-weight: bold;
-
-    color: #198754;
-
-    background: #f3fff7;
-
-    border: 2px solid #ff9800;
-
-    padding: 4px 10px;
-
-    border-radius: 9px;
-
-    margin-right: 6px;
-
-    font-size: 15px;
-
-    transition: 0.2s ease;
-}
-
-
-.message-user:hover {
-    background: #fff8e7;
-
-    transform:
-        scale(1.03);
-
-    cursor: pointer;
-}
-
-
-/* =========================================
-ВРЕМЯ СООБЩЕНИЯ
-========================================= */
-
-.message-time {
-    color: #777;
-
-    font-size: 12px;
-
-    margin-left: 6px;
-
-    font-weight: normal;
-}
-
-
-/* =========================================
-ТЕКСТ СООБЩЕНИЯ
-========================================= */
-
-.message-text {
-    margin-top: 8px;
-
-    color: #333;
-
-    max-width: 100%;
-
-    overflow-wrap: anywhere;
-
-    word-wrap: break-word;
-
-    word-break: break-word;
-
-    white-space: pre-wrap;
+    transform: translateX(-50%) scale(.94);
 }
 
 
@@ -429,116 +421,56 @@ body {
 
 .send-box {
     display: flex;
-
-    gap: 10px;
-
+    gap: 8px;
     align-items: center;
 }
-
-
-/* =========================================
-ПОЛЕ ВВОДА
-========================================= */
 
 #messageInput {
     flex: 1;
-
     min-width: 0;
-
     padding: 11px 12px;
-
     font-size: 16px;
-
-    border-radius: 8px;
-
-    border: 1px solid #cbd5dc;
-
+    border-radius: 9px;
+    border: 1px solid #cbb9a7;
     box-sizing: border-box;
-
     outline: none;
-
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
+    background: rgba(255,255,255,.92);
+    color: #3d332b;
+    transition: border-color .2s ease, box-shadow .2s ease;
 }
-
 
 #messageInput:focus {
-    border-color: #229ED9;
-
-    box-shadow:
-        0 0 0 2px
-        rgba(34, 158, 217, 0.15);
+    border-color: #a9784d;
+    box-shadow: 0 0 0 2px rgba(169,120,77,.14);
 }
-
-
-/* =========================================
-КНОПКА ОТПРАВКИ
-========================================= */
 
 #sendButton {
-    width: 48px;
-    height: 48px;
-
-    min-width: 48px;
-    min-height: 48px;
-
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    min-height: 46px;
     flex-shrink: 0;
-
     display: flex;
-
     align-items: center;
-
     justify-content: center;
-
-    background:
-        linear-gradient(
-            135deg,
-            #22c55e,
-            #16a34a
-        );
-
+    background: linear-gradient(135deg, #6f8c78, #4f6f5b);
     color: white;
-
     border: none;
-
     border-radius: 50%;
-
     cursor: pointer;
-
-    font-size: 22px;
-
-    transition:
-        transform 0.18s ease,
-        box-shadow 0.18s ease,
-        background 0.18s ease;
-
-    box-shadow:
-        0 4px 12px
-        rgba(34, 197, 94, 0.35);
+    font-size: 21px;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    box-shadow: 0 4px 12px rgba(79,111,91,.28);
 }
-
 
 #sendButton:hover {
-    background:
-        linear-gradient(
-            135deg,
-            #34d399,
-            #22c55e
-        );
-
-    transform:
-        scale(1.08);
-
-    box-shadow:
-        0 6px 16px
-        rgba(34, 197, 94, 0.45);
+    background: linear-gradient(135deg, #7e9c87, #5e7d68);
+    transform: scale(1.07);
+    box-shadow: 0 6px 16px rgba(79,111,91,.34);
 }
 
-
 #sendButton:active {
-    transform:
-        scale(0.94);
+    transform: scale(.94);
 }
 
 
@@ -547,10 +479,8 @@ body {
 ========================================= */
 
 #typingIndicator {
-    color: #777;
-
+    color: #786a5e;
     font-style: italic;
-
     margin: 8px 5px;
 }
 
@@ -560,15 +490,11 @@ body {
 ========================================= */
 
 .unread-divider {
-    color: #ff9800;
-
-    font-size: 13px;
-
-    font-weight: bold;
-
+    color: #9a6436;
+    font-size: 12px;
+    font-weight: 700;
     text-align: center;
-
-    margin: 12px 0;
+    margin: 10px 0;
 }
 
 
@@ -577,25 +503,26 @@ body {
 ========================================= */
 
 @media (max-width: 900px) {
+    body {
+        padding: 14px;
+    }
 
     .chat-container {
-        gap: 12px;
+        gap: 10px;
     }
-
 
     .chat-list {
-        width: 220px;
-
-        height: 500px;
-
-        padding: 14px;
+        width: 225px;
+        padding: 11px;
     }
 
+    .chat-item {
+        font-size: 13px;
+    }
 
     .chat-window {
-        padding: 14px;
+        padding: 12px;
     }
-
 }
 
 
@@ -604,58 +531,62 @@ body {
 ========================================= */
 
 @media (max-width: 700px) {
-
     body {
-        padding: 10px;
+        padding: 8px;
     }
-
 
     .chat-container {
         flex-direction: column;
-
-        gap: 12px;
-
-        margin: 15px auto;
+        gap: 10px;
+        margin: 12px auto;
     }
-
 
     .chat-list {
         width: 100%;
-
-        height: 220px;
-
-        max-height: 220px;
-
-        overflow-y: auto;
+        height: 188px;
+        max-height: 188px;
+        padding: 10px;
     }
 
+    .chat-list h2 {
+        font-size: 16px;
+        margin-bottom: 9px;
+    }
+
+    .chat-item {
+        min-height: 40px;
+        height: 40px;
+        margin-bottom: 6px;
+        padding-left: 7px;
+        font-size: 13px;
+    }
+
+    .chat-item-actions {
+        width: 57px;
+        min-width: 57px;
+    }
 
     .chat-window {
         width: 100%;
+        padding: 10px;
     }
-
 
     #messages {
         height: 55vh;
-
         min-height: 300px;
+        padding: 10px;
     }
-
 
     .send-box {
         gap: 6px;
     }
 
-
     #sendButton {
-        padding: 10px 13px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
     }
-
-
-    #scrollToBottomButton {
-        bottom: 82px;
-    }
-
 }
 
 
@@ -664,54 +595,41 @@ body {
 ========================================= */
 
 @media (max-width: 450px) {
+    .chat-list {
+        height: 175px;
+        max-height: 175px;
+    }
 
     .chat-window {
-        padding: 10px;
-    }
-
-
-    #messages {
-        padding: 10px;
-    }
-
-
-    .message {
         padding: 8px;
     }
 
+    #messages {
+        padding: 8px;
+    }
+
+    .message {
+        padding: 7px 8px;
+    }
 
     .message-user {
-        font-size: 14px;
-
-        padding: 3px 8px;
+        font-size: 12px;
+        padding: 3px 7px;
     }
-
 
     .message-time {
-        font-size: 11px;
+        font-size: 10px;
     }
 
+    .message-text {
+        font-size: 14px;
+    }
 
     #messageInput {
         font-size: 15px;
     }
 
-
     #sendButton {
-        font-size: 14px;
-
-        padding: 10px 11px;
+        font-size: 18px;
     }
-
-
-    #scrollToBottomButton {
-        bottom: 82px;
-
-        width: 40px;
-
-        height: 40px;
-
-        font-size: 24px;
-    }
-
 }
