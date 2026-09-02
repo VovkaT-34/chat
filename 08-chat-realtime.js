@@ -1,112 +1,3 @@
-// ===============================
-// Realtime сообщений
-// ===============================
-
-let messageStatusTimer = null;
-
-// ===============================
-// Обновление статусов своих сообщений
-// ===============================
-
-async function refreshOwnMessageStatuses() {
-
-```
-if (
-    !currentUser ||
-    !currentChatId
-) {
-
-    return;
-
-}
-
-
-const {
-    data: messages,
-    error
-} = await supabaseClient
-
-    .from("messages")
-
-    .select("id")
-
-    .eq(
-        "chat_id",
-        currentChatId
-    )
-
-    .eq(
-        "user_id",
-        currentUser.id
-    )
-
-    .order(
-        "id",
-        {
-            ascending: false
-        }
-    )
-
-    .limit(50);
-
-
-if (error) {
-
-    console.log(
-        "Ошибка загрузки статусов сообщений:",
-        error
-    );
-
-    return;
-
-}
-
-
-for (
-    const message of
-    (messages || [])
-) {
-
-    await updateMessageStatus(
-        message.id
-    );
-
-}
-```
-
-}
-
-// ===============================
-// Запуск автоматической проверки
-// ===============================
-
-function startMessageStatusUpdates() {
-
-```
-if (messageStatusTimer) {
-
-    clearInterval(
-        messageStatusTimer
-    );
-
-}
-
-
-refreshOwnMessageStatuses();
-
-
-messageStatusTimer =
-    setInterval(
-        () => {
-
-            refreshOwnMessageStatuses();
-
-        },
-        2000
-    );
-```
-
-}
 
 // ===============================
 // Realtime сообщений
@@ -114,94 +5,51 @@ messageStatusTimer =
 
 async function subscribeToMessages() {
 
-```
-if (realtimeChannel) {
+    if (realtimeChannel) {
 
-    await supabaseClient
-        .removeChannel(
-            realtimeChannel
-        );
+        await supabaseClient
+            .removeChannel(
+                realtimeChannel
+            );
 
-}
-
-
-realtimeChannel =
-    supabaseClient
-
-        .channel(
-            "messages-realtime"
-        )
-
-        .on(
-
-            "postgres_changes",
-
-            {
-
-                event: "INSERT",
-
-                schema: "public",
-
-                table: "messages"
-
-            },
-
-            async payload => {
-
-                const newMessage =
-                    payload.new;
+    }
 
 
-                if (!newMessage) {
+    realtimeChannel =
+        supabaseClient
+            .channel(
+                "messages-realtime"
+            )
+            .on(
 
-                    return;
+                "postgres_changes",
 
-                }
+                {
 
+                    event: "INSERT",
 
-                // =================================
-                // Подтверждаем доставку
-                // =================================
+                    schema: "public",
 
-                if (
-                    currentUser &&
-                    newMessage.user_id !==
-                    currentUser.id
-                ) {
+                    table: "messages"
 
-                    const {
-                        error:
-                            deliveryError
-                    } =
-                        await supabaseClient.rpc(
-                            "mark_message_delivered",
-                            {
-                                p_message_id:
-                                    newMessage.id
-                            }
-                        );
+                },
+
+                async payload => {
+
+                    const newMessage =
+                        payload.new;
 
 
-                    if (deliveryError) {
+                    if (!newMessage) {
 
-                        console.log(
-                            "Ошибка подтверждения доставки:",
-                            deliveryError
-                        );
+                        return;
 
                     }
 
-                }
 
-
-                // =================================
-                // Сообщение в текущем чате
-                // =================================
-
-                if (
-                    Number(newMessage.chat_id) ===
-                    Number(currentChatId)
-                ) {
+                    // =================================
+                    // Подтверждаем доставку
+                    // =================================
 
                     if (
                         currentUser &&
@@ -209,20 +57,79 @@ realtimeChannel =
                         currentUser.id
                     ) {
 
-                        await appendMessage(
-                            newMessage
-                        );
+                        const {
+                            error:
+                                deliveryError
+                        } =
+                            await supabaseClient.rpc(
+                                "mark_message_delivered",
+                                {
+                                    p_message_id:
+                                        newMessage.id
+                                }
+                            );
+
+
+                        if (deliveryError) {
+
+                            console.log(
+                                "Ошибка подтверждения доставки:",
+                                deliveryError
+                            );
+
+                        }
 
                     }
 
-                }
+
+                    // =================================
+                    // Сообщение в текущем чате
+                    // =================================
+
+                    if (
+                        Number(newMessage.chat_id) ===
+                        Number(currentChatId)
+                    ) {
+
+                        if (
+                            currentUser &&
+                            newMessage.user_id !==
+                            currentUser.id
+                        ) {
+
+                            await appendMessage(
+                                newMessage
+                            );
+
+                        }
+
+                    }
 
 
-                // =================================
-                // Сообщение в другом чате
-                // =================================
+                    // =================================
+                    // Другой чат
+                    // =================================
 
-                else {
+                    else {
+
+                        if (
+                            currentUser &&
+                            newMessage.user_id !==
+                            currentUser.id
+                        ) {
+
+                            playMessageSound(
+                                newMessage.chat_id
+                            );
+
+                        }
+
+                    }
+
+
+                    // =================================
+                    // Непрочитанные
+                    // =================================
 
                     if (
                         currentUser &&
@@ -230,7 +137,24 @@ realtimeChannel =
                         currentUser.id
                     ) {
 
-                        playMessageSound(
+                        await updateUnreadCount(
+                            newMessage.chat_id
+                        );
+
+                    }
+
+
+                    // =================================
+                    // Статус в списке чатов
+                    // =================================
+
+                    if (
+                        currentUser &&
+                        newMessage.user_id ===
+                        currentUser.id
+                    ) {
+
+                        updateChatListMessageStatus(
                             newMessage.chat_id
                         );
 
@@ -238,50 +162,8 @@ realtimeChannel =
 
                 }
 
-
-                // =================================
-                // Обновляем счётчик
-                // =================================
-
-                if (
-                    currentUser &&
-                    newMessage.user_id !==
-                    currentUser.id
-                ) {
-
-                    await updateUnreadCount(
-                        newMessage.chat_id
-                    );
-
-                }
-
-
-                // =================================
-                // Проверяем статус своих сообщений
-                // =================================
-
-                if (
-                    currentUser &&
-                    newMessage.user_id !==
-                    currentUser.id
-                ) {
-
-                    refreshOwnMessageStatuses();
-
-                }
-
-            }
-
-        )
-
-        .subscribe();
-
-
-// =================================
-// Запускаем автоматическое обновление
-// =================================
-
-startMessageStatusUpdates();
-```
+            )
+            .subscribe();
 
 }
+
