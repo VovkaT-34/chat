@@ -13,6 +13,47 @@ async function loadChats() {
 
 
     // =================================
+    // Переход к полю сообщения на мобильном
+    // =================================
+
+    function focusMessageInputOnMobile() {
+
+        const messageInput =
+            document.getElementById("messageInput");
+
+        const chatWindow =
+            document.querySelector(".chat-window");
+
+        if (!messageInput || !chatWindow) {
+            return;
+        }
+
+        if (window.matchMedia("(max-width: 700px)").matches) {
+
+            chatWindow.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+            setTimeout(() => {
+
+                messageInput.focus({
+                    preventScroll: true
+                });
+
+                try {
+                    const length = messageInput.value.length;
+                    messageInput.setSelectionRange(length, length);
+                } catch (error) {
+                    // iOS может не разрешить изменение позиции курсора.
+                }
+
+            }, 250);
+        }
+    }
+
+
+    // =================================
     // Вспомогательная функция
     // =================================
 
@@ -119,6 +160,12 @@ async function loadChats() {
 
             }
 
+            // На мобильном сразу переводим пользователя
+            // к окну ввода. Фокус выполняется также после
+            // загрузки истории, чтобы не зависеть от того,
+            // сколько времени занимает запрос Supabase.
+            focusMessageInputOnMobile();
+
 
             await loadMessages();
 
@@ -126,6 +173,9 @@ async function loadChats() {
             await updateUnreadCount(
                 Number(chatId)
             );
+
+
+            focusMessageInputOnMobile();
 
         };
 
