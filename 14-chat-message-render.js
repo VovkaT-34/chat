@@ -1,4 +1,3 @@
-
 // ===============================
 // Отрисовка сообщения
 // ===============================
@@ -308,19 +307,19 @@ async function updateChatListMessageStatus(
         return;
     }
 
+    // Берём именно последнее сообщение чата,
+    // а не последнее сообщение текущего пользователя.
+    // Иначе старое наше сообщение могло давать ✓✓,
+    // когда после него уже пришло новое сообщение.
     const {
         data: messages,
         error
     } = await supabaseClient
         .from("messages")
-        .select("id")
+        .select("id, user_id")
         .eq(
             "chat_id",
             chatId
-        )
-        .eq(
-            "user_id",
-            currentUser.id
         )
         .order(
             "id",
@@ -349,8 +348,27 @@ async function updateChatListMessageStatus(
 
     }
 
-    const messageId =
-        messages[0].id;
+    const lastMessage =
+        messages[0];
+
+    // Если последнее сообщение отправил другой
+    // пользователь, наши галочки от старого сообщения
+    // в строке чата больше не показываем.
+    if (
+        lastMessage.user_id !==
+        currentUser.id
+    ) {
+
+        statusElement.textContent =
+            "";
+
+        statusElement.title =
+            "";
+
+        delete statusElement.dataset.messageStatus;
+
+        return;
+    }
 
     const {
         data: status,
@@ -359,7 +377,7 @@ async function updateChatListMessageStatus(
         "get_message_status",
         {
             p_message_id:
-                messageId
+                lastMessage.id
         }
     );
 
@@ -373,9 +391,13 @@ async function updateChatListMessageStatus(
         return;
     }
 
+    // Это новый статус именно последнего сообщения.
+    // Не переносим сюда состояние предыдущего сообщения.
+    statusElement.dataset.messageStatus =
+        "sent";
+
     setMessageStatus(
         statusElement,
         status
     );
 }
-
