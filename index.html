@@ -11,7 +11,7 @@
 
 <title>Чат</title>
 
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 
 <link rel="stylesheet" href="chat.css">
 
@@ -26,7 +26,6 @@ align-items:center;
 gap:8px;
 margin:20px 0 30px 0;
 ">
-
 
 <button onclick="logout()"
 style="
@@ -49,32 +48,23 @@ transition:.2s;
 
 </div>
 
-
 <h1 align="center">
 
 💬 Чат
 
 </h1>
 
-
 <div class="chat-container">
-
 
 <div class="chat-list">
 
 <h2>Чаты</h2>
 
-<div id="chatList">
-
-Загрузка...
+<div id="chatList"></div>
 
 </div>
-
-</div>
-
 
 <div class="chat-window">
-
 
 <div style="
 display:flex;
@@ -88,7 +78,6 @@ gap:10px;
 Выберите чат
 
 </h2>
-
 
 <div style="position:relative;">
 
@@ -110,7 +99,6 @@ transition:background 0.2s ease, transform 0.15s ease;
 
 </button>
 
-
 <div id="newChatMenu"
 style="
 display:none;
@@ -125,7 +113,6 @@ box-shadow:0 4px 12px rgba(0,0,0,.15);
 overflow:hidden;
 min-width:160px;
 ">
-
 
 <button id="newPrivateChatMenuButton"
 style="
@@ -142,7 +129,6 @@ cursor:pointer;
 
 </button>
 
-
 <button id="newGroupChatMenuButton"
 style="
 display:block;
@@ -158,18 +144,15 @@ cursor:pointer;
 
 </button>
 
-
 </div>
 
 </div>
 
 </div>
-
 
 <div id="messages">
 
 </div>
-
 
 <div id="typingIndicator"
 style="
@@ -181,16 +164,13 @@ margin:10px;
 
 </div>
 
-
 <div class="send-box">
-
 
 <div style="
 display:flex;
 flex-direction:column;
 width:100%;
 ">
-
 
 <div id="replyBox"
 style="
@@ -204,7 +184,6 @@ font-size:14px;
 ">
 
 <span id="replyText"></span>
-
 
 <button
 onclick="cancelReply()"
@@ -223,16 +202,13 @@ font-weight:bold;
 
 </div>
 
-
 <input
 id="messageInput"
 type="text"
 placeholder="Введите сообщение..."
 >
 
-
 </div>
-
 
 <button id="sendButton" title="Отправить сообщение">
 
@@ -240,58 +216,34 @@ placeholder="Введите сообщение..."
 
 </button>
 
-
-</div>
-
-
 </div>
 
 </div>
 
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script src="supabase.js"></script>
-
 <script src="auth-check.js"></script>
-
 <script src="logout.js"></script>
-
 <audio id="messageSound" src="message.mp3"></audio>
 
-
 <script src="01-chat-state.js"></script>
-
 <script src="02-chat-user.js"></script>
-
 <script src="03-chat-list.js"></script>
-
 <script src="04-chat-private.js"></script>
-
 <script src="05-chat-messages.js"></script>
-
 <script src="14-chat-message-render.js"></script>
-
 <script src="15-chat-scroll.js"></script>
-
 <script src="06-chat-send.js"></script>
-
 <script src="07-chat-read.js"></script>
-
 <script src="08-chat-realtime.js"></script>
-
 <script src="09-chat-unread.js"></script>
-
 <script src="10-chat-typing.js"></script>
-
 <script src="11-chat-reply.js"></script>
-
 <script src="12-chat-init.js"></script>
-
 <script src="13-chat-sound.js"></script>
-
 
 </body>
 
 </html>
-
