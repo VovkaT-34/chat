@@ -1,4 +1,4 @@
-
+```javascript
 // ===============================
 // Отправка сообщения
 // ===============================
@@ -105,7 +105,7 @@ async function sendMessage() {
 
 
     // =================================
-    // Индикатор отправки
+    // Временное сообщение
     // =================================
 
     const temporaryId =
@@ -194,16 +194,14 @@ async function sendMessage() {
 
 
     // =================================
-    // Отправляем сообщение в Supabase
+    // Записываем сообщение
     // =================================
 
     const {
         data,
         error
     } = await supabaseClient
-
         .from("messages")
-
         .insert({
 
             chat_id:
@@ -219,7 +217,6 @@ async function sendMessage() {
                 replyTo
 
         })
-
         .select(`
 
             id,
@@ -240,12 +237,11 @@ async function sendMessage() {
             )
 
         `)
-
         .single();
 
 
     // =================================
-    // Ошибка отправки
+    // Ошибка
     // =================================
 
     if (error) {
@@ -258,7 +254,24 @@ async function sendMessage() {
 
         if (temporaryMessage) {
 
-            temporaryMessage.remove();
+            const status =
+                temporaryMessage.querySelector(
+                    ".message-status"
+                );
+
+
+            if (status) {
+
+                status.textContent =
+                    "!";
+
+                status.title =
+                    "Ошибка отправки";
+
+                status.style.color =
+                    "#d32f2f";
+
+            }
 
         }
 
@@ -269,7 +282,7 @@ async function sendMessage() {
 
 
     // =================================
-    // Удаляем временное сообщение
+    // Удаляем временное
     // =================================
 
     if (temporaryMessage) {
@@ -279,24 +292,17 @@ async function sendMessage() {
     }
 
 
-    // =================================
-    // Очищаем поле
-    // =================================
-
     input.value = "";
 
 
     // =================================
-    // Собственное сообщение сразу
-    // считаем прочитанным
+    // Считаем своё сообщение прочитанным
     // =================================
 
     const {
         error: ownReadError
     } = await supabaseClient
-
         .from("user_chat_reads")
-
         .upsert(
 
             {
@@ -332,10 +338,6 @@ async function sendMessage() {
     }
 
 
-    // =================================
-    // Сбрасываем ответ
-    // =================================
-
     replyMessageId =
         null;
 
@@ -359,7 +361,7 @@ async function sendMessage() {
 
 
     // =================================
-    // Добавляем настоящее сообщение
+    // Настоящее сообщение
     // =================================
 
     const messageForRender = {
@@ -415,14 +417,14 @@ async function sendMessage() {
     }
 
 
-    // =================================
-    // Начальный статус:
-    // сообщение записано в БД
-    // =================================
-
     updateMessageStatus(
         data.id,
         1
+    );
+
+
+    updateChatListMessageStatus(
+        chatId
     );
 
 }
@@ -500,4 +502,4 @@ if (messageInput) {
     );
 
 }
-
+```
