@@ -13,7 +13,6 @@ async function subscribeToMessages() {
 
     }
 
-
     realtimeChannel =
         supabaseClient
             .channel(
@@ -34,7 +33,6 @@ async function subscribeToMessages() {
                     if (!newMessage) {
                         return;
                     }
-
 
                     // ===============================
                     // Подтверждаем доставку
@@ -58,7 +56,6 @@ async function subscribeToMessages() {
                                 }
                             );
 
-
                         if (deliveryError) {
 
                             console.log(
@@ -69,7 +66,6 @@ async function subscribeToMessages() {
                         }
 
                     }
-
 
                     // ===============================
                     // Текущий чат
@@ -94,7 +90,6 @@ async function subscribeToMessages() {
 
                     }
 
-
                     // ===============================
                     // Другой чат
                     // ===============================
@@ -115,7 +110,6 @@ async function subscribeToMessages() {
 
                     }
 
-
                     // ===============================
                     // Непрочитанные
                     // ===============================
@@ -133,7 +127,6 @@ async function subscribeToMessages() {
                     }
 
                 }
-
             )
             .subscribe();
 
@@ -172,17 +165,14 @@ function subscribeToMessageDeliveries() {
 
                 }
 
-
                 const messageId =
                     Number(
                         delivery.message_id
                     );
 
-
                 if (!messageId) {
                     return;
                 }
-
 
                 const {
                     data: message,
@@ -198,7 +188,6 @@ function subscribeToMessageDeliveries() {
                     )
                     .maybeSingle();
 
-
                 if (
                     error ||
                     !message
@@ -207,10 +196,6 @@ function subscribeToMessageDeliveries() {
                     return;
 
                 }
-
-
-                // Обновляем статус только
-                // владельца сообщения.
 
                 if (
                     message.user_id !==
@@ -221,20 +206,71 @@ function subscribeToMessageDeliveries() {
 
                 }
 
+                // ===============================
+                // Доставка
+                // ===============================
 
-                await updateMessageStatus(
-                    messageId
-                );
-
-
-                if (
-                    Number(message.chat_id) ===
-                    Number(currentChatId)
-                ) {
-
-                    await updateChatListMessageStatus(
-                        message.chat_id
+                const statusElement =
+                    document.querySelector(
+                        `[data-status-message-id="${messageId}"]`
                     );
+
+                if (statusElement) {
+
+                    const currentText =
+                        statusElement.textContent
+                            .trim();
+
+                    const currentColor =
+                        statusElement.style.color;
+
+                    // Не откатываем ✓✓ назад в ✓
+                    if (
+                        currentText !== "✓✓"
+                    ) {
+
+                        statusElement.textContent =
+                            "✓";
+
+                        statusElement.title =
+                            "Доставлено";
+
+                        statusElement.style.color =
+                            "#00C853";
+
+                    }
+
+                }
+
+                // ===============================
+                // Статус в списке чатов
+                // ===============================
+
+                const chatStatusElement =
+                    document.querySelector(
+                        `[data-chat-status-id="${message.chat_id}"]`
+                    );
+
+                if (chatStatusElement) {
+
+                    const currentText =
+                        chatStatusElement.textContent
+                            .trim();
+
+                    if (
+                        currentText !== "✓✓"
+                    ) {
+
+                        chatStatusElement.textContent =
+                            "✓";
+
+                        chatStatusElement.title =
+                            "Доставлено";
+
+                        chatStatusElement.style.color =
+                            "#00C853";
+
+                    }
 
                 }
 
@@ -277,17 +313,28 @@ function subscribeToMessageReads() {
 
                 }
 
-
                 const chatId =
                     Number(
                         readInfo.chat_id
                     );
 
+                const lastReadMessageId =
+                    Number(
+                        readInfo.last_read_message_id
+                    );
 
-                if (!chatId) {
+                if (
+                    !chatId ||
+                    !lastReadMessageId
+                ) {
+
                     return;
+
                 }
 
+                // ===============================
+                // Получаем свои сообщения
+                // ===============================
 
                 const {
                     data: ownMessages,
@@ -302,8 +349,11 @@ function subscribeToMessageReads() {
                     .eq(
                         "user_id",
                         currentUser.id
+                    )
+                    .lte(
+                        "id",
+                        lastReadMessageId
                     );
-
 
                 if (
                     error ||
@@ -314,22 +364,69 @@ function subscribeToMessageReads() {
 
                 }
 
+                // ===============================
+                // Сразу ставим ✓✓
+                // ===============================
 
-                for (
-                    const message
-                    of ownMessages
-                ) {
+                ownMessages.forEach(
+                    message => {
 
-                    await updateMessageStatus(
-                        message.id
+                        const statusElement =
+                            document.querySelector(
+                                `[data-status-message-id="${message.id}"]`
+                            );
+
+                        if (!statusElement) {
+                            return;
+                        }
+
+                        statusElement.textContent =
+                            "✓✓";
+
+                        statusElement.title =
+                            "Прочитано";
+
+                        statusElement.style.color =
+                            "#00C853";
+
+                    }
+                );
+
+                // ===============================
+                // Статус последнего сообщения
+                // в списке чатов
+                // ===============================
+
+                const chatStatusElement =
+                    document.querySelector(
+                        `[data-chat-status-id="${chatId}"]`
                     );
 
+                if (chatStatusElement) {
+
+                    const lastOwnMessage =
+                        ownMessages[
+                            ownMessages.length - 1
+                        ];
+
+                    if (
+                        lastOwnMessage &&
+                        Number(lastOwnMessage.id) <=
+                        lastReadMessageId
+                    ) {
+
+                        chatStatusElement.textContent =
+                            "✓✓";
+
+                        chatStatusElement.title =
+                            "Прочитано";
+
+                        chatStatusElement.style.color =
+                            "#00C853";
+
+                    }
+
                 }
-
-
-                await updateChatListMessageStatus(
-                    chatId
-                );
 
             }
         )
