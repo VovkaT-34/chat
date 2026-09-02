@@ -1,4 +1,3 @@
-
 // ===============================
 // Отрисовка сообщения
 // ===============================
@@ -28,7 +27,9 @@ function renderMessage(message) {
         new Date(message.created_at);
 
     const dateText =
-        date.toLocaleDateString("ru-RU");
+        date.toLocaleDateString(
+            "ru-RU"
+        );
 
     const timeText =
         date.toLocaleTimeString(
@@ -160,9 +161,6 @@ async function updateMessageStatus(
     }
 
 
-    // Если статус не передан —
-    // получаем его из Supabase
-
     if (status === null) {
 
         const {
@@ -189,6 +187,7 @@ async function updateMessageStatus(
 
 
         status = data;
+
     }
 
 
@@ -208,6 +207,7 @@ async function updateMessageStatus(
             "#999999";
 
         return;
+
     }
 
 
@@ -218,15 +218,16 @@ async function updateMessageStatus(
     if (status === "delivered") {
 
         statusElement.textContent =
-            "✓✓";
+            "✓";
 
         statusElement.title =
             "Доставлено";
 
         statusElement.style.color =
-            "#999999";
+            "#00C853";
 
         return;
+
     }
 
 
@@ -243,9 +244,10 @@ async function updateMessageStatus(
             "Прочитано";
 
         statusElement.style.color =
-            "#2196F3";
+            "#00C853";
 
         return;
+
     }
 
 }
@@ -283,11 +285,20 @@ async function updateChatListMessageStatus(
     } = await supabaseClient
         .from("messages")
         .select("id")
-        .eq("chat_id", chatId)
-        .eq("user_id", currentUser.id)
-        .order("id", {
-            ascending: false
-        })
+        .eq(
+            "chat_id",
+            chatId
+        )
+        .eq(
+            "user_id",
+            currentUser.id
+        )
+        .order(
+            "id",
+            {
+                ascending: false
+            }
+        )
         .limit(1);
 
 
@@ -299,6 +310,7 @@ async function updateChatListMessageStatus(
         );
 
         return;
+
     }
 
 
@@ -311,6 +323,7 @@ async function updateChatListMessageStatus(
             "";
 
         return;
+
     }
 
 
@@ -338,6 +351,7 @@ async function updateChatListMessageStatus(
         );
 
         return;
+
     }
 
 
@@ -359,13 +373,13 @@ async function updateChatListMessageStatus(
     ) {
 
         statusElement.textContent =
-            "✓✓";
+            "✓";
 
         statusElement.title =
             "Доставлено";
 
         statusElement.style.color =
-            "#999999";
+            "#00C853";
 
     }
 
@@ -380,7 +394,7 @@ async function updateChatListMessageStatus(
             "Прочитано";
 
         statusElement.style.color =
-            "#2196F3";
+            "#00C853";
 
     }
 
@@ -392,4 +406,3 @@ async function updateChatListMessageStatus(
     }
 
 }
-
