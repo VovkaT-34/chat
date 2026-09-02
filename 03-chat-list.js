@@ -9,6 +9,7 @@ async function loadChats() {
 
     if (!chatList) return;
 
+
     chatList.innerHTML = "";
 
 
@@ -32,60 +33,41 @@ async function loadChats() {
             return;
         }
 
-        // Сначала показываем окно чата.
-        chatWindow.scrollIntoView({
-            behavior: "smooth",
-            block: "start"
-        });
+        // Критически важно: первый focus выполняем сразу внутри
+        // клика по чату. iOS/Android могут не открыть клавиатуру,
+        // если focus выполняется только внутри setTimeout.
+        try {
+            messageInput.focus({
+                preventScroll: true
+            });
 
-        // На Android/iOS клавиатура появляется асинхронно.
-        // Поэтому сначала даём браузеру открыть клавиатуру,
-        // затем ещё раз прокручиваем именно к полю ввода.
-        const placeCursorAndScroll = () => {
+            const length = messageInput.value.length;
+            messageInput.setSelectionRange(length, length);
+        } catch (error) {
+            // Некоторые браузеры могут ограничить установку курсора.
+        }
+
+        // После открытия клавиатуры viewport может изменить размер.
+        // Поэтому дополнительно прокручиваем поле в видимую область.
+        const scrollToInput = () => {
 
             try {
-                messageInput.focus({
-                    preventScroll: true
-                });
-
-                const length = messageInput.value.length;
-                messageInput.setSelectionRange(length, length);
-            } catch (error) {
-                // iOS может не разрешить изменение позиции курсора.
-            }
-
-            requestAnimationFrame(() => {
                 messageInput.scrollIntoView({
                     behavior: "smooth",
                     block: "center",
                     inline: "nearest"
                 });
-            });
+            } catch (error) {
+                // Ничего не делаем: focus уже выполнен.
+            }
+
         };
 
-        setTimeout(placeCursorAndScroll, 250);
+        requestAnimationFrame(scrollToInput);
+        setTimeout(scrollToInput, 150);
+        setTimeout(scrollToInput, 400);
+        setTimeout(scrollToInput, 700);
 
-        // Дополнительная попытка после фактического изменения
-        // viewport клавиатурой — особенно важно для Android/iOS.
-        setTimeout(() => {
-            if (document.activeElement === messageInput) {
-                messageInput.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                    inline: "nearest"
-                });
-            }
-        }, 650);
-
-        setTimeout(() => {
-            if (document.activeElement === messageInput) {
-                messageInput.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                    inline: "nearest"
-                });
-            }
-        }, 1000);
     }
 
 
@@ -196,8 +178,8 @@ async function loadChats() {
 
             }
 
-            // На мобильном сразу переводим пользователя
-            // к окну ввода.
+            // Сразу после физического клика по чату:
+            // открываем поле ввода и запрашиваем клавиатуру.
             focusMessageInputOnMobile();
 
 
@@ -209,9 +191,8 @@ async function loadChats() {
             );
 
 
-            // История могла изменить высоту страницы, поэтому
-            // после её загрузки повторно ставим фокус и поле
-            // ввода в видимую область над клавиатурой.
+            // После загрузки истории поле всё равно должно
+            // оставаться активным и видимым над клавиатурой.
             focusMessageInputOnMobile();
 
         };
