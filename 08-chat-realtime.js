@@ -1,4 +1,3 @@
-
 // ===============================
 // Realtime сообщений
 // ===============================
@@ -126,6 +125,18 @@ async function subscribeToMessages() {
                         );
 
                     }
+
+                    // ===============================
+                    // Статус в списке чатов
+                    // ===============================
+                    // После нового сообщения обязательно
+                    // пересчитываем статус по самому последнему
+                    // сообщению чата. Если новое сообщение чужое,
+                    // старые наши ✓/✓✓ больше не переносятся сюда.
+
+                    await updateChatListMessageStatus(
+                        newMessage.chat_id
+                    );
 
                 }
             )
@@ -256,6 +267,13 @@ async function refreshOwnMessageStatuses() {
         return;
     }
 
+    // Статусы строк списка чатов обновляем только через
+    // updateChatListMessageStatus(). Эта функция сначала
+    // проверяет, какое сообщение действительно является
+    // последним в чате, и не использует старое наше сообщение,
+    // если после него уже пришло новое чужое.
+    const chatIds = new Set();
+
     for (const message of messages) {
 
         const statusElement =
@@ -263,119 +281,46 @@ async function refreshOwnMessageStatuses() {
                 `[data-status-message-id="${message.id}"]`
             );
 
-        const chatStatusElement =
-            document.querySelector(
-                `[data-chat-status-id="${message.chat_id}"]`
-            );
-
-        if (
-            !statusElement &&
-            !chatStatusElement
-        ) {
-            continue;
-        }
-
-        const {
-            data: status,
-            error: statusError
-        } = await supabaseClient.rpc(
-            "get_message_status",
-            {
-                p_message_id:
-                    message.id
-            }
-        );
-
-        if (
-            statusError ||
-            !status
-        ) {
-            continue;
-        }
-
         if (statusElement) {
 
-            applyMessageStatus(
-                statusElement,
-                status
+            const {
+                data: status,
+                error: statusError
+            } = await supabaseClient.rpc(
+                "get_message_status",
+                {
+                    p_message_id:
+                        message.id
+                }
             );
+
+            if (
+                !statusError &&
+                status
+            ) {
+
+                applyMessageStatus(
+                    statusElement,
+                    status
+                );
+
+            }
 
         }
 
-        if (chatStatusElement) {
+        chatIds.add(
+            Number(message.chat_id)
+        );
 
-            const currentStatus =
-                chatStatusElement.dataset.messageStatus ||
-                "sent";
+    }
 
-            const statusOrder = {
-                sent: 1,
-                delivered: 2,
-                read: 3
-            };
+    for (const chatId of chatIds) {
 
-            const currentOrder =
-                statusOrder[currentStatus] ||
-                1;
+        if (chatId) {
 
-            const newOrder =
-                statusOrder[status] ||
-                0;
-
-            if (
-                newOrder >=
-                currentOrder
-            ) {
-
-                chatStatusElement.dataset.messageStatus =
-                    status;
-
-                if (
-                    status === "sent"
-                ) {
-
-                    chatStatusElement.textContent =
-                        "✓";
-
-                    chatStatusElement.title =
-                        "Отправлено";
-
-                    chatStatusElement.style.color =
-                        "#999999";
-
-                }
-
-                if (
-                    status === "delivered"
-                ) {
-
-                    chatStatusElement.textContent =
-                        "✓";
-
-                    chatStatusElement.title =
-                        "Доставлено";
-
-                    chatStatusElement.style.color =
-                        "#00C853";
-
-                }
-
-                if (
-                    status === "read"
-                ) {
-
-                    chatStatusElement.textContent =
-                        "✓✓";
-
-                    chatStatusElement.title =
-                        "Прочитано";
-
-                    chatStatusElement.style.color =
-                        "#00C853";
-
-                }
-
-            }
+            await updateChatListMessageStatus(
+                chatId
+            );
 
         }
 
@@ -463,19 +408,13 @@ function subscribeToMessageDeliveries() {
 
                 }
 
-                const chatStatusElement =
-                    document.querySelector(
-                        `[data-chat-status-id="${message.chat_id}"]`
-                    );
-
-                if (chatStatusElement) {
-
-                    applyMessageStatus(
-                        chatStatusElement,
-                        "delivered"
-                    );
-
-                }
+                // Пересчитываем строку чата по фактически
+                // последнему сообщению, а не напрямую по
+                // доставленному сообщению. Само сообщение
+                // уровня чата не трогаем иначе.
+                await updateChatListMessageStatus(
+                    message.chat_id
+                );
 
             }
         )
@@ -583,19 +522,14 @@ function subscribeToMessageReads() {
                     }
                 );
 
-                const chatStatusElement =
-                    document.querySelector(
-                        `[data-chat-status-id="${chatId}"]`
-                    );
-
-                if (chatStatusElement) {
-
-                    applyMessageStatus(
-                        chatStatusElement,
-                        "read"
-                    );
-
-                }
+                // Статус в списке чатов определяем заново по
+                // последнему сообщению чата. Поэтому прочтение
+                // старого сообщения не сможет превратить строку
+                // чата в ✓✓, если последним уже является другое
+                // сообщение.
+                await updateChatListMessageStatus(
+                    chatId
+                );
 
             }
         )
@@ -623,4 +557,3 @@ setInterval(
     },
     1000
 );
-
