@@ -1,4 +1,4 @@
-// ===============================
+ // ===============================
 // Отрисовка сообщения
 // ===============================
 
@@ -11,7 +11,8 @@ function renderMessage(message) {
     const div =
         document.createElement("div");
 
-    div.className = "message";
+    div.className =
+        "message";
 
     div.dataset.messageId =
         message.id;
@@ -47,6 +48,7 @@ function renderMessage(message) {
             <span
                 class="message-status"
                 data-status-message-id="${message.id}"
+                data-message-status="sent"
                 style="
                     margin-left:6px;
                     font-size:13px;
@@ -160,6 +162,10 @@ async function updateMessageStatus(
         return;
     }
 
+    // =================================
+    // Если статус не передан —
+    // получаем его из БД
+    // =================================
 
     if (status === null) {
 
@@ -174,7 +180,6 @@ async function updateMessageStatus(
             }
         );
 
-
         if (error) {
 
             console.log(
@@ -183,19 +188,57 @@ async function updateMessageStatus(
             );
 
             return;
+
         }
 
-
-        status = data;
+        status =
+            data;
 
     }
 
+    // =================================
+    // Не позволяем откатывать статус
+    // =================================
 
-    // ===============================
+    const currentStatus =
+        statusElement.dataset.messageStatus ||
+        "sent";
+
+    const statusOrder = {
+
+        sent: 1,
+
+        delivered: 2,
+
+        read: 3
+
+    };
+
+    const newOrder =
+        statusOrder[status] || 0;
+
+    const currentOrder =
+        statusOrder[currentStatus] || 1;
+
+    if (
+        newOrder <
+        currentOrder
+    ) {
+
+        return;
+
+    }
+
+    // =================================
     // Отправлено
-    // ===============================
+    // =================================
 
-    if (status === "sent") {
+    if (
+        status === "sent"
+    ) {
+
+        statusElement.dataset.messageStatus =
+            "sent";
 
         statusElement.textContent =
             "✓";
@@ -210,12 +253,16 @@ async function updateMessageStatus(
 
     }
 
-
-    // ===============================
+    // =================================
     // Доставлено
-    // ===============================
+    // =================================
 
-    if (status === "delivered") {
+    if (
+        status === "delivered"
+    ) {
+
+        statusElement.dataset.messageStatus =
+            "delivered";
 
         statusElement.textContent =
             "✓";
@@ -230,12 +277,16 @@ async function updateMessageStatus(
 
     }
 
-
-    // ===============================
+    // =================================
     // Прочитано
-    // ===============================
+    // =================================
 
-    if (status === "read") {
+    if (
+        status === "read"
+    ) {
+
+        statusElement.dataset.messageStatus =
+            "read";
 
         statusElement.textContent =
             "✓✓";
@@ -245,8 +296,6 @@ async function updateMessageStatus(
 
         statusElement.style.color =
             "#00C853";
-
-        return;
 
     }
 
@@ -267,17 +316,14 @@ async function updateChatListMessageStatus(
         return;
     }
 
-
     const statusElement =
         document.querySelector(
             `[data-chat-status-id="${chatId}"]`
         );
 
-
     if (!statusElement) {
         return;
     }
-
 
     const {
         data: messages,
@@ -301,7 +347,6 @@ async function updateChatListMessageStatus(
         )
         .limit(1);
 
-
     if (error) {
 
         console.log(
@@ -312,7 +357,6 @@ async function updateChatListMessageStatus(
         return;
 
     }
-
 
     if (
         !messages ||
@@ -326,10 +370,8 @@ async function updateChatListMessageStatus(
 
     }
 
-
     const messageId =
         messages[0].id;
-
 
     const {
         data: status,
@@ -342,7 +384,6 @@ async function updateChatListMessageStatus(
         }
     );
 
-
     if (statusError) {
 
         console.log(
@@ -354,8 +395,50 @@ async function updateChatListMessageStatus(
 
     }
 
+    // =================================
+    // Не позволяем списку чатов
+    // откатывать статус назад
+    // =================================
 
-    if (status === "sent") {
+    const currentStatus =
+        statusElement.dataset.messageStatus ||
+        "sent";
+
+    const statusOrder = {
+
+        sent: 1,
+
+        delivered: 2,
+
+        read: 3
+
+    };
+
+    const newOrder =
+        statusOrder[status] || 0;
+
+    const currentOrder =
+        statusOrder[currentStatus] || 1;
+
+    if (
+        newOrder <
+        currentOrder
+    ) {
+
+        return;
+
+    }
+
+    statusElement.dataset.messageStatus =
+        status;
+
+    // =================================
+    // Отправлено
+    // =================================
+
+    if (
+        status === "sent"
+    ) {
 
         statusElement.textContent =
             "✓";
@@ -366,9 +449,15 @@ async function updateChatListMessageStatus(
         statusElement.style.color =
             "#999999";
 
+        return;
+
     }
 
-    else if (
+    // =================================
+    // Доставлено
+    // =================================
+
+    if (
         status === "delivered"
     ) {
 
@@ -381,9 +470,15 @@ async function updateChatListMessageStatus(
         statusElement.style.color =
             "#00C853";
 
+        return;
+
     }
 
-    else if (
+    // =================================
+    // Прочитано
+    // =================================
+
+    if (
         status === "read"
     ) {
 
@@ -395,13 +490,6 @@ async function updateChatListMessageStatus(
 
         statusElement.style.color =
             "#00C853";
-
-    }
-
-    else {
-
-        statusElement.textContent =
-            "";
 
     }
 
