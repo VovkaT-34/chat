@@ -5,48 +5,30 @@
 
 function renderMessage(message) {
 
-    if (
-        !message ||
-        !currentUser
-    ) {
-
+    if (!message || !currentUser) {
         return null;
-
     }
-
 
     const div =
         document.createElement("div");
 
-
-    div.className =
-        "message";
-
+    div.className = "message";
 
     div.dataset.messageId =
         message.id;
 
-
     div.dataset.userId =
         message.user_id;
-
 
     const username =
         message.profiles?.username ||
         "Пользователь";
 
-
     const date =
-        new Date(
-            message.created_at
-        );
-
+        new Date(message.created_at);
 
     const dateText =
-        date.toLocaleDateString(
-            "ru-RU"
-        );
-
+        date.toLocaleDateString("ru-RU");
 
     const timeText =
         date.toLocaleTimeString(
@@ -57,13 +39,10 @@ function renderMessage(message) {
             }
         );
 
-
     const messageStatus =
-        message.user_id ===
-        currentUser.id
+        message.user_id === currentUser.id
             ?
             `
-
             <span
                 class="message-status"
                 data-status-message-id="${message.id}"
@@ -74,15 +53,13 @@ function renderMessage(message) {
                     white-space:nowrap;
                     color:#999999;
                 "
-                title="Доставлено"
+                title="Отправлено"
             >
                 ✓
             </span>
-
             `
             :
             "";
-
 
     div.innerHTML = `
 
@@ -100,12 +77,10 @@ function renderMessage(message) {
 
         </div>
 
-
         ${
             message.reply_message
             ?
             `
-
             <div style="
                 background:#eeeeee;
                 padding:8px;
@@ -118,8 +93,7 @@ function renderMessage(message) {
             ">
 
                 ↩ ${
-                    message
-                    .reply_message
+                    message.reply_message
                     .profiles
                     ?.username ||
                     "Пользователь"
@@ -128,25 +102,18 @@ function renderMessage(message) {
                 <br>
 
                 ${
-                    message
-                    .reply_message
-                    .text
+                    message.reply_message.text
                 }
 
             </div>
-
             `
             :
             ""
         }
 
-
         <div class="message-text">
-
             ${message.text}
-
         </div>
-
 
         <button
             onclick='replyToMessage(
@@ -164,27 +131,23 @@ function renderMessage(message) {
                 cursor:pointer;
             "
         >
-
             ↩ Ответить
-
         </button>
 
     `;
 
-
     return div;
-
 }
 
 
 
 // ===============================
-// Обновление статуса сообщения
+// Получение статуса сообщения
 // ===============================
 
 async function updateMessageStatus(
     messageId,
-    status = 1
+    status = null
 ) {
 
     const statusElement =
@@ -192,18 +155,70 @@ async function updateMessageStatus(
             `[data-status-message-id="${messageId}"]`
         );
 
-
     if (!statusElement) {
-
         return;
-
     }
 
 
-    if (status === 1) {
+    // Если статус не передан —
+    // получаем его из Supabase
+
+    if (status === null) {
+
+        const {
+            data,
+            error
+        } = await supabaseClient.rpc(
+            "get_message_status",
+            {
+                p_message_id:
+                    messageId
+            }
+        );
+
+
+        if (error) {
+
+            console.log(
+                "Ошибка получения статуса сообщения:",
+                error
+            );
+
+            return;
+        }
+
+
+        status = data;
+    }
+
+
+    // ===============================
+    // Отправлено
+    // ===============================
+
+    if (status === "sent") {
 
         statusElement.textContent =
             "✓";
+
+        statusElement.title =
+            "Отправлено";
+
+        statusElement.style.color =
+            "#999999";
+
+        return;
+    }
+
+
+    // ===============================
+    // Доставлено
+    // ===============================
+
+    if (status === "delivered") {
+
+        statusElement.textContent =
+            "✓✓";
 
         statusElement.title =
             "Доставлено";
@@ -211,10 +226,15 @@ async function updateMessageStatus(
         statusElement.style.color =
             "#999999";
 
+        return;
     }
 
 
-    if (status === 2) {
+    // ===============================
+    // Прочитано
+    // ===============================
+
+    if (status === "read") {
 
         statusElement.textContent =
             "✓✓";
@@ -225,34 +245,7 @@ async function updateMessageStatus(
         statusElement.style.color =
             "#2196F3";
 
-    }
-
-
-    if (status === 0) {
-
-        statusElement.textContent =
-            "⟳";
-
-        statusElement.title =
-            "Отправляется";
-
-        statusElement.style.color =
-            "#999999";
-
-    }
-
-
-    if (status === -1) {
-
-        statusElement.textContent =
-            "!";
-
-        statusElement.title =
-            "Ошибка отправки";
-
-        statusElement.style.color =
-            "#d32f2f";
-
+        return;
     }
 
 }
@@ -269,9 +262,7 @@ async function updateChatListMessageStatus(
 ) {
 
     if (!currentUser) {
-
         return;
-
     }
 
 
@@ -282,73 +273,105 @@ async function updateChatListMessageStatus(
 
 
     if (!statusElement) {
-
         return;
-
     }
 
 
     const {
-        data,
+        data: messages,
         error
-    } =
-        await supabaseClient.rpc(
-            "get_message_status",
-            {
-                p_chat_id:
-                    chatId
-            }
-        );
+    } = await supabaseClient
+        .from("messages")
+        .select("id")
+        .eq("chat_id", chatId)
+        .eq("user_id", currentUser.id)
+        .order("id", {
+            ascending: false
+        })
+        .limit(1);
 
 
     if (error) {
 
         console.log(
-            "Ошибка получения статуса сообщения:",
+            "Ошибка поиска последнего сообщения:",
             error
         );
+
+        return;
+    }
+
+
+    if (
+        !messages ||
+        !messages.length
+    ) {
 
         statusElement.textContent =
             "";
 
         return;
-
     }
 
 
-    let status =
-        data;
+    const messageId =
+        messages[0].id;
 
 
-    if (
-        Array.isArray(data)
+    const {
+        data: status,
+        error: statusError
+    } = await supabaseClient.rpc(
+        "get_message_status",
+        {
+            p_message_id:
+                messageId
+        }
+    );
+
+
+    if (statusError) {
+
+        console.log(
+            "Ошибка получения статуса:",
+            statusError
+        );
+
+        return;
+    }
+
+
+    if (status === "sent") {
+
+        statusElement.textContent =
+            "✓";
+
+        statusElement.title =
+            "Отправлено";
+
+        statusElement.style.color =
+            "#999999";
+
+    }
+
+    else if (
+        status === "delivered"
     ) {
 
-        status =
-            data[0];
+        statusElement.textContent =
+            "✓✓";
+
+        statusElement.title =
+            "Доставлено";
+
+        statusElement.style.color =
+            "#999999";
 
     }
 
-
-    if (
-        status &&
-        typeof status === "object"
+    else if (
+        status === "read"
     ) {
-
-        status =
-            status.status ??
-            status.message_status ??
-            status.result ??
-            status[Object.keys(status)[0]];
-
-    }
-
-
-    status =
-        Number(status);
-
-
-    if (status === 2) {
 
         statusElement.textContent =
             "✓✓";
@@ -361,38 +384,9 @@ async function updateChatListMessageStatus(
 
     }
 
-    else if (status === 1) {
-
-        statusElement.textContent =
-            "✓";
-
-        statusElement.title =
-            "Доставлено";
-
-        statusElement.style.color =
-            "#999999";
-
-    }
-
-    else if (status === 0) {
-
-        statusElement.textContent =
-            "⟳";
-
-        statusElement.title =
-            "Отправляется";
-
-        statusElement.style.color =
-            "#999999";
-
-    }
-
     else {
 
         statusElement.textContent =
-            "";
-
-        statusElement.title =
             "";
 
     }
