@@ -1,4 +1,5 @@
- // ===============================
+
+// ===============================
 // Отрисовка сообщения
 // ===============================
 
@@ -65,9 +66,7 @@ function renderMessage(message) {
             "";
 
     div.innerHTML = `
-
         <div>
-
             <span class="message-user">
                 ${username}
             </span>
@@ -77,7 +76,6 @@ function renderMessage(message) {
             </span>
 
             ${messageStatus}
-
         </div>
 
         ${
@@ -94,7 +92,6 @@ function renderMessage(message) {
                 overflow-wrap:anywhere;
                 word-break:break-word;
             ">
-
                 ↩ ${
                     message.reply_message
                     .profiles
@@ -107,7 +104,6 @@ function renderMessage(message) {
                 ${
                     message.reply_message.text
                 }
-
             </div>
             `
             :
@@ -136,13 +132,108 @@ function renderMessage(message) {
         >
             ↩ Ответить
         </button>
-
     `;
 
     return div;
 }
 
+// ===============================
+// Порядок статусов
+// ===============================
 
+function getMessageStatusOrder(
+    status
+) {
+
+    const order = {
+        sent: 1,
+        delivered: 2,
+        read: 3
+    };
+
+    return order[status] || 0;
+}
+
+// ===============================
+// Применение статуса
+// ===============================
+
+function setMessageStatus(
+    statusElement,
+    status
+) {
+
+    if (
+        !statusElement ||
+        !status
+    ) {
+        return;
+    }
+
+    const currentStatus =
+        statusElement.dataset.messageStatus ||
+        "sent";
+
+    const currentOrder =
+        getMessageStatusOrder(
+            currentStatus
+        );
+
+    const newOrder =
+        getMessageStatusOrder(
+            status
+        );
+
+    if (
+        newOrder <
+        currentOrder
+    ) {
+        return;
+    }
+
+    statusElement.dataset.messageStatus =
+        status;
+
+    if (status === "sent") {
+
+        statusElement.textContent =
+            "✓";
+
+        statusElement.title =
+            "Отправлено";
+
+        statusElement.style.color =
+            "#999999";
+
+        return;
+    }
+
+    if (status === "delivered") {
+
+        statusElement.textContent =
+            "✓";
+
+        statusElement.title =
+            "Доставлено";
+
+        statusElement.style.color =
+            "#00C853";
+
+        return;
+    }
+
+    if (status === "read") {
+
+        statusElement.textContent =
+            "✓✓";
+
+        statusElement.title =
+            "Прочитано";
+
+        statusElement.style.color =
+            "#00C853";
+    }
+}
 
 // ===============================
 // Получение статуса сообщения
@@ -161,11 +252,6 @@ async function updateMessageStatus(
     if (!statusElement) {
         return;
     }
-
-    // =================================
-    // Если статус не передан —
-    // получаем его из БД
-    // =================================
 
     if (status === null) {
 
@@ -188,120 +274,17 @@ async function updateMessageStatus(
             );
 
             return;
-
         }
 
         status =
             data;
-
     }
 
-    // =================================
-    // Не позволяем откатывать статус
-    // =================================
-
-    const currentStatus =
-        statusElement.dataset.messageStatus ||
-        "sent";
-
-    const statusOrder = {
-
-        sent: 1,
-
-        delivered: 2,
-
-        read: 3
-
-    };
-
-    const newOrder =
-        statusOrder[status] || 0;
-
-    const currentOrder =
-        statusOrder[currentStatus] || 1;
-
-    if (
-        newOrder <
-        currentOrder
-    ) {
-
-        return;
-
-    }
-
-    // =================================
-    // Отправлено
-    // =================================
-
-    if (
-        status === "sent"
-    ) {
-
-        statusElement.dataset.messageStatus =
-            "sent";
-
-        statusElement.textContent =
-            "✓";
-
-        statusElement.title =
-            "Отправлено";
-
-        statusElement.style.color =
-            "#999999";
-
-        return;
-
-    }
-
-    // =================================
-    // Доставлено
-    // =================================
-
-    if (
-        status === "delivered"
-    ) {
-
-        statusElement.dataset.messageStatus =
-            "delivered";
-
-        statusElement.textContent =
-            "✓";
-
-        statusElement.title =
-            "Доставлено";
-
-        statusElement.style.color =
-            "#00C853";
-
-        return;
-
-    }
-
-    // =================================
-    // Прочитано
-    // =================================
-
-    if (
-        status === "read"
-    ) {
-
-        statusElement.dataset.messageStatus =
-            "read";
-
-        statusElement.textContent =
-            "✓✓";
-
-        statusElement.title =
-            "Прочитано";
-
-        statusElement.style.color =
-            "#00C853";
-
-    }
-
+    setMessageStatus(
+        statusElement,
+        status
+    );
 }
-
-
 
 // ===============================
 // Статус последнего сообщения
@@ -355,16 +338,12 @@ async function updateChatListMessageStatus(
         );
 
         return;
-
     }
 
     if (
         !messages ||
         !messages.length
     ) {
-
-        statusElement.textContent =
-            "";
 
         return;
 
@@ -392,105 +371,11 @@ async function updateChatListMessageStatus(
         );
 
         return;
-
     }
 
-    // =================================
-    // Не позволяем списку чатов
-    // откатывать статус назад
-    // =================================
-
-    const currentStatus =
-        statusElement.dataset.messageStatus ||
-        "sent";
-
-    const statusOrder = {
-
-        sent: 1,
-
-        delivered: 2,
-
-        read: 3
-
-    };
-
-    const newOrder =
-        statusOrder[status] || 0;
-
-    const currentOrder =
-        statusOrder[currentStatus] || 1;
-
-    if (
-        newOrder <
-        currentOrder
-    ) {
-
-        return;
-
-    }
-
-    statusElement.dataset.messageStatus =
-        status;
-
-    // =================================
-    // Отправлено
-    // =================================
-
-    if (
-        status === "sent"
-    ) {
-
-        statusElement.textContent =
-            "✓";
-
-        statusElement.title =
-            "Отправлено";
-
-        statusElement.style.color =
-            "#999999";
-
-        return;
-
-    }
-
-    // =================================
-    // Доставлено
-    // =================================
-
-    if (
-        status === "delivered"
-    ) {
-
-        statusElement.textContent =
-            "✓";
-
-        statusElement.title =
-            "Доставлено";
-
-        statusElement.style.color =
-            "#00C853";
-
-        return;
-
-    }
-
-    // =================================
-    // Прочитано
-    // =================================
-
-    if (
-        status === "read"
-    ) {
-
-        statusElement.textContent =
-            "✓✓";
-
-        statusElement.title =
-            "Прочитано";
-
-        statusElement.style.color =
-            "#00C853";
-
-    }
-
+    setMessageStatus(
+        statusElement,
+        status
+    );
 }
+
