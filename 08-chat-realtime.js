@@ -207,7 +207,7 @@ function subscribeToMessageDeliveries() {
                 }
 
                 // ===============================
-                // Доставка
+                // Доставка = одна зелёная галочка
                 // ===============================
 
                 const statusElement =
@@ -217,28 +217,14 @@ function subscribeToMessageDeliveries() {
 
                 if (statusElement) {
 
-                    const currentText =
-                        statusElement.textContent
-                            .trim();
+                    statusElement.textContent =
+                        "✓";
 
-                    const currentColor =
-                        statusElement.style.color;
+                    statusElement.title =
+                        "Доставлено";
 
-                    // Не откатываем ✓✓ назад в ✓
-                    if (
-                        currentText !== "✓✓"
-                    ) {
-
-                        statusElement.textContent =
-                            "✓";
-
-                        statusElement.title =
-                            "Доставлено";
-
-                        statusElement.style.color =
-                            "#00C853";
-
-                    }
+                    statusElement.style.color =
+                        "#00C853";
 
                 }
 
@@ -253,24 +239,14 @@ function subscribeToMessageDeliveries() {
 
                 if (chatStatusElement) {
 
-                    const currentText =
-                        chatStatusElement.textContent
-                            .trim();
+                    chatStatusElement.textContent =
+                        "✓";
 
-                    if (
-                        currentText !== "✓✓"
-                    ) {
+                    chatStatusElement.title =
+                        "Доставлено";
 
-                        chatStatusElement.textContent =
-                            "✓";
-
-                        chatStatusElement.title =
-                            "Доставлено";
-
-                        chatStatusElement.style.color =
-                            "#00C853";
-
-                    }
+                    chatStatusElement.style.color =
+                        "#00C853";
 
                 }
 
@@ -333,7 +309,22 @@ function subscribeToMessageReads() {
                 }
 
                 // ===============================
+                // Если чат не открыт —
+                // это НЕ прочитано
+                // ===============================
+
+                if (
+                    Number(currentChatId) !==
+                    chatId
+                ) {
+
+                    return;
+
+                }
+
+                // ===============================
                 // Получаем свои сообщения
+                // до последнего прочитанного
                 // ===============================
 
                 const {
@@ -365,7 +356,7 @@ function subscribeToMessageReads() {
                 }
 
                 // ===============================
-                // Сразу ставим ✓✓
+                // Прочитано = две зелёные
                 // ===============================
 
                 ownMessages.forEach(
