@@ -165,6 +165,21 @@ function subscribeToMessageDeliveries() {
 
                 }
 
+                // =================================
+                // Доставка самого сообщения
+                // должна принадлежать другому
+                // пользователю
+                // =================================
+
+                if (
+                    delivery.user_id ===
+                    currentUser.id
+                ) {
+
+                    return;
+
+                }
+
                 const messageId =
                     Number(
                         delivery.message_id
@@ -197,6 +212,11 @@ function subscribeToMessageDeliveries() {
 
                 }
 
+                // =================================
+                // Нас интересуют только наши
+                // сообщения
+                // =================================
+
                 if (
                     message.user_id !==
                     currentUser.id
@@ -206,9 +226,9 @@ function subscribeToMessageDeliveries() {
 
                 }
 
-                // ===============================
-                // Доставка = одна зелёная галочка
-                // ===============================
+                // =================================
+                // Доставлено
+                // =================================
 
                 const statusElement =
                     document.querySelector(
@@ -217,20 +237,34 @@ function subscribeToMessageDeliveries() {
 
                 if (statusElement) {
 
-                    statusElement.textContent =
-                        "✓";
+                    const currentStatus =
+                        statusElement.dataset.messageStatus ||
+                        "sent";
 
-                    statusElement.title =
-                        "Доставлено";
+                    if (
+                        currentStatus !==
+                        "read"
+                    ) {
 
-                    statusElement.style.color =
-                        "#00C853";
+                        statusElement.dataset.messageStatus =
+                            "delivered";
+
+                        statusElement.textContent =
+                            "✓";
+
+                        statusElement.title =
+                            "Доставлено";
+
+                        statusElement.style.color =
+                            "#00C853";
+
+                    }
 
                 }
 
-                // ===============================
+                // =================================
                 // Статус в списке чатов
-                // ===============================
+                // =================================
 
                 const chatStatusElement =
                     document.querySelector(
@@ -239,14 +273,28 @@ function subscribeToMessageDeliveries() {
 
                 if (chatStatusElement) {
 
-                    chatStatusElement.textContent =
-                        "✓";
+                    const currentStatus =
+                        chatStatusElement.dataset.messageStatus ||
+                        "sent";
 
-                    chatStatusElement.title =
-                        "Доставлено";
+                    if (
+                        currentStatus !==
+                        "read"
+                    ) {
 
-                    chatStatusElement.style.color =
-                        "#00C853";
+                        chatStatusElement.dataset.messageStatus =
+                            "delivered";
+
+                        chatStatusElement.textContent =
+                            "✓";
+
+                        chatStatusElement.title =
+                            "Доставлено";
+
+                        chatStatusElement.style.color =
+                            "#00C853";
+
+                    }
 
                 }
 
@@ -289,10 +337,9 @@ function subscribeToMessageReads() {
 
                 }
 
-                // ===============================
-                // Игнорируем собственное
-                // событие прочтения
-                // ===============================
+                // =================================
+                // Собственное прочтение игнорируем
+                // =================================
 
                 if (
                     readInfo.user_id ===
@@ -322,25 +369,11 @@ function subscribeToMessageReads() {
 
                 }
 
-                // ===============================
-                // Если чат не открыт —
-                // сообщение не считается
-                // прочитанным этим клиентом
-                // ===============================
-
-                if (
-                    Number(currentChatId) !==
-                    chatId
-                ) {
-
-                    return;
-
-                }
-
-                // ===============================
-                // Получаем свои сообщения
-                // до последнего прочитанного
-                // ===============================
+                // =================================
+                // Получаем наши сообщения,
+                // которые действительно находятся
+                // до позиции прочтения
+                // =================================
 
                 const {
                     data: ownMessages,
@@ -363,16 +396,17 @@ function subscribeToMessageReads() {
 
                 if (
                     error ||
-                    !ownMessages
+                    !ownMessages ||
+                    !ownMessages.length
                 ) {
 
                     return;
 
                 }
 
-                // ===============================
-                // Прочитано = две зелёные
-                // ===============================
+                // =================================
+                // Только здесь ставим ✓✓
+                // =================================
 
                 ownMessages.forEach(
                     message => {
@@ -386,6 +420,22 @@ function subscribeToMessageReads() {
                             return;
                         }
 
+                        const currentStatus =
+                            statusElement.dataset.messageStatus ||
+                            "sent";
+
+                        if (
+                            currentStatus ===
+                            "read"
+                        ) {
+
+                            return;
+
+                        }
+
+                        statusElement.dataset.messageStatus =
+                            "read";
+
                         statusElement.textContent =
                             "✓✓";
 
@@ -398,10 +448,9 @@ function subscribeToMessageReads() {
                     }
                 );
 
-                // ===============================
-                // Статус последнего сообщения
-                // в списке чатов
-                // ===============================
+                // =================================
+                // Список чатов
+                // =================================
 
                 const chatStatusElement =
                     document.querySelector(
@@ -410,16 +459,17 @@ function subscribeToMessageReads() {
 
                 if (chatStatusElement) {
 
-                    const lastOwnMessage =
-                        ownMessages[
-                            ownMessages.length - 1
-                        ];
+                    const currentStatus =
+                        chatStatusElement.dataset.messageStatus ||
+                        "sent";
 
                     if (
-                        lastOwnMessage &&
-                        Number(lastOwnMessage.id) <=
-                        lastReadMessageId
+                        currentStatus !==
+                        "read"
                     ) {
+
+                        chatStatusElement.dataset.messageStatus =
+                            "read";
 
                         chatStatusElement.textContent =
                             "✓✓";
