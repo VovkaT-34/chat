@@ -1,4 +1,3 @@
-
 // ===============================
 // Отправка сообщения
 // ===============================
@@ -10,24 +9,18 @@ async function sendMessage() {
             "messageInput"
         );
 
-
     if (!input) return;
-
 
     const text =
         input.value.trim();
-
 
     if (
         !text ||
         !currentChatId ||
         !currentUser
     ) {
-
         return;
-
     }
-
 
     // =================================
     // Получаем имя пользователя
@@ -47,7 +40,6 @@ async function sendMessage() {
             .eq("id", currentUser.id)
             .single();
 
-
         if (
             !profileError &&
             profile?.username
@@ -60,10 +52,8 @@ async function sendMessage() {
 
     }
 
-
     let senderName =
         currentUsername;
-
 
     if (
         !senderName ||
@@ -78,7 +68,6 @@ async function sendMessage() {
             .select("username")
             .eq("id", currentUser.id)
             .single();
-
 
         if (
             !profileError &&
@@ -95,14 +84,11 @@ async function sendMessage() {
 
     }
 
-
     const chatId =
         currentChatId;
 
-
     const replyTo =
         replyMessageId;
-
 
     // =================================
     // Временное сообщение
@@ -111,16 +97,13 @@ async function sendMessage() {
     const temporaryId =
         `sending-${Date.now()}`;
 
-
     const box =
         document.getElementById(
             "messages"
         );
 
-
     let temporaryMessage =
         null;
-
 
     if (box) {
 
@@ -129,14 +112,11 @@ async function sendMessage() {
                 "div"
             );
 
-
         temporaryMessage.className =
             "message";
 
-
         temporaryMessage.dataset.messageId =
             temporaryId;
-
 
         temporaryMessage.innerHTML = `
 
@@ -181,17 +161,14 @@ async function sendMessage() {
 
         `;
 
-
         box.appendChild(
             temporaryMessage
         );
-
 
         box.scrollTop =
             box.scrollHeight;
 
     }
-
 
     // =================================
     // Записываем сообщение
@@ -239,7 +216,6 @@ async function sendMessage() {
         `)
         .single();
 
-
     // =================================
     // Ошибка
     // =================================
@@ -251,14 +227,12 @@ async function sendMessage() {
             error
         );
 
-
         if (temporaryMessage) {
 
             const status =
                 temporaryMessage.querySelector(
                     ".message-status"
                 );
-
 
             if (status) {
 
@@ -275,14 +249,12 @@ async function sendMessage() {
 
         }
 
-
         return;
 
     }
 
-
     // =================================
-    // Удаляем временное
+    // Успешно отправлено
     // =================================
 
     if (temporaryMessage) {
@@ -291,12 +263,11 @@ async function sendMessage() {
 
     }
 
-
     input.value = "";
-
 
     // =================================
     // Считаем своё сообщение прочитанным
+    // для собственного клиента
     // =================================
 
     const {
@@ -304,9 +275,7 @@ async function sendMessage() {
     } = await supabaseClient
         .from("user_chat_reads")
         .upsert(
-
             {
-
                 user_id:
                     currentUser.id,
 
@@ -315,18 +284,12 @@ async function sendMessage() {
 
                 last_read_message_id:
                     data.id
-
             },
-
             {
-
                 onConflict:
                     "user_id,chat_id"
-
             }
-
         );
-
 
     if (ownReadError) {
 
@@ -337,16 +300,13 @@ async function sendMessage() {
 
     }
 
-
     replyMessageId =
         null;
-
 
     const replyBox =
         document.getElementById(
             "replyBox"
         );
-
 
     if (replyBox) {
 
@@ -355,10 +315,8 @@ async function sendMessage() {
 
     }
 
-
     input.placeholder =
         "Введите сообщение...";
-
 
     // =================================
     // Настоящее сообщение
@@ -393,7 +351,6 @@ async function sendMessage() {
 
     };
 
-
     if (box) {
 
         const div =
@@ -401,13 +358,11 @@ async function sendMessage() {
                 messageForRender
             );
 
-
         if (div) {
 
             box.appendChild(
                 div
             );
-
 
             box.scrollTop =
                 box.scrollHeight;
@@ -416,16 +371,50 @@ async function sendMessage() {
 
     }
 
+    // =================================
+    // После успешной отправки:
+    // только серая галочка
+    // =================================
 
-    updateMessageStatus(
-        data.id,
-        1
-    );
+    const statusElement =
+        document.querySelector(
+            `[data-status-message-id="${data.id}"]`
+        );
 
+    if (statusElement) {
 
-    updateChatListMessageStatus(
-        chatId
-    );
+        statusElement.textContent =
+            "✓";
+
+        statusElement.title =
+            "Отправлено";
+
+        statusElement.style.color =
+            "#999999";
+
+    }
+
+    // =================================
+    // Статус в списке чатов
+    // =================================
+
+    const chatStatusElement =
+        document.querySelector(
+            `[data-chat-status-id="${chatId}"]`
+        );
+
+    if (chatStatusElement) {
+
+        chatStatusElement.textContent =
+            "✓";
+
+        chatStatusElement.title =
+            "Отправлено";
+
+        chatStatusElement.style.color =
+            "#999999";
+
+    }
 
 }
 
@@ -439,7 +428,6 @@ const sendButton =
     document.getElementById(
         "sendButton"
     );
-
 
 if (sendButton) {
 
@@ -460,7 +448,6 @@ const messageInput =
     document.getElementById(
         "messageInput"
     );
-
 
 if (messageInput) {
 
@@ -502,4 +489,3 @@ if (messageInput) {
     );
 
 }
-
