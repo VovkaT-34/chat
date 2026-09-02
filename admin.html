@@ -2,295 +2,308 @@
 <html lang="ru">
 
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Панель администратора</title>
-
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
-
-
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="robots" content="noindex,nofollow,noarchive">
-
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script src="auth-check.js"></script>
 
-
 <style>
 
-body {
-
-    font-family: Arial, sans-serif;
-    background:#f5f5f5;
-    margin:0;
-    padding:20px;
-
+* {
+    box-sizing: border-box;
 }
 
+html,
+body {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #e9e0d5;
+    margin: 0;
+    padding: 20px;
+    color: #3d332b;
+}
 
 .container {
-
-    max-width:1000px;
-    margin:auto;
-    background:white;
-    padding:30px;
-    border-radius:20px;
-
+    position: relative;
+    width: 100%;
+    max-width: 1000px;
+    margin: auto;
+    background: rgba(255,255,255,.96);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 28px rgba(55,38,25,.12);
 }
 
+.admin-topbar {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
 
 h1 {
-
-    text-align:center;
-    color:#800020;
-
+    text-align: center;
+    color: #800020;
+    margin: 8px 0 25px;
 }
-
 
 h2 {
-
-    color:#800020;
-    margin-top:35px;
-
+    color: #800020;
+    margin-top: 35px;
 }
-
-
 
 table {
-
-    width:100%;
-    border-collapse:collapse;
-    margin-top:15px;
-
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
 }
-
-
 
 th {
-
-    background:#800020;
-    color:white;
-    padding:12px;
-
+    background: #800020;
+    color: white;
+    padding: 12px;
 }
-
-
 
 td {
-
-    padding:12px;
-    border-bottom:1px solid #ddd;
-
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
 }
-
-
 
 button {
-
-    padding:8px 15px;
-    border:none;
-    border-radius:20px;
-    cursor:pointer;
-    background:#800020;
-    color:white;
-    font-weight:bold;
-
+    padding: 8px 15px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    background: #800020;
+    color: white;
+    font-weight: bold;
 }
-
-
 
 button:hover {
-
-    opacity:0.8;
-
+    opacity: .8;
 }
 
-
-
+/* Кнопка возврата — слева вверху, в тёмном стиле */
 .home-button {
-
-    display:inline-block;
-    margin-top:25px;
-    padding:14px 35px;
-    text-decoration:none;
-    text-align:center;
-    background:#f39c12;
-    color:white;
-    font-size:22px;
-    font-weight:bold;
-    border-radius:30px;
-    box-shadow:0 4px 10px rgba(0,0,0,0.15);
-
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 9px 15px;
+    text-decoration: none;
+    text-align: center;
+    background: linear-gradient(135deg, #171412 0%, #3e3027 50%, #735039 100%);
+    background-size: 180% 180%;
+    color: #fffaf5;
+    font-size: 14px;
+    font-weight: bold;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 11px;
+    box-shadow: 0 5px 14px rgba(55,38,25,.18);
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    animation: homeGradient 5s ease infinite;
 }
 
+.home-button:hover {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.03);
+    box-shadow: 0 7px 18px rgba(55,38,25,.28);
+    filter: brightness(1.08);
+}
 
+@keyframes homeGradient {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
 
 .pending-info {
-
-    margin-top:20px;
-    font-size:24px;
-    font-weight:bold;
-    color:#800020;
-
+    margin-top: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #800020;
 }
-
-
 
 .badge {
+    display: inline-block;
+    background: #f39c12;
+    color: white;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    line-height: 34px;
+    text-align: center;
+    font-size: 20px;
+    margin-left: 8px;
+}
 
-    display:inline-block;
-    background:#f39c12;
-    color:white;
-    border-radius:50%;
-    width:34px;
-    height:34px;
-    line-height:34px;
-    text-align:center;
-    font-size:20px;
-    margin-left:8px;
+@media (max-width: 700px) {
+
+    body {
+        padding: 10px;
+        -webkit-text-size-adjust: 100%;
+        overscroll-behavior-x: none;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 100%;
+        padding: 14px;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .admin-topbar {
+        min-height: 42px;
+        gap: 8px;
+    }
+
+    .home-button {
+        min-height: 38px;
+        padding: 8px 12px;
+        font-size: 13px;
+        border-radius: 10px;
+        white-space: nowrap;
+    }
+
+    h1 {
+        font-size: 22px;
+        margin: 8px 0 20px;
+        overflow-wrap: anywhere;
+    }
+
+    h2 {
+        font-size: 18px;
+        margin-top: 25px;
+    }
+
+    table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+    }
+
+    thead,
+    tbody {
+        width: 100%;
+    }
+
+    th,
+    td {
+        padding: 9px 8px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .badge {
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        font-size: 17px;
+    }
 
 }
 
+@media (max-width: 380px) {
 
+    body {
+        padding: 8px;
+    }
+
+    .container {
+        padding: 11px;
+    }
+
+    .home-button {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    h1 {
+        font-size: 20px;
+    }
+
+    th,
+    td {
+        padding: 8px 7px;
+        font-size: 12px;
+    }
+
+}
 
 </style>
-
-
 </head>
-
 
 <body>
 
-
 <div class="container">
 
+<div class="admin-topbar">
+
+<a href="index.html" class="home-button">
+🏠 На главную
+</a>
+
+</div>
 
 <h1>
 ⚙ Панель администратора
 </h1>
-
-
 
 <h2>
 ⏳ Ожидают одобрения
 <span id="pendingBadge" class="badge"></span>
 </h2>
 
-
-
 <table id="pendingTable" style="display:none;">
-
-
 <thead>
-
 <tr>
-
-<th>
-Email
-</th>
-
-<th>
-Имя
-</th>
-
-<th>
-Статус
-</th>
-
-<th>
-Роль
-</th>
-
-<th>
-Действие
-</th>
-
+<th>Email</th>
+<th>Имя</th>
+<th>Статус</th>
+<th>Роль</th>
+<th>Действие</th>
 </tr>
-
 </thead>
-
-
-<tbody id="pendingList">
-
-</tbody>
-
-
+<tbody id="pendingList"></tbody>
 </table>
 
-
-
-
-
-
-    
 <h2>
 ✅ Одобренные пользователи
 </h2>
 
-
-
 <table id="approvedTable" style="display:none;">
-
-
 <thead>
-
 <tr>
-
-<th>
-Email
-</th>
-
-<th>
-Имя
-</th>
-
-<th>
-Статус
-</th>
-
-<th>
-Роль
-</th>
-
+<th>Email</th>
+<th>Имя</th>
+<th>Статус</th>
+<th>Роль</th>
 </tr>
-
 </thead>
-
-
-<tbody id="approvedList">
-
-</tbody>
-
-
+<tbody id="approvedList"></tbody>
 </table>
-
-
-
-
-<a href="index.html"
-class="home-button">
-
-🏠 На главную
-
-</a>
-
-
 
 </div>
 
-
-
-
 <script>
 
-
 async function checkAdmin(){
-
-
 
     const {
         data:{
@@ -298,370 +311,163 @@ async function checkAdmin(){
         }
     } = await supabaseClient.auth.getUser();
 
-
-
-
     if(!user){
-
         window.location.href="login.html";
         return;
-
     }
-
-
-
-
 
     const {
         data:profile,
         error
     } = await supabaseClient
-
         .from("profiles")
-
         .select("*")
-
         .eq("id",user.id)
-
         .single();
 
-
-
-
-
     if(error || !profile){
-
         window.location.href="index.html";
         return;
-
     }
-
-
-
-
 
     if(
         profile.role !== "admin" ||
         profile.approved !== true
     ){
-
         window.location.href="index.html";
         return;
-
     }
 
-
-
-
-
     document.getElementById("pendingTable")
-    .style.display="table";
-
-
+        .style.display="table";
 
     document.getElementById("approvedTable")
-    .style.display="table";
-
-
-
+        .style.display="table";
 
     loadUsers();
 
-
-
 }
 
-
-
-
-
-
 async function loadUsers(){
-
-
 
     const {
         count
     } = await supabaseClient
-
         .from("profiles")
-
         .select("*",{count:"exact",head:true})
-
         .eq("approved",false);
 
-
-
-
-
-
     const badge =
-    document.getElementById("pendingBadge");
-
-
+        document.getElementById("pendingBadge");
 
     if(count > 0){
-
         badge.textContent=count;
         badge.style.display="inline-block";
-
     }
     else{
-
         badge.style.display="none";
-
     }
-
-
-
-
 
     const {
         data,
         error
     } = await supabaseClient
-
         .from("profiles")
-
         .select("*")
-
         .order("username");
 
-
-
-
-
     if(error){
-
         console.log(error);
         return;
-
     }
 
-
-
-
-
     const pendingList =
-    document.getElementById("pendingList");
-
-
+        document.getElementById("pendingList");
 
     const approvedList =
-    document.getElementById("approvedList");
-
-
-
+        document.getElementById("approvedList");
 
     pendingList.innerHTML="";
     approvedList.innerHTML="";
 
-
-
-
-
     data.forEach(profile=>{
-
-
 
         if(profile.approved === false){
 
-
-
             const row =
-            document.createElement("tr");
-
-
+                document.createElement("tr");
 
             row.innerHTML = `
-
+            <td>${profile.email ?? ""}</td>
+            <td>${profile.username ?? ""}</td>
+            <td>⏳ Ожидает</td>
+            <td>${profile.role ?? "user"}</td>
             <td>
-            ${profile.email ?? ""}
+                <button onclick="approveUser('${profile.id}')">
+                    Одобрить
+                </button>
             </td>
-
-
-            <td>
-            ${profile.username ?? ""}
-            </td>
-
-
-            <td>
-            ⏳ Ожидает
-            </td>
-
-
-            <td>
-            ${profile.role ?? "user"}
-            </td>
-
-
-            <td>
-
-            <button onclick="approveUser('${profile.id}')">
-
-            Одобрить
-
-            </button>
-
-            </td>
-
             `;
 
-
-
             pendingList.appendChild(row);
-
-
-
         }
-
-
-
-
-
 
         if(profile.approved === true){
 
-
-
             const row =
-            document.createElement("tr");
-
-
+                document.createElement("tr");
 
             row.innerHTML = `
-
-            <td>
-            ${profile.email ?? ""}
-            </td>
-
-
-            <td>
-            ${profile.username ?? ""}
-            </td>
-
-
-            <td>
-            ✅ Одобрен
-            </td>
-
-
-            <td>
-            ${profile.role ?? "user"}
-            </td>
-
+            <td>${profile.email ?? ""}</td>
+            <td>${profile.username ?? ""}</td>
+            <td>✅ Одобрен</td>
+            <td>${profile.role ?? "user"}</td>
             `;
 
-
-
             approvedList.appendChild(row);
-
-
-
         }
-
-
 
     });
 
-
-
 }
 
-
-
-
-
-
-
-
-
-
-    
 async function approveUser(id){
-
 
     console.log(
         "Одобряем ID:",
         id
     );
 
-
-
-
     const {
         data,
         error
     } = await supabaseClient
-
         .from("profiles")
-
         .update({
-
             approved:true
-
         })
-
         .eq("id",id)
-
         .select();
-
-
-
-
 
     console.log(
         "Ответ Supabase:",
         data
     );
 
-
-
-
-
     if(error){
-
-
-        alert(
-            error.message
-        );
-
-
+        alert(error.message);
         console.log(error);
-
-
         return;
-
-
     }
 
-
-
-
-
-    alert(
-        "Пользователь одобрен"
-    );
-
-
-
+    alert("Пользователь одобрен");
     loadUsers();
-
-
 
 }
 
-
-
-
-
 checkAdmin();
-
-
 
 </script>
 
-
 </body>
-
 </html>
