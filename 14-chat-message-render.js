@@ -1,3 +1,4 @@
+
 // ===============================
 // Отрисовка сообщения
 // ===============================
@@ -171,25 +172,6 @@ function renderMessage(message) {
     `;
 
 
-    if (
-        message.user_id ===
-        currentUser.id
-    ) {
-
-        setTimeout(
-            () => {
-
-                updateMessageStatus(
-                    message.id
-                );
-
-            },
-            0
-        );
-
-    }
-
-
     return div;
 
 }
@@ -200,11 +182,102 @@ function renderMessage(message) {
 // Обновление статуса сообщения
 // ===============================
 
-async function updateMessageStatus(messageId) {
+async function updateMessageStatus(
+    messageId,
+    status = 1
+) {
 
     const statusElement =
         document.querySelector(
             `[data-status-message-id="${messageId}"]`
+        );
+
+
+    if (!statusElement) {
+
+        return;
+
+    }
+
+
+    if (status === 1) {
+
+        statusElement.textContent =
+            "✓";
+
+        statusElement.title =
+            "Доставлено";
+
+        statusElement.style.color =
+            "#999999";
+
+    }
+
+
+    if (status === 2) {
+
+        statusElement.textContent =
+            "✓✓";
+
+        statusElement.title =
+            "Прочитано";
+
+        statusElement.style.color =
+            "#2196F3";
+
+    }
+
+
+    if (status === 0) {
+
+        statusElement.textContent =
+            "⟳";
+
+        statusElement.title =
+            "Отправляется";
+
+        statusElement.style.color =
+            "#999999";
+
+    }
+
+
+    if (status === -1) {
+
+        statusElement.textContent =
+            "!";
+
+        statusElement.title =
+            "Ошибка отправки";
+
+        statusElement.style.color =
+            "#d32f2f";
+
+    }
+
+}
+
+
+
+// ===============================
+// Статус последнего сообщения
+// в списке чатов
+// ===============================
+
+async function updateChatListMessageStatus(
+    chatId
+) {
+
+    if (!currentUser) {
+
+        return;
+
+    }
+
+
+    const statusElement =
+        document.querySelector(
+            `[data-chat-status-id="${chatId}"]`
         );
 
 
@@ -222,8 +295,8 @@ async function updateMessageStatus(messageId) {
         await supabaseClient.rpc(
             "get_message_status",
             {
-                p_message_id:
-                    messageId
+                p_chat_id:
+                    chatId
             }
         );
 
@@ -234,6 +307,9 @@ async function updateMessageStatus(messageId) {
             "Ошибка получения статуса сообщения:",
             error
         );
+
+        statusElement.textContent =
+            "";
 
         return;
 
@@ -259,72 +335,67 @@ async function updateMessageStatus(messageId) {
         typeof status === "object"
     ) {
 
-        if (
-            status.read === true ||
-            status.is_read === true
-        ) {
-
-            status =
-                "read";
-
-        }
-
-        else if (
-            status.delivered === true ||
-            status.is_delivered === true
-        ) {
-
-            status =
-                "delivered";
-
-        }
+        status =
+            status.status ??
+            status.message_status ??
+            status.result ??
+            status[Object.keys(status)[0]];
 
     }
 
 
-    if (
-        status === "read"
-    ) {
+    status =
+        Number(status);
+
+
+    if (status === 2) {
 
         statusElement.textContent =
             "✓✓";
 
-        statusElement.style.color =
-            "#00c853";
-
         statusElement.title =
             "Прочитано";
 
-        return;
+        statusElement.style.color =
+            "#2196F3";
 
     }
 
-
-    if (
-        status === "delivered"
-    ) {
+    else if (status === 1) {
 
         statusElement.textContent =
             "✓";
 
-        statusElement.style.color =
-            "#999999";
-
         statusElement.title =
             "Доставлено";
 
-        return;
+        statusElement.style.color =
+            "#999999";
 
     }
 
+    else if (status === 0) {
 
-    statusElement.textContent =
-        "✓";
+        statusElement.textContent =
+            "⟳";
 
-    statusElement.style.color =
-        "#999999";
+        statusElement.title =
+            "Отправляется";
 
-    statusElement.title =
-        "Доставлено";
+        statusElement.style.color =
+            "#999999";
+
+    }
+
+    else {
+
+        statusElement.textContent =
+            "";
+
+        statusElement.title =
+            "";
+
+    }
 
 }
+
