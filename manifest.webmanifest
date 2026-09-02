@@ -1,0 +1,19 @@
+{
+  "name": "Браузерный чат",
+  "short_name": "Чат",
+  "description": "Браузерный мессенджер",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eadfce",
+  "theme_color": "#5a4636",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
