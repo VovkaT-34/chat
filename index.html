@@ -47,6 +47,7 @@
     transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
 }
 
+/* Выйти — всегда справа */
 .logout-button {
     position: absolute;
     right: 0;
@@ -63,14 +64,19 @@
     filter: brightness(1.08);
 }
 
+/* Админ-панель — строго по центру */
 .admin-panel-button {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     background: linear-gradient(135deg, #263238 0%, #405b73 45%, #7661a8 100%);
     background-size: 180% 180%;
     animation: adminGradient 5s ease infinite;
 }
 
 .admin-panel-button:hover {
-    transform: translateY(-1px) scale(1.03);
+    transform: translate(-50%, -50%) translateY(-1px) scale(1.03);
     box-shadow: 0 7px 18px rgba(55,55,85,.25);
     filter: brightness(1.08);
 }
@@ -99,8 +105,16 @@
         border-radius: 10px;
     }
 
+    /* На телефоне сохраняем ту же схему:
+       админ-панель — по центру, выход — справа. */
+    .admin-panel-button {
+        left: 50%;
+        right: auto;
+    }
+
     .logout-button {
         right: 0;
+        left: auto;
     }
 }
 
