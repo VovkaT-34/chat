@@ -21,6 +21,10 @@
 @keyframes adminGradient{0%,100%{background-position:100% 50%}50%{background-position:0% 50%}}
 @media(max-width:700px){.top-actions{min-height:42px;margin-bottom:2px}.logout-button,.admin-panel-button{min-height:38px;padding:8px 12px;font-size:13px;border-radius:10px}.admin-panel-button{left:50%;right:auto}.logout-button{right:0;left:auto}}
 @media(max-width:380px){.logout-button,.admin-panel-button{padding:8px 10px;font-size:12px}}
+.chat-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.leave-chat-button{display:none;padding:4px 8px;background:#8b5a3c;color:white;border:none;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;white-space:nowrap;transition:background .2s ease,transform .15s ease}
+.leave-chat-button:hover{background:#6f452e;transform:translateY(-1px)}
+@media(max-width:700px){.chat-header-actions{gap:5px}.leave-chat-button{padding:7px 9px;font-size:12px;border-radius:8px}}
 </style>
 </head>
 <body>
@@ -34,12 +38,14 @@
 <div class="chat-window">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
 <h2 id="chatTitle" style="margin:0;">Выберите чат</h2>
+<div class="chat-header-actions">
+<button id="leaveChatButton" class="leave-chat-button" type="button">🚪 Выйти из чата</button>
 <div style="position:relative;">
 <button id="newChatButton" style="padding:4px 7px;background:#ff9800;color:white;border:none;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;white-space:nowrap;transition:background .2s ease,transform .15s ease;">➕ Новый чат</button>
 <div id="newChatMenu" style="display:none;position:absolute;right:0;top:32px;z-index:1000;background:white;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);overflow:hidden;min-width:160px;">
 <button id="newPrivateChatMenuButton" style="display:block;width:100%;padding:10px;border:none;background:white;text-align:left;cursor:pointer;">🔒 Личный чат</button>
 <button id="newGroupChatMenuButton" style="display:block;width:100%;padding:10px;border:none;background:white;text-align:left;cursor:pointer;">👥 Групповой чат</button>
-</div></div></div>
+</div></div></div></div>
 <div id="messages"></div>
 <div id="typingIndicator" style="display:none;color:#777;font-style:italic;margin:10px;"></div>
 <div class="send-box">
@@ -67,6 +73,7 @@
 <script src="09-chat-unread.js"></script>
 <script src="10-chat-typing.js"></script>
 <script src="11-chat-reply.js"></script>
+<script src="16-chat-actions.js"></script>
 <script src="12-chat-init.js"></script>
 <script src="13-chat-sound.js"></script>
 <script src="push.js"></script>
