@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const serviceRoleKey = Deno.env.get("MY_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY")!;
 const vapidSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@example.com";
@@ -123,8 +123,8 @@ Deno.serve(async (req: Request) => {
             JSON.stringify({
               title: senderName,
               body: message.text || "Новое сообщение",
-              icon: `${supabaseUrl.replace(/\\/$/, "")}/storage/v1/object/public/push-icons/chat-icon-192.png`,
-              badge: `${supabaseUrl.replace(/\\/$/, "")}/storage/v1/object/public/push-icons/chat-badge-72.png`,
+              icon: "https://vovkat-34.github.io/chat/favicon.svg",
+              badge: "https://vovkat-34.github.io/chat/favicon.svg",
               tag: `chat-${message.chat_id}`,
               chatId: message.chat_id,
               messageId: message.id,
