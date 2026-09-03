@@ -7,7 +7,8 @@
     const ICE_SERVERS = [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun.cloudflare.com:3478" }
+        { urls: "stun:stun.cloudflare.com:3478" },
+        ...(Array.isArray(window.CALL_TURN_SERVERS) ? window.CALL_TURN_SERVERS : [])
     ];
 
     let channel = null;
@@ -25,6 +26,9 @@
     let timer = null;
     let callTimeout = null;
     let startedAt = 0;
+    let makingOffer = false;
+    let renegotiationBusy = false;
+    let pageVisible = !document.hidden;
 
     const $ = id => document.getElementById(id);
 
@@ -106,8 +110,8 @@
         $("cv2Accept").onclick = () => void acceptIncoming();
         $("cv2Hangup").onclick = () => void end(true);
         $("cv2Mute").onclick = toggleMute;
-        $("cv2VideoControl").onclick = toggleVideo;
-        $("cv2Speaker").onclick = toggleSpeaker;
+        $("cv2VideoControl").onclick = () => void toggleVideo();
+        $("cv2Speaker").onclick = () => void toggleSpeaker();
     }
 
     function setStatus(text) {
@@ -185,6 +189,126 @@
         }
     }
 
+    function setRemoteMedia() {
+        const video = $("cv2Remote");
+        const audio = $("cv2RemoteAudio");
+        if (!remoteStream) return;
+
+        if (video) {
+            video.srcObject = remoteStream;
+            video.style.display = mode === "video" && remoteStream.getVideoTracks().length ? "block" : "none";
+            void video.play().catch(() => {});
+        }
+        if (audio) {
+            audio.srcObject = remoteStream;
+            audio.volume = 1;
+            audio.muted = false;
+            void audio.play().catch(() => {});
+        }
+
+        if ($("cv2Avatar")) {
+            $("cv2Avatar").style.display = mode === "video" && remoteStream.getVideoTracks().length ? "none" : "block";
+        }
+    }
+
+    function attachTrackRecovery(track) {
+        if (!track) return;
+        track.onunmute = () => {
+            setRemoteMedia();
+            if (pageVisible) void resumeRemoteAudio();
+        };
+        track.onended = () => {
+            setTimeout(() => {
+                if (callId && pageVisible) void resumeRemoteAudio();
+            }, 250);
+        };
+    }
+
+    async function resumeRemoteAudio() {
+        if (!remoteStream) return;
+        setRemoteMedia();
+        const audio = $("cv2RemoteAudio");
+        const video = $("cv2Remote");
+        try {
+            if (audio && audio.paused) await audio.play();
+        } catch (error) {
+            console.warn("Не удалось возобновить удалённый звук:", error);
+        }
+        try {
+            if (video && mode === "video" && video.paused) await video.play();
+        } catch (error) {
+            console.warn("Не удалось возобновить удалённое видео:", error);
+        }
+    }
+
+    function updateVideoUi(enabled) {
+        $("cv2VideoControl").textContent = enabled ? "📹" : "🚫";
+        $("cv2VideoControl").classList.toggle("green", !enabled);
+        const localVideo = $("cv2Local");
+        if (localVideo) localVideo.style.display = enabled ? "block" : "none";
+    }
+
+    async function requestVideoTrack() {
+        if (!navigator.mediaDevices?.getUserMedia) {
+            throw new Error("Камера недоступна");
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                frameRate: { ideal: 30, max: 30 },
+                facingMode: "user"
+            }
+        });
+
+        const videoTrack = stream.getVideoTracks()[0];
+        if (!videoTrack) {
+            stream.getTracks().forEach(track => track.stop());
+            throw new Error("Видеотрек не получен");
+        }
+
+        if (!localStream) {
+            localStream = new MediaStream();
+        }
+        localStream.addTrack(videoTrack);
+
+        const localVideo = $("cv2Local");
+        if (localVideo) {
+            localVideo.srcObject = localStream;
+            localVideo.style.display = "block";
+            void localVideo.play().catch(() => {});
+        }
+
+        videoTrack.onended = () => {
+            updateVideoUi(false);
+        };
+
+        return videoTrack;
+    }
+
+    async function sendVideoOffer() {
+        if (!pc || !callId || renegotiationBusy) return;
+        if (pc.signalingState !== "stable") return;
+
+        renegotiationBusy = true;
+        makingOffer = true;
+        try {
+            const offer = await pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true
+            });
+            await pc.setLocalDescription(offer);
+            const ok = await send("video-offer", {
+                description: pc.localDescription?.toJSON()
+            });
+            if (!ok) throw new Error("video-offer не записан");
+        } finally {
+            makingOffer = false;
+            renegotiationBusy = false;
+        }
+    }
+
     function buildPeer() {
         if (pc) {
             try { pc.close(); } catch {}
@@ -202,24 +326,12 @@
             if (!remoteStream.getTracks().some(track => track.id === event.track.id)) {
                 remoteStream.addTrack(event.track);
             }
-
-            const video = $("cv2Remote");
-            const audio = $("cv2RemoteAudio");
-            if (mode === "video") {
-                if (video) {
-                    video.srcObject = remoteStream;
-                    video.style.display = "block";
-                    void video.play().catch(() => {});
-                }
-                if (audio) audio.srcObject = remoteStream;
-                if ($("cv2Avatar")) $("cv2Avatar").style.display = "none";
-            } else {
-                if (audio) {
-                    audio.srcObject = remoteStream;
-                    void audio.play().catch(() => {});
-                }
-                if ($("cv2Avatar")) $("cv2Avatar").style.display = "block";
+            attachTrackRecovery(event.track);
+            if (event.track.kind === "video") {
+                mode = "video";
+                updateVideoUi(true);
             }
+            setRemoteMedia();
         };
 
         pc.onconnectionstatechange = () => {
@@ -229,6 +341,7 @@
                 callTimeout = null;
                 setStatus(mode === "video" ? "Видеозвонок" : "Звонок");
                 startTimer();
+                void resumeRemoteAudio();
             } else if (state === "failed") {
                 setStatus("Не удалось установить соединение");
                 setTimeout(() => void end(false), 1500);
@@ -244,6 +357,12 @@
             const state = pc?.iceConnectionState;
             if (state === "failed") {
                 setStatus("Не удалось соединиться через WebRTC");
+            }
+        };
+
+        pc.onnegotiationneeded = () => {
+            if (role === "caller" && !makingOffer && mode === "video") {
+                void sendVideoOffer();
             }
         };
 
@@ -295,6 +414,32 @@
         }
     }
 
+    async function handleVideoOffer(signal) {
+        if (!pc || signal.call_id !== callId || !signal.payload?.description) return;
+        if (pc.signalingState !== "stable") return;
+
+        try {
+            await pc.setRemoteDescription(signal.payload.description);
+            await flushIce();
+
+            if (!localStream?.getVideoTracks?.().length) {
+                await requestVideoTrack();
+                updateVideoUi(true);
+            }
+
+            mode = "video";
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            await send("video-answer", {
+                description: pc.localDescription?.toJSON()
+            });
+            setStatus("Видеозвонок");
+        } catch (error) {
+            console.error("Ошибка переключения на видео:", error);
+            setStatus("Не удалось включить видео");
+        }
+    }
+
     async function handleSignal(signal) {
         if (!signal || !window.currentUser?.id || signal.recipient_id !== window.currentUser.id) return;
 
@@ -317,6 +462,7 @@
             $("cv2Incoming").style.display = "flex";
             $("cv2Controls").style.display = "none";
             $("cv2Remote").style.display = "none";
+            updateVideoUi(false);
             setStatus(mode === "video" ? "Входящий видеозвонок" : "Входящий звонок");
             show(true);
             return;
@@ -327,6 +473,16 @@
         if (signal.signal_type === "answer" && pc) {
             await pc.setRemoteDescription(signal.payload.description);
             await flushIce();
+        } else if (signal.signal_type === "video-offer") {
+            await handleVideoOffer(signal);
+        } else if (signal.signal_type === "video-answer" && pc) {
+            if (pc.signalingState !== "have-local-offer") return;
+            await pc.setRemoteDescription(signal.payload.description);
+            await flushIce();
+            mode = "video";
+            updateVideoUi(true);
+            setRemoteMedia();
+            setStatus("Видеозвонок");
         } else if (signal.signal_type === "ice") {
             await addIce(signal.payload?.candidate);
         } else if (signal.signal_type === "reject") {
@@ -406,6 +562,7 @@
             $("cv2Incoming").style.display = "none";
             $("cv2Controls").style.display = "flex";
             $("cv2Remote").style.display = "none";
+            updateVideoUi(mode === "video");
             setStatus("Запрашиваем доступ к " + (mode === "video" ? "камере и микрофону" : "микрофону") + "…");
             show(true);
 
@@ -416,7 +573,9 @@
                 offerToReceiveAudio: true,
                 offerToReceiveVideo: mode === "video"
             });
+            makingOffer = true;
             await pc.setLocalDescription(offer);
+            makingOffer = false;
 
             if (!await send("offer", {
                 description: pc.localDescription?.toJSON(),
@@ -430,6 +589,7 @@
             armCallTimeout();
             await sendCallPush();
         } catch (error) {
+            makingOffer = false;
             console.error("Ошибка начала звонка:", error);
             const message = error?.name === "NotAllowedError"
                 ? "Разрешите микрофон/камеру для сайта в настройках браузера."
@@ -458,6 +618,7 @@
             await pc.setLocalDescription(answer);
             setStatus("Соединение…");
             await send("answer", { description: pc.localDescription?.toJSON() });
+            void resumeRemoteAudio();
         } catch (error) {
             console.error("Ошибка принятия звонка:", error);
             const message = error?.name === "NotAllowedError"
@@ -489,6 +650,8 @@
         peerId = null;
         role = null;
         chatId = null;
+        makingOffer = false;
+        renegotiationBusy = false;
 
         if ($("chatCallV2")) $("chatCallV2").classList.remove("open");
         if ($("cv2Remote")) $("cv2Remote").srcObject = null;
@@ -504,12 +667,43 @@
         $("cv2Mute").classList.toggle("green", !track.enabled);
     }
 
-    function toggleVideo() {
-        const track = localStream?.getVideoTracks?.()[0];
-        if (!track) return;
-        track.enabled = !track.enabled;
-        $("cv2VideoControl").textContent = track.enabled ? "📹" : "🚫";
-        $("cv2VideoControl").classList.toggle("green", !track.enabled);
+    async function toggleVideo() {
+        if (!callId || !pc || !localStream) return;
+
+        const track = localStream.getVideoTracks?.()[0];
+        if (track) {
+            track.enabled = !track.enabled;
+            if (track.enabled) {
+                mode = "video";
+                updateVideoUi(true);
+            } else {
+                updateVideoUi(false);
+            }
+            return;
+        }
+
+        try {
+            setStatus("Запрашиваем доступ к камере…");
+            await requestVideoTrack();
+            mode = "video";
+            updateVideoUi(true);
+            setRemoteMedia();
+
+            if (pc.signalingState === "stable") {
+                await sendVideoOffer();
+            } else {
+                setStatus("Подготавливаем видео…");
+            }
+        } catch (error) {
+            console.error("Ошибка включения камеры:", error);
+            const message = error?.name === "NotAllowedError"
+                ? "Разрешите камеру для сайта в настройках браузера."
+                : error?.name === "NotFoundError"
+                    ? "Камера не найдена."
+                    : "Не удалось включить камеру.";
+            setStatus(message);
+            updateVideoUi(false);
+        }
     }
 
     async function toggleSpeaker() {
@@ -520,12 +714,19 @@
         if (target && "setSinkId" in target) {
             try {
                 const devices = await navigator.mediaDevices.enumerateDevices();
-                const output = devices.find(device => device.kind === "audiooutput");
-                if (output) await target.setSinkId(output.deviceId);
+                const outputs = devices.filter(device => device.kind === "audiooutput" && device.deviceId);
+                if (outputs.length > 1) {
+                    const current = target.sinkId || "default";
+                    const next = outputs.find(device => device.deviceId !== current) || outputs[0];
+                    await target.setSinkId(next.deviceId);
+                }
             } catch (error) {
                 console.warn("Выбор динамика:", error);
             }
+        } else {
+            console.info("Выбор аудиовыхода не поддерживается этим браузером; используется системный маршрут.");
         }
+        await resumeRemoteAudio();
         $("cv2Speaker")?.classList.toggle("green");
     }
 
@@ -571,10 +772,55 @@
         updateChatCallButtonVisibility();
     }
 
+    function handleVisibilityChange() {
+        pageVisible = !document.hidden;
+        if (pageVisible && callId) {
+            void resumeRemoteAudio();
+            const audioTracks = localStream?.getAudioTracks?.() || [];
+            const endedAudio = audioTracks.find(track => track.readyState === "ended");
+            if (endedAudio && navigator.mediaDevices?.getUserMedia) {
+                void recoverLocalAudio();
+            }
+        }
+    }
+
+    async function recoverLocalAudio() {
+        if (!pc || !localStream || !navigator.mediaDevices?.getUserMedia) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            });
+            const track = stream.getAudioTracks()[0];
+            if (!track) return;
+            const sender = pc.getSenders().find(item => item.track?.kind === "audio");
+            if (sender) await sender.replaceTrack(track);
+            const old = localStream.getAudioTracks()[0];
+            if (old && old !== track) old.stop();
+            localStream.addTrack(track);
+            $("cv2Mute").textContent = track.enabled ? "🎙️" : "🔇";
+            setStatus(mode === "video" ? "Видеозвонок" : "Звонок");
+        } catch (error) {
+            console.warn("Не удалось восстановить микрофон после блокировки/возврата:", error);
+        }
+    }
+
     window.updateChatCallButtonVisibility = updateChatCallButtonVisibility;
     window.updateChatCallButton = updateChatCallButtonVisibility;
     window.startAudioCall = () => void startCall("audio");
     window.startVideoCall = () => void startCall("video");
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pageshow", () => {
+        pageVisible = true;
+        if (callId) void resumeRemoteAudio();
+    });
+    window.addEventListener("pagehide", () => {
+        pageVisible = false;
+    });
 
     function boot() {
         ensureUi();
