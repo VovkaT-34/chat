@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Чат</title>
+<title>Chat</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#5a4636">
@@ -32,7 +32,7 @@
 <button id="adminPanelButton" class="admin-panel-button" onclick="window.location.href='admin.html'" style="display:none;">⚙ Админ-панель</button>
 <button onclick="logout()" class="logout-button">🚪 Выйти</button>
 </div>
-<h1 align="center">💬 Чат</h1>
+<h1 align="center">💬 Chat</h1>
 <div class="chat-container">
 <div class="chat-list"><h2>Чаты</h2><div id="chatList"></div></div>
 <div class="chat-window">
@@ -77,6 +77,7 @@
 <script src="12-chat-init.js"></script>
 <script src="13-chat-sound.js"></script>
 <script src="push.js"></script>
+<script src="call.js"></script>
 <script>
 (async function showAdminButton(){
     const adminButton=document.getElementById("adminPanelButton");
