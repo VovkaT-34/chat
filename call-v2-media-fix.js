@@ -8,54 +8,45 @@
     if (window.__chatCallMediaFixInstalled) return;
     window.__chatCallMediaFixInstalled = true;
 
-    const streamToPeer = new WeakMap();
+    // call-v2.js already adds tracks explicitly with RTCPeerConnection.addTrack().
+    // The previous compatibility shim added a camera track a second time from
+    // MediaStream.addTrack(), causing duplicate senders and competing
+    // negotiationneeded events during audio -> video switching.
+    // Do not intercept MediaStream.addTrack().
 
-    const OriginalRTCPeerConnection = window.RTCPeerConnection;
-    const OriginalStreamAddTrack = window.MediaStream?.prototype?.addTrack;
-
-    if (OriginalRTCPeerConnection) {
-        const originalAddTrack = OriginalRTCPeerConnection.prototype.addTrack;
-
-        OriginalRTCPeerConnection.prototype.addTrack = function (track, ...streams) {
-            const sender = originalAddTrack.call(this, track, ...streams);
-
-            for (const stream of streams) {
-                if (stream) streamToPeer.set(stream, this);
+    // On iPhone/iPad Safari, declare a real-time communication audio session
+    // before microphone capture. This gives an audio-only call phone-like
+    // routing (receiver/earpiece) instead of immediately using the loudspeaker.
+    function prepareCallAudioSession() {
+        try {
+            if (navigator.audioSession && "type" in navigator.audioSession) {
+                navigator.audioSession.type = "play-and-record";
             }
+        } catch (error) {
+            console.warn("Не удалось настроить Audio Session для звонка:", error);
+        }
+    }
 
-            return sender;
+    function resetCallAudioSession() {
+        try {
+            if (navigator.audioSession && "type" in navigator.audioSession) {
+                navigator.audioSession.type = "auto";
+            }
+        } catch (error) {
+            console.warn("Не удалось сбросить Audio Session:", error);
+        }
+    }
+
+    const mediaDevices = navigator.mediaDevices;
+    if (mediaDevices?.getUserMedia) {
+        const originalGetUserMedia = mediaDevices.getUserMedia.bind(mediaDevices);
+
+        mediaDevices.getUserMedia = function (constraints) {
+            if (constraints?.audio) prepareCallAudioSession();
+            return originalGetUserMedia(constraints);
         };
     }
 
-    if (OriginalStreamAddTrack) {
-        window.MediaStream.prototype.addTrack = function (track) {
-            const result = OriginalStreamAddTrack.call(this, track);
-
-            // call-v2 creates its RTCPeerConnection first and only later adds
-            // a camera track to the existing local MediaStream. The standard
-            // API requires that new track to be explicitly added to the peer.
-            if (track?.kind === "video") {
-                const peer = streamToPeer.get(this);
-
-                if (peer && peer.connectionState !== "closed") {
-                    const alreadySent = peer.getSenders().some(
-                        sender => sender.track === track
-                    );
-
-                    if (!alreadySent) {
-                        try {
-                            peer.addTrack(track, this);
-                        } catch (error) {
-                            console.warn(
-                                "Не удалось добавить видеотрек в WebRTC-соединение:",
-                                error
-                            );
-                        }
-                    }
-                }
-            }
-
-            return result;
-        };
-    }
+    window.__chatCallPrepareAudioSession = prepareCallAudioSession;
+    window.__chatCallResetAudioSession = resetCallAudioSession;
 })();
