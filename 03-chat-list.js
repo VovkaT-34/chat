@@ -2,6 +2,59 @@
 // Загрузка списка чатов
 // ===============================
 
+const CHAT_ACTIVITY_STORAGE_PREFIX = "chat-last-activity-v1:";
+
+function getChatActivityStorageKey() {
+    return `${CHAT_ACTIVITY_STORAGE_PREFIX}${window.currentUser?.id || "guest"}`;
+}
+
+function readPersistedChatActivities() {
+    try {
+        const raw = localStorage.getItem(getChatActivityStorageKey());
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function writePersistedChatActivities(activities) {
+    try {
+        localStorage.setItem(getChatActivityStorageKey(), JSON.stringify(activities));
+    } catch {}
+}
+
+function rememberChatActivity(chatId, lastActivity) {
+    const id = Number(chatId);
+    if (!id || !lastActivity) return;
+    const activities = readPersistedChatActivities();
+    const previousTime = Date.parse(activities[id] || "") || 0;
+    const nextTime = Date.parse(lastActivity || "") || 0;
+    if (nextTime >= previousTime) {
+        activities[id] = lastActivity;
+        writePersistedChatActivities(activities);
+    }
+}
+
+function getEffectiveChatActivity(chatId, serverActivity) {
+    const activities = readPersistedChatActivities();
+    const localActivity = activities[Number(chatId)] || "";
+    const serverTime = Date.parse(serverActivity || "") || 0;
+    const localTime = Date.parse(localActivity || "") || 0;
+    return localTime > serverTime ? localActivity : (serverActivity || localActivity || "");
+}
+
+function updateCallButtonsForChat(chatId, chatType) {
+    const audio = document.getElementById("callAudioButton");
+    const video = document.getElementById("callVideoButton");
+    if (!audio || !video) return;
+
+    const visible = Number(chatId) > 0 && String(chatType || "") === "private";
+    const display = visible ? "inline-flex" : "none";
+    audio.style.setProperty("display", display, "important");
+    video.style.setProperty("display", display, "important");
+}
+
 function sortChatListItems() {
     const chatList = document.getElementById("chatList");
     if (!chatList) return;
@@ -38,7 +91,9 @@ function moveChatToTop(chatId, lastActivity = new Date().toISOString()) {
     const type = item.dataset.chatType || "public";
     if (type === "public") return;
 
-    item.dataset.lastActivity = lastActivity;
+    const effectiveActivity = getEffectiveChatActivity(chatId, lastActivity);
+    item.dataset.lastActivity = effectiveActivity;
+    rememberChatActivity(chatId, effectiveActivity);
     sortChatListItems();
 }
 
@@ -91,11 +146,14 @@ async function loadChats() {
     function addChatToList(chatId, chatName, icon = "", extraClass = "", chatType = "public", lastActivity = null) {
         if (chatList.querySelector(`[data-chat-id="${chatId}"]`)) return;
 
+        const effectiveActivity = getEffectiveChatActivity(chatId, lastActivity);
         const div = document.createElement("div");
         div.className = `chat-item ${extraClass}`;
         div.dataset.chatId = chatId;
         div.dataset.chatType = chatType;
-        div.dataset.lastActivity = lastActivity || "";
+        div.dataset.lastActivity = effectiveActivity;
+
+        if (effectiveActivity) rememberChatActivity(chatId, effectiveActivity);
 
         div.innerHTML = `
             <span class="chat-item-main">
@@ -117,17 +175,15 @@ async function loadChats() {
             const chatTitle = document.getElementById("chatTitle");
             if (chatTitle) chatTitle.textContent = icon ? `${icon} ${chatName}` : chatName;
 
+            updateCallButtonsForChat(chatId, chatType);
             focusMessageInputOnMobile();
             await loadMessages();
             await updateUnreadCount(Number(chatId));
             focusMessageInputOnMobile();
+            updateCallButtonsForChat(chatId, chatType);
 
-            if (typeof updateChatCallButtonVisibility === "function") {
-                setTimeout(updateChatCallButtonVisibility, 50);
-            }
-            if (typeof updateChatCallButton === "function") {
-                setTimeout(updateChatCallButton, 50);
-            }
+            if (typeof updateChatCallButtonVisibility === "function") setTimeout(updateChatCallButtonVisibility, 50);
+            if (typeof updateChatCallButton === "function") setTimeout(updateChatCallButton, 50);
         };
 
         chatList.appendChild(div);
@@ -170,5 +226,8 @@ async function loadChats() {
     if (selectedChatId) {
         const selected = chatList.querySelector(`[data-chat-id="${selectedChatId}"]`);
         selected?.classList.add("active");
+        if (selected) updateCallButtonsForChat(selected.dataset.chatId, selected.dataset.chatType);
+    } else {
+        updateCallButtonsForChat(0, "public");
     }
 }
