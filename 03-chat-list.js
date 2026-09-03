@@ -10,10 +10,12 @@ function sortChatListItems() {
     items.sort((a, b) => {
         const typeA = a.dataset.chatType || "public";
         const typeB = b.dataset.chatType || "public";
-        const rank = { private: 0, group: 1, public: 2 };
+        // Личные и групповые чаты находятся в одном общем блоке
+        // и сортируются строго по последней активности. Общие чаты — внизу.
+        const rank = { private: 0, group: 0, public: 1 };
 
-        if ((rank[typeA] ?? 2) !== (rank[typeB] ?? 2)) {
-            return (rank[typeA] ?? 2) - (rank[typeB] ?? 2);
+        if ((rank[typeA] ?? 1) !== (rank[typeB] ?? 1)) {
+            return (rank[typeA] ?? 1) - (rank[typeB] ?? 1);
         }
 
         if (typeA === "public") {
