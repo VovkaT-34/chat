@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Chat",
-  "short_name": "Chat",
+  "name": "Чат",
+  "short_name": "Чат",
   "description": "Браузерный мессенджер",
   "start_url": "./index.html",
   "scope": "./",
@@ -13,7 +13,7 @@
   "icons": [
     {
       "src": "favicon.svg",
-      "sizes": "64x64",
+      "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
