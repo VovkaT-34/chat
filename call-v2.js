@@ -52,7 +52,17 @@
     function toggleVideo(){const t=localStream?.getVideoTracks?.()[0];if(!t)return;t.enabled=!t.enabled;$("cv2VideoControl").textContent=t.enabled?"📹":"🚫";$("cv2VideoControl").classList.toggle("green",!t.enabled)}
     async function toggleSpeaker(){const v=$("cv2Remote");if(v&&"setSinkId"in v){try{const d=(await navigator.mediaDevices.enumerateDevices()).find(x=>x.kind==="audiooutput");if(d)await v.setSinkId(d.deviceId)}catch{}}$("cv2Speaker")?.classList.toggle("green")}
     function addButtons(){const header=document.querySelector(".chat-header-actions");if(!header)return;const make=(id,title,modeArg,extra,iconHtml)=>{const b=document.createElement("button");b.id=id;b.type="button";b.title=title;b.setAttribute("aria-label",title);b.className=`chat-call-button ${extra}`;b.innerHTML=iconHtml;b.addEventListener("click",()=>void startCall(modeArg));return b};let audio=$("callAudioButton"),video=$("callVideoButton");if(!video){video=make("callVideoButton","Видеозвонок","video","chat-call-video",`<span class="call-icon-video" aria-hidden="true"></span>`);header.insertBefore(video,header.firstChild)}if(!audio){audio=make("callAudioButton","Аудиозвонок","audio","chat-call-audio",`<span class="call-icon-phone" aria-hidden="true">☎</span>`);header.insertBefore(audio,video.nextSibling)}if(!video.dataset.callBound){video.onclick=()=>void startCall("video");video.dataset.callBound="1"}if(!audio.dataset.callBound){audio.onclick=()=>void startCall("audio");audio.dataset.callBound="1"}}
-    async function updateButtons(){const audio=$("callAudioButton"),video=$("callVideoButton");if(!audio||!video)return;let visible=false;if(currentChatId&&window.currentUser?.id){const peer=await peerForChat();visible=!!peer?.user_id}audio.style.setProperty("display",visible?"inline-flex":"none","important");video.style.setProperty("display",visible?"inline-flex":"none","important")}
+    async function updateButtons(){
+        const audio=$("callAudioButton"),video=$("callVideoButton");
+        if(!audio||!video)return;
+
+        const currentItem=document.querySelector(`.chat-item[data-chat-id="${Number(currentChatId||0)}"]`);
+        const visible=!!currentItem && currentItem.dataset.chatType==="private";
+        const display=visible?"inline-flex":"none";
+
+        audio.style.setProperty("display",display,"important");
+        video.style.setProperty("display",display,"important");
+    }
     function init(){ensureUi();addButtons();setTimeout(()=>void subscribe(),300);document.addEventListener("click",e=>{if(e.target.closest?.(".chat-item"))setTimeout(()=>{addButtons();void updateButtons()},150)});setTimeout(()=>{addButtons();void updateButtons()},800);if(window.supabaseClient?.auth?.onAuthStateChange)window.supabaseClient.auth.onAuthStateChange(()=>{if(channel){try{window.supabaseClient.removeChannel(channel)}catch{}}channel=null;setTimeout(()=>void subscribe(),100);setTimeout(()=>{addButtons();void updateButtons()},300)})}
     window.startChatCall=startCall;window.endChatCall=end;window.updateChatCallButton=updateButtons;window.updateChatCallButtonVisibility=updateButtons;
     if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
