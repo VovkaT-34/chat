@@ -12,12 +12,13 @@
 
     if (OriginalRTCPeerConnection) {
         const originalAddTrack = OriginalRTCPeerConnection.prototype.addTrack;
+        const originalCreateOffer = OriginalRTCPeerConnection.prototype.createOffer;
 
         // Keep one video transceiver reserved during an audio call.
-        // It starts recvonly, so an audio call remains an audio call.
-        // When the camera is enabled, the reserved sender is switched to
-        // sendrecv and receives the camera track. This produces one clean
-        // negotiation instead of creating a second video m-line mid-call.
+        // It starts recvonly, so the initial call stays audio-only.
+        // When the camera is enabled, the reserved sender is changed to
+        // sendrecv and receives the camera track. This avoids creating a
+        // second video m-line during the active call.
         OriginalRTCPeerConnection.prototype.addTrack = function (track, ...streams) {
             if (track?.kind === "video") {
                 const transceiver = this.getTransceivers().find(item =>
@@ -28,28 +29,25 @@
 
                 if (transceiver) {
                     const sender = transceiver.sender;
-                    const result = sender.replaceTrack(track).then(() => {
+                    const attachPromise = sender.replaceTrack(track).then(() => {
                         if (typeof sender.setStreams === "function" && streams.length) {
                             sender.setStreams(...streams);
                         }
                         if (transceiver.direction !== "sendrecv") {
                             transceiver.direction = "sendrecv";
                         }
-                        return sender;
                     });
 
-                    // call-v2 expects an RTCRtpSender synchronously from addTrack.
-                    // Attach the promise for diagnostics but return the sender.
-                    sender.__chatVideoAttachPromise = result;
+                    sender.__chatVideoAttachPromise = attachPromise;
                     return sender;
                 }
             }
 
             const sender = originalAddTrack.call(this, track, ...streams);
 
-            // As soon as the normal audio sender is added, reserve a video
-            // receiver. The negotiationneeded event is queued by the platform,
-            // so call-v2 has already installed its handler by the time it fires.
+            // Reserve the video transceiver when the first audio track is added.
+            // negotiationneeded is queued by WebRTC, so call-v2 can keep its
+            // existing signaling architecture unchanged.
             if (track?.kind === "audio" &&
                 !this.getTransceivers().some(item => item.receiver?.track?.kind === "video" && !item.stopped)) {
                 try {
@@ -61,11 +59,29 @@
 
             return sender;
         };
+
+        // call-v2 calls createOffer immediately after addTrack(). Wait for the
+        // reserved sender to finish replaceTrack() so the offer cannot race
+        // ahead of the camera attachment.
+        OriginalRTCPeerConnection.prototype.createOffer = function (...args) {
+            const pending = this.getSenders()
+                .map(sender => sender.__chatVideoAttachPromise)
+                .filter(Boolean);
+
+            if (!pending.length) return originalCreateOffer.apply(this, args);
+
+            return Promise.allSettled(pending).then(() => {
+                this.getSenders().forEach(sender => {
+                    if (sender.__chatVideoAttachPromise) delete sender.__chatVideoAttachPromise;
+                });
+                return originalCreateOffer.apply(this, args);
+            });
+        };
     }
 
     // On iPhone/iPad Safari, explicitly use a real-time communication audio
-    // session before microphone capture. This gives an audio-only call the
-    // normal phone-like receiver/earpiece route instead of loudspeaker.
+    // session before microphone capture. This requests phone-like routing
+    // through the receiver/earpiece for an audio call instead of loudspeaker.
     function prepareCallAudioSession() {
         try {
             if (navigator.audioSession && "type" in navigator.audioSession) {
