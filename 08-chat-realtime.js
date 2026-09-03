@@ -27,7 +27,15 @@ async function subscribeToMessages() {
                 await updateUnreadCount(newMessage.chat_id);
             }
             await updateChatListMessageStatus(newMessage.chat_id);
-            if (typeof updateChatOrder === "function") updateChatOrder(newMessage.chat_id);
+
+            // Любое новое сообщение делает чат самым свежим. Важно сохранять
+            // время локально: при перезагрузке 03-chat-list.js восстановит
+            // именно этот порядок, даже если RPC вернул старое last_message_at.
+            if (typeof window.moveChatToTop === "function") {
+                window.moveChatToTop(newMessage.chat_id, newMessage.created_at || new Date().toISOString());
+            } else if (typeof updateChatOrder === "function") {
+                updateChatOrder(newMessage.chat_id);
+            }
         })
         .subscribe();
 }
@@ -76,9 +84,6 @@ function cacheAndApplyMessageStatus(messageId, status) {
 async function refreshOwnMessageStatuses() {
     if (!currentUser || !supabaseClient) return;
 
-    // Проверяем не только уже отрисованные элементы, но и последние сообщения
-    // текущего чата. Это важно, когда сообщение пришло через Web Push, пока
-    // страница отправителя не получила Realtime-событие.
     const currentChat = Number(currentChatId || window.currentChatId || 0);
     let query = supabaseClient
         .from("messages")
@@ -92,7 +97,6 @@ async function refreshOwnMessageStatuses() {
     const { data: messages, error } = await query;
     if (error || !messages?.length) return;
 
-    // Не запускаем новый тяжёлый цикл поверх предыдущего.
     for (const message of messages) {
         const id = Number(message.id);
         if (!id) continue;
@@ -162,8 +166,6 @@ function subscribeToMessageReads() {
 subscribeToMessageDeliveries();
 subscribeToMessageReads();
 
-// Частая синхронизация нужна именно для Web Push: уведомление может прийти
-// в Service Worker в момент, когда страница отправителя не получает Realtime.
 let messageStatusRefreshBusy = false;
 setInterval(async () => {
     if (messageStatusRefreshBusy) return;
