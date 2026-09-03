@@ -85,8 +85,8 @@ td[data-label="Действие"],.action-buttons{min-width:94px;width:94px}
 let currentAdminUserId=null;
 
 async function checkAdmin(){
-    const {data:{user}}=await supabaseClient.auth.getUser();
-    if(!user){window.location.href="login.html";return}
+    const {data:{user},error:userError}=await supabaseClient.auth.getUser();
+    if(userError||!user){window.location.href="login.html";return}
     currentAdminUserId=user.id;
     const {data:profile,error}=await supabaseClient.from("profiles").select("*").eq("id",user.id).single();
     if(error||!profile){window.location.href="index.html";return}
@@ -137,7 +137,7 @@ function renderUserRow(profile,isPending){
 
     if(isPending){
         const approve=makeActionButton("✓ Одобрить","approve-button",()=>approveUser(profile.id),"Одобрить пользователя");
-        const reject=makeActionButton("✕ Отклонить","reject-button",()=>rejectUser(profile.id),"Отклонить заявку");
+        const reject=makeActionButton("✕ Отклонить","reject-button",()=>rejectUser(profile.id),"Отклонить заявку и удалить аккаунт");
         row.appendChild(makeActionCell([approve,reject]));
     }else{
         const exclude=makeActionButton("Исключить","exclude-button",()=>excludeUser(profile.id),"Исключить пользователя");
@@ -169,7 +169,7 @@ async function setApproved(id,value,successText){
     if(error){alert(error.message);console.log(error);return}
     if(!data||!data.length){alert("Операция не выполнена. Проверьте RLS-политику profiles.");return}
     alert(successText);
-    loadUsers();
+    await loadUsers();
 }
 
 async function approveUser(id){await setApproved(id,true,"Пользователь одобрен.")}
@@ -180,7 +180,17 @@ async function excludeUser(id){
 }
 
 async function rejectUser(id){
-    alert("Отклонение заявки пока не выполняется удалением аккаунта: в текущей схеме profiles нет отдельного статуса rejected. Чтобы не оставлять Auth-аккаунт в неконсистентном состоянии, заявка остаётся в ожидании.");
+    if(!confirm("Отклонить заявку? Аккаунт будет полностью удалён из системы и исчезнет из списка."))return;
+    const button=event?.currentTarget;
+    if(button)button.disabled=true;
+    try{
+        const {data,error}=await supabaseClient.functions.invoke("admin-reject-user",{body:{userId:id}});
+        if(error){console.error(error);alert(error.message||"Не удалось отклонить заявку.");return}
+        if(!data?.ok){alert(data?.error||"Не удалось отклонить заявку.");return}
+        await loadUsers();
+    }finally{
+        if(button)button.disabled=false;
+    }
 }
 
 checkAdmin();
