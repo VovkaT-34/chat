@@ -86,20 +86,10 @@ async function sendMessage() {
     }
 
     const statusElement = document.querySelector(`[data-status-message-id="${data.id}"]`);
-    if (statusElement) {
-        statusElement.dataset.messageStatus = "sent";
-        statusElement.textContent = "✓";
-        statusElement.title = "Отправлено";
-        statusElement.style.color = "#999999";
-    }
+    if (statusElement) setMessageStatus(statusElement, "sent");
 
     const chatStatusElement = document.querySelector(`[data-chat-status-id="${chatId}"]`);
-    if (chatStatusElement) {
-        chatStatusElement.dataset.messageStatus = "sent";
-        chatStatusElement.textContent = "✓";
-        chatStatusElement.title = "Отправлено";
-        chatStatusElement.style.color = "#999999";
-    }
+    if (chatStatusElement) setMessageStatus(chatStatusElement, "sent");
 
     const { error: ownReadError } = await supabaseClient.from("user_chat_reads").upsert({
         user_id: currentUser.id,
@@ -116,9 +106,10 @@ async function sendMessage() {
     if (replyBox) replyBox.style.display = "none";
     input.placeholder = "Введите сообщение...";
 
-    // После отправки поднимаем активный личный чат наверх.
-    if (typeof loadChats === "function") {
-        void loadChats();
+    // Переставляем строку без пересоздания списка: это сохраняет
+    // позицию страницы и не вызывает подпрыгивания чата на телефоне.
+    if (typeof moveChatToTop === "function") {
+        moveChatToTop(chatId, data.created_at);
     }
 }
 
