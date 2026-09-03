@@ -1,139 +1,68 @@
-
 // =========================================
 // Вход через Supabase Auth
 // =========================================
 
-document
-    .getElementById("loginForm")
-    .addEventListener("submit", async function(e) {
+document.getElementById("loginForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
 
-        e.preventDefault();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const errorBox = document.getElementById("error");
+    const submitButton = document.querySelector("#loginForm .submit-button");
 
+    errorBox.textContent = "";
+    errorBox.style.color = "#b00020";
+    if (submitButton) submitButton.disabled = true;
 
-        const email =
-            document
-                .getElementById("email")
-                .value
-                .trim();
+    try {
+        await supabaseClient.auth.signOut({ scope: "local" });
 
-
-        const password =
-            document
-                .getElementById("password")
-                .value;
-
-
-        const error =
-            document
-                .getElementById("error");
-
-
-        error.textContent = "";
-
-
-        // =========================================
-        // Вход через Supabase Auth
-        // =========================================
-
-        const {
-            data,
-            error: authError
-        } = await supabaseClient.auth.signInWithPassword({
-
-            email: email,
-
-            password: password
-
-        });
-
-
-        // =========================================
-        // Ошибка входа
-        // =========================================
-
-        if (authError || !data?.user) {
-
-            error.textContent =
-                "Неверный e-mail или пароль.";
-
-            return;
-
+        let result = null;
+        let lastError = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+            result = await supabaseClient.auth.signInWithPassword({ email, password });
+            lastError = result.error;
+            if (!lastError) break;
+            const status = Number(lastError.status || 0);
+            if (status < 500 || status === 429) break;
+            await new Promise(resolve => setTimeout(resolve, 700));
         }
 
-
-        // =========================================
-        // Получаем профиль через RPC
-        // =========================================
-        //
-        // Прямого SELECT из profiles больше нет.
-        // Проверка выполняется через
-        // SECURITY DEFINER функцию
-        // check_my_profile().
-        //
-
-        const {
-            data: profile,
-            error: profileError
-        } = await supabaseClient.rpc(
-            "check_my_profile"
-        );
-
-
-        // =========================================
-        // Ошибка получения профиля
-        // =========================================
-
-        if (
-            profileError ||
-            !profile ||
-            !profile[0]
-        ) {
-
-            console.error(
-                "Ошибка проверки профиля:",
-                profileError
-            );
-
-            error.textContent =
-                "Ошибка проверки профиля.";
-
-            await supabaseClient.auth.signOut();
-
+        if (lastError || !result?.data?.user) {
+            console.error("Ошибка входа:", lastError);
+            const status = Number(lastError?.status || 0);
+            const code = String(lastError?.code || "");
+            if (status === 429 || code.includes("rate_limit")) {
+                errorBox.textContent = "Слишком много попыток. Подождите несколько минут и попробуйте снова.";
+            } else if (status >= 500) {
+                errorBox.textContent = "Сервис входа временно недоступен. Попробуйте ещё раз через несколько секунд.";
+            } else if (String(lastError?.message || "").toLowerCase().includes("email not confirmed")) {
+                errorBox.textContent = "E-mail ещё не подтверждён. Подтвердите его по письму и войдите снова.";
+            } else {
+                errorBox.textContent = "Неверный e-mail или пароль.";
+            }
             return;
-
         }
 
-
-        // =========================================
-        // Получаем данные профиля
-        // =========================================
-
-        const userProfile =
-            profile[0];
-
-
-        // =========================================
-        // Проверяем подтверждение аккаунта
-        // =========================================
-
-        if (!userProfile.approved) {
-
-            error.textContent =
-                "Ваш аккаунт ожидает подтверждения администратора.";
-
-            await supabaseClient.auth.signOut();
-
+        const { data: profile, error: profileError } = await supabaseClient.rpc("check_my_profile");
+        if (profileError || !profile || !profile[0]) {
+            console.error("Ошибка проверки профиля:", profileError);
+            errorBox.textContent = "Аккаунт найден, но профиль пока недоступен. Попробуйте войти ещё раз.";
+            await supabaseClient.auth.signOut({ scope: "local" });
             return;
-
         }
 
+        if (!profile[0].approved) {
+            errorBox.textContent = "Ваш аккаунт ожидает подтверждения администратора.";
+            await supabaseClient.auth.signOut({ scope: "local" });
+            return;
+        }
 
-        // =========================================
-        // Вход разрешён
-        // =========================================
-
-        window.location.href =
-            "index.html";
-
-    });
-
+        window.location.replace("index.html");
+    } catch (e) {
+        console.error("Неожиданная ошибка входа:", e);
+        errorBox.textContent = "Не удалось выполнить вход. Проверьте интернет-соединение и попробуйте снова.";
+    } finally {
+        if (submitButton) submitButton.disabled = false;
+    }
+});
