@@ -1,4 +1,4 @@
-const CACHE_NAME="chat-pwa-v7";
+const CACHE_NAME="chat-pwa-v8";
 const APP_SHELL=["./","./index.html","./chat.css","./chat-mobile.css","./manifest.webmanifest","./favicon.svg","./message.mp3"];
 const SUPABASE_URL="https://sxkukrqjtgkxmzuzondm.supabase.co";
 const CONFIRM_DELIVERY_URL=`${SUPABASE_URL}/functions/v1/confirm-push-delivery`;
@@ -25,7 +25,11 @@ self.addEventListener("push",event=>{
         data:{url:data.url||"./index.html",chatId:data.chatId||null,messageId:data.messageId||null,callId:data.callId||null,type:data.type||"message",userId:data.userId||null,exp:data.exp||null,deliveryToken:data.deliveryToken||null}
     };
     if(!isCall&&count>1)options.body=`${data.body||"Новое сообщение"}\nНепрочитанных: ${count}`;
-    if(isCall){options.actions=[{action:"answer",title:"Ответить"},{action:"reject",title:"Отклонить"}];}
+    if(isCall){
+        options.requireInteraction=true;
+        options.vibrate=[300,150,300,150,500];
+        options.actions=[{action:"answer",title:"Ответить"},{action:"reject",title:"Отклонить"}];
+    }
     const work=[self.registration.showNotification(title,options)];
     if(data.type==="message")work.push(confirmPushDelivery(data));
     event.waitUntil(Promise.all(work));
