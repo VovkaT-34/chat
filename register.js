@@ -5,165 +5,81 @@
 document
 .getElementById("registerForm")
 .addEventListener("submit", async function(e) {
-
     e.preventDefault();
 
-
-    const username =
-        document
-        .getElementById("username")
-        .value
-        .trim();
-
-
-    const email =
-        document
-        .getElementById("email")
-        .value
-        .trim();
-
-
-    const password =
-        document
-        .getElementById("password")
-        .value;
-
-
-    const password2 =
-        document
-        .getElementById("password2")
-        .value;
-
-
-    const message =
-        document
-        .getElementById("message");
-
+    const username = document.getElementById("username").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const password2 = document.getElementById("password2").value;
+    const message = document.getElementById("message");
 
     message.textContent = "";
+    message.style.color = "#b00020";
 
-
-    // Проверка паролей
+    if (username.length < 2) {
+        message.textContent = "Имя пользователя должно содержать минимум 2 символа.";
+        return;
+    }
 
     if (password !== password2) {
-
-        message.textContent =
-            "Пароли не совпадают.";
-
+        message.textContent = "Пароли не совпадают.";
         return;
-
     }
-
-
-    // Минимальная длина пароля
 
     if (password.length < 6) {
-
-        message.textContent =
-            "Пароль должен содержать минимум 6 символов.";
-
+        message.textContent = "Пароль должен содержать минимум 6 символов.";
         return;
-
     }
 
-
-    // Создание пользователя в Supabase Auth
-
-    const {
-        data,
-        error
-    } = await supabaseClient.auth.signUp({
-
-        email: email,
-
-        password: password
-
+    const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+            data: {
+                username
+            }
+        }
     });
 
-
     if (error) {
-
-        message.textContent =
-            error.message;
-
+        console.error("Ошибка регистрации:", error);
+        message.textContent = error.message || "Не удалось создать аккаунт.";
         return;
-
     }
 
-
-    // Проверяем, создан ли пользователь
-
-    const user =
-        data?.user;
-
-
+    const user = data?.user;
     if (!user) {
-
-        message.textContent =
-            "Пользователь не создан.";
-
+        message.textContent = "Пользователь не создан.";
         return;
-
     }
 
-
-    // Создаём профиль пользователя
-
-    const {
-        error: profileError
-    } = await supabaseClient
+    // Профиль создаётся серверным trigger после создания Auth-пользователя.
+    // Это работает и тогда, когда Supabase требует подтверждение e-mail
+    // и у браузера ещё нет authenticated-сессии.
+    const { data: profile, error: profileError } = await supabaseClient
         .from("profiles")
-        .insert({
-
-            id: user.id,
-
-            username: username,
-
-            email: email,
-
-            approved: false
-
-        });
-
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
 
     if (profileError) {
-
-        console.error(
-            "Ошибка создания профиля:",
-            profileError
-        );
-
-
-        message.textContent =
-            "Не удалось создать профиль пользователя.";
-
-        return;
-
+        console.warn("Проверка созданного профиля:", profileError);
     }
 
+    if (!profile) {
+        console.warn("Профиль ещё не виден клиенту, но Auth-пользователь создан:", user.id);
+    }
 
-    // Успешная регистрация
+    message.style.color = "green";
+    message.textContent = data.session
+        ? "Регистрация успешна. Переходим ко входу..."
+        : "Регистрация успешна. Подтвердите e-mail, если это требуется, затем войдите.";
 
-    message.style.color =
-        "green";
-
-
-    message.textContent =
-        "Регистрация успешна. Переходим ко входу...";
-
-
-    // Если после регистрации Supabase
-    // создал активную сессию,
-    // сразу выходим из неё.
-
-    await supabaseClient.auth.signOut();
-
+    if (data.session) {
+        await supabaseClient.auth.signOut();
+    }
 
     setTimeout(function() {
-
-        window.location.href =
-            "login.html";
-
+        window.location.href = "login.html";
     }, 2000);
-
 });
