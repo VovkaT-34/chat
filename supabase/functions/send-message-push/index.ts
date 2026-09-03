@@ -55,7 +55,11 @@ Deno.serve(async (req: Request) => {
       .eq("id", id)
       .single();
 
-    if (messageError || !message) return json({ error: "Message not found" }, 404);
+    if (messageError || !message) {
+      console.error("Push message lookup failed:", messageError);
+      return json({ error: "Message not found" }, 404);
+    }
+
     if (message.user_id !== authData.user.id) return json({ error: "Forbidden" }, 403);
 
     const { data: sender } = await admin
@@ -142,7 +146,7 @@ Deno.serve(async (req: Request) => {
               chatId: message.chat_id,
               messageId: message.id,
               count: unreadCount,
-              url: `./index.html?chat=${encodeURIComponent(message.chat_id)}`
+              url: `https://vovkat-34.github.io/chat/index.html?chat=${encodeURIComponent(message.chat_id)}`
             })
           );
           sent++;
