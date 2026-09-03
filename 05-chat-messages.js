@@ -4,14 +4,15 @@
 async function loadMessages() {
     if (!currentChatId || !currentUser) return;
 
-    const {data:readInfo,error:readError}=await supabaseClient.from("user_chat_reads")
-        .select("last_read_message_id").eq("user_id",currentUser.id).eq("chat_id",currentChatId).maybeSingle();
+    const chatIdAtLoad = Number(currentChatId);
+
+    const {data:readInfo,error:readError}=await supabaseClient.from("user_chat_reads").select("last_read_message_id").eq("user_id",currentUser.id).eq("chat_id",chatIdAtLoad).maybeSingle();
     if(readError) console.log(readError);
     const lastReadId=Number(readInfo?.last_read_message_id||0);
     localLastReadMessageId=lastReadId;
 
     const {data,error}=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`)
-        .eq("chat_id",currentChatId).order("created_at");
+        .eq("chat_id",chatIdAtLoad).order("created_at");
     if(error){console.log(error);return;}
 
     const box=document.getElementById("messages");
@@ -29,6 +30,22 @@ async function loadMessages() {
         if(divider)div.insertAdjacentHTML("afterbegin",divider);
         box.appendChild(div);
     });
+
+    // История тоже является фактом доставки: если Realtime-событие было
+    // пропущено, клиент всё равно подтверждает получение сообщения.
+    const incomingIds=(data||[])
+        .filter(message=>message.user_id!==currentUser.id)
+        .map(message=>Number(message.id))
+        .filter(Boolean);
+
+    for(const messageId of incomingIds){
+        const {error:deliveryError}=await supabaseClient.rpc("mark_message_delivered",{p_message_id:messageId});
+        if(deliveryError) console.log("Ошибка подтверждения доставки:",deliveryError);
+    }
+
+    // После загрузки чата currentChatId мог измениться только из-за быстрого
+    // клика пользователя по другому чату. Не меняем состояние уже нового чата.
+    if(Number(currentChatId)!==chatIdAtLoad)return;
 
     const unreadDivider=box.querySelector(".unread-divider");
     if(unreadDivider) unreadDivider.scrollIntoView({behavior:"instant",block:"start"});
@@ -51,6 +68,13 @@ async function appendMessage(message) {
     const box=document.getElementById("messages");
     if(!box)return;
     if(box.querySelector(`[data-message-id="${message.id}"]`))return;
+
+    // Сразу фиксируем доставку на backend. Это не зависит от того,
+    // успел ли сработать отдельный Realtime-канал доставки.
+    if(currentUser && message.user_id!==currentUser.id){
+        const {error:deliveryError}=await supabaseClient.rpc("mark_message_delivered",{p_message_id:Number(message.id)});
+        if(deliveryError) console.log("Ошибка подтверждения доставки:",deliveryError);
+    }
 
     const wasNearBottom=isMessagesBoxNearBottom();
     const previousScrollTop=box.scrollTop;
