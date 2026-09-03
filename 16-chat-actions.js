@@ -60,22 +60,18 @@
     }
 
     function sortChats() {
+        // 03-chat-list.js уже содержит правильную сортировку по lastActivity
+        // и восстановление порядка после перезагрузки. Старый сортировщик
+        // по ID здесь её ломал, поэтому всегда используем единый механизм.
+        if (typeof window.sortChatListItems === "function") {
+            window.sortChatListItems();
+            return;
+        }
+
         const chatList = document.getElementById("chatList");
         if (!chatList) return;
 
         const items = Array.from(chatList.querySelectorAll(".chat-item"));
-
-        items.sort((a, b) => {
-            const aPublic = !a.classList.contains("private-chat") &&
-                            !a.classList.contains("group-chat");
-            const bPublic = !b.classList.contains("private-chat") &&
-                            !b.classList.contains("group-chat");
-
-            if (aPublic !== bPublic) return aPublic ? 1 : -1;
-
-            return Number(a.dataset.chatId) - Number(b.dataset.chatId);
-        });
-
         items.forEach(item => chatList.appendChild(item));
     }
 
