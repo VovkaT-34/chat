@@ -101,13 +101,27 @@ async function sendMessage() {
 
     if (typeof sendChatPushForMessage === "function") void sendChatPushForMessage(data.id);
 
+    // Доставка определяется только backend-данными. После отправки делаем
+    // несколько коротких проверок, потому что получатель может получить
+    // сообщение раньше следующего общего интервала refreshOwnMessageStatuses().
+    const refreshDeliveredStatus = () => {
+        if (typeof updateMessageStatus === "function") {
+            void updateMessageStatus(data.id);
+        }
+        if (typeof updateChatListMessageStatus === "function") {
+            void updateChatListMessageStatus(chatId);
+        }
+    };
+
+    setTimeout(refreshDeliveredStatus, 250);
+    setTimeout(refreshDeliveredStatus, 1000);
+    setTimeout(refreshDeliveredStatus, 2500);
+
     replyMessageId = null;
     const replyBox = document.getElementById("replyBox");
     if (replyBox) replyBox.style.display = "none";
     input.placeholder = "Введите сообщение...";
 
-    // Переставляем строку без пересоздания списка: это сохраняет
-    // позицию страницы и не вызывает подпрыгивания чата на телефоне.
     if (typeof moveChatToTop === "function") {
         moveChatToTop(chatId, data.created_at);
     }
