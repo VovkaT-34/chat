@@ -10,11 +10,20 @@
     let speakerOn = false;
     let lastMedia = null;
 
-    const PHONE_VOLUME = 0.32;
-    const LOUD_VOLUME = 1;
+    function isVideoCall() {
+        const local = document.getElementById("cv2Local");
+        const remote = document.getElementById("cv2Remote");
+        return Boolean(local?.srcObject?.getVideoTracks?.().some(track => track.enabled)) ||
+               Boolean(remote?.srcObject?.getVideoTracks?.().some(track => track.readyState === "live"));
+    }
 
-    function remoteMedia() {
-        return document.getElementById("cv2Remote");
+    function activeRemoteMedia() {
+        const audio = document.getElementById("cv2RemoteAudio");
+        const video = document.getElementById("cv2Remote");
+        // On iPhone use a real <audio> element for audio-only calls. The
+        // <video> element is kept exclusively for video calls. This avoids
+        // Safari treating an inline video element as loudspeaker output.
+        return isVideoCall() ? video : audio;
     }
 
     function status(text) {
@@ -27,37 +36,64 @@
         return Boolean(local?.srcObject?.getVideoTracks?.().some(track => track.enabled));
     }
 
-    function setCallVolume() {
-        const video = remoteMedia();
-        if (!video) return;
+    function preparePhoneAudioSession() {
+        try {
+            if (navigator.audioSession && "type" in navigator.audioSession) {
+                navigator.audioSession.type = "play-and-record";
+            }
+        } catch (error) {
+            console.warn("Не удалось включить телефонный Audio Session:", error);
+        }
+    }
 
-        // Normal audio call: quiet phone-like listening volume.
-        // Video call or explicit speaker mode: return to the louder level.
-        video.volume = speakerOn || localVideoEnabled() ? LOUD_VOLUME : PHONE_VOLUME;
+    function setCallVolume() {
+        const media = activeRemoteMedia();
+        if (!media) return;
+
+        // Do not fake a quieter phone call with HTML volume. On iPhone the
+        // important part is routing the audio-only call through the phone
+        // audio session. Keep the media volume at full level and let iOS
+        // control the actual earpiece/speaker level.
+        media.volume = 1;
     }
 
     function sync() {
-        const video = remoteMedia();
         const audio = document.getElementById("cv2RemoteAudio");
+        const video = document.getElementById("cv2Remote");
+        const media = activeRemoteMedia();
 
-        // Use exactly one media element for remote WebRTC audio/video.
-        // Keeping the second element muted avoids double playback and iOS
-        // routing conflicts.
+        preparePhoneAudioSession();
+
+        // Only one element may produce remote sound at a time.
         if (audio) {
-            audio.pause();
-            audio.muted = true;
-            audio.volume = 0;
+            if (media !== audio) {
+                audio.pause();
+                audio.muted = true;
+                audio.volume = 0;
+            } else {
+                audio.autoplay = true;
+                audio.muted = false;
+                audio.volume = 1;
+            }
         }
 
-        if (!video) return;
+        if (video) {
+            if (media !== video) {
+                video.pause();
+                video.muted = true;
+                video.volume = 0;
+            } else {
+                video.autoplay = true;
+                video.playsInline = true;
+                video.muted = false;
+                video.volume = 1;
+            }
+        }
 
-        video.autoplay = true;
-        video.playsInline = true;
-        video.muted = false;
-        setCallVolume();
+        if (!media) return;
 
-        if (video.srcObject && video.srcObject !== lastMedia) {
-            lastMedia = video.srcObject;
+        if (media.srcObject && media.srcObject !== lastMedia) {
+            lastMedia = media.srcObject;
             speakerOn = false;
             const button = document.getElementById("cv2Speaker");
             if (button) {
@@ -66,7 +102,8 @@
             }
         }
 
-        if (video.srcObject) void video.play().catch(() => {});
+        setCallVolume();
+        if (media.srcObject) void media.play().catch(() => {});
     }
 
     async function sink(media, id) {
@@ -81,7 +118,7 @@
     }
 
     async function speaker() {
-        const media = remoteMedia();
+        const media = activeRemoteMedia();
         if (!media) return false;
         sync();
 
@@ -109,20 +146,13 @@
     }
 
     async function phone() {
-        const media = remoteMedia();
+        const media = activeRemoteMedia();
         if (!media) return false;
+
+        preparePhoneAudioSession();
 
         let ok = true;
         if (typeof media.setSinkId === "function") ok = await sink(media, "default");
-
-        try {
-            if (navigator.audioSession && "type" in navigator.audioSession) {
-                navigator.audioSession.type = "play-and-record";
-            }
-        } catch (error) {
-            console.warn("Не удалось включить телефонный режим:", error);
-        }
-
         return ok;
     }
 
@@ -138,13 +168,9 @@
                 speakerOn = true;
                 button.classList.add("green");
                 button.title = "Выключить громкую связь";
-                setCallVolume();
                 status("Громкая связь");
             } else {
-                // Even if the browser cannot expose a selectable output,
-                // keep the button honest and do not pretend that routing changed.
                 button.classList.remove("green");
-                setCallVolume();
                 status("Переключение динамика не поддерживается этим браузером");
             }
         } else {
@@ -154,7 +180,6 @@
                 speakerOn = false;
                 button.classList.remove("green");
                 button.title = "Включить громкую связь";
-                setCallVolume();
                 status("Звонок");
             }
         }
@@ -183,6 +208,9 @@
 
     setInterval(install, 500);
     document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) sync();
+        if (!document.hidden) {
+            preparePhoneAudioSession();
+            sync();
+        }
     });
 })();
