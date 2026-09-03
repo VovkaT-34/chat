@@ -10,6 +10,9 @@
     let speakerOn = false;
     let lastMedia = null;
 
+    const PHONE_VOLUME = 0.32;
+    const LOUD_VOLUME = 1;
+
     function remoteMedia() {
         return document.getElementById("cv2Remote");
     }
@@ -19,10 +22,27 @@
         if (el) el.textContent = text;
     }
 
+    function localVideoEnabled() {
+        const local = document.getElementById("cv2Local");
+        return Boolean(local?.srcObject?.getVideoTracks?.().some(track => track.enabled));
+    }
+
+    function setCallVolume() {
+        const video = remoteMedia();
+        if (!video) return;
+
+        // Normal audio call: quiet phone-like listening volume.
+        // Video call or explicit speaker mode: return to the louder level.
+        video.volume = speakerOn || localVideoEnabled() ? LOUD_VOLUME : PHONE_VOLUME;
+    }
+
     function sync() {
         const video = remoteMedia();
         const audio = document.getElementById("cv2RemoteAudio");
 
+        // Use exactly one media element for remote WebRTC audio/video.
+        // Keeping the second element muted avoids double playback and iOS
+        // routing conflicts.
         if (audio) {
             audio.pause();
             audio.muted = true;
@@ -34,7 +54,7 @@
         video.autoplay = true;
         video.playsInline = true;
         video.muted = false;
-        video.volume = 0.65;
+        setCallVolume();
 
         if (video.srcObject && video.srcObject !== lastMedia) {
             lastMedia = video.srcObject;
@@ -91,8 +111,10 @@
     async function phone() {
         const media = remoteMedia();
         if (!media) return false;
+
         let ok = true;
         if (typeof media.setSinkId === "function") ok = await sink(media, "default");
+
         try {
             if (navigator.audioSession && "type" in navigator.audioSession) {
                 navigator.audioSession.type = "play-and-record";
@@ -100,6 +122,7 @@
         } catch (error) {
             console.warn("Не удалось включить телефонный режим:", error);
         }
+
         return ok;
     }
 
@@ -115,10 +138,14 @@
                 speakerOn = true;
                 button.classList.add("green");
                 button.title = "Выключить громкую связь";
+                setCallVolume();
                 status("Громкая связь");
             } else {
+                // Even if the browser cannot expose a selectable output,
+                // keep the button honest and do not pretend that routing changed.
                 button.classList.remove("green");
-                status("Выбор динамика недоступен в этом браузере");
+                setCallVolume();
+                status("Переключение динамика не поддерживается этим браузером");
             }
         } else {
             status("Возвращаем звук к уху…");
@@ -127,17 +154,18 @@
                 speakerOn = false;
                 button.classList.remove("green");
                 button.title = "Включить громкую связь";
+                setCallVolume();
                 status("Звонок");
             }
         }
+
         sync();
     }
 
     function cameraButton() {
         const button = document.getElementById("cv2VideoControl");
         if (!button) return;
-        const local = document.getElementById("cv2Local");
-        const active = Boolean(local?.srcObject?.getVideoTracks?.().some(track => track.enabled));
+        const active = localVideoEnabled();
         button.textContent = "📹";
         button.classList.toggle("green", active);
         button.title = active ? "Выключить видео" : "Включить видео";
