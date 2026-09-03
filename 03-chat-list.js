@@ -2,10 +2,52 @@
 // Загрузка списка чатов
 // ===============================
 
+function sortChatListItems() {
+    const chatList = document.getElementById("chatList");
+    if (!chatList) return;
+
+    const items = [...chatList.querySelectorAll(".chat-item")];
+    items.sort((a, b) => {
+        const typeA = a.dataset.chatType || "public";
+        const typeB = b.dataset.chatType || "public";
+        const rank = { private: 0, group: 1, public: 2 };
+
+        if ((rank[typeA] ?? 2) !== (rank[typeB] ?? 2)) {
+            return (rank[typeA] ?? 2) - (rank[typeB] ?? 2);
+        }
+
+        if (typeA === "public") {
+            return Number(a.dataset.chatId) - Number(b.dataset.chatId);
+        }
+
+        const timeA = Date.parse(a.dataset.lastActivity || "") || 0;
+        const timeB = Date.parse(b.dataset.lastActivity || "") || 0;
+        if (timeA !== timeB) return timeB - timeA;
+        return Number(b.dataset.chatId) - Number(a.dataset.chatId);
+    });
+
+    items.forEach(item => chatList.appendChild(item));
+}
+
+function moveChatToTop(chatId, lastActivity = new Date().toISOString()) {
+    const item = document.querySelector(`.chat-item[data-chat-id="${Number(chatId)}"]`);
+    if (!item) return;
+
+    const type = item.dataset.chatType || "public";
+    if (type === "public") return;
+
+    item.dataset.lastActivity = lastActivity;
+    sortChatListItems();
+}
+
+window.sortChatListItems = sortChatListItems;
+window.moveChatToTop = moveChatToTop;
+
 async function loadChats() {
     const chatList = document.getElementById("chatList");
     if (!chatList) return;
 
+    const selectedChatId = Number(window.currentChatId || 0);
     chatList.innerHTML = "";
 
     function focusMessageInputOnMobile() {
@@ -44,12 +86,14 @@ async function loadChats() {
         setTimeout(keepInputVisible, 700);
     }
 
-    function addChatToList(chatId, chatName, icon = "", extraClass = "") {
-        if (chatList.querySelector('[data-chat-id="' + chatId + '"]')) return;
+    function addChatToList(chatId, chatName, icon = "", extraClass = "", chatType = "public", lastActivity = null) {
+        if (chatList.querySelector(`[data-chat-id="${chatId}"]`)) return;
 
         const div = document.createElement("div");
         div.className = `chat-item ${extraClass}`;
         div.dataset.chatId = chatId;
+        div.dataset.chatType = chatType;
+        div.dataset.lastActivity = lastActivity || "";
 
         div.innerHTML = `
             <span class="chat-item-main">
@@ -79,6 +123,9 @@ async function loadChats() {
             if (typeof updateChatCallButtonVisibility === "function") {
                 setTimeout(updateChatCallButtonVisibility, 50);
             }
+            if (typeof updateChatCallButton === "function") {
+                setTimeout(updateChatCallButton, 50);
+            }
         };
 
         chatList.appendChild(div);
@@ -87,23 +134,20 @@ async function loadChats() {
         updateChatListMessageStatus(Number(chatId));
     }
 
-    // Личные чаты идут первыми и уже приходят из RPC в порядке последнего сообщения.
     const { data: privateChats, error: privateChatsError } = await supabaseClient.rpc("get_my_private_chats");
     if (privateChatsError) console.error("Ошибка загрузки личных чатов:", privateChatsError);
 
     (privateChats || []).forEach(chat => {
-        addChatToList(chat.chat_id, chat.chat_name || "Личный чат", "🔒", "private-chat");
+        addChatToList(chat.chat_id, chat.chat_name || "Личный чат", "🔒", "private-chat", "private", chat.last_message_at);
     });
 
-    // Групповые чаты идут после личных, но до общих.
     const { data: groupChats, error: groupChatsError } = await supabaseClient.rpc("get_my_group_chats");
     if (groupChatsError) console.error("Ошибка загрузки групповых чатов:", groupChatsError);
 
     (groupChats || []).forEach(chat => {
-        addChatToList(chat.chat_id, chat.chat_name || "Групповой чат", "👥", "group-chat");
+        addChatToList(chat.chat_id, chat.chat_name || "Групповой чат", "👥", "group-chat", "group", chat.last_message_at);
     });
 
-    // Общие чаты всегда в самом низу. Их порядок задаётся ID: сначала «Общий чат», затем «Техподдержка».
     const { data: publicChats, error: publicChatsError } = await supabaseClient
         .from("chats")
         .select("id,name,type")
@@ -116,6 +160,13 @@ async function loadChats() {
     }
 
     (publicChats || []).forEach(chat => {
-        addChatToList(chat.id, chat.name, "🌐", "");
+        addChatToList(chat.id, chat.name, "🌐", "", "public", null);
     });
+
+    sortChatListItems();
+
+    if (selectedChatId) {
+        const selected = chatList.querySelector(`[data-chat-id="${selectedChatId}"]`);
+        selected?.classList.add("active");
+    }
 }
