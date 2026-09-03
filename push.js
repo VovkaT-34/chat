@@ -5,6 +5,7 @@
 const CHAT_VAPID_PUBLIC_KEY = "BDiBPq7oIur30bHa0GlYLuNxBwzkph4srXdSHVD2j_rzbJVmxAwXJIKZucYWEgRIXzTAXwHuZv73lEpd5g0h36w";
 const CHAT_PUSH_SUBSCRIPTION_KEY = "chat_push_subscription";
 const CHAT_PUSH_BUTTON_ID = "enablePushButton";
+const CHAT_IS_ANDROID = /Android/i.test(navigator.userAgent || "");
 
 function isPushConfigured() {
     return Boolean(
@@ -179,17 +180,29 @@ async function sendChatPushForMessage(messageId) {
     }
 }
 
-function createPushButton() {
+async function createPushButton() {
     if (!isPushConfigured()) return;
-
-    if (
-        "Notification" in window &&
-        Notification.permission === "granted"
-    ) {
-        return;
-    }
-
     if (document.getElementById(CHAT_PUSH_BUTTON_ID)) return;
+
+    const permission = "Notification" in window
+        ? Notification.permission
+        : "default";
+
+    // iPhone оставляем на прежней рабочей схеме.
+    if (!CHAT_IS_ANDROID && permission === "granted") return;
+
+    // На Android permission может быть granted, а PushSubscription отсутствовать
+    // после очистки данных браузера/старой установки. В таком случае кнопку
+    // нужно показать снова, иначе пользователь не сможет восстановить push.
+    if (CHAT_IS_ANDROID && permission === "granted") {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            if (subscription) return;
+        } catch (error) {
+            console.warn("Не удалось проверить Android push-подписку:", error);
+        }
+    }
 
     const button = document.createElement("button");
     button.id = CHAT_PUSH_BUTTON_ID;
@@ -240,12 +253,13 @@ function createPushButton() {
 async function initChatPush() {
     await registerChatServiceWorker();
     await syncChatPushSubscription();
-    createPushButton();
+    await createPushButton();
 
     if (window.supabaseClient?.auth?.onAuthStateChange) {
         window.supabaseClient.auth.onAuthStateChange(() => {
             setTimeout(() => {
                 void syncChatPushSubscription();
+                void createPushButton();
             }, 0);
         });
     }
@@ -253,6 +267,7 @@ async function initChatPush() {
     document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
             void syncChatPushSubscription();
+            void createPushButton();
         }
     });
 }
