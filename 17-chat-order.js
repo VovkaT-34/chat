@@ -3,13 +3,16 @@
 // =========================================
 (function () {
     let channel = null;
-    let refreshTimer = null;
 
-    function scheduleRefresh() {
-        clearTimeout(refreshTimer);
-        refreshTimer = setTimeout(() => {
-            if (typeof loadChats === "function") void loadChats();
-        }, 120);
+    function moveFromMessage(message) {
+        if (!message?.chat_id) return;
+
+        if (typeof moveChatToTop === "function") {
+            moveChatToTop(message.chat_id, message.created_at || new Date().toISOString());
+            return;
+        }
+
+        if (typeof loadChats === "function") void loadChats();
     }
 
     function subscribe() {
@@ -21,14 +24,18 @@
                 event: "INSERT",
                 schema: "public",
                 table: "messages"
-            }, payload => {
-                if (payload?.new) scheduleRefresh();
-            })
-            .subscribe();
+            }, payload => moveFromMessage(payload?.new))
+            .subscribe(status => {
+                if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+                    channel = null;
+                    setTimeout(subscribe, 2000);
+                }
+            });
     }
 
     if (window.supabaseClient?.auth?.onAuthStateChange) {
         window.supabaseClient.auth.onAuthStateChange(() => {
+            channel = null;
             setTimeout(subscribe, 0);
         });
     }
