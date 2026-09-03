@@ -1,16 +1,19 @@
 // ===============================
 // Realtime сообщений
 // ===============================
+
+const messageStatusCache = new Map();
+
 async function subscribeToMessages() {
     if (realtimeChannel) await supabaseClient.removeChannel(realtimeChannel);
 
     realtimeChannel = supabaseClient.channel("messages-realtime")
-        .on("postgres_changes", {event:"INSERT", schema:"public", table:"messages"}, async payload => {
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async payload => {
             const newMessage = payload.new;
             if (!newMessage) return;
 
             if (currentUser && newMessage.user_id !== currentUser.id) {
-                const {error} = await supabaseClient.rpc("mark_message_delivered", {p_message_id:newMessage.id});
+                const { error } = await supabaseClient.rpc("mark_message_delivered", { p_message_id: newMessage.id });
                 if (error) console.log("Ошибка подтверждения доставки:", error);
             }
 
@@ -29,13 +32,13 @@ async function subscribeToMessages() {
         .subscribe();
 }
 
-// ===============================
-// Безопасное применение статуса
-// ===============================
 function applyMessageStatus(statusElement, status) {
     if (!statusElement || !status) return;
-    const order = {sent:1, delivered:2, read:3};
-    const current = order[statusElement.dataset.messageStatus || "sent"] || 1;
+    status = String(status).toLowerCase();
+    if (status === "none") return;
+
+    const order = { sent: 1, delivered: 2, read: 3 };
+    const current = order[String(statusElement.dataset.messageStatus || "sent").toLowerCase()] || 1;
     const next = order[status] || 0;
     if (next < current) return;
 
@@ -43,64 +46,95 @@ function applyMessageStatus(statusElement, status) {
     if (status === "sent") {
         statusElement.textContent = "✓";
         statusElement.title = "Отправлено";
-        statusElement.style.color = "#999999";
+        statusElement.style.setProperty("color", "#999999", "important");
     } else if (status === "delivered") {
         statusElement.textContent = "✓";
         statusElement.title = "Доставлено";
-        statusElement.style.color = "#00C853";
+        statusElement.style.setProperty("color", "#00C853", "important");
     } else if (status === "read") {
         statusElement.textContent = "✓✓";
         statusElement.title = "Прочитано";
-        statusElement.style.color = "#00C853";
+        statusElement.style.setProperty("color", "#00C853", "important");
     }
+}
+
+function cacheAndApplyMessageStatus(messageId, status) {
+    const id = Number(messageId);
+    if (!id || !status || status === "none") return;
+
+    const normalized = String(status).toLowerCase();
+    const order = { sent: 1, delivered: 2, read: 3 };
+    const old = messageStatusCache.get(id);
+    if ((order[normalized] || 0) < (order[old] || 0)) return;
+    messageStatusCache.set(id, normalized);
+
+    document.querySelectorAll(`[data-status-message-id="${id}"]`).forEach(el => {
+        applyMessageStatus(el, normalized);
+    });
 }
 
 async function refreshOwnMessageStatuses() {
-    if (!currentUser) return;
-    const elements = Array.from(document.querySelectorAll("[data-status-message-id]"));
-    for (const el of elements) {
-        const messageId = Number(el.dataset.statusMessageId);
-        if (!messageId) continue;
-        const {data, error} = await supabaseClient.rpc("get_message_status", {p_message_id:messageId});
-        if (!error && data) applyMessageStatus(el, data);
+    if (!currentUser || !supabaseClient) return;
+
+    // Проверяем не только уже отрисованные элементы, но и последние сообщения
+    // текущего чата. Это важно, когда сообщение пришло через Web Push, пока
+    // страница отправителя не получила Realtime-событие.
+    const currentChat = Number(currentChatId || window.currentChatId || 0);
+    let query = supabaseClient
+        .from("messages")
+        .select("id,chat_id")
+        .eq("user_id", currentUser.id)
+        .order("id", { ascending: false })
+        .limit(30);
+
+    if (currentChat > 0) query = query.eq("chat_id", currentChat);
+
+    const { data: messages, error } = await query;
+    if (error || !messages?.length) return;
+
+    // Не запускаем новый тяжёлый цикл поверх предыдущего.
+    for (const message of messages) {
+        const id = Number(message.id);
+        if (!id) continue;
+
+        const { data: status, error: statusError } = await supabaseClient.rpc(
+            "get_message_status",
+            { p_message_id: id }
+        );
+
+        if (!statusError && status) {
+            cacheAndApplyMessageStatus(id, status);
+        }
     }
 
-    const chatIds = new Set();
-    document.querySelectorAll(".message[data-message-id]").forEach(el => {
-        const parent = el.closest?.("#messages");
-        if (parent && currentChatId) chatIds.add(Number(currentChatId));
-    });
-    for (const chatId of chatIds) await updateChatListMessageStatus(chatId);
+    if (currentChat > 0) await updateChatListMessageStatus(currentChat);
 }
 
-// ===============================
-// Realtime доставки сообщений
-// ===============================
 function subscribeToMessageDeliveries() {
     supabaseClient.channel("message-deliveries-realtime")
-        .on("postgres_changes", {event:"*", schema:"public", table:"message_deliveries"}, async payload => {
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_deliveries" }, async payload => {
             const delivery = payload.new;
             if (!delivery || !currentUser) return;
+
             const messageId = Number(delivery.message_id);
             if (!messageId) return;
 
-            const {data:message, error} = await supabaseClient.from("messages")
-                .select("id,user_id,chat_id").eq("id",messageId).maybeSingle();
+            const { data: message, error } = await supabaseClient.from("messages")
+                .select("id,user_id,chat_id")
+                .eq("id", messageId)
+                .maybeSingle();
+
             if (error || !message || message.user_id !== currentUser.id) return;
 
-            const el = document.querySelector(`[data-status-message-id="${messageId}"]`);
-            if (el) applyMessageStatus(el,"delivered");
+            cacheAndApplyMessageStatus(messageId, "delivered");
             await updateChatListMessageStatus(message.chat_id);
         })
         .subscribe();
 }
 
-// ===============================
-// Realtime прочтения сообщений
-// ===============================
 function subscribeToMessageReads() {
     supabaseClient.channel("user-chat-reads-realtime")
-        .on("postgres_changes", {event:"*", schema:"public", table:"user_chat_reads"}, async payload => {
+        .on("postgres_changes", { event: "*", schema: "public", table: "user_chat_reads" }, async payload => {
             const readInfo = payload.new;
             if (!readInfo || !currentUser || readInfo.user_id === currentUser.id) return;
 
@@ -108,16 +142,18 @@ function subscribeToMessageReads() {
             const lastReadId = Number(readInfo.last_read_message_id);
             if (!chatId || !lastReadId) return;
 
-            // Обновляем только наши сообщения, которые действительно
-            // находятся до последней прочитанной позиции собеседника.
-            const {data:ownMessages, error} = await supabaseClient.from("messages")
-                .select("id").eq("chat_id",chatId).eq("user_id",currentUser.id).lte("id",lastReadId);
+            const { data: ownMessages, error } = await supabaseClient.from("messages")
+                .select("id")
+                .eq("chat_id", chatId)
+                .eq("user_id", currentUser.id)
+                .lte("id", lastReadId);
+
             if (!error) {
                 for (const message of ownMessages || []) {
-                    const el = document.querySelector(`[data-status-message-id="${message.id}"]`);
-                    if (el) applyMessageStatus(el,"read");
+                    cacheAndApplyMessageStatus(message.id, "read");
                 }
             }
+
             await updateChatListMessageStatus(chatId);
         })
         .subscribe();
@@ -126,6 +162,15 @@ function subscribeToMessageReads() {
 subscribeToMessageDeliveries();
 subscribeToMessageReads();
 
-// Надёжный fallback: даже если конкретный браузер задержал Realtime,
-// статус на экране всё равно синхронизируется с backend.
-setInterval(() => { void refreshOwnMessageStatuses(); }, 1000);
+// Частая синхронизация нужна именно для Web Push: уведомление может прийти
+// в Service Worker в момент, когда страница отправителя не получает Realtime.
+let messageStatusRefreshBusy = false;
+setInterval(async () => {
+    if (messageStatusRefreshBusy) return;
+    messageStatusRefreshBusy = true;
+    try {
+        await refreshOwnMessageStatuses();
+    } finally {
+        messageStatusRefreshBusy = false;
+    }
+}, 500);
