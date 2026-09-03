@@ -3,377 +3,119 @@
 // ===============================
 
 async function loadChats() {
-
-    const chatList =
-        document.getElementById("chatList");
-
+    const chatList = document.getElementById("chatList");
     if (!chatList) return;
-
 
     chatList.innerHTML = "";
 
-
-    // =================================
-    // Переход к полю сообщения на мобильном
-    // =================================
-
     function focusMessageInputOnMobile() {
+        const messageInput = document.getElementById("messageInput");
+        const chatWindow = document.querySelector(".chat-window");
+        if (!messageInput || !chatWindow) return;
+        if (!window.matchMedia("(max-width: 700px)").matches) return;
 
-        const messageInput =
-            document.getElementById("messageInput");
-
-        const chatWindow =
-            document.querySelector(".chat-window");
-
-        if (!messageInput || !chatWindow) {
-            return;
-        }
-
-        if (!window.matchMedia("(max-width: 700px)").matches) {
-            return;
-        }
-
-        // iOS может менять горизонтальную позицию страницы при focus
-        // и последующем scrollIntoView(). Фиксируем X-координату.
-        const lockedScrollX =
-            window.scrollX ||
-            window.pageXOffset ||
-            0;
-
-        // Первый focus выполняем непосредственно внутри клика по чату,
-        // чтобы мобильный браузер разрешил открыть клавиатуру.
+        const lockedScrollX = window.scrollX || window.pageXOffset || 0;
         try {
-            messageInput.focus({
-                preventScroll: true
-            });
-
+            messageInput.focus({ preventScroll: true });
             const length = messageInput.value.length;
             messageInput.setSelectionRange(length, length);
-        } catch (error) {
-            // Некоторые браузеры могут ограничить установку курсора.
-        }
+        } catch {}
 
-        // Только вертикальное позиционирование. Не используем
-        // scrollIntoView(), потому что он способен сдвинуть страницу
-        // по горизонтали на iOS/Safari.
         const keepInputVisible = () => {
-
             try {
-                const rect =
-                    messageInput.getBoundingClientRect();
-
-                const viewportHeight =
-                    window.visualViewport
-                        ? window.visualViewport.height
-                        : window.innerHeight;
-
+                const rect = messageInput.getBoundingClientRect();
+                const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
                 const bottomPadding = 24;
-
-                if (
-                    rect.bottom >
-                    viewportHeight - bottomPadding
-                ) {
-                    window.scrollBy({
-                        top:
-                            rect.bottom -
-                            (viewportHeight - bottomPadding),
-                        behavior: "smooth"
-                    });
+                if (rect.bottom > viewportHeight - bottomPadding) {
+                    window.scrollBy({ top: rect.bottom - (viewportHeight - bottomPadding), behavior: "smooth" });
                 }
-
                 if (rect.top < 10) {
-                    window.scrollBy({
-                        top: rect.top - 10,
-                        behavior: "smooth"
-                    });
+                    window.scrollBy({ top: rect.top - 10, behavior: "smooth" });
                 }
-
-            } catch (error) {
-                // focus уже выполнен, поэтому ничего не делаем.
+            } catch {}
+            if (Math.abs((window.scrollX || window.pageXOffset || 0) - lockedScrollX) > 0) {
+                window.scrollTo(lockedScrollX, window.scrollY);
             }
-
-            // Восстанавливаем только горизонтальную координату.
-            if (
-                Math.abs(
-                    (window.scrollX || window.pageXOffset || 0) -
-                    lockedScrollX
-                ) > 0
-            ) {
-                window.scrollTo(
-                    lockedScrollX,
-                    window.scrollY
-                );
-            }
-
         };
 
         requestAnimationFrame(keepInputVisible);
         setTimeout(keepInputVisible, 150);
         setTimeout(keepInputVisible, 400);
         setTimeout(keepInputVisible, 700);
-
     }
 
+    function addChatToList(chatId, chatName, icon = "", extraClass = "") {
+        if (chatList.querySelector('[data-chat-id="' + chatId + '"]')) return;
 
-    // =================================
-    // Вспомогательная функция
-    // =================================
-
-    function addChatToList(
-        chatId,
-        chatName,
-        icon = "",
-        extraClass = ""
-    ) {
-
-        if (
-            chatList.querySelector(
-                '[data-chat-id="' + chatId + '"]'
-            )
-        ) {
-            return;
-        }
-
-
-        const div =
-            document.createElement("div");
-
-
-        div.className =
-            `chat-item ${extraClass}`;
-
-
-        div.dataset.chatId =
-            chatId;
-
+        const div = document.createElement("div");
+        div.className = `chat-item ${extraClass}`;
+        div.dataset.chatId = chatId;
 
         div.innerHTML = `
-
             <span class="chat-item-main">
-
-                <span class="chat-item-icon">
-                    ${icon}
-                </span>
-
-                <span
-                    class="chat-item-name"
-                    title="${chatName}"
-                >
-                    ${chatName}
-                </span>
-
-                <span
-                    class="chat-message-status"
-                    data-chat-status-id="${chatId}"
-                    title=""
-                ></span>
-
+                <span class="chat-item-icon">${icon}</span>
+                <span class="chat-item-name" title="${chatName}">${chatName}</span>
+                <span class="chat-message-status" data-chat-status-id="${chatId}" title=""></span>
             </span>
-
-
             <span class="chat-item-actions">
-
-                <span
-                    class="chat-unread-badge-wrap"
-                >
-
-                    <span
-                        id="count-${chatId}"
-                        class="chat-unread-badge"
-                    ></span>
-
+                <span class="chat-unread-badge-wrap">
+                    <span id="count-${chatId}" class="chat-unread-badge"></span>
                 </span>
-
-
-                <button
-                    type="button"
-                    class="chat-sound-button"
-                    data-sound-chat-id="${chatId}"
-                    onclick="event.stopPropagation(); toggleChatSound(${chatId})"
-                    title="Звук"
-                    aria-label="Звук"
-                >
-                    🔊
-                </button>
-
+                <button type="button" class="chat-sound-button" data-sound-chat-id="${chatId}"
+                    onclick="event.stopPropagation(); toggleChatSound(${chatId})" title="Звук" aria-label="Звук">🔊</button>
             </span>
-
         `;
 
-
         div.onclick = async () => {
+            currentChatId = Number(chatId);
+            const chatTitle = document.getElementById("chatTitle");
+            if (chatTitle) chatTitle.textContent = icon ? `${icon} ${chatName}` : chatName;
 
-            currentChatId =
-                Number(chatId);
-
-
-            const chatTitle =
-                document.getElementById(
-                    "chatTitle"
-                );
-
-
-            if (chatTitle) {
-
-                chatTitle.textContent =
-                    icon
-                        ? `${icon} ${chatName}`
-                        : chatName;
-
-            }
-
-            // Сразу после физического клика по чату:
-            // открываем поле ввода и запрашиваем клавиатуру.
             focusMessageInputOnMobile();
-
-
             await loadMessages();
-
-
-            await updateUnreadCount(
-                Number(chatId)
-            );
-
-
-            // После загрузки истории поле всё равно должно
-            // оставаться активным и видимым над клавиатурой.
+            await updateUnreadCount(Number(chatId));
             focusMessageInputOnMobile();
 
+            if (typeof updateChatCallButtonVisibility === "function") {
+                setTimeout(updateChatCallButtonVisibility, 50);
+            }
         };
 
-
         chatList.appendChild(div);
-
-
-        updateChatSoundButton(
-            Number(chatId)
-        );
-
-
-        updateUnreadCount(
-            Number(chatId)
-        );
-
-
-        updateChatListMessageStatus(
-            Number(chatId)
-        );
-
+        updateChatSoundButton(Number(chatId));
+        updateUnreadCount(Number(chatId));
+        updateChatListMessageStatus(Number(chatId));
     }
 
+    // Личные чаты идут первыми и уже приходят из RPC в порядке последнего сообщения.
+    const { data: privateChats, error: privateChatsError } = await supabaseClient.rpc("get_my_private_chats");
+    if (privateChatsError) console.error("Ошибка загрузки личных чатов:", privateChatsError);
 
-    // =================================
-    // 1. Общие чаты
-    // =================================
+    (privateChats || []).forEach(chat => {
+        addChatToList(chat.chat_id, chat.chat_name || "Личный чат", "🔒", "private-chat");
+    });
 
-    const {
-        data: publicChats,
-        error: publicChatsError
-    } = await supabaseClient
+    // Групповые чаты идут после личных, но до общих.
+    const { data: groupChats, error: groupChatsError } = await supabaseClient.rpc("get_my_group_chats");
+    if (groupChatsError) console.error("Ошибка загрузки групповых чатов:", groupChatsError);
+
+    (groupChats || []).forEach(chat => {
+        addChatToList(chat.chat_id, chat.chat_name || "Групповой чат", "👥", "group-chat");
+    });
+
+    // Общие чаты всегда в самом низу. Их порядок задаётся ID: сначала «Общий чат», затем «Техподдержка».
+    const { data: publicChats, error: publicChatsError } = await supabaseClient
         .from("chats")
         .select("id,name,type")
         .eq("type", "public")
-        .order("id");
-
+        .order("id", { ascending: true });
 
     if (publicChatsError) {
-
-        console.error(
-            "Ошибка загрузки общих чатов:",
-            publicChatsError
-        );
-
-        chatList.innerHTML =
-            "Не удалось загрузить чаты.";
-
+        console.error("Ошибка загрузки общих чатов:", publicChatsError);
         return;
-
     }
 
-
-    (publicChats || []).forEach(
-        chat => {
-
-            addChatToList(
-                chat.id,
-                chat.name,
-                "🌐",
-                ""
-            );
-
-        }
-    );
-
-
-    // =================================
-    // 2. Личные чаты
-    // =================================
-
-    const {
-        data: privateChats,
-        error: privateChatsError
-    } = await supabaseClient.rpc(
-        "get_my_private_chats"
-    );
-
-
-    if (privateChatsError) {
-
-        console.error(
-            "Ошибка загрузки личных чатов:",
-            privateChatsError
-        );
-
-    }
-
-
-    (privateChats || []).forEach(
-        chat => {
-
-            addChatToList(
-                chat.chat_id,
-                chat.chat_name || "Личный чат",
-                "🔒",
-                "private-chat"
-            );
-
-        }
-    );
-
-
-    // =================================
-    // 3. Групповые чаты
-    // =================================
-
-    const {
-        data: groupChats,
-        error: groupChatsError
-    } = await supabaseClient.rpc(
-        "get_my_group_chats"
-    );
-
-
-    if (groupChatsError) {
-
-        console.error(
-            "Ошибка загрузки групповых чатов:",
-            groupChatsError
-        );
-
-    }
-
-
-    (groupChats || []).forEach(
-        chat => {
-
-            addChatToList(
-                chat.chat_id,
-                chat.chat_name || "Групповой чат",
-                "👥",
-                "group-chat"
-            );
-
-        }
-    );
-
+    (publicChats || []).forEach(chat => {
+        addChatToList(chat.id, chat.name, "🌐", "");
+    });
 }
