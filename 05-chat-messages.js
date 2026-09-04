@@ -18,21 +18,22 @@ async function loadMessages() {
     const box=document.getElementById("messages");
     if(!box)return;
     box.innerHTML="";
-    let unreadDividerAdded=false;
+
+    let unreadDivider=null;
+
     (data||[]).forEach(message=>{
-        let divider="";
-        if(lastReadId&&message.id>lastReadId&&message.user_id!==currentUser.id&&!unreadDividerAdded){
-            unreadDividerAdded=true;
-            divider=`<div class="unread-divider">───────── Непрочитанные сообщения ─────────</div>`;
+        if(!unreadDivider && Number(message.id)>lastReadId && message.user_id!==currentUser.id){
+            unreadDivider=document.createElement("div");
+            unreadDivider.className="unread-divider";
+            unreadDivider.textContent="Непрочитанные сообщения";
+            box.appendChild(unreadDivider);
         }
+
         const div=renderMessage(message);
         if(!div)return;
-        if(divider)div.insertAdjacentHTML("afterbegin",divider);
         box.appendChild(div);
     });
 
-    // История тоже является фактом доставки: если Realtime-событие было
-    // пропущено, клиент всё равно подтверждает получение сообщения.
     const incomingIds=(data||[])
         .filter(message=>message.user_id!==currentUser.id)
         .map(message=>Number(message.id))
@@ -43,21 +44,30 @@ async function loadMessages() {
         if(deliveryError) console.log("Ошибка подтверждения доставки:",deliveryError);
     }
 
-    // После загрузки чата currentChatId мог измениться только из-за быстрого
-    // клика пользователя по другому чату. Не меняем состояние уже нового чата.
     if(Number(currentChatId)!==chatIdAtLoad)return;
 
-    const unreadDivider=box.querySelector(".unread-divider");
-    if(unreadDivider) unreadDivider.scrollIntoView({behavior:"instant",block:"start"});
-    else box.scrollTop=box.scrollHeight;
+    // Возвращаем viewport к границе прочитанных/непрочитанных.
+    // Разделитель находится отдельно перед первым непрочитанным сообщением,
+    // поэтому история выше него не исчезает и позиция не прыгает в начало.
+    if(unreadDivider){
+        const positionUnreadBoundary=()=>{
+            if(Number(currentChatId)!==chatIdAtLoad)return;
+            const targetTop=Math.max(0,unreadDivider.offsetTop-12);
+            box.scrollTop=targetTop;
+            if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();
+        };
+        requestAnimationFrame(positionUnreadBoundary);
+        setTimeout(positionUnreadBoundary,50);
+        setTimeout(positionUnreadBoundary,150);
+    }else{
+        box.scrollTop=box.scrollHeight;
+    }
 
     if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();
     const ownMessages=(data||[]).filter(m=>m.user_id===currentUser.id);
     const lastOwnMessage=ownMessages[ownMessages.length-1];
     if(lastOwnMessage)await updateMessageStatus(lastOwnMessage.id);
 
-    // После отрисовки фиксируем прочитанным именно то, что пользователь
-    // реально видит. Дальше 07-chat-read.js продолжает следить за scroll.
     if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();
 }
 
@@ -69,8 +79,6 @@ async function appendMessage(message) {
     if(!box)return;
     if(box.querySelector(`[data-message-id="${message.id}"]`))return;
 
-    // Сразу фиксируем доставку на backend. Это не зависит от того,
-    // успел ли сработать отдельный Realtime-канал доставки.
     if(currentUser && message.user_id!==currentUser.id){
         const {error:deliveryError}=await supabaseClient.rpc("mark_message_delivered",{p_message_id:Number(message.id)});
         if(deliveryError) console.log("Ошибка подтверждения доставки:",deliveryError);
