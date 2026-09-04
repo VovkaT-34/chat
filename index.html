@@ -34,14 +34,13 @@
 .chat-header-actions .chat-call-audio{background:#6eae83!important;color:#f7fff9!important}
 .chat-header-actions .chat-call-video{background:#a96d6d!important;color:#fffaf8!important}
 
-/* ===== ТЕЛЕФОН — классическая трубка ===== */
+/* ===== ТЕЛЕФОН — solid SVG (не mask) ===== */
 .chat-header-actions .call-icon-phone{
     position:relative;
     display:block;
-    width:20px!important;
-    height:20px!important;
+    width:22px!important;
+    height:22px!important;
     margin:0 auto!important;
-    color:currentColor!important;
 }
 .chat-header-actions .call-icon-phone:before{
     content:"";
@@ -50,10 +49,8 @@
     top:50%;
     width:20px;
     height:20px;
-    transform:translate(-50%,-50%) rotate(0deg);
-    background:currentColor;
-    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.49-5.14-3.8-6.59-6.59l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z'/%3E%3C/svg%3E") no-repeat center / contain;
-    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.49-5.14-3.8-6.59-6.59l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z'/%3E%3C/svg%3E") no-repeat center / contain;
+    transform:translate(-50%,-50%) rotate(-20deg);
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23f7fff9' d='M6.6 10.8c1.5 2.9 3.8 5.2 6.7 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.5.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.2 21 3 13.8 3 4.6c0-.6.4-1 1-1h3.4c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.5.1.4 0 .8-.3 1.1l-2.1 2.6z'/%3E%3C/svg%3E") no-repeat center / contain;
 }
 
 /* ===== ВИДЕОКАМЕРА — без изменений ===== */
