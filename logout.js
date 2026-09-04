@@ -1,5 +1,5 @@
 // =========================================
-// Выход из аккаунта + общие улучшения шапки чата
+// Кнопка настроек + выход из аккаунта
 // =========================================
 
 async function logout() {
@@ -17,11 +17,23 @@ async function logout() {
             style.textContent = `
                 .top-actions .logout-button.chat-settings-button{
                     width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;
-                    padding:0!important;border-radius:50%!important;font-size:21px!important;line-height:1!important;
+                    padding:0!important;border-radius:50%!important;font-size:0!important;line-height:1!important;
                     display:flex!important;align-items:center!important;justify-content:center!important;
+                }
+                .top-actions .logout-button.chat-settings-button .settings-icon-svg{
+                    display:block!important;width:22px!important;height:22px!important;flex:none!important;
+                    color:currentColor!important;stroke:currentColor!important;
+                    transform:rotate(0deg)!important;transition:transform .22s ease!important;
+                }
+                .top-actions .logout-button.chat-settings-button:hover .settings-icon-svg{
+                    transform:rotate(28deg)!important;
+                }
+                .top-actions .logout-button.chat-settings-button:active .settings-icon-svg{
+                    transform:rotate(52deg) scale(.94)!important;
                 }
                 @media(max-width:700px){
                     .top-actions .logout-button.chat-settings-button{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important}
+                    .top-actions .logout-button.chat-settings-button .settings-icon-svg{width:23px!important;height:23px!important}
                     .chat-header-actions{position:sticky!important;top:0!important;z-index:500!important}
                     .chat-header-main-actions,.chat-call-actions{width:100%!important}
                     .chat-call-actions{min-height:48px!important;padding-bottom:2px!important}
@@ -57,15 +69,19 @@ async function logout() {
             if (!logoutButton.classList.contains("chat-settings-button")) {
                 logoutButton.classList.add("chat-settings-button");
             }
-            if (logoutButton.textContent !== "⚙") {
-                logoutButton.textContent = "⚙";
+
+            if (!logoutButton.querySelector(".settings-icon-svg")) {
+                logoutButton.innerHTML = `
+                    <svg class="settings-icon-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 3.2l1.1 1.9a7.5 7.5 0 0 1 1.7.7l2.1-.6 1.6 1.6-.6 2.1c.3.5.5 1.1.7 1.7l1.9 1.1v2.5l-1.9 1.1a7.5 7.5 0 0 1-.7 1.7l.6 2.1-1.6 1.6-2.1-.6a7.5 7.5 0 0 1-1.7.7L12 20.8h-2.5l-1.1-1.9a7.5 7.5 0 0 1-1.7-.7l-2.1.6-1.6-1.6.6-2.1a7.5 7.5 0 0 1-.7-1.7L1 12.3V9.8l1.9-1.1a7.5 7.5 0 0 1 .7-1.7L3 4.9l1.6-1.6 2.1.6a7.5 7.5 0 0 1 1.7-.7l1.1-1.9H12z" transform="translate(1 0) scale(.92)"/>
+                        <circle cx="12" cy="11" r="3.1"/>
+                    </svg>`;
             }
-            if (logoutButton.title !== "Настройки") {
-                logoutButton.title = "Настройки";
-            }
-            if (logoutButton.getAttribute("aria-label") !== "Настройки") {
-                logoutButton.setAttribute("aria-label", "Настройки");
-            }
+
+            logoutButton.title = "Настройки";
+            logoutButton.setAttribute("aria-label", "Настройки");
+            logoutButton.type = "button";
+
             if (!logoutButton.dataset.chatSettingsHandler) {
                 logoutButton.dataset.chatSettingsHandler = "1";
                 logoutButton.onclick = () => { window.location.href = "./settings.html"; };
