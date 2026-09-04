@@ -54,11 +54,22 @@ async function logout() {
 
         const logoutButton = document.querySelector(".top-actions .logout-button");
         if (logoutButton) {
-            logoutButton.classList.add("chat-settings-button");
-            logoutButton.textContent = "⚙";
-            logoutButton.title = "Настройки";
-            logoutButton.setAttribute("aria-label", "Настройки");
-            logoutButton.onclick = () => { window.location.href = "./settings.html"; };
+            if (!logoutButton.classList.contains("chat-settings-button")) {
+                logoutButton.classList.add("chat-settings-button");
+            }
+            if (logoutButton.textContent !== "⚙") {
+                logoutButton.textContent = "⚙";
+            }
+            if (logoutButton.title !== "Настройки") {
+                logoutButton.title = "Настройки";
+            }
+            if (logoutButton.getAttribute("aria-label") !== "Настройки") {
+                logoutButton.setAttribute("aria-label", "Настройки");
+            }
+            if (!logoutButton.dataset.chatSettingsHandler) {
+                logoutButton.dataset.chatSettingsHandler = "1";
+                logoutButton.onclick = () => { window.location.href = "./settings.html"; };
+            }
         }
 
         document.querySelectorAll(".chat-call-button").forEach(button => {
@@ -67,8 +78,15 @@ async function logout() {
             if (!button.querySelector("." + iconClass)) {
                 button.innerHTML = `<span class="${iconClass}" aria-hidden="true"></span>`;
             }
-            button.setAttribute("aria-label", isVideo ? "Видеозвонок" : "Позвонить");
-            button.title = isVideo ? "Видеозвонок" : "Позвонить";
+
+            const ariaLabel = isVideo ? "Видеозвонок" : "Позвонить";
+            const title = isVideo ? "Видеозвонок" : "Позвонить";
+            if (button.getAttribute("aria-label") !== ariaLabel) {
+                button.setAttribute("aria-label", ariaLabel);
+            }
+            if (button.title !== title) {
+                button.title = title;
+            }
         });
     }
 
