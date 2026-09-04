@@ -142,6 +142,156 @@ body {
         scroll-margin-bottom: 20px;
     }
 
+    /* =========================================
+       Шапка чата на iPhone / Android
+       Имя и кнопки звонка находятся в одной
+       нижней строке. Длинное имя не переносится
+       на вторую строку и обрезается многоточием.
+       ========================================= */
+
+    .chat-window > div:first-child {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        grid-template-areas:
+            "main main"
+            "title calls" !important;
+        align-items: center !important;
+        column-gap: 8px !important;
+        row-gap: 7px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .chat-window > div:first-child > h2#chatTitle {
+        grid-area: title !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
+        text-align: left !important;
+        line-height: 1.25 !important;
+        font-size: 18px !important;
+    }
+
+    .chat-header-actions {
+        display: contents !important;
+    }
+
+    .chat-header-main-actions {
+        grid-area: main !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        gap: 6px !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .chat-call-actions {
+        grid-area: calls !important;
+        width: auto !important;
+        min-width: 0 !important;
+        min-height: 46px !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        gap: 10px !important;
+        flex-wrap: nowrap !important;
+    }
+
+    /* Не даём кнопкам звонка сжимать область имени. */
+    .chat-call-actions .chat-call-button,
+    .chat-header-actions .chat-call-button {
+        flex: 0 0 46px !important;
+        width: 46px !important;
+        height: 46px !important;
+        min-width: 46px !important;
+        min-height: 46px !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 50% !important;
+    }
+
+    /* Трубка: аккуратная светло-серая иконка,
+       без emoji. */
+    .chat-header-actions .chat-call-audio {
+        color: #e4e7e9 !important;
+    }
+
+    .chat-header-actions .call-icon-phone {
+        position: relative !important;
+        display: block !important;
+        width: 22px !important;
+        height: 22px !important;
+        margin: 0 !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        transform: rotate(-4deg) !important;
+    }
+
+    .chat-header-actions .call-icon-phone::before,
+    .chat-header-actions .call-icon-phone::after {
+        content: "" !important;
+        position: absolute !important;
+        width: 8px !important;
+        height: 11px !important;
+        border: 3px solid currentColor !important;
+        box-sizing: border-box !important;
+    }
+
+    .chat-header-actions .call-icon-phone::before {
+        left: 1px !important;
+        top: 1px !important;
+        border-right-color: transparent !important;
+        border-bottom-color: transparent !important;
+        border-radius: 7px 3px 3px 7px !important;
+        transform: rotate(-30deg) !important;
+    }
+
+    .chat-header-actions .call-icon-phone::after {
+        right: 1px !important;
+        bottom: 1px !important;
+        border-left-color: transparent !important;
+        border-top-color: transparent !important;
+        border-radius: 3px 7px 7px 3px !important;
+        transform: rotate(-30deg) !important;
+    }
+
+    /* Видеокамера: прямоугольник слева,
+       треугольник справа, остриём наружу. */
+    .chat-header-actions .call-icon-video {
+        position: relative !important;
+        display: block !important;
+        width: 18px !important;
+        height: 13px !important;
+        border: 0 !important;
+        border-radius: 3px !important;
+        background: #e4e7e9 !important;
+        box-sizing: border-box !important;
+    }
+
+    .chat-header-actions .call-icon-video::after {
+        content: "" !important;
+        position: absolute !important;
+        right: -7px !important;
+        left: auto !important;
+        top: 2px !important;
+        width: 0 !important;
+        height: 0 !important;
+        border-top: 4.5px solid transparent !important;
+        border-bottom: 4.5px solid transparent !important;
+        border-left: 7px solid #e4e7e9 !important;
+        border-right: 0 !important;
+    }
+
 }
 
 @media (max-width: 380px) {
@@ -173,4 +323,25 @@ body {
         width: 27px;
     }
 
+    .chat-window > div:first-child {
+        column-gap: 6px !important;
+        row-gap: 6px !important;
+    }
+
+    .chat-window > div:first-child > h2#chatTitle {
+        font-size: 17px !important;
+    }
+
+    .chat-call-actions {
+        gap: 8px !important;
+    }
+
+    .chat-call-actions .chat-call-button,
+    .chat-header-actions .chat-call-button {
+        flex-basis: 44px !important;
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+    }
 }
