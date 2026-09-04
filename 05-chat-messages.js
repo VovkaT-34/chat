@@ -19,8 +19,6 @@ async function loadMessages() {
         .eq("chat_id",chatIdAtLoad).order("created_at");
     if(error){console.log(error);return;}
 
-    // Пользователь мог успеть открыть другой чат, пока история загружалась.
-    // В таком случае старый запрос больше не имеет права менять DOM.
     if(Number(currentChatId)!==chatIdAtLoad || loadToken!==messagesLoadToken)return;
 
     const box=document.getElementById("messages");
@@ -28,9 +26,12 @@ async function loadMessages() {
     box.innerHTML="";
 
     let unreadDivider=null;
+    let firstUnreadMessage=null;
 
     (data||[]).forEach(message=>{
-        if(!unreadDivider && Number(message.id)>lastReadId && message.user_id!==currentUser.id){
+        const isUnread=Number(message.id)>lastReadId && message.user_id!==currentUser.id;
+
+        if(isUnread && !unreadDivider){
             unreadDivider=document.createElement("div");
             unreadDivider.className="unread-divider";
             unreadDivider.textContent="Непрочитанные сообщения";
@@ -40,17 +41,22 @@ async function loadMessages() {
         const div=renderMessage(message);
         if(!div)return;
         box.appendChild(div);
+
+        if(isUnread && !firstUnreadMessage)firstUnreadMessage=div;
     });
 
-    // КРИТИЧЕСКИ ВАЖНО:
-    // Сначала показываем пользователю конец истории.
-    // Нельзя ждать RPC mark_message_delivered для старых сообщений,
-    // иначе при большой истории пользователь видит начало чата и только
-    // спустя время оказывается внизу.
-    const goToBottom=()=>{
+    // Если есть непрочитанные — начинаем с первого непрочитанного.
+    // Если их нет — показываем самый низ истории.
+    const positionChat=()=>{
         if(Number(currentChatId)!==chatIdAtLoad || loadToken!==messagesLoadToken)return;
 
-        if(typeof scrollMessagesToBottom === "function"){
+        if(firstUnreadMessage){
+            try{
+                firstUnreadMessage.scrollIntoView({behavior:"auto",block:"start",inline:"nearest"});
+            }catch{
+                box.scrollTop=Math.max(0,firstUnreadMessage.offsetTop);
+            }
+        }else if(typeof scrollMessagesToBottom === "function"){
             scrollMessagesToBottom("auto");
         }else{
             box.scrollTop=box.scrollHeight;
@@ -59,15 +65,14 @@ async function loadMessages() {
         if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();
     };
 
-    goToBottom();
-    requestAnimationFrame(goToBottom);
-    setTimeout(goToBottom,50);
-    setTimeout(goToBottom,150);
-    setTimeout(goToBottom,300);
+    positionChat();
+    requestAnimationFrame(positionChat);
+    setTimeout(positionChat,50);
+    setTimeout(positionChat,150);
+    setTimeout(positionChat,300);
 
-    // Доставку старых входящих сообщений выполняем ПОСЛЕ позиционирования.
-    // Promise.all не блокирует открытие чата и не заставляет пользователя
-    // ждать последовательные сетевые запросы.
+    // Доставку старых входящих сообщений выполняем после позиционирования.
+    // Это не меняет last_read_message_id.
     const incomingIds=(data||[])
         .filter(message=>message.user_id!==currentUser.id)
         .map(message=>Number(message.id))
@@ -86,7 +91,17 @@ async function loadMessages() {
     const lastOwnMessage=ownMessages[ownMessages.length-1];
     if(lastOwnMessage)await updateMessageStatus(lastOwnMessage.id);
 
-    if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();
+    // При наличии непрочитанных сначала ставим viewport на их начало.
+    // Затем scroll-событие вызывает markChatAsRead() и отмечает только
+    // сообщения, реально попавшие в viewport.
+    if(firstUnreadMessage){
+        requestAnimationFrame(()=>{
+            if(Number(currentChatId)!==chatIdAtLoad || loadToken!==messagesLoadToken)return;
+            if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();
+        });
+    }else if(typeof scheduleReadReceipt==="function"){
+        scheduleReadReceipt();
+    }
 }
 
 // ===============================
