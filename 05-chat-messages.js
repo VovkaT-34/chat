@@ -1,10 +1,14 @@
 // ===============================
 // Загрузка сообщений
 // ===============================
+
+let messagesLoadToken = 0;
+
 async function loadMessages() {
     if (!currentChatId || !currentUser) return;
 
     const chatIdAtLoad = Number(currentChatId);
+    const loadToken = ++messagesLoadToken;
 
     const {data:readInfo,error:readError}=await supabaseClient.from("user_chat_reads").select("last_read_message_id").eq("user_id",currentUser.id).eq("chat_id",chatIdAtLoad).maybeSingle();
     if(readError) console.log(readError);
@@ -14,6 +18,10 @@ async function loadMessages() {
     const {data,error}=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`)
         .eq("chat_id",chatIdAtLoad).order("created_at");
     if(error){console.log(error);return;}
+
+    // Пользователь мог успеть открыть другой чат, пока история загружалась.
+    // В таком случае старый запрос больше не имеет права менять DOM.
+    if(Number(currentChatId)!==chatIdAtLoad || loadToken!==messagesLoadToken)return;
 
     const box=document.getElementById("messages");
     if(!box)return;
@@ -34,30 +42,21 @@ async function loadMessages() {
         box.appendChild(div);
     });
 
-    const incomingIds=(data||[])
-        .filter(message=>message.user_id!==currentUser.id)
-        .map(message=>Number(message.id))
-        .filter(Boolean);
-
-    for(const messageId of incomingIds){
-        const {error:deliveryError}=await supabaseClient.rpc("mark_message_delivered",{p_message_id:messageId});
-        if(deliveryError) console.log("Ошибка подтверждения доставки:",deliveryError);
-    }
-
-    if(Number(currentChatId)!==chatIdAtLoad)return;
-
-    // При каждом открытии чата начинаем с конца истории.
-    // Разделитель непрочитанных остаётся в DOM, но никогда не используется
-    // как точка позиционирования. Пользователь сразу видит последние сообщения.
+    // КРИТИЧЕСКИ ВАЖНО:
+    // Сначала показываем пользователю конец истории.
+    // Нельзя ждать RPC mark_message_delivered для старых сообщений,
+    // иначе при большой истории пользователь видит начало чата и только
+    // спустя время оказывается внизу.
     const goToBottom=()=>{
-        if(Number(currentChatId)!==chatIdAtLoad)return;
+        if(Number(currentChatId)!==chatIdAtLoad || loadToken!==messagesLoadToken)return;
 
         if(typeof scrollMessagesToBottom === "function"){
             scrollMessagesToBottom("auto");
-            return;
+        }else{
+            box.scrollTop=box.scrollHeight;
         }
 
-        box.scrollTop=box.scrollHeight;
+        if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();
     };
 
     goToBottom();
@@ -66,7 +65,23 @@ async function loadMessages() {
     setTimeout(goToBottom,150);
     setTimeout(goToBottom,300);
 
-    if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();
+    // Доставку старых входящих сообщений выполняем ПОСЛЕ позиционирования.
+    // Promise.all не блокирует открытие чата и не заставляет пользователя
+    // ждать последовательные сетевые запросы.
+    const incomingIds=(data||[])
+        .filter(message=>message.user_id!==currentUser.id)
+        .map(message=>Number(message.id))
+        .filter(Boolean);
+
+    if(incomingIds.length){
+        void Promise.all(incomingIds.map(async messageId=>{
+            const {error:deliveryError}=await supabaseClient.rpc("mark_message_delivered",{p_message_id:messageId});
+            if(deliveryError) console.log("Ошибка подтверждения доставки:",deliveryError);
+        }));
+    }
+
+    if(Number(currentChatId)!==chatIdAtLoad || loadToken!==messagesLoadToken)return;
+
     const ownMessages=(data||[]).filter(m=>m.user_id===currentUser.id);
     const lastOwnMessage=ownMessages[ownMessages.length-1];
     if(lastOwnMessage)await updateMessageStatus(lastOwnMessage.id);
