@@ -45,17 +45,31 @@ async function loadMessages() {
         if(isUnread && !firstUnreadMessage)firstUnreadMessage=div;
     });
 
-    // Если есть непрочитанные — начинаем с первого непрочитанного.
+    // Позиционируем границу непрочитанных строго по центру viewport.
+    // Поэтому при открытии чата видны сообщения и ДО, и ПОСЛЕ
+    // надписи «Непрочитанные сообщения».
+    const centerUnreadDivider=()=>{
+        if(!unreadDivider)return;
+        if(Number(currentChatId)!==chatIdAtLoad || loadToken!==messagesLoadToken)return;
+
+        const boxRect=box.getBoundingClientRect();
+        const dividerRect=unreadDivider.getBoundingClientRect();
+        const dividerCenter=dividerRect.top + dividerRect.height / 2;
+        const boxCenter=boxRect.top + box.clientHeight / 2;
+        const delta=dividerCenter - boxCenter;
+
+        if(Math.abs(delta)>0.5){
+            box.scrollTop += delta;
+        }
+    };
+
+    // Если есть непрочитанные — центрируем сам разделитель.
     // Если их нет — показываем самый низ истории.
     const positionChat=()=>{
         if(Number(currentChatId)!==chatIdAtLoad || loadToken!==messagesLoadToken)return;
 
-        if(firstUnreadMessage){
-            try{
-                firstUnreadMessage.scrollIntoView({behavior:"auto",block:"start",inline:"nearest"});
-            }catch{
-                box.scrollTop=Math.max(0,firstUnreadMessage.offsetTop);
-            }
+        if(unreadDivider){
+            centerUnreadDivider();
         }else if(typeof scrollMessagesToBottom === "function"){
             scrollMessagesToBottom("auto");
         }else{
@@ -91,12 +105,13 @@ async function loadMessages() {
     const lastOwnMessage=ownMessages[ownMessages.length-1];
     if(lastOwnMessage)await updateMessageStatus(lastOwnMessage.id);
 
-    // При наличии непрочитанных сначала ставим viewport на их начало.
+    // При наличии непрочитанных сначала ставим viewport на их границу.
     // Затем scroll-событие вызывает markChatAsRead() и отмечает только
     // сообщения, реально попавшие в viewport.
-    if(firstUnreadMessage){
+    if(unreadDivider){
         requestAnimationFrame(()=>{
             if(Number(currentChatId)!==chatIdAtLoad || loadToken!==messagesLoadToken)return;
+            centerUnreadDivider();
             if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();
         });
     }else if(typeof scheduleReadReceipt==="function"){
