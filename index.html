@@ -34,12 +34,12 @@
 .chat-header-actions .chat-call-audio{background:#6eae83!important;color:#f7fff9!important}
 .chat-header-actions .chat-call-video{background:#a96d6d!important;color:#fffaf8!important}
 
-/* ===== ТЕЛЕФОН (как в твоём последнем коде) ===== */
+/* ===== ТЕЛЕФОН (более похожая трубка) ===== */
 .chat-header-actions .call-icon-phone{
     position:relative;
     display:block;
-    width:24px!important;
-    height:24px!important;
+    width:22px!important;
+    height:22px!important;
     margin:0 auto!important;
     color:currentColor!important;
 }
@@ -48,38 +48,45 @@
     position:absolute;
     left:50%;
     top:50%;
-    width:24px;
-    height:24px;
-    transform:translate(-50%,-50%) rotate(-25deg);
+    width:22px;
+    height:22px;
+    transform:translate(-50%,-50%) rotate(-20deg);
     background:currentColor;
-    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.2 3.8c1.1 0 2.1.5 2.9 1.2l1.6 1.6c.6.6.8 1.6.5 2.4l-1 2c-.3.5-.2 1.2.3 1.6l2.9 2.9c.5.5 1.1.6 1.6.3l2-1c.8-.3 1.8-.1 2.4.5l1.6 1.6c.7.8 1.2 1.8 1.2 2.9v1.1c0 1.3-1 2.3-2.3 2.3h-1.6C9.1 21.2 2.8 14.9 2.8 7.2V5.1C2.8 3.8 3.8 2.8 5.1 2.8h1.1z'/%3E%3C/svg%3E") no-repeat center / contain;
-    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.2 3.8c1.1 0 2.1.5 2.9 1.2l1.6 1.6c.6.6.8 1.6.5 2.4l-1 2c-.3.5-.2 1.2.3 1.6l2.9 2.9c.5.5 1.1.6 1.6.3l2-1c.8-.3 1.8-.1 2.4.5l1.6 1.6c.7.8 1.2 1.8 1.2 2.9v1.1c0 1.3-1 2.3-2.3 2.3h-1.6C9.1 21.2 2.8 14.9 2.8 7.2V5.1C2.8 3.8 3.8 2.8 5.1 2.8h1.1z'/%3E%3C/svg%3E") no-repeat center / contain;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z'/%3E%3C/svg%3E") no-repeat center / contain;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z'/%3E%3C/svg%3E") no-repeat center / contain;
 }
 
-/* ===== ВИДЕОКАМЕРА (ещё меньше + треугольник плотнее) ===== */
+/* ===== ВИДЕОКАМЕРА (прямоугольник слева + треугольник справа острым концом к нему) ===== */
 .chat-header-actions .call-icon-video{
     position:relative;
     display:block;
-    width:14px!important;
-    height:10px!important;
-    border:0!important;
-    border-radius:2px!important;
-    background:#edf0f2!important;
-    box-sizing:border-box;
+    width:20px!important;
+    height:11px!important;
     margin:0 auto!important;
+    background:transparent!important;
 }
-.chat-header-actions .call-icon-video:after{
+.chat-header-actions .call-icon-video:before{
+    /* Прямоугольник */
     content:"";
     position:absolute;
-    left:auto!important;
-    right:-5px!important;
-    top:1px!important;
-    width:6px!important;
-    height:8px!important;
-    border:0!important;
-    background:#edf0f2!important;
-    clip-path:polygon(0 0, 0 100%, 100% 50%)!important;
-    box-sizing:border-box;
+    left:0;
+    top:0;
+    width:12px;
+    height:11px;
+    border-radius:2px;
+    background:#edf0f2;
+}
+.chat-header-actions .call-icon-video:after{
+    /* Треугольник справа, острый конец прижат к правой стороне прямоугольника */
+    content:"";
+    position:absolute;
+    left:12px;
+    top:1px;
+    width:0;
+    height:0;
+    border-top:4.5px solid transparent;
+    border-bottom:4.5px solid transparent;
+    border-right:7px solid #edf0f2;
 }
 
 @media(max-width:700px){
