@@ -20,10 +20,14 @@
                 if (!AudioContext) return null;
                 audioContext = new AudioContext();
                 master = audioContext.createGain();
-                master.gain.value = 0.16;
+                // Deliberately louder than the previous 16% master level.
+                // The browser/device still applies its own system volume limit.
+                master.gain.value = 0.72;
                 master.connect(audioContext.destination);
             }
-            if (audioContext.state === "suspended") void audioContext.resume().then(() => { unlocked = true; }).catch(() => {});
+            if (audioContext.state === "suspended") {
+                void audioContext.resume().then(() => { unlocked = true; }).catch(() => {});
+            }
             return audioContext;
         } catch (error) {
             console.warn("Не удалось подготовить звук звонка:", error);
@@ -38,7 +42,7 @@
         unlocked = true;
     }
 
-    function tone(frequency, start, duration, type = "sine", gainValue = 0.22) {
+    function tone(frequency, start, duration, type = "sine", gainValue = 0.34) {
         const ctx = ensureAudio();
         if (!ctx || !master) return;
         const oscillator = ctx.createOscillator();
@@ -59,10 +63,10 @@
         if (!ctx || !unlocked || ctx.state !== "running") return;
         const now = ctx.currentTime + 0.02;
         // Original four-note call motif. No external/copyrighted audio file.
-        tone(660, now, 0.20, "sine", 0.30);
-        tone(880, now + 0.23, 0.20, "sine", 0.30);
-        tone(988, now + 0.46, 0.20, "sine", 0.28);
-        tone(740, now + 0.69, 0.30, "sine", 0.28);
+        tone(660, now, 0.24, "sine", 0.58);
+        tone(880, now + 0.27, 0.24, "sine", 0.58);
+        tone(988, now + 0.54, 0.24, "sine", 0.54);
+        tone(740, now + 0.81, 0.34, "sine", 0.54);
     }
 
     function stop() {
@@ -72,7 +76,7 @@
     }
 
     function start(kind) {
-        if (kind === "") {
+        if (!kind) {
             stop();
             return;
         }
