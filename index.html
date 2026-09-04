@@ -25,13 +25,13 @@
 .chat-header-actions .chat-call-audio{background:#6eae83!important;color:#f7fff9!important}
 .chat-header-actions .chat-call-video{background:#a96d6d!important;color:#fffaf8!important}
 
-/* Обычная телефонная трубка без стороннего изображения/шрифта. */
-.chat-header-actions .call-icon-phone{position:relative;display:block;width:25px!important;height:25px!important;margin:0!important;font-size:0!important;line-height:0!important;transform:none!important;color:currentColor!important}
-.chat-header-actions .call-icon-phone:before{content:"\\1F4DE\\FE0E";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Segoe UI Symbol","Noto Sans Symbols 2","Noto Sans Symbols",sans-serif;font-size:24px!important;font-weight:400;line-height:25px;transform:rotate(-18deg);color:currentColor}
+/* Аудио: классическая телефонная трубка. */
+.chat-header-actions .call-icon-phone{position:relative;display:block;width:28px!important;height:28px!important;margin:0!important;font-size:0!important;line-height:0!important;transform:none!important;color:currentColor!important}
+.chat-header-actions .call-icon-phone:before{content:"☎";position:absolute;left:50%;top:50%;display:block;font-family:"Segoe UI Symbol","Noto Sans Symbols 2","Noto Sans Symbols",sans-serif;font-size:27px!important;font-weight:400;line-height:28px;transform:translate(-50%,-50%) rotate(-28deg);transform-origin:center;color:currentColor}
 
-/* Камера: прямоугольный корпус, треугольник справа и остриём к корпусу. */
-.chat-header-actions .call-icon-video{position:relative;display:block;width:18px!important;height:13px!important;border:0!important;border-radius:3px!important;background:#edf0f2!important;box-sizing:border-box}
-.chat-header-actions .call-icon-video:after{content:"";position:absolute;left:auto!important;right:-7px!important;top:2px!important;width:0;height:0;border-top:4.5px solid transparent!important;border-bottom:4.5px solid transparent!important;border-right:7px solid #edf0f2!important;border-left:0!important}
+/* Видео: корпус слева, отдельный треугольник справа. Острый угол треугольника упирается прямо в корпус. */
+.chat-header-actions .call-icon-video{position:relative;display:block;width:19px!important;height:13px!important;border:0!important;border-radius:3px!important;background:#edf0f2!important;box-sizing:border-box}
+.chat-header-actions .call-icon-video:after{content:"";position:absolute;left:auto!important;right:-8px!important;top:1px!important;width:9px!important;height:11px!important;border:0!important;background:#edf0f2!important;clip-path:polygon(0 50%,100% 0,100% 100%)!important;box-sizing:border-box}
 
 @media(max-width:700px){
     .chat-header-actions{width:100%;align-items:flex-end;justify-content:flex-end;gap:8px;flex-direction:column;flex-wrap:nowrap}
