@@ -6,26 +6,14 @@
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#eadfce",
-  "theme_color": "#5a4636",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "background_color": "#e4f0e8",
+  "theme_color": "#356b4f",
   "lang": "ru",
   "icons": [
     {
-      "src": "favicon.svg",
+      "src": "favicon.svg?v=20260904",
       "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "favicon.svg",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "favicon.svg",
-      "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
