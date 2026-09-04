@@ -1,5 +1,5 @@
 // =========================================
-// Надёжный ringtone для звонков
+// Web Audio ringtone for calls
 // =========================================
 (function () {
     "use strict";
@@ -8,114 +8,73 @@
 
     let audioContext = null;
     let master = null;
-    let audio = null;
     let timer = null;
     let lastState = "";
     let unlocked = false;
 
-    function ensureContext() {
+    function ensureAudio() {
         try {
             if (!audioContext) {
-                const AC = window.AudioContext || window.webkitAudioContext;
-                if (!AC) return null;
-                audioContext = new AC();
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return null;
+                audioContext = new AudioContext();
                 master = audioContext.createGain();
                 master.gain.value = 0.72;
                 master.connect(audioContext.destination);
             }
             return audioContext;
-        } catch (e) { return null; }
-    }
-
-    function ensureAudio() {
-        if (audio) return audio;
-        try {
-            audio = document.createElement("audio");
-            audio.id = "chatCallRingtoneAudio";
-            audio.preload = "auto";
-            audio.loop = true;
-            audio.volume = 0.82;
-            audio.setAttribute("playsinline", "");
-            audio.setAttribute("webkit-playsinline", "");
-            audio.src = "ringtone.mp3";
-            audio.style.display = "none";
-            document.body.appendChild(audio);
-            return audio;
-        } catch (e) { return null; }
-    }
-
-    async function unlock() {
-        const ctx = ensureContext();
-        const media = ensureAudio();
-        let ok = false;
-        try {
-            if (ctx && ctx.state === "suspended") await ctx.resume();
-            ok = Boolean(ctx && ctx.state === "running");
-        } catch (e) {}
-        if (media) {
-            try {
-                const old = media.volume;
-                media.volume = 0;
-                await media.play();
-                media.pause();
-                media.currentTime = 0;
-                media.volume = old;
-                ok = true;
-            } catch (e) {}
+        } catch (error) {
+            console.warn("Не удалось подготовить звук звонка:", error);
+            return null;
         }
-        unlocked = ok || unlocked;
+    }
+
+    async function unlockAudio() {
+        const ctx = ensureAudio();
+        if (!ctx) return false;
+        try {
+            if (ctx.state === "suspended") await ctx.resume();
+            unlocked = ctx.state === "running";
+        } catch (error) {
+            console.debug("iOS не разрешил AudioContext:", error);
+        }
         return unlocked;
     }
 
-    function tone(freq, start, duration, gainValue) {
-        const ctx = ensureContext();
+    function tone(frequency, start, duration, gainValue) {
+        const ctx = ensureAudio();
         if (!ctx || !master) return;
-        const osc = ctx.createOscillator();
+        const oscillator = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, start);
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, start);
         gain.gain.setValueAtTime(0.0001, start);
         gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.025);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-        osc.connect(gain);
+        oscillator.connect(gain);
         gain.connect(master);
-        osc.start(start);
-        osc.stop(start + duration + 0.03);
+        oscillator.start(start);
+        oscillator.stop(start + duration + 0.03);
     }
 
-    function playWebAudio() {
-        const ctx = ensureContext();
-        if (!ctx || !unlocked || ctx.state !== "running") return false;
+    function playPhrase() {
+        const ctx = ensureAudio();
+        if (!ctx || !unlocked || ctx.state !== "running") return;
         const now = ctx.currentTime + 0.02;
         tone(660, now, 0.24, 0.58);
         tone(880, now + 0.27, 0.24, 0.58);
         tone(988, now + 0.54, 0.24, 0.54);
         tone(740, now + 0.81, 0.34, 0.54);
-        return true;
     }
 
     function playNow() {
-        if (!unlocked) return;
-        const media = ensureAudio();
-        if (media) {
-            try {
-                media.currentTime = 0;
-                media.volume = 0.82;
-                const p = media.play();
-                if (p) p.catch(() => playWebAudio());
-                return;
-            } catch (e) {}
-        }
-        playWebAudio();
+        if (unlocked) playPhrase();
     }
 
     function stop() {
         if (timer) clearInterval(timer);
         timer = null;
         lastState = "";
-        if (audio) {
-            try { audio.pause(); audio.currentTime = 0; } catch (e) {}
-        }
     }
 
     function start(kind) {
@@ -138,15 +97,21 @@
         stop();
     }
 
-    ["pointerdown", "touchstart", "keydown", "click"].forEach(type => {
-        document.addEventListener(type, () => { void unlock().then(detect); }, { passive: true });
+    // Для iPhone/iPad используем события, которые WebKit официально считает
+    // пользовательским жестом для запуска media/Web Audio.
+    ["touchend", "mousedown", "click", "keydown"].forEach(type => {
+        document.addEventListener(type, () => {
+            void unlockAudio().then(detect);
+        }, { passive: true });
     });
 
     document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) void unlock().then(detect);
-        else stop();
+        if (!document.hidden) {
+            void unlockAudio().then(detect);
+        } else {
+            stop();
+        }
     });
 
-    void unlock();
     setInterval(detect, 250);
 })();
