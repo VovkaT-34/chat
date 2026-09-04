@@ -46,22 +46,20 @@ async function loadMessages() {
 
     if(Number(currentChatId)!==chatIdAtLoad)return;
 
-    // Возвращаем viewport к границе прочитанных/непрочитанных.
-    // Разделитель находится отдельно перед первым непрочитанным сообщением,
-    // поэтому история выше него не исчезает и позиция не прыгает в начало.
-    if(unreadDivider){
-        const positionUnreadBoundary=()=>{
-            if(Number(currentChatId)!==chatIdAtLoad)return;
-            const targetTop=Math.max(0,unreadDivider.offsetTop-12);
-            box.scrollTop=targetTop;
-            if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();
-        };
-        requestAnimationFrame(positionUnreadBoundary);
-        setTimeout(positionUnreadBoundary,50);
-        setTimeout(positionUnreadBoundary,150);
-    }else{
+    // При открытии чата всегда показываем самые последние сообщения.
+    // Раньше при наличии границы непрочитанных viewport устанавливался
+    // на unreadDivider, из-за чего пользователь оказывался среди старых
+    // сообщений вместо нижней части истории.
+    // История и разделитель при этом сохраняются полностью.
+    const positionAtBottom=()=>{
+        if(Number(currentChatId)!==chatIdAtLoad)return;
         box.scrollTop=box.scrollHeight;
-    }
+        if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();
+    };
+
+    requestAnimationFrame(positionAtBottom);
+    setTimeout(positionAtBottom,50);
+    setTimeout(positionAtBottom,150);
 
     if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();
     const ownMessages=(data||[]).filter(m=>m.user_id===currentUser.id);
