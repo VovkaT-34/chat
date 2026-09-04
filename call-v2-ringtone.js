@@ -100,7 +100,7 @@
 
         const controlsVisible = controls && getComputedStyle(controls).display !== "none";
         const status = document.getElementById("cv2Status")?.textContent || "";
-        if (controlsVisible && /Вызов|Соединение|Запрашиваем доступ/.test(status)) {
+        if (controlsVisible && status === "Вызов…") {
             start("outgoing");
             return;
         }
