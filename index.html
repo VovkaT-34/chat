@@ -38,12 +38,12 @@
 .chat-header-actions .chat-call-audio{background:#6eae83!important;color:#f7fff9!important}
 .chat-header-actions .chat-call-video{background:#a96d6d!important;color:#fffaf8!important}
 
-/* Аудио: уникальная SVG-трубка */
+/* ===== ТЕЛЕФОН (улучшенная трубка) ===== */
 .chat-header-actions .call-icon-phone{
     position:relative;
     display:block;
-    width:26px!important;
-    height:26px!important;
+    width:24px!important;
+    height:24px!important;
     margin:0!important;
     font-size:0!important;
     line-height:0!important;
@@ -55,17 +55,38 @@
     position:absolute;
     left:50%;
     top:50%;
-    width:26px;
-    height:26px;
-    transform:translate(-50%,-50%) rotate(-28deg);
+    width:24px;
+    height:24px;
+    transform:translate(-50%,-50%) rotate(-25deg);
     background:currentColor;
-    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 3.5c1.2 0 2.2.5 3 1.3l1.8 1.8c.7.7.9 1.8.5 2.7l-1.1 2.2c-.3.6-.2 1.3.3 1.8l3.2 3.2c.5.5 1.2.6 1.8.3l2.2-1.1c.9-.4 2-.2 2.7.5l1.8 1.8c.8.8 1.3 1.8 1.3 3v1.2c0 1.4-1.1 2.5-2.5 2.5h-1.8C9.3 22 2 14.7 2 6.3V4.5C2 3.1 3.1 2 4.5 2h2z'/%3E%3C/svg%3E") no-repeat center / contain;
-    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 3.5c1.2 0 2.2.5 3 1.3l1.8 1.8c.7.7.9 1.8.5 2.7l-1.1 2.2c-.3.6-.2 1.3.3 1.8l3.2 3.2c.5.5 1.2.6 1.8.3l2.2-1.1c.9-.4 2-.2 2.7.5l1.8 1.8c.8.8 1.3 1.8 1.3 3v1.2c0 1.4-1.1 2.5-2.5 2.5h-1.8C9.3 22 2 14.7 2 6.3V4.5C2 3.1 3.1 2 4.5 2h2z'/%3E%3C/svg%3E") no-repeat center / contain;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.2 3.8c1.1 0 2.1.5 2.9 1.2l1.6 1.6c.6.6.8 1.6.5 2.4l-1 2c-.3.5-.2 1.2.3 1.6l2.9 2.9c.5.5 1.1.6 1.6.3l2-1c.8-.3 1.8-.1 2.4.5l1.6 1.6c.7.8 1.2 1.8 1.2 2.9v1.1c0 1.3-1 2.3-2.3 2.3h-1.6C9.1 21.2 2.8 14.9 2.8 7.2V5.1C2.8 3.8 3.8 2.8 5.1 2.8h1.1z'/%3E%3C/svg%3E") no-repeat center / contain;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.2 3.8c1.1 0 2.1.5 2.9 1.2l1.6 1.6c.6.6.8 1.6.5 2.4l-1 2c-.3.5-.2 1.2.3 1.6l2.9 2.9c.5.5 1.1.6 1.6.3l2-1c.8-.3 1.8-.1 2.4.5l1.6 1.6c.7.8 1.2 1.8 1.2 2.9v1.1c0 1.3-1 2.3-2.3 2.3h-1.6C9.1 21.2 2.8 14.9 2.8 7.2V5.1C2.8 3.8 3.8 2.8 5.1 2.8h1.1z'/%3E%3C/svg%3E") no-repeat center / contain;
 }
 
-/* Видео: оставлено как есть (CSS-геометрия) */
-.chat-header-actions .call-icon-video{position:relative;display:block;width:19px!important;height:13px!important;border:0!important;border-radius:3px!important;background:#edf0f2!important;box-sizing:border-box}
-.chat-header-actions .call-icon-video:after{content:"";position:absolute;left:auto!important;right:-8px!important;top:1px!important;width:9px!important;height:11px!important;border:0!important;background:#edf0f2!important;clip-path:polygon(0 50%,100% 0,100% 100%)!important;box-sizing:border-box}
+/* ===== ВИДЕОКАМЕРА (исправленная) ===== */
+.chat-header-actions .call-icon-video{
+    position:relative;
+    display:block;
+    width:18px!important;
+    height:12px!important;
+    border:0!important;
+    border-radius:3px!important;          /* одинаковое скругление со всех сторон */
+    background:#edf0f2!important;
+    box-sizing:border-box;
+}
+.chat-header-actions .call-icon-video:after{
+    content:"";
+    position:absolute;
+    left:auto!important;
+    right:-7px!important;                 /* плотно впритык справа */
+    top:1px!important;
+    width:8px!important;
+    height:10px!important;
+    border:0!important;
+    background:#edf0f2!important;
+    clip-path:polygon(0 0, 0 100%, 100% 50%)!important;  /* треугольник остриём вправо */
+    box-sizing:border-box;
+}
 
 @media(max-width:700px){
     .chat-header-actions{width:100%;align-items:flex-end;justify-content:flex-end;gap:8px;flex-direction:column;flex-wrap:nowrap}
@@ -94,12 +115,10 @@
         Выйти
     </button>
 </div>
-
 <h1 align="center" style="display:flex;align-items:center;justify-content:center;gap:8px;">
     <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-4 4v-4H7a3 3 0 0 1-3-3V6z"/></svg>
     Чат
 </h1>
-
 <div class="chat-container">
     <div class="chat-list">
         <h2>Чаты</h2>
@@ -152,7 +171,6 @@
         </div>
     </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script src="auth-check.js"></script>
