@@ -20,8 +20,6 @@ async function loadSettings() {
         const name = profile[0].username || "Пользователь";
         $("username").textContent = name;
         $("usernameInput").value = name;
-        const storedAvatar = localStorage.getItem(`chat-avatar-${user.id}`);
-        if (storedAvatar) $("avatar").textContent = storedAvatar;
     }
 
     const soundEnabled = localStorage.getItem("chat-sound-enabled");
@@ -34,13 +32,13 @@ $("passwordToggle").onclick = () => $("passwordField").classList.toggle("open");
 $("usernameSave").onclick = async () => {
     const username = $("usernameInput").value.trim();
     if (!username) return showMessage("Введите ник.", true);
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) return;
 
-    // Обновляем только собственную строку профиля; RLS остаётся включённым.
-    const { error } = await supabaseClient.from("profiles").update({ username }).eq("id", user.id);
+    const { data, error } = await supabaseClient.rpc("update_my_profile", { p_username: username });
     if (error) return showMessage("Не удалось изменить ник: " + error.message, true);
-    $("username").textContent = username;
+
+    const savedName = data?.[0]?.username || username;
+    $("username").textContent = savedName;
+    $("usernameInput").value = savedName;
     $("usernameField").classList.remove("open");
     showMessage("Ник изменён.");
 };
