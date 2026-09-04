@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Настройки</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="favicon.svg">
+<link rel="stylesheet" href="chat.css">
+<style>
+*{box-sizing:border-box}body{margin:0;padding:16px;background:#fffaf5;color:#30251e;font-family:Arial,sans-serif}.settings-page{width:min(680px,100%);margin:0 auto}.settings-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}.back{width:42px;height:42px;border:0;border-radius:50%;background:#6eae83;color:#fff;font-size:22px;cursor:pointer}.settings-head h1{margin:0;font-size:25px}.card{background:#fff;border:1px solid #eadfd5;border-radius:18px;box-shadow:0 8px 24px rgba(55,38,25,.09);overflow:hidden;margin-bottom:14px}.profile{padding:20px;display:flex;align-items:center;gap:16px}.avatar{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#eadfd5;font-size:34px;flex:none}.profile h2{margin:0 0 5px;font-size:20px}.muted{color:#786e67;font-size:13px}.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 18px;border-top:1px solid #eee5de}.row:first-child{border-top:0}.row strong{display:block;font-size:15px}.row small{display:block;color:#81766e;margin-top:4px}.row button,.primary{border:0;border-radius:10px;padding:9px 13px;background:#6eae83;color:white;font-weight:700;cursor:pointer}.danger{color:#b42318!important;background:transparent!important}.field{display:none;padding:0 18px 16px}.field.open{display:block}.field input{width:100%;padding:11px 12px;border:1px solid #d9cec5;border-radius:10px;margin-bottom:9px;font-size:15px}.message{padding:12px 18px;font-size:14px}.links a{display:block;color:#5d4637;text-decoration:none;padding:15px 18px;border-top:1px solid #eee5de}.links a:first-child{border-top:0}.logout{width:100%;padding:14px;border:0;border-radius:14px;background:#fff;color:#b42318;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.06)}@media(max-width:700px){body{padding:12px}.settings-head h1{font-size:22px}.profile{padding:16px}.row{padding:15px 16px}}
+</style>
+</head>
+<body>
+<main class="settings-page">
+<header class="settings-head"><button class="back" onclick="history.back()" aria-label="Назад">‹</button><h1>Настройки</h1></header>
+<section class="card profile"><div class="avatar" id="avatar">👤</div><div><h2 id="username">Пользователь</h2><div class="muted" id="email">Загрузка…</div></div></section>
+<section class="card">
+<div class="row"><div><strong>Ник</strong><small>Имя, которое видят другие пользователи</small></div><button id="usernameToggle">Изменить</button></div>
+<div class="field" id="usernameField"><input id="usernameInput" maxlength="40" autocomplete="nickname"><button class="primary" id="usernameSave">Сохранить</button></div>
+<div class="row"><div><strong>Пароль</strong><small>Изменение пароля аккаунта</small></div><button id="passwordToggle">Изменить</button></div>
+<div class="field" id="passwordField"><input id="passwordInput" type="password" minlength="6" placeholder="Новый пароль" autocomplete="new-password"><button class="primary" id="passwordSave">Сохранить</button></div>
+<div class="row"><div><strong>Звук сообщений</strong><small>Звуковые уведомления внутри чата</small></div><button id="soundToggle">Вкл.</button></div>
+</section>
+<section class="card"><div class="row"><div><strong>Политика конфиденциальности</strong></div></div><div class="links"><a href="privacy.html">Открыть политику →</a><a href="terms.html">Пользовательское соглашение →</a></div></section>
+<div id="message" class="message" aria-live="polite"></div>
+<button class="logout" id="logoutButton">Выйти из аккаунта</button>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase.js"></script><script src="logout.js"></script><script src="settings.js"></script>
+</body>
+</html>
