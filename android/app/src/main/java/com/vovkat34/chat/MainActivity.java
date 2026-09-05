@@ -38,6 +38,9 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         createNotificationChannel();
         setupWebView();
+        // Do not reuse a stale WebView HTTP cache after a GitHub Pages deploy.
+        // DOM/localStorage (including the Supabase session) are not cleared.
+        webView.clearCache(false);
         webView.loadUrl(START_URL);
     }
 
@@ -55,6 +58,7 @@ public class MainActivity extends Activity {
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
             WebSettingsCompat.setForceDark(settings, WebSettingsCompat.FORCE_DARK_OFF);
@@ -255,6 +259,28 @@ public class MainActivity extends Activity {
         public void openSettings() {
             runOnUiThread(() -> openNotificationSettings());
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) {
+            webView.onResume();
+            // Tell the web app that Android has resumed the WebView so its
+            // Supabase Realtime channels can be rejoined immediately.
+            webView.post(() -> webView.evaluateJavascript(
+                    "window.dispatchEvent(new Event('androidresume'));",
+                    null
+            ));
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        if (webView != null) {
+            webView.onPause();
+        }
+        super.onPause();
     }
 
     @Override
