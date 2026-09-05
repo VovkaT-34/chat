@@ -3,41 +3,112 @@
 // ===============================
 
 const messageStatusCache = new Map();
+let realtimeReconnectTimer = null;
+let realtimeReconnectBusy = false;
 
 async function subscribeToMessages() {
-    if (realtimeChannel) await supabaseClient.removeChannel(realtimeChannel);
+    if (!supabaseClient || !currentUser) return;
 
-    realtimeChannel = supabaseClient.channel("messages-realtime")
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async payload => {
-            const newMessage = payload.new;
-            if (!newMessage) return;
+    if (realtimeChannel) {
+        try {
+            await supabaseClient.removeChannel(realtimeChannel);
+        } catch (error) {
+            console.warn("Не удалось удалить старый Realtime-канал:", error);
+        }
+        realtimeChannel = null;
+    }
 
-            if (currentUser && newMessage.user_id !== currentUser.id) {
-                const { error } = await supabaseClient.rpc("mark_message_delivered", { p_message_id: newMessage.id });
-                if (error) console.log("Ошибка подтверждения доставки:", error);
+    const userId = currentUser.id;
+
+    realtimeChannel = supabaseClient
+        .channel(`messages-realtime-${userId}-${Date.now()}`)
+        .on(
+            "postgres_changes",
+            {
+                event: "INSERT",
+                schema: "public",
+                table: "messages"
+            },
+            async payload => {
+                const newMessage = payload.new;
+                if (!newMessage) return;
+
+                if (currentUser && newMessage.user_id !== currentUser.id) {
+                    const { error } = await supabaseClient.rpc(
+                        "mark_message_delivered",
+                        { p_message_id: newMessage.id }
+                    );
+                    if (error) console.log("Ошибка подтверждения доставки:", error);
+                }
+
+                if (Number(newMessage.chat_id) === Number(currentChatId)) {
+                    if (currentUser && newMessage.user_id !== currentUser.id) {
+                        await appendMessage(newMessage);
+                    }
+                } else if (currentUser && newMessage.user_id !== currentUser.id) {
+                    playMessageSound(newMessage.chat_id);
+                }
+
+                if (currentUser && newMessage.user_id !== currentUser.id) {
+                    await updateUnreadCount(newMessage.chat_id);
+                }
+
+                await updateChatListMessageStatus(newMessage.chat_id);
+
+                if (typeof window.moveChatToTop === "function") {
+                    window.moveChatToTop(
+                        newMessage.chat_id,
+                        newMessage.created_at || new Date().toISOString()
+                    );
+                } else if (typeof updateChatOrder === "function") {
+                    updateChatOrder(newMessage.chat_id);
+                }
+            }
+        )
+        .subscribe((status, error) => {
+            if (status === "SUBSCRIBED") {
+                realtimeReconnectBusy = false;
+                if (realtimeReconnectTimer) {
+                    clearTimeout(realtimeReconnectTimer);
+                    realtimeReconnectTimer = null;
+                }
+                console.log("Realtime сообщений подключён");
+                return;
             }
 
-            if (Number(newMessage.chat_id) === Number(currentChatId)) {
-                if (currentUser && newMessage.user_id !== currentUser.id) await appendMessage(newMessage);
-            } else if (currentUser && newMessage.user_id !== currentUser.id) {
-                playMessageSound(newMessage.chat_id);
+            if (
+                status === "CHANNEL_ERROR" ||
+                status === "TIMED_OUT" ||
+                status === "CLOSED"
+            ) {
+                console.warn("Realtime сообщений отключён:", status, error || "");
+                scheduleRealtimeReconnect();
             }
+        });
+}
 
-            if (currentUser && newMessage.user_id !== currentUser.id) {
-                await updateUnreadCount(newMessage.chat_id);
-            }
-            await updateChatListMessageStatus(newMessage.chat_id);
+function scheduleRealtimeReconnect() {
+    if (realtimeReconnectBusy || realtimeReconnectTimer) return;
+    realtimeReconnectBusy = true;
 
-            // Любое новое сообщение делает чат самым свежим. Важно сохранять
-            // время локально: при перезагрузке 03-chat-list.js восстановит
-            // именно этот порядок, даже если RPC вернул старое last_message_at.
-            if (typeof window.moveChatToTop === "function") {
-                window.moveChatToTop(newMessage.chat_id, newMessage.created_at || new Date().toISOString());
-            } else if (typeof updateChatOrder === "function") {
-                updateChatOrder(newMessage.chat_id);
-            }
-        })
-        .subscribe();
+    realtimeReconnectTimer = setTimeout(async () => {
+        realtimeReconnectTimer = null;
+        realtimeReconnectBusy = false;
+
+        if (currentUser && supabaseClient) {
+            await subscribeToMessages();
+        }
+    }, 2000);
+}
+
+async function reconnectChatRealtime() {
+    if (!currentUser || !supabaseClient) return;
+    try {
+        await subscribeToMessages();
+    } catch (error) {
+        console.warn("Ошибка восстановления Realtime сообщений:", error);
+        scheduleRealtimeReconnect();
+    }
 }
 
 function applyMessageStatus(statusElement, status) {
@@ -115,51 +186,71 @@ async function refreshOwnMessageStatuses() {
 }
 
 function subscribeToMessageDeliveries() {
-    supabaseClient.channel("message-deliveries-realtime")
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_deliveries" }, async payload => {
-            const delivery = payload.new;
-            if (!delivery || !currentUser) return;
+    supabaseClient
+        .channel("message-deliveries-realtime")
+        .on(
+            "postgres_changes",
+            {
+                event: "INSERT",
+                schema: "public",
+                table: "message_deliveries"
+            },
+            async payload => {
+                const delivery = payload.new;
+                if (!delivery || !currentUser) return;
 
-            const messageId = Number(delivery.message_id);
-            if (!messageId) return;
+                const messageId = Number(delivery.message_id);
+                if (!messageId) return;
 
-            const { data: message, error } = await supabaseClient.from("messages")
-                .select("id,user_id,chat_id")
-                .eq("id", messageId)
-                .maybeSingle();
+                const { data: message, error } = await supabaseClient
+                    .from("messages")
+                    .select("id,user_id,chat_id")
+                    .eq("id", messageId)
+                    .maybeSingle();
 
-            if (error || !message || message.user_id !== currentUser.id) return;
+                if (error || !message || message.user_id !== currentUser.id) return;
 
-            cacheAndApplyMessageStatus(messageId, "delivered");
-            await updateChatListMessageStatus(message.chat_id);
-        })
+                cacheAndApplyMessageStatus(messageId, "delivered");
+                await updateChatListMessageStatus(message.chat_id);
+            }
+        )
         .subscribe();
 }
 
 function subscribeToMessageReads() {
-    supabaseClient.channel("user-chat-reads-realtime")
-        .on("postgres_changes", { event: "*", schema: "public", table: "user_chat_reads" }, async payload => {
-            const readInfo = payload.new;
-            if (!readInfo || !currentUser || readInfo.user_id === currentUser.id) return;
+    supabaseClient
+        .channel("user-chat-reads-realtime")
+        .on(
+            "postgres_changes",
+            {
+                event: "*",
+                schema: "public",
+                table: "user_chat_reads"
+            },
+            async payload => {
+                const readInfo = payload.new;
+                if (!readInfo || !currentUser || readInfo.user_id === currentUser.id) return;
 
-            const chatId = Number(readInfo.chat_id);
-            const lastReadId = Number(readInfo.last_read_message_id);
-            if (!chatId || !lastReadId) return;
+                const chatId = Number(readInfo.chat_id);
+                const lastReadId = Number(readInfo.last_read_message_id);
+                if (!chatId || !lastReadId) return;
 
-            const { data: ownMessages, error } = await supabaseClient.from("messages")
-                .select("id")
-                .eq("chat_id", chatId)
-                .eq("user_id", currentUser.id)
-                .lte("id", lastReadId);
+                const { data: ownMessages, error } = await supabaseClient
+                    .from("messages")
+                    .select("id")
+                    .eq("chat_id", chatId)
+                    .eq("user_id", currentUser.id)
+                    .lte("id", lastReadId);
 
-            if (!error) {
-                for (const message of ownMessages || []) {
-                    cacheAndApplyMessageStatus(message.id, "read");
+                if (!error) {
+                    for (const message of ownMessages || []) {
+                        cacheAndApplyMessageStatus(message.id, "read");
+                    }
                 }
-            }
 
-            await updateChatListMessageStatus(chatId);
-        })
+                await updateChatListMessageStatus(chatId);
+            }
+        )
         .subscribe();
 }
 
@@ -175,4 +266,18 @@ setInterval(async () => {
     } finally {
         messageStatusRefreshBusy = false;
     }
-}, 500);
+}, 1000);
+
+// Android WebView and mobile browsers can suspend the page/websocket when
+// the app is backgrounded. Rejoin immediately when the page becomes active.
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) void reconnectChatRealtime();
+});
+
+window.addEventListener("online", () => {
+    void reconnectChatRealtime();
+});
+
+window.addEventListener("androidresume", () => {
+    void reconnectChatRealtime();
+});
