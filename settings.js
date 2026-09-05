@@ -70,9 +70,6 @@ async function enableNotifications() {
                 return;
             }
 
-            // Android 13+ shows the native permission dialog here. If the
-            // permission was previously denied, the native bridge opens the
-            // system notification settings instead of repeatedly prompting.
             window.AndroidNotifications.requestPermission();
             showMessage("Разрешите уведомления в системном окне Android.");
             setTimeout(updateNotificationUi, 700);
@@ -95,7 +92,8 @@ async function enableNotifications() {
         showMessage("Уведомления недоступны в этом окружении.", true);
     } catch (error) {
         console.error("Ошибка включения уведомлений:", error);
-        showMessage("Не удалось включить уведомления: " + (error?.message || error), true);
+        const errorText = error && error.message ? error.message : String(error);
+        showMessage("Не удалось включить уведомления: " + errorText, true);
     } finally {
         if (button) button.disabled = false;
         updateNotificationUi();
@@ -112,7 +110,7 @@ $("usernameSave").onclick = async () => {
     const { data, error } = await supabaseClient.rpc("update_my_profile", { p_username: username });
     if (error) return showMessage("Не удалось изменить ник: " + error.message, true);
 
-    const savedName = data?.[0]?.username || username;
+    const savedName = data && data[0] && data[0].username ? data[0].username : username;
     $("username").textContent = savedName;
     $("usernameInput").value = savedName;
     $("usernameField").classList.remove("open");
@@ -137,6 +135,8 @@ $("soundToggle").onclick = () => {
 
 $("notificationToggle").onclick = () => void enableNotifications();
 
+$("logoutButton").onclick = () => void logout();
+
 async function loadSettings() {
     const { data: { user }, error } = await supabaseClient.auth.getUser();
     if (error || !user) {
@@ -146,7 +146,7 @@ async function loadSettings() {
     $("email").textContent = user.email || "";
 
     const { data: profile, error: profileError } = await supabaseClient.rpc("get_my_profile");
-    if (!profileError && profile?.[0]) {
+    if (!profileError && profile && profile[0]) {
         const name = profile[0].username || "Пользователь";
         $("username").textContent = name;
         $("usernameInput").value = name;
