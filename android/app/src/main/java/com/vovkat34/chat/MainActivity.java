@@ -44,6 +44,8 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         createNotificationChannel();
         setupWebView();
+        // Do not reuse a stale WebView HTTP cache after a GitHub Pages deploy.
+        // DOM/localStorage (including the Supabase session) are not cleared.
         webView.clearCache(false);
         webView.loadUrl(START_URL);
     }
@@ -152,6 +154,9 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
+                // First attempt: show Android's normal permission dialog.
+                // Later attempts: if notifications are still disabled, go to
+                // the app's notification settings instead of repeatedly asking.
                 if (wasNotificationPermissionRequested()) {
                     openNotificationSettings();
                     return;
@@ -336,6 +341,8 @@ public class MainActivity extends Activity {
         super.onResume();
         if (webView != null) {
             webView.onResume();
+            // Tell the web app that Android has resumed the WebView so its
+            // Supabase Realtime channels can be rejoined immediately.
             webView.post(() -> webView.evaluateJavascript(
                     "window.dispatchEvent(new Event('androidresume'));",
                     null
