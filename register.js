@@ -5,7 +5,7 @@
 
 (function () {
     var SUPABASE_URL = "https://sxkukrqjtgkxmzuzondm.supabase.co";
-    var SUPABASE_KEY = "sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3N";
+    var SUPABASE_KEY = "sb_publishable_bepvJNr4yp-TUIK4Wnig_5qEhej3N";
 
     function requestJson(method, url, body) {
         return new Promise(function (resolve, reject) {
@@ -14,6 +14,7 @@
             xhr.setRequestHeader("apikey", SUPABASE_KEY);
             xhr.setRequestHeader("Authorization", "Bearer " + SUPABASE_KEY);
             xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.timeout = 20000;
 
             xhr.onreadystatechange = function () {
                 if (xhr.readyState !== 4) return;
@@ -30,14 +31,30 @@
                     return;
                 }
 
-                var message = response && (response.msg || response.message || response.error_description || response.error)
-                    ? String(response.msg || response.message || response.error_description || response.error)
+                var message = response && (
+                    response.msg ||
+                    response.message ||
+                    response.error_description ||
+                    response.error
+                )
+                    ? String(
+                        response.msg ||
+                        response.message ||
+                        response.error_description ||
+                        response.error
+                    )
                     : "HTTP " + xhr.status;
 
                 resolve({
                     data: response,
                     status: xhr.status,
-                    error: { message: message, status: xhr.status, code: response && response.code ? String(response.code) : "" }
+                    error: {
+                        message: message,
+                        status: xhr.status,
+                        code: response && response.code
+                            ? String(response.code)
+                            : ""
+                    }
                 });
             };
 
@@ -49,7 +66,6 @@
                 reject(new Error("Превышено время ожидания запроса."));
             };
 
-            xhr.timeout = 20000;
             xhr.send(body ? JSON.stringify(body) : null);
         });
     }
@@ -71,10 +87,12 @@
             message.textContent = "Имя пользователя должно содержать минимум 2 символа.";
             return;
         }
+
         if (password !== password2) {
             message.textContent = "Пароли не совпадают.";
             return;
         }
+
         if (password.length < 6) {
             message.textContent = "Пароль должен содержать минимум 6 символов.";
             return;
@@ -103,12 +121,22 @@
                 var code = String(error.code || "");
                 var errorText = String(error.message || "").toLowerCase();
 
-                if (status === 429 || code === "over_email_send_rate_limit" || errorText.indexOf("rate limit") !== -1) {
-                    message.textContent = "Supabase временно ограничил отправку писем. Не нажимайте регистрацию повторно — подождите и попробуйте позже.";
-                } else if (errorText.indexOf("already registered") !== -1) {
-                    message.textContent = "Этот e-mail уже зарегистрирован. Перейдите ко входу.";
+                if (
+                    status === 429 ||
+                    code === "over_email_send_rate_limit" ||
+                    errorText.indexOf("rate limit") !== -1
+                ) {
+                    message.textContent =
+                        "Supabase временно ограничил регистрацию. Подождите и попробуйте позже.";
+                } else if (
+                    errorText.indexOf("already registered") !== -1 ||
+                    errorText.indexOf("already exists") !== -1
+                ) {
+                    message.textContent =
+                        "Этот e-mail уже зарегистрирован. Перейдите ко входу.";
                 } else {
-                    message.textContent = error.message || "Не удалось создать аккаунт.";
+                    message.textContent =
+                        error.message || "Не удалось создать аккаунт.";
                 }
                 return;
             }
@@ -119,16 +147,22 @@
             }
 
             message.style.color = "green";
+
+            // Не показываем и не требуем подтверждение e-mail на стороне сайта.
+            // Если проект Supabase настроен без обязательного подтверждения,
+            // signup вернёт готовую session, после чего пользователя отправляем
+            // на обычную страницу входа.
             message.textContent = data.session
                 ? "Регистрация успешна. Переходим ко входу..."
-                : "Регистрация успешна. Подтвердите e-mail, если это требуется, затем войдите.";
+                : "Регистрация успешна. Переходим ко входу...";
 
             setTimeout(function () {
                 window.location.href = "login.html";
-            }, 2000);
+            }, 1200);
         }).catch(function (error) {
             console.error("Неожиданная ошибка регистрации:", error);
-            message.textContent = "Не удалось выполнить регистрацию. Проверьте интернет-соединение и попробуйте ещё раз позже.";
+            message.textContent =
+                "Не удалось выполнить регистрацию. Проверьте интернет-соединение и попробуйте ещё раз позже.";
         }).then(function () {
             if (submitButton) {
                 submitButton.disabled = false;
