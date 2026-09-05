@@ -1,131 +1,189 @@
-
 // =========================================
 // Проверка авторизации через Supabase
+// Совместимо со старыми Safari / Android WebView.
 // =========================================
 
-async function checkAuth() {
-
+async function getStoredLoginSession() {
     try {
-
-        // =========================================
-        // Получаем текущую сессию
-        // =========================================
-
-        const {
-            data: {
-                session
-            }
-        } = await supabaseClient.auth.getSession();
-
-
-        // =========================================
-        // Если пользователь не вошёл
-        // =========================================
-
-        if (!session) {
-
-            window.location.replace(
-                "./login.html"
-            );
-
-            return;
-
-        }
-
-
-        // =========================================
-        // Получаем профиль через RPC
-        // =========================================
-        //
-        // Прямого SELECT из profiles больше нет.
-        // Проверка выполняется через
-        // SECURITY DEFINER функцию
-        // check_my_profile().
-        //
-
-        const {
-            data: profile,
-            error
-        } = await supabaseClient.rpc(
-            "check_my_profile"
+        const raw = localStorage.getItem(
+            "sb-sxkukrqjtgkxmzuzondm-auth-token"
         );
 
+        if (!raw) return null;
 
-        // =========================================
-        // Если профиль не получен
-        // =========================================
+        const stored = JSON.parse(raw);
 
         if (
-            error ||
-            !profile ||
-            !profile[0]
+            !stored ||
+            !stored.access_token ||
+            !stored.refresh_token ||
+            !stored.user
         ) {
-
-            console.error(
-                "Ошибка проверки профиля:",
-                error
-            );
-
-            await supabaseClient.auth.signOut();
-
-            window.location.replace(
-                "./login.html"
-            );
-
-            return;
-
+            return null;
         }
 
-
-        // =========================================
-        // Получаем данные профиля
-        // =========================================
-
-        const userProfile =
-            profile[0];
-
-
-        // =========================================
-        // Если аккаунт не подтверждён
-        // =========================================
-
-        if (!userProfile.approved) {
-
-            await supabaseClient.auth.signOut();
-
-            window.location.replace(
-                "./login.html"
-            );
-
-            return;
-
-        }
-
-
-        // =========================================
-        // Пользователь авторизован
-        // и имеет подтверждённый аккаунт.
-        // =========================================
-
+        return stored;
     } catch (error) {
-
-        console.error(
-            "Ошибка проверки авторизации:",
-            error
-        );
-
-        window.location.replace(
-            "./login.html"
-        );
-
+        console.warn("Не удалось прочитать сохранённую сессию:", error);
+        return null;
     }
-
 }
 
+async function restoreStoredSession() {
+    const storedSession = await getStoredLoginSession();
 
-// =========================================
-// Запускаем проверку
-// =========================================
+    if (!storedSession) return null;
+
+    try {
+        const result = await supabaseClient.auth.setSession({
+            access_token: storedSession.access_token,
+            refresh_token: storedSession.refresh_token
+        });
+
+        if (result.error) {
+            console.warn("Не удалось восстановить Supabase-сессию:", result.error);
+            return null;
+        }
+
+        return result.data && result.data.session
+            ? result.data.session
+            : null;
+    } catch (error) {
+        console.warn("Ошибка восстановления Supabase-сессии:", error);
+        return null;
+    }
+}
+
+async function checkMyProfileWithRetry() {
+    let lastError = null;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+            const result = await supabaseClient.rpc(
+                "check_my_profile"
+            );
+
+            if (
+                result &&
+                !result.error &&
+                result.data &&
+                result.data[0]
+            ) {
+                return {
+                    profile: result.data[0],
+                    error: null
+                };
+            }
+
+            lastError = result ? result.error : null;
+        } catch (error) {
+            lastError = error;
+        }
+
+        await new Promise(function (resolve) {
+            setTimeout(resolve, 700);
+        });
+    }
+
+    return {
+        profile: null,
+        error: lastError
+    };
+}
+
+async function checkAuth() {
+    try {
+        if (!window.supabaseClient) {
+            window.location.replace("./login.html");
+            return;
+        }
+
+        // После REST-входа auth.js сохраняет готовую сессию напрямую.
+        // На старом Safari/WebView клиент Supabase иногда успевает выполнить
+        // собственную инициализацию раньше чтения этого localStorage.
+        // Поэтому сначала явно восстанавливаем ту же сессию через setSession().
+        let session = null;
+
+        try {
+            const storedSession = await getStoredLoginSession();
+
+            if (storedSession) {
+                session = await restoreStoredSession();
+            }
+        } catch (error) {
+            console.warn("Ошибка первичного восстановления сессии:", error);
+        }
+
+        if (!session) {
+            const result = await supabaseClient.auth.getSession();
+            session = result && result.data
+                ? result.data.session
+                : null;
+        }
+
+        if (!session) {
+            window.location.replace("./login.html");
+            return;
+        }
+
+        const profileResult = await checkMyProfileWithRetry();
+        const profile = profileResult.profile;
+
+        if (!profile) {
+            console.error(
+                "Ошибка проверки профиля:",
+                profileResult.error
+            );
+
+            // Не удаляем рабочую сессию при временной сетевой ошибке.
+            // Это особенно важно для старого Safari, где первый запрос
+            // после перехода со страницы входа может завершиться поздно.
+            if (profileResult.error) {
+                const retrySession = await restoreStoredSession();
+
+                if (retrySession) {
+                    const retryProfile = await checkMyProfileWithRetry();
+
+                    if (retryProfile.profile) {
+                        if (!retryProfile.profile.approved) {
+                            await supabaseClient.auth.signOut({ scope: "local" });
+                            window.location.replace("./login.html");
+                            return;
+                        }
+
+                        return;
+                    }
+                }
+            }
+
+            await supabaseClient.auth.signOut({ scope: "local" });
+            window.location.replace("./login.html");
+            return;
+        }
+
+        if (!profile.approved) {
+            await supabaseClient.auth.signOut({ scope: "local" });
+            window.location.replace("./login.html");
+            return;
+        }
+    } catch (error) {
+        console.error("Ошибка проверки авторизации:", error);
+
+        // Последняя попытка: если REST-вход уже сохранил сессию,
+        // не выбрасываем пользователя на login.html из-за временного сбоя.
+        try {
+            const storedSession = await getStoredLoginSession();
+
+            if (storedSession && storedSession.access_token) {
+                const restored = await restoreStoredSession();
+                if (restored) return;
+            }
+        } catch (restoreError) {
+            console.warn("Последнее восстановление сессии не удалось:", restoreError);
+        }
+
+        window.location.replace("./login.html");
+    }
+}
 
 checkAuth();
-
