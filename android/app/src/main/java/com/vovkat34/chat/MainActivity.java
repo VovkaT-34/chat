@@ -2,9 +2,15 @@ package com.vovkat34.chat;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -21,6 +27,8 @@ import androidx.webkit.WebViewFeature;
 public class MainActivity extends Activity {
     private static final String START_URL = "https://vovkat-34.github.io/chat/";
     private static final int MEDIA_PERMISSION_REQUEST = 4101;
+    private static final int NOTIFICATION_PERMISSION_REQUEST = 4102;
+    private static final String NOTIFICATION_CHANNEL_ID = "chat_messages";
 
     private WebView webView;
     private PermissionRequest pendingWebPermission;
@@ -28,6 +36,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        createNotificationChannel();
         setupWebView();
         webView.loadUrl(START_URL);
     }
@@ -50,6 +59,8 @@ public class MainActivity extends Activity {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
             WebSettingsCompat.setForceDark(settings, WebSettingsCompat.FORCE_DARK_OFF);
         }
+
+        webView.addJavascriptInterface(new NotificationBridge(), "AndroidNotifications");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -76,6 +87,66 @@ public class MainActivity extends Activity {
                 }
             }
         });
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager == null) return;
+
+            NotificationChannel channel = new NotificationChannel(
+                    NOTIFICATION_CHANNEL_ID,
+                    "Сообщения",
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            channel.setDescription("Уведомления о новых сообщениях и звонках");
+            manager.createNotificationChannel(channel);
+        }
+    }
+
+    private boolean areNotificationsEnabled() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            return false;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            return manager != null && manager.areNotificationsEnabled();
+        }
+
+        return true;
+    }
+
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                        this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        NOTIFICATION_PERMISSION_REQUEST
+                );
+                return;
+            }
+        }
+
+        if (!areNotificationsEnabled()) {
+            openNotificationSettings();
+        }
+    }
+
+    private void openNotificationSettings() {
+        try {
+            Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+            intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+            startActivity(intent);
+        } catch (Exception ignored) {
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        }
     }
 
     private void handleWebPermission(PermissionRequest request) {
@@ -153,11 +224,37 @@ public class MainActivity extends Activity {
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode != MEDIA_PERMISSION_REQUEST || pendingWebPermission == null) return;
+        if (requestCode == MEDIA_PERMISSION_REQUEST) {
+            if (pendingWebPermission == null) return;
+            PermissionRequest request = pendingWebPermission;
+            pendingWebPermission = null;
+            grantRequestedMediaResources(request);
+            return;
+        }
 
-        PermissionRequest request = pendingWebPermission;
-        pendingWebPermission = null;
-        grantRequestedMediaResources(request);
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
+            if (!areNotificationsEnabled()) {
+                // The user can always change the decision later in Android's
+                // notification settings. Do not repeatedly prompt here.
+            }
+        }
+    }
+
+    private class NotificationBridge {
+        @JavascriptInterface
+        public boolean isEnabled() {
+            return areNotificationsEnabled();
+        }
+
+        @JavascriptInterface
+        public void requestPermission() {
+            runOnUiThread(() -> requestNotificationPermission());
+        }
+
+        @JavascriptInterface
+        public void openSettings() {
+            runOnUiThread(() -> openNotificationSettings());
+        }
     }
 
     @Override
@@ -175,6 +272,7 @@ public class MainActivity extends Activity {
             webView.stopLoading();
             webView.setWebChromeClient(null);
             webView.setWebViewClient(null);
+            webView.removeJavascriptInterface("AndroidNotifications");
             webView.destroy();
         }
         super.onDestroy();
