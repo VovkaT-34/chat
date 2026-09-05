@@ -1,128 +1,16 @@
 // ===============================
 // Отрисовка сообщения
 // ===============================
-
-function renderMessage(message) {
-    if (!message || !currentUser) return null;
-
-    const div = document.createElement("div");
-    div.className = "message";
-    div.dataset.messageId = message.id;
-    div.dataset.userId = message.user_id;
-
-    const username = message.profiles?.username || "Пользователь";
-    const date = new Date(message.created_at);
-    const dateText = date.toLocaleDateString("ru-RU");
-    const timeText = date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-
-    const messageStatus = message.user_id === currentUser.id ? `
-        <span class="message-status"
-            data-status-message-id="${message.id}"
-            data-message-status="sent"
-            style="margin-left:6px;font-size:13px;font-weight:bold;white-space:nowrap;color:#999999"
-            title="Отправлено">✓</span>` : "";
-
-    div.innerHTML = `
-        <div>
-            <span class="message-user">${username}</span>
-            <span class="message-time">${dateText} ${timeText}</span>
-            ${messageStatus}
-        </div>
-        ${message.reply_message ? `
-            <div style="background:#eeeeee;padding:8px;border-left:4px solid #8E44AD;border-radius:6px;margin-bottom:8px;font-size:14px;overflow-wrap:anywhere;word-break:break-word">
-                ↩ ${message.reply_message.profiles?.username || "Пользователь"}<br>
-                ${message.reply_message.text || ""}
-            </div>` : ""}
-        <div class="message-text">${message.text || ""}</div>
-        <button onclick='replyToMessage(${message.id}, ${JSON.stringify(username)}, ${JSON.stringify(message.text || "")})'
-            style="margin-top:8px;padding:4px 10px;border:none;border-radius:8px;background:#8E44AD;color:white;cursor:pointer">
-            ↩ Ответить
-        </button>`;
-
+function renderMessage(message){
+    if(!message||!currentUser)return null;
+    var div=document.createElement("div");div.className="message";div.dataset.messageId=message.id;div.dataset.userId=message.user_id;
+    var username=message.profiles&&message.profiles.username?message.profiles.username:"Пользователь",date=new Date(message.created_at),dateText=date.toLocaleDateString("ru-RU"),timeText=date.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+    var messageStatus=message.user_id===currentUser.id?'<span class="message-status" data-status-message-id="'+message.id+'" data-message-status="sent" style="margin-left:6px;font-size:13px;font-weight:bold;white-space:nowrap;color:#999999" title="Отправлено">✓</span>':"";
+    var reply=message.reply_message?'<div style="background:#eeeeee;padding:8px;border-left:4px solid #8E44AD;border-radius:6px;margin-bottom:8px;font-size:14px;overflow-wrap:anywhere;word-break:break-word">↩ '+(message.reply_message.profiles&&message.reply_message.profiles.username?message.reply_message.profiles.username:"Пользователь")+'<br>'+(message.reply_message.text||"")+'</div>':"";
+    div.innerHTML='<div><span class="message-user">'+username+'</span><span class="message-time">'+dateText+' '+timeText+'</span>'+messageStatus+'</div>'+reply+'<div class="message-text">'+(message.text||"")+'</div><button onclick=\'replyToMessage('+message.id+', '+JSON.stringify(username)+', '+JSON.stringify(message.text||"")+')\' style="margin-top:8px;padding:4px 10px;border:none;border-radius:8px;background:#8E44AD;color:white;cursor:pointer">↩ Ответить</button>';
     return div;
 }
-
-function getMessageStatusOrder(status) {
-    return { sent: 1, delivered: 2, read: 3 }[status] || 0;
-}
-
-function setMessageStatus(statusElement, status) {
-    if (!statusElement) return;
-    status = String(status || "").toLowerCase();
-    if (!status || status === "none") return;
-
-    const currentStatus = String(statusElement.dataset.messageStatus || "sent").toLowerCase();
-    const currentOrder = getMessageStatusOrder(currentStatus) || 1;
-    const newOrder = getMessageStatusOrder(status);
-    if (!newOrder || newOrder < currentOrder) return;
-
-    statusElement.dataset.messageStatus = status;
-
-    if (status === "read") {
-        statusElement.textContent = "✓✓";
-        statusElement.title = "Прочитано";
-        statusElement.style.setProperty("color", "#00C853", "important");
-    } else if (status === "delivered") {
-        statusElement.textContent = "✓";
-        statusElement.title = "Доставлено";
-        statusElement.style.setProperty("color", "#00C853", "important");
-    } else {
-        statusElement.textContent = "✓";
-        statusElement.title = "Отправлено";
-        statusElement.style.setProperty("color", "#999999", "important");
-    }
-}
-
-async function updateMessageStatus(messageId, status = null) {
-    const id = Number(messageId);
-    if (!id || !currentUser || !supabaseClient) return;
-
-    const statusElement = document.querySelector(`[data-status-message-id="${id}"]`);
-    if (!statusElement) return;
-
-    if (status === null) {
-        const { data, error } = await supabaseClient.rpc("get_message_status", { p_message_id: id });
-        if (error) {
-            console.warn("Ошибка получения статуса сообщения:", error);
-            return;
-        }
-        status = data;
-    }
-
-    setMessageStatus(statusElement, status);
-}
-
-async function updateChatListMessageStatus(chatId) {
-    if (!currentUser || !supabaseClient) return;
-    const id = Number(chatId);
-    if (!id) return;
-
-    const statusElement = document.querySelector(`[data-chat-status-id="${id}"]`);
-    if (!statusElement) return;
-
-    const { data: messages, error } = await supabaseClient
-        .from("messages")
-        .select("id,user_id")
-        .eq("chat_id", id)
-        .order("id", { ascending: false })
-        .limit(1);
-
-    if (error || !messages?.length) return;
-
-    const lastMessage = messages[0];
-    if (lastMessage.user_id !== currentUser.id) {
-        statusElement.textContent = "";
-        statusElement.title = "";
-        delete statusElement.dataset.messageStatus;
-        return;
-    }
-
-    const { data: status, error: statusError } = await supabaseClient.rpc(
-        "get_message_status",
-        { p_message_id: lastMessage.id }
-    );
-
-    if (statusError) return;
-    statusElement.dataset.messageStatus = "sent";
-    setMessageStatus(statusElement, status);
-}
+function getMessageStatusOrder(status){return {sent:1,delivered:2,read:3}[status]||0;}
+function setMessageStatus(el,status){if(!el)return;status=String(status||"").toLowerCase();if(!status||status==="none")return;var current=String(el.dataset.messageStatus||"sent").toLowerCase(),currentOrder=getMessageStatusOrder(current),newOrder=getMessageStatusOrder(status);if(!newOrder||newOrder<currentOrder)return;el.dataset.messageStatus=status;if(status==="read"){el.textContent="✓✓";el.title="Прочитано";el.style.setProperty("color","#00C853","important");}else if(status==="delivered"){el.textContent="✓";el.title="Доставлено";el.style.setProperty("color","#00C853","important");}else{el.textContent="✓";el.title="Отправлено";el.style.setProperty("color","#999999","important");}}
+async function updateMessageStatus(messageId,status){var id=Number(messageId);if(!id||!currentUser||!supabaseClient)return;var el=document.querySelector('[data-status-message-id="'+id+'"]');if(!el)return;if(status===undefined||status===null){var result=await supabaseClient.rpc("get_message_status",{p_message_id:id});if(result.error)return;status=result.data;}setMessageStatus(el,status);}
+async function updateChatListMessageStatus(chatId){if(!currentUser||!supabaseClient)return;var id=Number(chatId);if(!id)return;var el=document.querySelector('[data-chat-status-id="'+id+'"]');if(!el)return;var result=await supabaseClient.from("messages").select("id,user_id").eq("chat_id",id).order("id",{ascending:false}).limit(1);if(result.error||!result.data||!result.data.length)return;var last=result.data[0];if(last.user_id!==currentUser.id){el.textContent="";el.title="";delete el.dataset.messageStatus;return;}var statusResult=await supabaseClient.rpc("get_message_status",{p_message_id:last.id});if(statusResult.error)return;el.dataset.messageStatus="sent";setMessageStatus(el,statusResult.data);}
