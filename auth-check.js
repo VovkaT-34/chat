@@ -31,7 +31,6 @@ async function getStoredLoginSession() {
 
 async function restoreStoredSession() {
     const storedSession = await getStoredLoginSession();
-
     if (!storedSession) return null;
 
     try {
@@ -98,15 +97,10 @@ async function checkAuth() {
             return;
         }
 
-        // После REST-входа auth.js сохраняет готовую сессию напрямую.
-        // На старом Safari/WebView клиент Supabase иногда успевает выполнить
-        // собственную инициализацию раньше чтения этого localStorage.
-        // Поэтому сначала явно восстанавливаем ту же сессию через setSession().
         let session = null;
 
         try {
             const storedSession = await getStoredLoginSession();
-
             if (storedSession) {
                 session = await restoreStoredSession();
             }
@@ -129,33 +123,18 @@ async function checkAuth() {
         const profileResult = await checkMyProfileWithRetry();
         const profile = profileResult.profile;
 
-        if (!profile) {
-            console.error(
-                "Ошибка проверки профиля:",
+        // Старый Safari / WebView может иметь уже действующую Auth-сессию,
+        // но временно не выполнить RPC профиля. В таком случае нельзя
+        // выбрасывать пользователя обратно на страницу входа.
+        if (profileResult.error) {
+            console.warn(
+                "Профиль временно недоступен, сохраняем действующую сессию:",
                 profileResult.error
             );
+            return;
+        }
 
-            // Не удаляем рабочую сессию при временной сетевой ошибке.
-            // Это особенно важно для старого Safari, где первый запрос
-            // после перехода со страницы входа может завершиться поздно.
-            if (profileResult.error) {
-                const retrySession = await restoreStoredSession();
-
-                if (retrySession) {
-                    const retryProfile = await checkMyProfileWithRetry();
-
-                    if (retryProfile.profile) {
-                        if (!retryProfile.profile.approved) {
-                            await supabaseClient.auth.signOut({ scope: "local" });
-                            window.location.replace("./login.html");
-                            return;
-                        }
-
-                        return;
-                    }
-                }
-            }
-
+        if (!profile) {
             await supabaseClient.auth.signOut({ scope: "local" });
             window.location.replace("./login.html");
             return;
@@ -179,7 +158,10 @@ async function checkAuth() {
                 if (restored) return;
             }
         } catch (restoreError) {
-            console.warn("Последнее восстановление сессии не удалось:", restoreError);
+            console.warn(
+                "Последнее восстановление сессии не удалось:",
+                restoreError
+            );
         }
 
         window.location.replace("./login.html");
