@@ -18,7 +18,10 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
-    private static final String CHANNEL_ID = "chat_messages_v2";
+    // v3 is intentional: Android notification-channel sound/importance cannot
+    // be changed after a channel has already been created. A new channel ID
+    // guarantees that an updated APK gets a fresh sound-enabled channel.
+    private static final String CHANNEL_ID = "chat_messages_v3";
 
     @Override
     public void onNewToken(@NonNull String token) {
@@ -31,8 +34,12 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
         RemoteMessage.Notification notification = message.getNotification();
-        String title = notification != null ? notification.getTitle() : message.getData().get("title");
-        String body = notification != null ? notification.getBody() : message.getData().get("body");
+        String title = notification != null
+                ? notification.getTitle()
+                : message.getData().get("title");
+        String body = notification != null
+                ? notification.getBody()
+                : message.getData().get("body");
 
         if (title == null || title.trim().isEmpty()) title = "Новое сообщение";
         if (body == null) body = "";
@@ -40,37 +47,55 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         showNotification(title, body);
     }
 
+    private void ensureNotificationChannel(NotificationManager manager) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+
+        NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                "Сообщения",
+                NotificationManager.IMPORTANCE_HIGH
+        );
+        channel.setDescription("Уведомления о новых сообщениях и звонках");
+        channel.enableLights(true);
+        channel.setLightColor(Color.WHITE);
+
+        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+
+        channel.setSound(
+                Settings.System.DEFAULT_NOTIFICATION_URI,
+                audioAttributes
+        );
+
+        manager.createNotificationChannel(channel);
+    }
+
     private void showNotification(String title, String body) {
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager == null) return;
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Сообщения",
-                    NotificationManager.IMPORTANCE_HIGH
-            );
-            channel.setDescription("Уведомления о новых сообщениях и звонках");
-            channel.enableLights(true);
-            channel.setLightColor(Color.WHITE);
-            AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build();
-            channel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes);
-            manager.createNotificationChannel(channel);
-        }
+        ensureNotificationChannel(manager);
 
         Intent intent = new Intent(this, MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.addFlags(
+                Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                Intent.FLAG_ACTIVITY_SINGLE_TOP
+        );
+
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this,
                 0,
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0)
+                PendingIntent.FLAG_UPDATE_CURRENT |
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                        ? PendingIntent.FLAG_IMMUTABLE
+                        : 0)
         );
 
         Notification notification;
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notification = new Notification.Builder(this, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher)
