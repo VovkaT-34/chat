@@ -2,10 +2,13 @@ package com.vovkat34.chat;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -29,6 +32,8 @@ public class MainActivity extends Activity {
     private static final int MEDIA_PERMISSION_REQUEST = 4101;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 4102;
     private static final String NOTIFICATION_CHANNEL_ID = "chat_messages";
+    private static final String PREFS_NAME = "chat_android";
+    private static final String PREF_NOTIFICATION_REQUESTED = "notification_permission_requested";
 
     private WebView webView;
     private PermissionRequest pendingWebPermission;
@@ -104,6 +109,8 @@ public class MainActivity extends Activity {
                     NotificationManager.IMPORTANCE_HIGH
             );
             channel.setDescription("Уведомления о новых сообщениях и звонках");
+            channel.enableLights(true);
+            channel.setLightColor(Color.WHITE);
             manager.createNotificationChannel(channel);
         }
     }
@@ -123,10 +130,31 @@ public class MainActivity extends Activity {
         return true;
     }
 
+    private boolean wasNotificationPermissionRequested() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        return prefs.getBoolean(PREF_NOTIFICATION_REQUESTED, false);
+    }
+
+    private void markNotificationPermissionRequested() {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .edit()
+                .putBoolean(PREF_NOTIFICATION_REQUESTED, true)
+                .apply();
+    }
+
     private void requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
+                // First attempt: show Android's normal permission dialog.
+                // Later attempts: if notifications are still disabled, go to
+                // the app's notification settings instead of repeatedly asking.
+                if (wasNotificationPermissionRequested()) {
+                    openNotificationSettings();
+                    return;
+                }
+
+                markNotificationPermissionRequested();
                 ActivityCompat.requestPermissions(
                         this,
                         new String[]{Manifest.permission.POST_NOTIFICATIONS},
@@ -150,6 +178,40 @@ public class MainActivity extends Activity {
             Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
             intent.setData(Uri.parse("package:" + getPackageName()));
             startActivity(intent);
+        }
+    }
+
+    private void showMessageNotification(String title, String body) {
+        if (!areNotificationsEnabled()) return;
+
+        String safeTitle = title == null || title.trim().isEmpty() ? "Новое сообщение" : title.trim();
+        String safeBody = body == null ? "" : body.trim();
+        if (safeBody.length() > 240) safeBody = safeBody.substring(0, 237) + "…";
+
+        Notification notification;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notification = new Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
+                    .setSmallIcon(R.drawable.ic_launcher)
+                    .setContentTitle(safeTitle)
+                    .setContentText(safeBody)
+                    .setStyle(new Notification.BigTextStyle().bigText(safeBody))
+                    .setAutoCancel(true)
+                    .setPriority(Notification.PRIORITY_HIGH)
+                    .build();
+        } else {
+            notification = new Notification.Builder(this)
+                    .setSmallIcon(R.drawable.ic_launcher)
+                    .setContentTitle(safeTitle)
+                    .setContentText(safeBody)
+                    .setAutoCancel(true)
+                    .setPriority(Notification.PRIORITY_HIGH)
+                    .build();
+        }
+
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager != null) {
+            int notificationId = (int) (System.currentTimeMillis() & 0x7fffffff);
+            manager.notify(notificationId, notification);
         }
     }
 
@@ -238,8 +300,7 @@ public class MainActivity extends Activity {
 
         if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
             if (!areNotificationsEnabled()) {
-                // The user can always change the decision later in Android's
-                // notification settings. Do not repeatedly prompt here.
+                // The next press of "Включить" opens Android notification settings.
             }
         }
     }
@@ -258,6 +319,11 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void openSettings() {
             runOnUiThread(() -> openNotificationSettings());
+        }
+
+        @JavascriptInterface
+        public void showMessageNotification(String title, String body) {
+            runOnUiThread(() -> showMessageNotification(title, body));
         }
     }
 
