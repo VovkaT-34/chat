@@ -6,6 +6,38 @@ const messageStatusCache = new Map();
 let realtimeReconnectTimer = null;
 let realtimeReconnectBusy = false;
 
+async function registerAndroidFcmToken(token) {
+    if (!token || !currentUser || !supabaseClient) return;
+
+    try {
+        const { error } = await supabaseClient
+            .from("android_push_tokens")
+            .upsert(
+                {
+                    user_id: currentUser.id,
+                    token: String(token),
+                    platform: "android",
+                    updated_at: new Date().toISOString()
+                },
+                { onConflict: "user_id,token" }
+            );
+
+        if (error) {
+            console.warn("Не удалось сохранить FCM-токен Android:", error);
+            return;
+        }
+
+        console.log("FCM-токен Android зарегистрирован");
+    } catch (error) {
+        console.warn("Ошибка регистрации FCM-токена Android:", error);
+    }
+}
+
+window.addEventListener("androidfcmtoken", event => {
+    const token = event && event.detail ? event.detail.token : null;
+    if (token) void registerAndroidFcmToken(token);
+});
+
 async function subscribeToMessages() {
     if (!supabaseClient || !currentUser) return;
 
@@ -122,14 +154,12 @@ function scheduleRealtimeReconnect() {
     }, 2000);
 }
 
-async function reconnectChatRealtime() {
+function reconnectChatRealtime() {
     if (!currentUser || !supabaseClient) return;
-    try {
-        await subscribeToMessages();
-    } catch (error) {
+    subscribeToMessages().catch(error => {
         console.warn("Ошибка восстановления Realtime сообщений:", error);
         scheduleRealtimeReconnect();
-    }
+    });
 }
 
 function applyMessageStatus(statusElement, status) {
@@ -289,16 +319,14 @@ setInterval(async () => {
     }
 }, 1000);
 
-// Android WebView and mobile browsers can suspend the page/websocket when
-// the app is backgrounded. Rejoin immediately when the page becomes active.
 document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) void reconnectChatRealtime();
+    if (!document.hidden) reconnectChatRealtime();
 });
 
 window.addEventListener("online", () => {
-    void reconnectChatRealtime();
+    reconnectChatRealtime();
 });
 
 window.addEventListener("androidresume", () => {
-    void reconnectChatRealtime();
+    reconnectChatRealtime();
 });
