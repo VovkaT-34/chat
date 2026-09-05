@@ -33,7 +33,10 @@ async function subscribeToMessages() {
                 const newMessage = payload.new;
                 if (!newMessage) return;
 
-                if (currentUser && newMessage.user_id !== currentUser.id) {
+                const isIncoming = currentUser && newMessage.user_id !== currentUser.id;
+                const isCurrentChat = Number(newMessage.chat_id) === Number(currentChatId);
+
+                if (isIncoming) {
                     const { error } = await supabaseClient.rpc(
                         "mark_message_delivered",
                         { p_message_id: newMessage.id }
@@ -41,15 +44,33 @@ async function subscribeToMessages() {
                     if (error) console.log("Ошибка подтверждения доставки:", error);
                 }
 
-                if (Number(newMessage.chat_id) === Number(currentChatId)) {
-                    if (currentUser && newMessage.user_id !== currentUser.id) {
+                if (isCurrentChat) {
+                    if (isIncoming) {
                         await appendMessage(newMessage);
                     }
-                } else if (currentUser && newMessage.user_id !== currentUser.id) {
+                } else if (isIncoming) {
                     playMessageSound(newMessage.chat_id);
                 }
 
-                if (currentUser && newMessage.user_id !== currentUser.id) {
+                // The APK uses a native Android bridge because a plain Android
+                // WebView is not the same notification environment as Chrome.
+                // Only the APK has window.AndroidNotifications, so the normal
+                // Chrome/GitHub Pages version remains unchanged.
+                if (isIncoming && window.AndroidNotifications &&
+                    typeof window.AndroidNotifications.showMessageNotification === "function" &&
+                    (!isCurrentChat || document.hidden)) {
+                    const senderName = newMessage.profiles && newMessage.profiles.username
+                        ? newMessage.profiles.username
+                        : "Новое сообщение";
+                    const body = newMessage.text || "Новое сообщение";
+                    try {
+                        window.AndroidNotifications.showMessageNotification(senderName, body);
+                    } catch (error) {
+                        console.warn("Не удалось показать Android-уведомление:", error);
+                    }
+                }
+
+                if (isIncoming) {
                     await updateUnreadCount(newMessage.chat_id);
                 }
 
