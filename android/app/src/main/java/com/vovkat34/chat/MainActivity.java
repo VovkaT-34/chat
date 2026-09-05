@@ -28,6 +28,8 @@ import androidx.core.content.ContextCompat;
 import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewFeature;
 
+import com.google.firebase.messaging.FirebaseMessaging;
+
 public class MainActivity extends Activity {
     private static final String START_URL = "https://vovkat-34.github.io/chat/";
     private static final int MEDIA_PERMISSION_REQUEST = 4101;
@@ -35,9 +37,11 @@ public class MainActivity extends Activity {
     private static final String NOTIFICATION_CHANNEL_ID = "chat_messages_v2";
     private static final String PREFS_NAME = "chat_android";
     private static final String PREF_NOTIFICATION_REQUESTED = "notification_permission_requested";
+    private static final String PREF_FCM_TOKEN = "fcm_token";
 
     private WebView webView;
     private PermissionRequest pendingWebPermission;
+    private String fcmToken;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +52,7 @@ public class MainActivity extends Activity {
         // DOM/localStorage (including the Supabase session) are not cleared.
         webView.clearCache(false);
         webView.loadUrl(START_URL);
+        requestFcmToken();
     }
 
     private void setupWebView() {
@@ -82,6 +87,12 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 return false;
             }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                dispatchFcmTokenToWeb();
+            }
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
@@ -97,6 +108,39 @@ public class MainActivity extends Activity {
                 }
             }
         });
+    }
+
+    private void requestFcmToken() {
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful() || task.getResult() == null) {
+                        return;
+                    }
+
+                    fcmToken = task.getResult();
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                            .edit()
+                            .putString(PREF_FCM_TOKEN, fcmToken)
+                            .apply();
+                    dispatchFcmTokenToWeb();
+                });
+    }
+
+    private void dispatchFcmTokenToWeb() {
+        if (webView == null) return;
+
+        if (fcmToken == null || fcmToken.trim().isEmpty()) {
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            fcmToken = prefs.getString(PREF_FCM_TOKEN, null);
+        }
+
+        if (fcmToken == null || fcmToken.trim().isEmpty()) return;
+
+        final String tokenJson = org.json.JSONObject.quote(fcmToken);
+        webView.post(() -> webView.evaluateJavascript(
+                "window.dispatchEvent(new CustomEvent('androidfcmtoken',{detail:{token:" + tokenJson + "}}));",
+                null
+        ));
     }
 
     private void createNotificationChannel() {
@@ -341,13 +385,12 @@ public class MainActivity extends Activity {
         super.onResume();
         if (webView != null) {
             webView.onResume();
-            // Tell the web app that Android has resumed the WebView so its
-            // Supabase Realtime channels can be rejoined immediately.
             webView.post(() -> webView.evaluateJavascript(
                     "window.dispatchEvent(new Event('androidresume'));",
                     null
             ));
         }
+        requestFcmToken();
     }
 
     @Override
