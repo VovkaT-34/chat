@@ -154,12 +154,14 @@ function scheduleRealtimeReconnect() {
     }, 2000);
 }
 
-function reconnectChatRealtime() {
+async function reconnectChatRealtime() {
     if (!currentUser || !supabaseClient) return;
-    subscribeToMessages().catch(error => {
+    try {
+        await subscribeToMessages();
+    } catch (error) {
         console.warn("Ошибка восстановления Realtime сообщений:", error);
         scheduleRealtimeReconnect();
-    });
+    }
 }
 
 function applyMessageStatus(statusElement, status) {
@@ -319,14 +321,16 @@ setInterval(async () => {
     }
 }, 1000);
 
+// Android WebView and mobile browsers can suspend the page/websocket when
+// the app is backgrounded. Rejoin immediately when the page becomes active.
 document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) reconnectChatRealtime();
+    if (!document.hidden) void reconnectChatRealtime();
 });
 
 window.addEventListener("online", () => {
-    reconnectChatRealtime();
+    void reconnectChatRealtime();
 });
 
 window.addEventListener("androidresume", () => {
-    reconnectChatRealtime();
+    void reconnectChatRealtime();
 });
