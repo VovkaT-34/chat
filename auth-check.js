@@ -29,33 +29,6 @@ async function getStoredLoginSession() {
     }
 }
 
-async function restoreStoredSession() {
-    const storedSession = await getStoredLoginSession();
-    if (!storedSession) return null;
-
-    try {
-        const result = await supabaseClient.auth.setSession({
-            access_token: storedSession.access_token,
-            refresh_token: storedSession.refresh_token
-        });
-
-        if (result && result.error) {
-            console.warn(
-                "Не удалось восстановить Supabase-сессию:",
-                result.error
-            );
-            return null;
-        }
-
-        return result && result.data && result.data.session
-            ? result.data.session
-            : null;
-    } catch (error) {
-        console.warn("Ошибка восстановления Supabase-сессии:", error);
-        return null;
-    }
-}
-
 async function checkAuth() {
     try {
         if (!window.supabaseClient) {
@@ -63,48 +36,45 @@ async function checkAuth() {
             return;
         }
 
-        // На старом Safari сначала явно передаём клиенту сессию,
-        // которую auth.js сохранил после REST-входа.
-        let session = await restoreStoredSession();
+        // auth.js сохраняет готовую сессию в стандартный Supabase localStorage.
+        // На старом Safari нельзя здесь повторно вызывать setSession():
+        // 02-chat-user.js делает это сразу после загрузки страницы. Два
+        // одновременных setSession() могут конкурировать за refresh token.
+        const storedSession = await getStoredLoginSession();
 
-        // Если сохранённой сессии нет, используем обычную сессию Supabase.
-        if (!session) {
-            try {
-                const result = await supabaseClient.auth.getSession();
-                session = result && result.data
-                    ? result.data.session
-                    : null;
-            } catch (error) {
-                console.warn("Не удалось получить Supabase-сессию:", error);
-            }
-        }
-
-        if (!session || !session.access_token) {
-            window.location.replace("./login.html");
+        if (storedSession && storedSession.access_token) {
             return;
         }
 
-        // Здесь намеренно НЕ проверяем profile/RPC и НЕ делаем signOut.
-        // На iPhone 6 старый Safari может временно не выполнить RPC сразу
-        // после перехода со страницы входа. Раньше это ошибочно воспринималось
-        // как отсутствие аккаунта и создавало бесконечный возврат на login.html.
-        // Реального пользователя и профиль после восстановления сессии
-        // инициализирует 02-chat-user.js.
-        return;
+        // Обычный путь для современных браузеров, где Supabase сам восстановил
+        // локальную сессию.
+        try {
+            const result = await supabaseClient.auth.getSession();
+            const session = result && result.data
+                ? result.data.session
+                : null;
+
+            if (session && session.access_token) {
+                return;
+            }
+        } catch (error) {
+            console.warn("Не удалось получить Supabase-сессию:", error);
+        }
+
+        window.location.replace("./login.html");
     } catch (error) {
         console.error("Ошибка проверки авторизации:", error);
 
-        // Последняя попытка: если REST-вход уже сохранил рабочую сессию,
-        // не выбрасываем пользователя на login.html из-за временного сбоя.
+        // Последняя проверка localStorage: если REST-вход уже сохранил
+        // полноценную сессию, не выбрасываем пользователя на login.html.
         try {
             const storedSession = await getStoredLoginSession();
             if (storedSession && storedSession.access_token) {
-                const restored = await restoreStoredSession();
-                if (restored) return;
+                return;
             }
         } catch (restoreError) {
             console.warn(
-                "Последнее восстановление сессии не удалось:",
+                "Последняя проверка сохранённой сессии не удалась:",
                 restoreError
             );
         }
