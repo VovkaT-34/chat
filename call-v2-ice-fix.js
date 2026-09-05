@@ -1,44 +1,13 @@
 // =========================================
-// WebRTC ICE gathering compatibility for iPhone/Safari
-// Must load BEFORE call-v2.js.
+// WebRTC ICE compatibility shim
 // =========================================
-(function () {
-    "use strict";
-
-    if (window.__chatCallIceFixInstalled) return;
-    window.__chatCallIceFixInstalled = true;
-
-    const NativeSetLocalDescription = RTCPeerConnection.prototype.setLocalDescription;
-
-    function waitForIceGatheringComplete(pc, timeout = 3500) {
-        if (!pc || pc.iceGatheringState === "complete") {
-            return Promise.resolve();
-        }
-
-        return new Promise(resolve => {
-            let finished = false;
-
-            const finish = () => {
-                if (finished) return;
-                finished = true;
-                pc.removeEventListener("icegatheringstatechange", onStateChange);
-                resolve();
-            };
-
-            const onStateChange = () => {
-                if (pc.iceGatheringState === "complete") finish();
-            };
-
-            pc.addEventListener("icegatheringstatechange", onStateChange);
-            setTimeout(finish, timeout);
-        });
-    }
-
-    RTCPeerConnection.prototype.setLocalDescription = async function (description) {
-        await NativeSetLocalDescription.call(this, description);
-        await waitForIceGatheringComplete(this);
-        return this.localDescription;
-    };
-
-    window.__chatCallWaitForIceGathering = waitForIceGatheringComplete;
-})();
+// Intentionally disabled.
+//
+// The original call implementation already performs its own ICE candidate
+// signalling. Do not override RTCPeerConnection.prototype.setLocalDescription
+// here: delaying setLocalDescription() changes the timing of the existing
+// WebRTC signalling flow and can break the previously working iPhone-to-iPhone
+// direct connection.
+//
+// This file is kept so the current index.html does not need an unnecessary
+// architecture change. The native WebRTC API is left untouched.
