@@ -6,6 +6,7 @@
 
     <application
         android:allowBackup="false"
+        android:icon="@drawable/ic_launcher"
         android:label="Chat"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="false">
