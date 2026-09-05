@@ -36,21 +36,24 @@
             if (ctx.state === "suspended") await ctx.resume();
             unlocked = ctx.state === "running";
         } catch (error) {
-            console.debug("iOS не разрешил AudioContext:", error);
+            console.debug("Не удалось возобновить AudioContext:", error);
         }
         return unlocked;
     }
 
     function tone(frequency, start, duration, gainValue) {
         const ctx = ensureAudio();
-        if (!ctx || !master) return;
+        if (!ctx || !master || ctx.state !== "running") return;
+
         const oscillator = ctx.createOscillator();
         const gain = ctx.createGain();
+
         oscillator.type = "sine";
         oscillator.frequency.setValueAtTime(frequency, start);
         gain.gain.setValueAtTime(0.0001, start);
         gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.025);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
         oscillator.connect(gain);
         gain.connect(master);
         oscillator.start(start);
@@ -60,6 +63,7 @@
     function playPhrase() {
         const ctx = ensureAudio();
         if (!ctx || !unlocked || ctx.state !== "running") return;
+
         const now = ctx.currentTime + 0.02;
         tone(660, now, 0.24, 0.58);
         tone(880, now + 0.27, 0.24, 0.58);
@@ -67,8 +71,13 @@
         tone(740, now + 0.81, 0.34, 0.54);
     }
 
-    function playNow() {
-        if (unlocked) playPhrase();
+    async function playNow() {
+        // If iOS suspended the context after backgrounding/locking,
+        // try to resume it before producing the next ringtone phrase.
+        if (!unlocked || audioContext?.state !== "running") {
+            await unlockAudio();
+        }
+        playPhrase();
     }
 
     function stop() {
@@ -80,26 +89,41 @@
     function start(kind) {
         if (!kind) return stop();
         if (kind === lastState && timer) return;
+
         stop();
         lastState = kind;
-        playNow();
-        timer = setInterval(playNow, 1700);
+        void playNow();
+        timer = setInterval(() => void playNow(), 1700);
     }
 
     function detect() {
         const root = document.getElementById("chatCallV2");
         const incoming = document.getElementById("cv2Incoming");
         const controls = document.getElementById("cv2Controls");
-        if (!root || !root.classList.contains("open")) return stop();
-        if (incoming && getComputedStyle(incoming).display !== "none") return start("incoming");
+
+        if (!root || !root.classList.contains("open")) {
+            return stop();
+        }
+
+        if (incoming && getComputedStyle(incoming).display !== "none") {
+            return start("incoming");
+        }
+
         const status = document.getElementById("cv2Status")?.textContent || "";
-        if (controls && getComputedStyle(controls).display !== "none" && status === "Вызов…") return start("outgoing");
+        if (
+            controls &&
+            getComputedStyle(controls).display !== "none" &&
+            status === "Вызов…"
+        ) {
+            return start("outgoing");
+        }
+
         stop();
     }
 
-    // Для iPhone/iPad используем события, которые WebKit официально считает
-    // пользовательским жестом для запуска media/Web Audio.
-    ["touchend", "mousedown", "click", "keydown"].forEach(type => {
+    // Keep the broader set of iOS user-gesture events. The previous
+    // touchend/mousedown-only variant could miss the first gesture on Safari.
+    ["pointerdown", "touchstart", "touchend", "mousedown", "click", "keydown"].forEach(type => {
         document.addEventListener(type, () => {
             void unlockAudio().then(detect);
         }, { passive: true });
@@ -109,7 +133,10 @@
         if (!document.hidden) {
             void unlockAudio().then(detect);
         } else {
-            stop();
+            // Do not destroy the AudioContext. iOS may suspend it temporarily;
+            // playNow() will attempt to resume it when the page becomes active.
+            if (timer) clearInterval(timer);
+            timer = null;
         }
     });
 
