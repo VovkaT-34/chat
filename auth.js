@@ -1,8 +1,6 @@
 // =========================================
 // Вход через Supabase Auth REST API
 // Совместимо со старыми Android WebView / Safari.
-// Здесь намеренно не используется supabase-js: старые WebView
-// могут не разобрать современный bundle библиотеки.
 // =========================================
 
 (function () {
@@ -44,7 +42,11 @@
                 resolve({
                     data: response,
                     status: xhr.status,
-                    error: { message: message, status: xhr.status, code: response && response.code ? String(response.code) : "" }
+                    error: {
+                        message: message,
+                        status: xhr.status,
+                        code: response && response.code ? String(response.code) : ""
+                    }
                 });
             };
 
@@ -220,17 +222,40 @@
                 console.warn("Не удалось очистить защиту входа:", storageError4);
             }
 
-            if (!saveSession(data)) {
-                errorBox.textContent = "Вход выполнен, но не удалось сохранить сессию на этом устройстве.";
-                return;
-            }
+            // Сначала передаём полученную сессию самому Supabase client.
+            // Это важно для старых Safari: простая ручная запись JSON в localStorage
+            // не гарантирует, что уже созданный supabaseClient увидит новую сессию.
+            return supabaseClient.auth.setSession({
+                access_token: data.access_token,
+                refresh_token: data.refresh_token
+            }).then(function (sessionResult) {
+                var sessionError = sessionResult ? sessionResult.error : null;
+                var session = sessionResult && sessionResult.data
+                    ? sessionResult.data.session
+                    : null;
 
-            return requestJson(
-                "POST",
-                SUPABASE_URL + "/rest/v1/rpc/check_my_profile",
-                {},
-                data.access_token
-            ).then(function (profileResult) {
+                if (sessionError || !session || !session.access_token) {
+                    console.error("Ошибка установки сессии:", sessionError);
+
+                    // Резервный вариант для старых браузеров.
+                    if (!saveSession(data)) {
+                        errorBox.textContent = "Вход выполнен, но не удалось сохранить сессию на этом устройстве.";
+                        return null;
+                    }
+                } else {
+                    // Явно сохраняем также совместимое представление сессии.
+                    saveSession(session);
+                }
+
+                return requestJson(
+                    "POST",
+                    SUPABASE_URL + "/rest/v1/rpc/check_my_profile",
+                    {},
+                    data.access_token
+                );
+            }).then(function (profileResult) {
+                if (!profileResult) return;
+
                 var profile = profileResult ? profileResult.data : null;
                 var profileError = profileResult ? profileResult.error : null;
 
@@ -247,6 +272,7 @@
                     return;
                 }
 
+                // После успешного входа и проверки профиля сразу открываем чат.
                 window.location.replace("index.html");
             });
         }).catch(function (loginError) {
