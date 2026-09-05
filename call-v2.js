@@ -32,6 +32,28 @@
 
     const $ = id => document.getElementById(id);
 
+    function createCallId() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+            return window.crypto.randomUUID();
+        }
+
+        if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+            var bytes = new Uint8Array(16);
+            window.crypto.getRandomValues(bytes);
+            bytes[6] = (bytes[6] & 15) | 64;
+            bytes[8] = (bytes[8] & 63) | 128;
+            var hex = [];
+            for (var i = 0; i < bytes.length; i++) {
+                hex.push((bytes[i] + 256).toString(16).slice(1));
+            }
+            return hex[0] + hex[1] + hex[2] + hex[3] + "-" +
+                hex[4] + hex[5] + "-" + hex[6] + hex[7] + "-" +
+                hex[8] + hex[9] + "-" + hex[10] + hex[11] + hex[12] + hex[13] + hex[14] + hex[15];
+        }
+
+        return String(Date.now()) + "-" + String(Math.random()).slice(2) + "-" + String(Math.random()).slice(2);
+    }
+
     function getActiveChatId() {
         const fromWindow = Number(window.currentChatId || 0);
         if (fromWindow > 0) return fromWindow;
@@ -163,16 +185,11 @@
         if(!videoTrack){stream.getTracks().forEach(track=>track.stop());throw new Error("Видеотрек не получен");}
         if(!localStream) localStream=new MediaStream();
         localStream.addTrack(videoTrack);
-
-        // Explicitly attach the camera to the existing peer connection. This
-        // is required for mid-call audio -> video renegotiation and avoids
-        // relying on a prototype shim to discover the correct peer.
         if(pc && pc.connectionState !== "closed") {
             const sender=pc.getSenders().find(item=>item.track?.kind === "video");
             if(sender) await sender.replaceTrack(videoTrack);
             else pc.addTrack(videoTrack,localStream);
         }
-
         const localVideo=$("cv2Local");
         if(localVideo){localVideo.srcObject=localStream;localVideo.style.display="block";void localVideo.play().catch(()=>{});}
         videoTrack.onended=()=>updateVideoUi(false);
@@ -265,7 +282,7 @@
         if(!window.currentUser?.id||!activeChatId){alert("Сначала откройте личный чат.");return;}
         setActiveChatId(activeChatId);const peer=await peerForChat(activeChatId);
         if(!peer?.user_id){alert("Звонки доступны только в личном чате один-на-один.");return;}
-        await end(false);chatId=activeChatId;peerId=peer.user_id;peerName=peer.username||"Пользователь";mode=modeArg==="video"?"video":"audio";role="caller";callId=crypto.randomUUID();
+        await end(false);chatId=activeChatId;peerId=peer.user_id;peerName=peer.username||"Пользователь";mode=modeArg==="video"?"video":"audio";role="caller";callId=createCallId();
         try{
             ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";$("cv2Remote").style.display="none";updateVideoUi(mode==="video");setStatus("Запрашиваем доступ к "+(mode==="video"?"камере и микрофону":"микрофону")+"…");show(true);
             await getMedia();buildPeer();
@@ -312,7 +329,7 @@
 
     function updateChatCallButtonVisibility(){const id=getActiveChatId();const item=document.querySelector(`#chatList .chat-item[data-chat-id="${id}"]`);const isPrivate=item?.dataset.chatType==="private";const display=id>0&&isPrivate?"inline-flex":"none";[$("callAudioButton"),$("callVideoButton")].forEach(button=>{if(button)button.style.setProperty("display",display,"important");});}
 
-    function addButtons(){const header=document.querySelector(".chat-header-actions");if(!header)return;if(!$('callAudioButton')){const audio=document.createElement("button");audio.id="callAudioButton";audio.type="button";audio.title="Аудиозвонок";audio.setAttribute("aria-label","Аудиозвонок");audio.className="chat-call-button chat-call-audio";audio.innerHTML='<svg class="call-icon-phone" width="20" height="20" viewBox="0 0 24 24"><path d="M7.1 2.6c1.05-.35 2.2.18 2.65 1.2l1.05 2.4c.4.9.15 1.95-.6 2.6l-1.25 1.05c1.15 2.35 3.05 4.25 5.4 5.4l1.05-1.25c.65-.75 1.7-1 2.6-.6l2.4 1.05c1.02.45 1.55 1.6 1.2 2.65l-.55 1.65c-.35 1.05-1.35 1.75-2.45 1.65C10.9 19.85 4.15 13.1 3.65 4.4c-.07-1.1.6-2.1 1.65-2.45z" fill="currentColor"/></svg>';audio.addEventListener("click",()=>void startCall("audio"));header.appendChild(audio);}if(!$('callVideoButton')){const video=document.createElement("button");video.id="callVideoButton";video.type="button";video.title="Видеозвонок";video.setAttribute("aria-label","Видеозвонок");video.className="chat-call-button chat-call-video";video.innerHTML='<span class="call-icon-video"></span>';video.addEventListener("click",()=>void startCall("video"));header.appendChild(video);}updateChatCallButtonVisibility();}
+    function addButtons(){const header=document.querySelector(".chat-header-actions");if(!header)return;if(!$('callAudioButton')){const audio=document.createElement("button");audio.id="callAudioButton";audio.type="button";audio.title="Аудиозвонок";audio.setAttribute("aria-label","Аудиозвонок");audio.className="chat-call-button chat-call-audio";audio.innerHTML='<svg class="call-icon-phone" width="20" height="20" viewBox="0 0 24 24"><path d="M7.1 2.6c1.05-.35 2.2.18 2.65 1.2l1.05 2.4c.4.9.15 1.95-.6 2.6l-1.25 1.05c1.15 2.35 3.05 4.25 5.4 5.4l1.05-1.25c.65-.75 1.7-1 2.6-.6l2.4 1.05c1.02.45 1.55 1.6 1.2 2.65l-.55 1.65c-.35 1.05-1.35 1.75-2.45 1.65C10.9 19.85 4.15 13.1 3.65 4.4c-.07-1.1.6-2.1 1.65-2.45 1.05-.35 2.2.18 2.65 1.2z" fill="currentColor"/></svg>';audio.addEventListener("click",()=>void startCall("audio"));header.appendChild(audio);}if(!$('callVideoButton')){const video=document.createElement("button");video.id="callVideoButton";video.type="button";video.title="Видеозвонок";video.setAttribute("aria-label","Видеозвонок");video.className="chat-call-button chat-call-video";video.innerHTML='<span class="call-icon-video"></span>';video.addEventListener("click",()=>void startCall("video"));header.appendChild(video);}updateChatCallButtonVisibility();}
 
     function handleVisibilityChange(){pageVisible=!document.hidden;if(pageVisible&&callId){void resumeRemoteAudio();const audioTracks=localStream?.getAudioTracks?.()||[];const endedAudio=audioTracks.find(track=>track.readyState==="ended");if(endedAudio&&navigator.mediaDevices?.getUserMedia)void recoverLocalAudio();}}
     async function recoverLocalAudio(){if(!pc||!localStream||!navigator.mediaDevices?.getUserMedia)return;try{const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});const track=stream.getAudioTracks()[0];if(!track)return;const sender=pc.getSenders().find(item=>item.track?.kind==="audio");if(sender)await sender.replaceTrack(track);const old=localStream.getAudioTracks()[0];if(old&&old!==track)old.stop();localStream.addTrack(track);$("cv2Mute").textContent=track.enabled?"🎙️":"🔇";setStatus(mode==="video"?"Видеозвонок":"Звонок");}catch(error){console.warn("Не удалось восстановить микрофон после блокировки/возврата:",error);}}
