@@ -14,6 +14,7 @@
             xhr.open(method, url, true);
             xhr.setRequestHeader("apikey", SUPABASE_KEY);
             xhr.setRequestHeader("Content-Type", "application/json");
+
             if (accessToken) {
                 xhr.setRequestHeader("Authorization", "Bearer " + accessToken);
             } else {
@@ -24,19 +25,36 @@
                 if (xhr.readyState !== 4) return;
 
                 var response = null;
+
                 try {
-                    response = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+                    response = xhr.responseText
+                        ? JSON.parse(xhr.responseText)
+                        : null;
                 } catch (parseError) {
                     response = null;
                 }
 
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    resolve({ data: response, status: xhr.status, error: null });
+                    resolve({
+                        data: response,
+                        status: xhr.status,
+                        error: null
+                    });
                     return;
                 }
 
-                var message = response && (response.msg || response.message || response.error_description || response.error)
-                    ? String(response.msg || response.message || response.error_description || response.error)
+                var message = response && (
+                    response.msg ||
+                    response.message ||
+                    response.error_description ||
+                    response.error
+                )
+                    ? String(
+                        response.msg ||
+                        response.message ||
+                        response.error_description ||
+                        response.error
+                    )
                     : "HTTP " + xhr.status;
 
                 resolve({
@@ -45,7 +63,9 @@
                     error: {
                         message: message,
                         status: xhr.status,
-                        code: response && response.code ? String(response.code) : ""
+                        code: response && response.code
+                            ? String(response.code)
+                            : ""
                     }
                 });
             };
@@ -64,12 +84,20 @@
     }
 
     function saveSession(session) {
-        if (!session || !session.access_token || !session.refresh_token || !session.user) {
+        if (
+            !session ||
+            !session.access_token ||
+            !session.refresh_token ||
+            !session.user
+        ) {
             return false;
         }
 
         var expiresIn = Number(session.expires_in || 3600);
-        var expiresAt = Number(session.expires_at || Math.floor(Date.now() / 1000) + expiresIn);
+        var expiresAt = Number(
+            session.expires_at ||
+            Math.floor(Date.now() / 1000) + expiresIn
+        );
 
         var stored = {
             access_token: session.access_token,
@@ -81,10 +109,16 @@
         };
 
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+            localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify(stored)
+            );
             return true;
         } catch (storageError) {
-            console.error("Не удалось сохранить сессию:", storageError);
+            console.error(
+                "Не удалось сохранить сессию:",
+                storageError
+            );
             return false;
         }
     }
@@ -93,17 +127,31 @@
         try {
             localStorage.removeItem(STORAGE_KEY);
         } catch (storageError) {
-            console.warn("Не удалось очистить сессию:", storageError);
+            console.warn(
+                "Не удалось очистить сессию:",
+                storageError
+            );
         }
     }
 
-    document.getElementById("loginForm").addEventListener("submit", function (e) {
+    var loginForm = document.getElementById("loginForm");
+
+    if (!loginForm) {
+        return;
+    }
+
+    loginForm.addEventListener("submit", function (e) {
         e.preventDefault();
 
-        var email = document.getElementById("email").value.trim().toLowerCase();
-        var password = document.getElementById("password").value;
+        var emailElement = document.getElementById("email");
+        var passwordElement = document.getElementById("password");
         var errorBox = document.getElementById("error");
-        var submitButton = document.querySelector("#loginForm .submit-button");
+        var submitButton = document.querySelector(
+            "#loginForm .submit-button"
+        );
+
+        var email = emailElement.value.trim().toLowerCase();
+        var password = passwordElement.value;
         var key = "chat-login-guard-v2";
         var now = Date.now();
 
@@ -119,16 +167,25 @@
 
         try {
             var savedText = localStorage.getItem(key);
-            var saved = savedText ? JSON.parse(savedText) : null;
+            var saved = savedText
+                ? JSON.parse(savedText)
+                : null;
 
             if (saved && typeof saved === "object") {
                 guard.email = saved.email || "";
                 guard.attempts = Number(saved.attempts || 0);
-                guard.lockedUntil = Number(saved.lockedUntil || 0);
-                guard.lockLevel = Number(saved.lockLevel || 0);
+                guard.lockedUntil = Number(
+                    saved.lockedUntil || 0
+                );
+                guard.lockLevel = Number(
+                    saved.lockLevel || 0
+                );
             }
         } catch (storageError) {
-            console.warn("Не удалось прочитать защиту входа:", storageError);
+            console.warn(
+                "Не удалось прочитать защиту входа:",
+                storageError
+            );
         }
 
         if (guard.email !== email) {
@@ -141,23 +198,41 @@
         }
 
         if (guard.lockedUntil > now) {
-            var lockedSeconds = Math.max(1, Math.ceil((guard.lockedUntil - now) / 1000));
-            var lockedMinutes = Math.floor(lockedSeconds / 60);
+            var lockedSeconds = Math.max(
+                1,
+                Math.ceil(
+                    (guard.lockedUntil - now) / 1000
+                )
+            );
+            var lockedMinutes = Math.floor(
+                lockedSeconds / 60
+            );
             var lockedRemain = lockedMinutes > 0
-                ? lockedMinutes + " мин. " + (lockedSeconds % 60) + " сек."
+                ? lockedMinutes + " мин. " +
+                    (lockedSeconds % 60) + " сек."
                 : lockedSeconds + " сек.";
 
-            errorBox.textContent = "Слишком много неудачных попыток. Вход заблокирован ещё на " + lockedRemain + ".";
+            errorBox.textContent =
+                "Слишком много неудачных попыток. " +
+                "Вход заблокирован ещё на " +
+                lockedRemain + ".";
             return;
         }
 
         if (guard.lockedUntil && guard.lockedUntil <= now) {
             guard.lockedUntil = 0;
             guard.attempts = 0;
+
             try {
-                localStorage.setItem(key, JSON.stringify(guard));
+                localStorage.setItem(
+                    key,
+                    JSON.stringify(guard)
+                );
             } catch (storageError2) {
-                console.warn("Не удалось сохранить защиту входа:", storageError2);
+                console.warn(
+                    "Не удалось сохранить защиту входа:",
+                    storageError2
+                );
             }
         }
 
@@ -168,117 +243,192 @@
 
         requestJson(
             "POST",
-            SUPABASE_URL + "/auth/v1/token?grant_type=password",
-            { email: email, password: password },
+            SUPABASE_URL +
+                "/auth/v1/token?grant_type=password",
+            {
+                email: email,
+                password: password
+            },
             null
-        ).then(function (result) {
+        )
+        .then(function (result) {
             var data = result ? result.data : null;
             var error = result ? result.error : null;
 
-            if (error || !data || !data.access_token || !data.user) {
-                console.error("Ошибка входа:", error);
+            if (
+                error ||
+                !data ||
+                !data.access_token ||
+                !data.user
+            ) {
+                console.error(
+                    "Ошибка входа:",
+                    error
+                );
 
                 guard.attempts += 1;
 
                 if (guard.attempts >= 5) {
-                    guard.lockLevel = Math.min((guard.lockLevel || 0) + 1, 5);
-                    var lockMinutesList = [5, 15, 30, 60, 360];
-                    var lockMinutesValue = lockMinutesList[guard.lockLevel - 1];
-                    guard.lockedUntil = Date.now() + lockMinutesValue * 60 * 1000;
+                    guard.lockLevel = Math.min(
+                        (guard.lockLevel || 0) + 1,
+                        5
+                    );
+
+                    var lockMinutesList = [
+                        5,
+                        15,
+                        30,
+                        60,
+                        360
+                    ];
+
+                    var lockMinutesValue =
+                        lockMinutesList[
+                            guard.lockLevel - 1
+                        ];
+
+                    guard.lockedUntil =
+                        Date.now() +
+                        lockMinutesValue * 60 * 1000;
+
                     guard.attempts = 0;
 
-                    errorBox.textContent = "5 неудачных попыток. Вход временно заблокирован на " +
-                        (lockMinutesValue >= 60
-                            ? (lockMinutesValue / 60) + " ч."
-                            : lockMinutesValue + " мин.");
+                    errorBox.textContent =
+                        "5 неудачных попыток. Вход временно " +
+                        "заблокирован на " +
+                        (
+                            lockMinutesValue >= 60
+                                ? (lockMinutesValue / 60) + " ч."
+                                : lockMinutesValue + " мин."
+                        );
                 } else {
                     var left = 5 - guard.attempts;
-                    var errorMessage = error && error.message ? String(error.message) : "";
-                    var errorText = errorMessage.toLowerCase();
-                    var errorStatus = error && error.status ? Number(error.status) : 0;
-                    var errorCode = error && error.code ? String(error.code) : "";
+                    var errorMessage =
+                        error && error.message
+                            ? String(error.message)
+                            : "";
+                    var errorText =
+                        errorMessage.toLowerCase();
+                    var errorStatus =
+                        error && error.status
+                            ? Number(error.status)
+                            : 0;
+                    var errorCode =
+                        error && error.code
+                            ? String(error.code)
+                            : "";
 
-                    if (errorText.indexOf("email not confirmed") !== -1) {
-                        errorBox.textContent = "E-mail ещё не подтверждён. Подтвердите его по письму и войдите снова.";
-                    } else if (errorStatus === 429 || errorCode.indexOf("rate") !== -1) {
-                        errorBox.textContent = "Слишком много попыток. Подождите немного и попробуйте снова.";
+                    if (
+                        errorText.indexOf(
+                            "email not confirmed"
+                        ) !== -1
+                    ) {
+                        errorBox.textContent =
+                            "E-mail ещё не подтверждён. " +
+                            "Подтвердите его по письму и войдите снова.";
+                    } else if (
+                        errorStatus === 429 ||
+                        errorCode.indexOf("rate") !== -1
+                    ) {
+                        errorBox.textContent =
+                            "Слишком много попыток. " +
+                            "Подождите немного и попробуйте снова.";
                     } else {
-                        errorBox.textContent = "Неверный e-mail или пароль. Осталось попыток до блокировки: " + left + ".";
+                        errorBox.textContent =
+                            "Неверный e-mail или пароль. " +
+                            "Осталось попыток до блокировки: " +
+                            left + ".";
                     }
                 }
 
                 try {
-                    localStorage.setItem(key, JSON.stringify(guard));
+                    localStorage.setItem(
+                        key,
+                        JSON.stringify(guard)
+                    );
                 } catch (storageError3) {
-                    console.warn("Не удалось сохранить защиту входа:", storageError3);
+                    console.warn(
+                        "Не удалось сохранить защиту входа:",
+                        storageError3
+                    );
                 }
 
-                return;
+                return null;
             }
 
             try {
                 localStorage.removeItem(key);
             } catch (storageError4) {
-                console.warn("Не удалось очистить защиту входа:", storageError4);
+                console.warn(
+                    "Не удалось очистить защиту входа:",
+                    storageError4
+                );
             }
 
-            // Сначала передаём полученную сессию самому Supabase client.
-            // Это важно для старых Safari: простая ручная запись JSON в localStorage
-            // не гарантирует, что уже созданный supabaseClient увидит новую сессию.
-            return supabaseClient.auth.setSession({
-                access_token: data.access_token,
-                refresh_token: data.refresh_token
-            }).then(function (sessionResult) {
-                var sessionError = sessionResult ? sessionResult.error : null;
-                var session = sessionResult && sessionResult.data
-                    ? sessionResult.data.session
-                    : null;
+            // Важно для старого Safari:
+            // не вызываем supabaseClient.auth.setSession() здесь.
+            // REST-вход уже вернул полноценную сессию.
+            // Сохраняем её в стандартном ключе Supabase, после чего
+            // новая страница создаст свой supabaseClient и прочитает её.
+            if (!saveSession(data)) {
+                errorBox.textContent =
+                    "Вход выполнен, но не удалось сохранить сессию на этом устройстве.";
+                return null;
+            }
 
-                if (sessionError || !session || !session.access_token) {
-                    console.error("Ошибка установки сессии:", sessionError);
+            return requestJson(
+                "POST",
+                SUPABASE_URL +
+                    "/rest/v1/rpc/check_my_profile",
+                {},
+                data.access_token
+            );
+        })
+        .then(function (profileResult) {
+            if (!profileResult) {
+                return;
+            }
 
-                    // Резервный вариант для старых браузеров.
-                    if (!saveSession(data)) {
-                        errorBox.textContent = "Вход выполнен, но не удалось сохранить сессию на этом устройстве.";
-                        return null;
-                    }
-                } else {
-                    // Явно сохраняем также совместимое представление сессии.
-                    saveSession(session);
-                }
+            var profile = profileResult.data;
+            var profileError = profileResult.error;
 
-                return requestJson(
-                    "POST",
-                    SUPABASE_URL + "/rest/v1/rpc/check_my_profile",
-                    {},
-                    data.access_token
+            if (
+                profileError ||
+                !profile ||
+                !profile[0]
+            ) {
+                console.error(
+                    "Ошибка проверки профиля:",
+                    profileError
                 );
-            }).then(function (profileResult) {
-                if (!profileResult) return;
 
-                var profile = profileResult ? profileResult.data : null;
-                var profileError = profileResult ? profileResult.error : null;
+                clearSession();
 
-                if (profileError || !profile || !profile[0]) {
-                    console.error("Ошибка проверки профиля:", profileError);
-                    clearSession();
-                    errorBox.textContent = "Аккаунт найден, но профиль пока недоступен. Попробуйте ещё раз.";
-                    return;
-                }
+                errorBox.textContent =
+                    "Аккаунт найден, но профиль пока недоступен. Попробуйте ещё раз.";
+                return;
+            }
 
-                if (!profile[0].approved) {
-                    clearSession();
-                    errorBox.textContent = "Ваш аккаунт ожидает подтверждения администратора.";
-                    return;
-                }
+            if (!profile[0].approved) {
+                clearSession();
+                errorBox.textContent =
+                    "Ваш аккаунт ожидает подтверждения администратора.";
+                return;
+            }
 
-                // После успешного входа и проверки профиля сразу открываем чат.
-                window.location.replace("index.html");
-            });
-        }).catch(function (loginError) {
-            console.error("Неожиданная ошибка входа:", loginError);
-            errorBox.textContent = "Не удалось выполнить вход. Проверьте интернет-соединение и попробуйте ещё раз.";
-        }).then(function () {
+            // Сессия уже сохранена. Переходим в чат.
+            window.location.replace("index.html");
+        })
+        .catch(function (loginError) {
+            console.error(
+                "Неожиданная ошибка входа:",
+                loginError
+            );
+
+            errorBox.textContent =
+                "Не удалось выполнить вход. Проверьте интернет-соединение и попробуйте ещё раз.";
+        })
+        .then(function () {
             if (submitButton) {
                 submitButton.disabled = false;
                 submitButton.textContent = "Войти";
