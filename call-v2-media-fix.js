@@ -8,10 +8,6 @@
     if (window.__chatCallMediaFixInstalled) return;
     window.__chatCallMediaFixInstalled = true;
 
-    // Keep the native WebRTC track/negotiation flow intact.
-    // The important reliability fix here is buffering ICE candidates that
-    // arrive before the callee accepts the call and creates RTCPeerConnection.
-
     function prepareCallAudioSession() {
         try {
             if (navigator.audioSession && "type" in navigator.audioSession) {
@@ -28,7 +24,7 @@
                 navigator.audioSession.type = "auto";
             }
         } catch (error) {
-            console.warn("Не удалось сбросить Audio Session:", error);
+            console.warn("Не удалось сбросить Audio Session для звонка:", error);
         }
     }
 
@@ -47,11 +43,12 @@
     // ---------------------------------------------------------
     // Early ICE recovery
     // ---------------------------------------------------------
-    // call-v2.js intentionally waits until the user presses "Принять"
-    // before creating the peer connection. ICE candidates, however, can
-    // arrive immediately after the offer. The old implementation discarded
-    // such candidates because pc was still null. This makes the first call
-    // race-dependent and especially visible on iPhone.
+    // The callee does not create RTCPeerConnection until "Принять" is pressed.
+    // ICE can arrive before that and used to be discarded. Keep those
+    // candidates separately and apply them as soon as the incoming offer is
+    // installed on the newly-created peer connection.
+
+    if (typeof RTCPeerConnection === "undefined") return;
 
     const earlyIce = new Map();
     let incomingCallId = null;
@@ -76,15 +73,13 @@
         if (!earlyIce.has(callId)) earlyIce.set(callId, new Map());
         const map = earlyIce.get(callId);
         map.set(candidateKey(candidate), candidate);
-        // Prevent an abandoned call from accumulating data forever.
-        if (earlyIce.size > 8) {
-            const first = earlyIce.keys().next().value;
-            if (first && first !== callId) earlyIce.delete(first);
-        }
-    }
 
-    function clearCallCandidates(callId) {
-        if (callId) earlyIce.delete(callId);
+        // Keep only a small number of abandoned calls.
+        while (earlyIce.size > 8) {
+            const first = earlyIce.keys().next().value;
+            if (!first || first === callId) break;
+            earlyIce.delete(first);
+        }
     }
 
     async function applyEarlyIce(callId, pc) {
@@ -96,13 +91,13 @@
             try {
                 await pc.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (error) {
-                // call-v2.js may already have received the same candidate and
-                // placed it in its own pendingIce queue. Duplicate ICE is safe.
+                // call-v2.js may also have received this candidate and put it
+                // into its own pendingIce queue. Duplicate ICE is harmless.
                 console.debug("Ранний ICE уже применён или отклонён:", error);
             }
         }
 
-        clearCallCandidates(callId);
+        earlyIce.delete(callId);
     }
 
     function currentUserId() {
@@ -128,8 +123,9 @@
                     if (!signal) return;
 
                     if (signal.signal_type === "offer") {
+                        // Do not clear candidates here: another Realtime
+                        // channel may deliver ICE before it delivers this offer.
                         incomingCallId = signal.call_id || null;
-                        if (incomingCallId) clearCallCandidates(incomingCallId);
                         return;
                     }
 
@@ -147,9 +143,6 @@
             });
     }
 
-    // Patch only setRemoteDescription. No addTrack/addIceCandidate or
-    // negotiation methods are replaced, so the existing call implementation
-    // remains the owner of normal WebRTC negotiation.
     const originalSetRemoteDescription = RTCPeerConnection.prototype.setRemoteDescription;
     RTCPeerConnection.prototype.setRemoteDescription = async function (description) {
         const result = await originalSetRemoteDescription.call(this, description);
