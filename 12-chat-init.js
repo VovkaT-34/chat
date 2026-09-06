@@ -21,12 +21,23 @@ async function startChat() {
     }
 
 
-    // 2. Загружаем список чатов
+    // 2. Подключаем пакетную загрузку данных списка чатов
+
+    await new Promise(function (resolve) {
+        var script = document.createElement("script");
+        script.src = "15-chat-list-batch.js";
+        script.onload = resolve;
+        script.onerror = resolve;
+        document.head.appendChild(script);
+    });
+
+
+    // 3. Загружаем список чатов
 
     await loadChats();
 
 
-    // 3. Подключаем фильтрацию Realtime по доступным чатам
+    // 4. Подключаем фильтрацию Realtime по доступным чатам
 
     await new Promise(function (resolve) {
         var script = document.createElement("script");
@@ -37,12 +48,12 @@ async function startChat() {
     });
 
 
-    // 4. Подключаем Realtime сообщений
+    // 5. Подключаем Realtime сообщений
 
     await subscribeToMessages();
 
 
-    // 5. Подключаем индикатор печати
+    // 6. Подключаем индикатор печати
 
     await subscribeToTyping();
 
