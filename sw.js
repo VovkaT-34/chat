@@ -1,5 +1,5 @@
-const CACHE_NAME="chat-pwa-v9";
-const APP_SHELL=["./","./index.html","./chat.css","./chat-mobile.css","./manifest.webmanifest","./favicon.svg","./message.mp3"];
+const CACHE_NAME="chat-pwa-v10";
+const APP_SHELL=["./","./index.html","./chat.css","./chat-mobile.css","./manifest.webmanifest","./favicon.svg","./android-favicon.svg","./android-notification.svg","./message.mp3"];
 const SUPABASE_URL="https://sxkukrqjtgkxmzuzondm.supabase.co";
 const CONFIRM_DELIVERY_URL=SUPABASE_URL+"/functions/v1/confirm-push-delivery";
 
@@ -21,8 +21,8 @@ self.addEventListener("push",function(event){
     var count=Number.isFinite(Number(data.count))&&Number(data.count)>0?Number(data.count):1;
     var options={
         body:data.body||(isCall?"Входящий звонок":"Новое сообщение"),
-        icon:data.icon||"./favicon.svg",
-        badge:data.badge||"./favicon.svg",
+        icon:data.icon||"./android-favicon.svg",
+        badge:data.badge||"./android-notification.svg",
         tag:data.tag||(isCall?"call":"chat-message")+"-"+(data.chatId||"general"),
         renotify:true,
         silent:false,
