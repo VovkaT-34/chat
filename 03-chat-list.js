@@ -15,11 +15,7 @@ function focusMobileMessageInput(){
     if(!input)return;
     var isMobile=window.matchMedia&&window.matchMedia("(max-width: 700px)").matches;
     if(!isMobile)return;
-    try{input.focus({preventScroll:false});}catch(error){try{input.focus();}catch(focusError){}}
-    setTimeout(function(){
-        try{input.focus({preventScroll:false});}catch(error){try{input.focus();}catch(focusError){}}
-        try{input.scrollIntoView({block:"center",inline:"nearest"});}catch(error){}
-    },120);
+    try{input.focus();}catch(error){}
 }
 function sortChatListItems(){var list=document.getElementById("chatList");if(!list)return;var items=Array.prototype.slice.call(list.querySelectorAll(".chat-item"));items.sort(function(a,b){var ta=a.dataset.chatType||"public",tb=b.dataset.chatType||"public",rank={private:0,group:0,public:1},ra=rank[ta]!==undefined?rank[ta]:1,rb=rank[tb]!==undefined?rank[tb]:1;if(ra!==rb)return ra-rb;if(ta==="public")return Number(a.dataset.chatId)-Number(b.dataset.chatId);var aa=Date.parse(a.dataset.lastActivity||"")||0,bb=Date.parse(b.dataset.lastActivity||"")||0;if(aa!==bb)return bb-aa;return Number(b.dataset.chatId)-Number(a.dataset.chatId);});items.forEach(function(item){list.appendChild(item);});}
 function moveChatToTop(chatId,lastActivity){var item=document.querySelector('.chat-item[data-chat-id="'+Number(chatId)+'"]');if(!item)return;if((item.dataset.chatType||"public")==="public")return;var activity=getEffectiveChatActivity(chatId,lastActivity||new Date().toISOString());item.dataset.lastActivity=activity;rememberChatActivity(chatId,activity);sortChatListItems();}
