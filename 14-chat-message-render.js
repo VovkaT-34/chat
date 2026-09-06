@@ -8,7 +8,8 @@ function renderMessage(message){
     var div=document.createElement("div");div.className="message";div.dataset.messageId=message.id;div.dataset.userId=message.user_id;
     var username=message.profiles&&message.profiles.username?message.profiles.username:"Пользователь",date=new Date(message.created_at),dateText=date.toLocaleDateString("ru-RU"),timeText=date.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
     var messageStatus=message.user_id===currentUser.id?'<span class="message-status" data-status-message-id="'+message.id+'" data-message-status="sent" style="margin-left:6px;font-size:13px;font-weight:bold;white-space:nowrap;color:#999999" title="Отправлено">✓</span>':"";
-    div.innerHTML='<div><span class="message-user">'+username+'</span><span class="message-time">'+dateText+' '+timeText+'</span>'+messageStatus+'</div>'+('<div style="background:#eeeeee;padding:8px;border-left:4px solid #8E44AD;border-radius:6px;margin-bottom:8px;font-size:14px;overflow-wrap:anywhere;word-break:break-word">↩ '+(message.reply_message&&message.reply_message.profiles&&message.reply_message.profiles.username?message.reply_message.profiles.username:"Пользователь")+'<br>'+(message.reply_message?message.reply_message.text||:"")+'</div>')+'<div class="message-text">'+(message.text||"")+'</div><button onclick=\'replyToMessage('+message.id+', '+JSON.stringify(username)+', '+JSON.stringify(message.text||"")+')\' style="margin-top:8px;padding:4px 10px;border:none;border-radius:8px;background:#8E44AD;color:white;cursor:pointer">↩ Ответить</button>';
+    var reply=message.reply_message?'<div style="background:#eeeeee;padding:8px;border-left:4px solid #8E44AD;border-radius:6px;margin-bottom:8px;font-size:14px;overflow-wrap:anywhere;word-break:break-word">↩ '+(message.reply_message.profiles&&message.reply_message.profiles.username?message.reply_message.profiles.username:"Пользователь")+'<br>'+(message.reply_message.text||"")+'</div>':"";
+    div.innerHTML='<div><span class="message-user">'+username+'</span><span class="message-time">'+dateText+' '+timeText+'</span>'+messageStatus+'</div>'+reply+'<div class="message-text">'+(message.text||"")+'</div><button onclick=\'replyToMessage('+message.id+', '+JSON.stringify(username)+', '+JSON.stringify(message.text||"")+')\' style="margin-top:8px;padding:4px 10px;border:none;border-radius:8px;background:#8E44AD;color:white;cursor:pointer">↩ Ответить</button>';
     return div;
 }
 function getMessageStatusOrder(status){return {sent:1,delivered:2,read:3}[status]||0;}
@@ -19,16 +20,13 @@ async function refreshChatMessageStatuses(chatId,messageIds){
     var id=Number(chatId);if(!id)return;
     var ids=(messageIds||[]).map(Number).filter(Boolean);
     if(!ids.length)return;
-
     try{
         var readsResult=await supabaseClient.from("user_chat_reads").select("last_read_message_id").eq("chat_id",id).neq("user_id",currentUser.id);
         var readBoundary=0;
         if(!readsResult.error){(readsResult.data||[]).forEach(function(row){readBoundary=Math.max(readBoundary,Number(row.last_read_message_id)||0);});chatReadBoundaryCache.set(id,readBoundary);}
-
         var deliveryResult=await supabaseClient.from("message_deliveries").select("message_id").in("message_id",ids).neq("user_id",currentUser.id);
         var delivered=new Set();
         if(!deliveryResult.error)(deliveryResult.data||[]).forEach(function(row){delivered.add(Number(row.message_id));});
-
         ids.forEach(function(messageId){
             if(messageId<=readBoundary)cacheAndApplyMessageStatus(messageId,"read");
             else if(delivered.has(messageId))cacheAndApplyMessageStatus(messageId,"delivered");
