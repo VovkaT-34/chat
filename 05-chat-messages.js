@@ -19,13 +19,14 @@ async function loadMessages(){
     let unreadDivider=null,firstUnreadMessage=null;
     (data||[]).forEach(function(message){var isUnread=Number(message.id)>lastReadId&&message.user_id!==currentUser.id;if(isUnread&&!unreadDivider){unreadDivider=document.createElement("div");unreadDivider.className="unread-divider";unreadDivider.textContent="Непрочитанные сообщения";box.appendChild(unreadDivider);}var div=renderMessage(message);if(!div)return;box.appendChild(div);if(isUnread&&!firstUnreadMessage)firstUnreadMessage=div;});
     const centerUnreadDivider=function(){if(!unreadDivider)return;if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;var br=box.getBoundingClientRect(),dr=unreadDivider.getBoundingClientRect(),delta=(dr.top+dr.height/2)-(br.top+box.clientHeight/2);if(Math.abs(delta)>0.5)box.scrollTop+=delta;};
-    const positionChat=function(){if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;if(unreadDivider)centerUnreadDivider();else if(typeof scrollMessagesToBottom==="function")scrollMessagesToBottom("auto");else box.scrollTop=box.scrollHeight;if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();};
-    positionChat();requestAnimationFrame(positionChat);setTimeout(positionChat,50);setTimeout(positionChat,150);setTimeout(positionChat,300);
+    if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
+    if(unreadDivider){centerUnreadDivider();}else if(typeof scrollMessagesToBottom==="function"){scrollMessagesToBottom();}else{box.scrollTop=box.scrollHeight;}
+    if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();
     const incomingIds=(data||[]).filter(function(m){return m.user_id!==currentUser.id;}).map(function(m){return Number(m.id);}).filter(Boolean);
     if(incomingIds.length){void Promise.all(incomingIds.map(async function(id){try{const r=await supabaseClient.rpc("mark_message_delivered",{p_message_id:id});if(r.error)console.log("Ошибка подтверждения доставки:",r.error);}catch(error){console.warn("Ошибка доставки:",error);}}));}
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
     const own=(data||[]).filter(function(m){return m.user_id===currentUser.id;}),lastOwn=own[own.length-1];if(lastOwn)await updateMessageStatus(lastOwn.id);
-    if(unreadDivider){requestAnimationFrame(function(){if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;centerUnreadDivider();if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();});}else if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();
+    if(unreadDivider){if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;centerUnreadDivider();if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();}else if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();
 }
 
 async function appendMessage(message){
