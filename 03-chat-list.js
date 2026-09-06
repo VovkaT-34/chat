@@ -61,7 +61,6 @@ function addChatToList(chatId,chatName,icon,extraClass,chatType,lastActivity){if
     var title=document.getElementById("chatTitle");if(title)title.textContent=chatName;
     updateCallButtonsForChat(chatId,chatType);
     openMobileChatView();
-    focusMobileMessageInput();
     await loadMessages();
     await updateUnreadCount(Number(chatId));
     updateCallButtonsForChat(chatId,chatType);
