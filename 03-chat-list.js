@@ -2,7 +2,7 @@
 // Загрузка списка чатов
 // ===============================
 const CHAT_ACTIVITY_STORAGE_PREFIX = "chat-last-activity-v1:";
-const CHAT_ICON_SVG = { private:'<svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>', group:'<svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M14 19.5a4 4 0 0 1 6.5-2.9"/></svg>', public:'<svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>', soundOn:'<svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M17 9.5a4 4 0 0 1 0 5M19.5 7a7.5 7.5 0 0 1 0 10"/></svg>', soundOff:'<svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="m17 10 4 4M21 10l-4 4"/></svg>' };
+const CHAT_ICON_SVG = { private:'<svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>', group:'<svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M14 19.5a4 4 0 0 1 6.5-2.9"/></svg>', public:'<svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>', soundOn:'<svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M17 9.5a4 4 0 0 1 0 5M19.5 7a7.5 7.5 0 0 1 0 10"/></svg>', soundOff:'<svg class="icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10v4h4l5 4M13 6v12l-5-4H4v-4h4l5-4z"/><path d="m17 10 4 4M21 10l-4 4"/></svg>' };
 function getChatIcon(type){return CHAT_ICON_SVG[type]||CHAT_ICON_SVG.public;}
 function getChatActivityStorageKey(){var u=window.currentUser;return CHAT_ACTIVITY_STORAGE_PREFIX+(u&&u.id?u.id:"guest");}
 function readPersistedChatActivities(){try{var raw=localStorage.getItem(getChatActivityStorageKey());var parsed=raw?JSON.parse(raw):{};return parsed&&typeof parsed==="object"?parsed:{};}catch(error){return {};}}
@@ -28,24 +28,15 @@ function focusMobileMessageInput(){
     if(!input||!chatWindow)return;
     var isMobile=window.matchMedia&&window.matchMedia("(max-width: 700px)").matches;
     if(!isMobile)return;
+    chatWindow.style.overflow="visible";
     if(!window.__chatMobileKeyboardViewportBound){
         window.__chatMobileKeyboardViewportBound=true;
-        if(window.visualViewport){
-            window.visualViewport.addEventListener("resize",keepMobileInputAboveKeyboard);
-            window.visualViewport.addEventListener("scroll",keepMobileInputAboveKeyboard);
-        }
+        if(window.visualViewport)window.visualViewport.addEventListener("resize",keepMobileInputAboveKeyboard);
         window.addEventListener("resize",keepMobileInputAboveKeyboard);
     }
     try{chatWindow.scrollIntoView({behavior:"smooth",block:"start",inline:"nearest"});}catch(error){}
-    try{
-        input.focus({preventScroll:true});
-    }catch(error){
-        try{input.focus();}catch(focusError){}
-    }
-    try{
-        var length=input.value.length;
-        input.setSelectionRange(length,length);
-    }catch(error){}
+    try{input.focus({preventScroll:true});}catch(error){try{input.focus();}catch(focusError){}}
+    try{var length=input.value.length;input.setSelectionRange(length,length);}catch(error){}
     requestAnimationFrame(function(){keepMobileInputAboveKeyboard();});
 }
 function sortChatListItems(){var list=document.getElementById("chatList");if(!list)return;var items=Array.prototype.slice.call(list.querySelectorAll(".chat-item"));items.sort(function(a,b){var ta=a.dataset.chatType||"public",tb=b.dataset.chatType||"public",rank={private:0,group:0,public:1},ra=rank[ta]!==undefined?rank[ta]:1,rb=rank[tb]!==undefined?rank[tb]:1;if(ra!==rb)return ra-rb;if(ta==="public")return Number(a.dataset.chatId)-Number(b.dataset.chatId);var aa=Date.parse(a.dataset.lastActivity||"")||0,bb=Date.parse(b.dataset.lastActivity||"")||0;if(aa!==bb)return bb-aa;return Number(b.dataset.chatId)-Number(a.dataset.chatId);});items.forEach(function(item){list.appendChild(item);});}
