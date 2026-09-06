@@ -463,10 +463,6 @@ setInterval(async function () {
     messageStatusRefreshBusy = false;
 }, 5000);
 
-setInterval(function () {
-    void syncCurrentChatMessages();
-}, 1500);
-
 document.addEventListener("visibilitychange", function () {
     if (!document.hidden) {
         void reconnectChatRealtime();
