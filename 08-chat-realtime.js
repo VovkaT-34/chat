@@ -137,15 +137,14 @@ async function subscribeToMessages() {
                         }
                     }
 
+                    // Новое входящее сообщение в закрытом чате увеличивает
+                    // уже показанный счётчик локально — отдельный RPC не нужен.
                     if (
                         isIncoming &&
-                        typeof updateUnreadCount === "function"
+                        !isCurrentChat &&
+                        typeof incrementUnreadCount === "function"
                     ) {
-                        try {
-                            await updateUnreadCount(newMessage.chat_id);
-                        } catch (error) {
-                            console.warn("Ошибка счётчика:", error);
-                        }
+                        incrementUnreadCount(newMessage.chat_id);
                     }
 
                     if (typeof window.moveChatToTop === "function") {
@@ -299,8 +298,6 @@ async function refreshOwnMessageStatuses() {
 // ===============================
 // Резервная синхронизация входящих
 // ===============================
-// Realtime остаётся основным и самым быстрым каналом. Этот короткий polling
-// нужен как страховка для старых Safari/WebView и после временного обрыва WS.
 async function syncCurrentChatMessages() {
     if (
         incomingMessageSyncBusy ||
