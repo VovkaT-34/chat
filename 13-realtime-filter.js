@@ -1,5 +1,5 @@
 // ===============================
-// Фильтр Realtime сообщений по доступным чатам
+// Фильтры Realtime по нужным событиям
 // ===============================
 (function () {
     if (window.__filteredMessageRealtimeInstalled) return;
@@ -18,10 +18,12 @@
 
     supabaseClient.channel = function (name, options) {
         var channel = originalChannel(name, options);
+        var channelName = String(name);
 
         if (
-            String(name).indexOf("messages-realtime-") !== 0 &&
-            String(name).indexOf("message-deliveries-realtime") !== 0
+            channelName.indexOf("messages-realtime-") !== 0 &&
+            channelName.indexOf("message-deliveries-realtime") !== 0 &&
+            channelName.indexOf("user-chat-reads-realtime") !== 0
         ) {
             return channel;
         }
@@ -59,6 +61,19 @@
                     filter: "user_id=neq." + currentUser.id
                 });
                 console.log("Realtime доставок отфильтрован по user_id");
+            }
+
+            if (
+                type === "postgres_changes" &&
+                config &&
+                config.table === "user_chat_reads" &&
+                currentUser &&
+                currentUser.id
+            ) {
+                config = Object.assign({}, config, {
+                    filter: "user_id=neq." + currentUser.id
+                });
+                console.log("Realtime прочтений отфильтрован по user_id");
             }
 
             return originalOn(type, config, callback);
