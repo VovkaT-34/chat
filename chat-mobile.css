@@ -62,3 +62,23 @@
         .chat-header-main-actions .leave-chat-button .icon-svg { width: 9px !important; height: 9px !important; }
     }
 }
+
+/* =========================================
+   КНОПКА «ВЫЙТИ ИЗ ЧАТА» — WINDOWS / DESKTOP
+   Только кнопка выхода: по центру, в 2 раза меньше и немного выше.
+   ========================================= */
+@media (min-width: 901px) {
+    .chat-header-main-actions .leave-chat-button {
+        position: absolute !important;
+        left: 50% !important;
+        right: auto !important;
+        top: 20px !important;
+        margin: 0 !important;
+        transform: translate(-50%, -50%) scale(.5) !important;
+        transform-origin: center center !important;
+    }
+
+    .chat-header-main-actions .leave-chat-button:hover {
+        transform: translate(-50%, -50%) translateY(-1px) scale(.5) !important;
+    }
+}
