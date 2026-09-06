@@ -48,7 +48,18 @@ async function startChat() {
     });
 
 
-    // 5. Подключаем фильтрацию Realtime по доступным чатам
+    // 5. Подключаем оптимизированное Realtime-прочтение
+
+    await new Promise(function (resolve) {
+        var script = document.createElement("script");
+        script.src = "17-message-read-realtime-optimized.js";
+        script.onload = resolve;
+        script.onerror = resolve;
+        document.head.appendChild(script);
+    });
+
+
+    // 6. Подключаем фильтрацию Realtime по доступным чатам
 
     await new Promise(function (resolve) {
         var script = document.createElement("script");
@@ -59,12 +70,12 @@ async function startChat() {
     });
 
 
-    // 6. Подключаем Realtime сообщений
+    // 7. Подключаем Realtime сообщений
 
     await subscribeToMessages();
 
 
-    // 7. Подключаем индикатор печати
+    // 8. Подключаем индикатор печати
 
     await subscribeToTyping();
 
