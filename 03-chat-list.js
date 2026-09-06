@@ -10,13 +10,6 @@ function writePersistedChatActivities(a){try{localStorage.setItem(getChatActivit
 function rememberChatActivity(id,last){id=Number(id);if(!id||!last)return;var a=readPersistedChatActivities(),old=Date.parse(a[id]||"")||0,next=Date.parse(last||"")||0;if(next>=old){a[id]=last;writePersistedChatActivities(a);}}
 function getEffectiveChatActivity(id,server){var a=readPersistedChatActivities(),local=a[Number(id)]||"",st=Date.parse(server||"")||0,lt=Date.parse(local||"")||0;return lt>st?local:(server||local||"");}
 function updateCallButtonsForChat(chatId,chatType){var audio=document.getElementById("callAudioButton"),video=document.getElementById("callVideoButton");if(!audio||!video)return;var visible=Number(chatId)>0&&String(chatType||"")==="private",display=visible?"inline-flex":"none";audio.style.setProperty("display",display,"important");video.style.setProperty("display",display,"important");}
-function focusMobileMessageInput(){
-    var input=document.getElementById("messageInput");
-    if(!input)return;
-    var isMobile=window.matchMedia&&window.matchMedia("(max-width: 700px)").matches;
-    if(!isMobile)return;
-    try{input.focus();}catch(error){}
-}
 function isMobileChatLayout(){return window.matchMedia&&window.matchMedia("(max-width: 900px)").matches;}
 function ensureMobileChatBackButton(){
     var header=document.querySelector(".chat-window > div:first-child");
@@ -60,8 +53,11 @@ function addChatToList(chatId,chatName,icon,extraClass,chatType,lastActivity){if
     div.classList.add("active");
     var title=document.getElementById("chatTitle");if(title)title.textContent=chatName;
     updateCallButtonsForChat(chatId,chatType);
+    var input=document.getElementById("messageInput");
+    if(input){try{input.blur();}catch(error){}}
     openMobileChatView();
     await loadMessages();
+    if(input){try{input.blur();}catch(error){}}
     await updateUnreadCount(Number(chatId));
     updateCallButtonsForChat(chatId,chatType);
     if(typeof updateChatCallButtonVisibility==="function")setTimeout(updateChatCallButtonVisibility,50);
