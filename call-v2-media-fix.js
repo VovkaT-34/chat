@@ -130,27 +130,26 @@
         cameraSwitchBusy = true;
         const previousFacingMode = detectCurrentFacingMode();
         const targetFacingMode = previousFacingMode === "environment" ? "user" : "environment";
-        const sender = window.__chatCallGetVideoSender?.() || null;
 
         try {
-            setTimeout(() => {
-                try {
-                    const status = document.getElementById("cv2Status");
-                    if (status) status.textContent = "Переключаем камеру…";
-                } catch {}
-            }, 0);
+            const status = document.getElementById("cv2Status");
+            if (status) status.textContent = "Переключаем камеру…";
 
-            // На мобильных браузерах, особенно iOS Safari, новую камеру
-            // надёжнее запрашивать после освобождения текущей.
+            // Не обращаемся к localStream из call-v2.js: он находится
+            // внутри его замыкания и недоступен этому модулю. Именно это
+            // вызывало чёрное локальное видео после предыдущего переключения.
+            const sender = window.__chatCallGetVideoSender?.() || null;
+
+            // Сначала полностью освобождаем текущую камеру. Для Safari/iOS
+            // это важно при переходе user <-> environment.
             oldTrack.stop();
-            localStream?.removeTrack?.(oldTrack);
 
             let newTrack;
             try {
                 newTrack = await getCameraTrack(targetFacingMode);
             } catch (firstError) {
-                // Мягкий fallback для браузеров, где exact facingMode
-                // временно не проходит после смены камеры.
+                // Мягкий fallback для браузеров, которые принимают
+                // environment/user только как обычное, а не exact-условие.
                 requestedFacingMode = targetFacingMode;
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({
@@ -173,18 +172,16 @@
 
             if (sender) {
                 await sender.replaceTrack(newTrack);
+            } else if (window.__chatCallAddVideoTrack) {
+                await window.__chatCallAddVideoTrack(newTrack);
             } else {
-                if (window.__chatCallAddVideoTrack) {
-                    await window.__chatCallAddVideoTrack(newTrack);
-                } else {
-                    throw new Error("Видеосендер WebRTC не найден");
-                }
+                throw new Error("Видеосендер WebRTC не найден");
             }
 
-            if (!localStream) localStream = new MediaStream();
-            localStream.addTrack(newTrack);
-
-            video.srcObject = localStream;
+            // Локальный preview получает только новый видеотрек.
+            // Аудиотрек звонка при этом не затрагивается.
+            const previewStream = new MediaStream([newTrack]);
+            video.srcObject = previewStream;
             video.style.display = "block";
             await video.play().catch(() => {});
 
@@ -199,7 +196,6 @@
                 control.title = "Выключить видео";
             }
 
-            const status = document.getElementById("cv2Status");
             if (status) status.textContent = "Видеозвонок";
 
             newTrack.onended = () => {
@@ -212,16 +208,19 @@
         } catch (error) {
             console.error("Ошибка переключения камеры:", error);
 
+            // Возвращаем предыдущую камеру, если новая не открылась.
             try {
                 const restoreTrack = await getCameraTrack(previousFacingMode);
+                const sender = window.__chatCallGetVideoSender?.() || null;
                 if (sender) {
                     await sender.replaceTrack(restoreTrack);
                 } else if (window.__chatCallAddVideoTrack) {
                     await window.__chatCallAddVideoTrack(restoreTrack);
+                } else {
+                    throw new Error("Видеосендер WebRTC не найден");
                 }
-                if (!localStream) localStream = new MediaStream();
-                localStream.addTrack(restoreTrack);
-                video.srcObject = localStream;
+                const restorePreview = new MediaStream([restoreTrack]);
+                video.srcObject = restorePreview;
                 video.style.display = "block";
                 await video.play().catch(() => {});
                 currentFacingMode = previousFacingMode;
