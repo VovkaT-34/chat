@@ -320,7 +320,7 @@ async function syncCurrentChatMessages() {
             )
             .eq("chat_id", chatId)
             .order("created_at", { ascending: false })
-            .limit(30);
+            .limit(5);
 
         if (result.error || !result.data) return;
         if (Number(currentChatId) !== chatId) return;
