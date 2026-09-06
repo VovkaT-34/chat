@@ -447,9 +447,9 @@ body {
     /* На главном экране список чатов доходит до нижнего края,
        сохраняя серую область по бокам. Открытый чат не затрагиваем. */
     body:not(.mobile-chat-open) .chat-list {
-        margin-bottom: -10px;
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
+        margin-bottom: 0;
+        border-bottom-left-radius: 14px;
+        border-bottom-right-radius: 14px;
     }
 
     #mobileChatBackButton {
@@ -520,6 +520,6 @@ body {
     }
 
     body:not(.mobile-chat-open) .chat-list {
-        margin-bottom: -8px;
+        margin-bottom: 0;
     }
 }
