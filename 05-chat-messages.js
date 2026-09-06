@@ -46,11 +46,11 @@ async function loadOlderMessages(){
     const oldestId=Number(firstMessage.getAttribute("data-message-id"));if(!oldestId)return;
     olderMessagesLoading=true;
     const beforeHeight=box.scrollHeight;
-    const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`).eq("chat_id",chatIdAtLoad).lt("id",oldestId).order("id",{ascending:false}).limit(30);
+    const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`).eq("chat_id",chatIdAtLoad).lt("id",oldestId).order("id",{ascending:false}).limit(5);
     olderMessagesLoading=false;
     if(result.error){console.log(result.error);return;}
     const older=(result.data||[]).reverse();
-    if(older.length<30)olderMessagesDone=true;
+    if(older.length<5)olderMessagesDone=true;
     if(Number(currentChatId)!==chatIdAtLoad||olderMessagesChatId!==chatIdAtLoad)return;
     const fragment=document.createDocumentFragment();
     older.forEach(function(message){if(box.querySelector('[data-message-id="'+message.id+'"]'))return;const div=renderMessage(message);if(div)fragment.appendChild(div);});
