@@ -62,24 +62,33 @@
 
 /* =========================================
    КНОПКА «ВЫЙТИ ИЗ ЧАТА» — МОБИЛЬНЫЕ
-   Центрируем и уменьшаем одинаково для iPhone и Android.
+   Кнопка находится строго по центру своей области,
+   независимо от расположения кнопок звонка.
    ========================================= */
 @media (max-width: 900px) {
     .chat-header-main-actions {
-        position: relative;
+        position: relative !important;
         width: 100% !important;
         justify-content: center !important;
         align-items: center !important;
     }
 
     .chat-header-main-actions .leave-chat-button {
-        margin-left: auto !important;
-        margin-right: auto !important;
+        position: absolute !important;
+        left: 50% !important;
+        right: auto !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        margin: 0 !important;
         padding: 5px 8px !important;
-        min-height: 28px;
+        min-height: 28px !important;
         font-size: 10px !important;
         border-radius: 7px !important;
-        gap: 4px;
+        gap: 4px !important;
+    }
+
+    .chat-header-main-actions .leave-chat-button:hover {
+        transform: translate(-50%, -50%) translateY(-1px) !important;
     }
 
     .chat-header-main-actions .leave-chat-button .icon-svg {
@@ -88,10 +97,11 @@
     }
 }
 
+/* Небольшие экраны: ещё компактнее. */
 @media (max-width: 380px) {
     .chat-header-main-actions .leave-chat-button {
         padding: 4px 7px !important;
-        min-height: 26px;
+        min-height: 26px !important;
         font-size: 9px !important;
         border-radius: 6px !important;
     }
@@ -99,5 +109,24 @@
     .chat-header-main-actions .leave-chat-button .icon-svg {
         width: 11px !important;
         height: 11px !important;
+    }
+}
+
+/* iPhone / iOS: кнопка немного меньше и уже,
+   при этом оставляем нормальный зазор между дверью и краями кнопки. */
+@media (max-width: 900px) {
+    @supports (-webkit-touch-callout: none) {
+        .chat-header-main-actions .leave-chat-button {
+            padding: 4px 7px !important;
+            min-height: 25px !important;
+            font-size: 9px !important;
+            border-radius: 6px !important;
+            gap: 4px !important;
+        }
+
+        .chat-header-main-actions .leave-chat-button .icon-svg {
+            width: 10px !important;
+            height: 10px !important;
+        }
     }
 }
