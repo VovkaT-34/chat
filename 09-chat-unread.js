@@ -49,6 +49,26 @@ async function getUnreadCount(chatId) {
 }
 
 
+// ===============================
+// Локальное увеличение счётчика
+// ===============================
+
+function incrementUnreadCount(chatId) {
+
+    const badge = document.getElementById(
+        `count-${Number(chatId)}`
+    );
+
+    if (!badge) return;
+
+    const current = Number(badge.textContent) || 0;
+    const next = current + 1;
+
+    badge.textContent = next;
+    badge.style.display = "inline-block";
+
+}
+
 
 // ===============================
 // Обновление счётчика
