@@ -29,22 +29,22 @@
     .chat-header-main-actions { position: relative !important; width: 100% !important; justify-content: center !important; align-items: center !important; }
     .chat-header-main-actions .leave-chat-button {
         position: absolute !important;
-        left: calc(50% - 89px) !important;
+        left: calc(50% - 54px) !important;
         right: auto !important;
         top: calc(50% - 5px) !important;
         transform: translate(-50%, -50%) !important;
         margin: 0 !important;
-        padding: 2px 6px !important;
+        padding: 1px 4px !important;
         width: 90px !important;
         min-width: 90px !important;
-        min-height: 21px !important;
-        font-size: 10px !important;
+        min-height: 19px !important;
+        font-size: 8px !important;
         border-radius: 6px !important;
         gap: 3px !important;
         white-space: nowrap !important;
     }
     .chat-header-main-actions .leave-chat-button:hover { transform: translate(-50%, -50%) translateY(-1px) !important; }
-    .chat-header-main-actions .leave-chat-button .icon-svg { width: 12px !important; height: 12px !important; }
+    .chat-header-main-actions .leave-chat-button .icon-svg { width: 9px !important; height: 9px !important; }
 }
 
 @media (max-width: 380px) {
