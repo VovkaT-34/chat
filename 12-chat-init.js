@@ -37,7 +37,18 @@ async function startChat() {
     await loadChats();
 
 
-    // 4. Подключаем фильтрацию Realtime по доступным чатам
+    // 4. Подключаем пакетное восстановление статусов сообщений
+
+    await new Promise(function (resolve) {
+        var script = document.createElement("script");
+        script.src = "16-message-status-batch.js";
+        script.onload = resolve;
+        script.onerror = resolve;
+        document.head.appendChild(script);
+    });
+
+
+    // 5. Подключаем фильтрацию Realtime по доступным чатам
 
     await new Promise(function (resolve) {
         var script = document.createElement("script");
@@ -48,12 +59,12 @@ async function startChat() {
     });
 
 
-    // 5. Подключаем Realtime сообщений
+    // 6. Подключаем Realtime сообщений
 
     await subscribeToMessages();
 
 
-    // 6. Подключаем индикатор печати
+    // 7. Подключаем индикатор печати
 
     await subscribeToTyping();
 
