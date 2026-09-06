@@ -373,7 +373,7 @@ function subscribeToMessageDeliveries() {
 
                     const result = await supabaseClient
                         .from("messages")
-                        .select("id,user_id")
+                        .select("id,user_id,chat_id")
                         .eq("id", messageId)
                         .maybeSingle();
 
@@ -386,6 +386,10 @@ function subscribeToMessageDeliveries() {
                     }
 
                     cacheAndApplyMessageStatus(messageId, "delivered");
+
+                    if (typeof updateChatListMessageStatus === "function") {
+                        await updateChatListMessageStatus(result.data.chat_id);
+                    }
                 } catch (error) {
                     console.warn("Ошибка доставки Realtime:", error);
                 }
@@ -431,6 +435,10 @@ function subscribeToMessageReads() {
                         (result.data || []).forEach(function (message) {
                             cacheAndApplyMessageStatus(message.id, "read");
                         });
+
+                        if (typeof updateChatListMessageStatus === "function") {
+                            await updateChatListMessageStatus(chatId);
+                        }
                     }
                 } catch (error) {
                     console.warn("Ошибка прочтения Realtime:", error);
