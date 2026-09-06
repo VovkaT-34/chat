@@ -17,10 +17,10 @@ async function loadMessages(){
     const readInfo=readResult.data;
     const lastReadId=readInfo&&readInfo.last_read_message_id?Number(readInfo.last_read_message_id):0;
     localLastReadMessageId=lastReadId;
-    const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`).eq("chat_id",chatIdAtLoad).order("id",{ascending:false}).limit(30);
+    const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`).eq("chat_id",chatIdAtLoad).order("id",{ascending:false}).limit(10);
     let data=result.data||[],error=result.error;
     if(error){console.log(error);return;}
-    if(data.length<30)olderMessagesDone=true;
+    if(data.length<10)olderMessagesDone=true;
     if(lastReadId>0&&data.length){const oldestRecentId=Number(data[data.length-1].id);if(oldestRecentId>lastReadId){const unreadResult=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`).eq("chat_id",chatIdAtLoad).gt("id",lastReadId).order("id",{ascending:true});if(unreadResult.error)console.log(unreadResult.error);else data=data.concat(unreadResult.data||[]);}}
     const unique={};data.forEach(function(message){unique[Number(message.id)]=message;});
     const loadedData=Object.keys(unique).map(function(id){return unique[id];}).sort(function(a,b){return Number(a.id)-Number(b.id);});
