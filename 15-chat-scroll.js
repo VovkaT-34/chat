@@ -6,37 +6,16 @@ function getMessagesBox() {
     return document.getElementById("messages");
 }
 
-// При открытии уже прочитанного чата всегда показываем конец истории.
-// Используем не только scrollHeight, но и последний элемент сообщения:
-// это надёжнее после динамической отрисовки и изменения высоты DOM.
-function scrollMessagesToBottom(behavior = "auto") {
+// При открытии чата показываем конец истории без scrollIntoView.
+// scrollIntoView может прокручивать не только блок сообщений, но и всю
+// страницу. На мобильных это особенно заметно при одновременном открытии
+// клавиатуры и изменении высоты viewport.
+function scrollMessagesToBottom() {
     const box = getMessagesBox();
     if (!box) return;
 
-    const move = () => {
-        const lastMessage = box.querySelector(".message:last-of-type");
-
-        if (lastMessage) {
-            try {
-                lastMessage.scrollIntoView({
-                    behavior,
-                    block: "end",
-                    inline: "nearest"
-                });
-            } catch {
-                box.scrollTop = box.scrollHeight;
-            }
-        }
-
-        box.scrollTop = box.scrollHeight;
-        updateScrollToBottomButton();
-    };
-
-    move();
-    requestAnimationFrame(move);
-    setTimeout(move, 50);
-    setTimeout(move, 150);
-    setTimeout(move, 300);
+    box.scrollTop = box.scrollHeight;
+    updateScrollToBottomButton();
 }
 
 window.scrollMessagesToBottom = scrollMessagesToBottom;
@@ -79,12 +58,10 @@ function createScrollToBottomButton() {
     button.addEventListener("click", event => {
         event.preventDefault();
         event.stopPropagation();
-        scrollMessagesToBottom("smooth");
+        scrollMessagesToBottom();
 
-        setTimeout(() => {
-            if (typeof markChatAsRead === "function") markChatAsRead();
-            updateScrollToBottomButton();
-        }, 500);
+        if (typeof markChatAsRead === "function") markChatAsRead();
+        updateScrollToBottomButton();
     });
 
     chatWindow.appendChild(button);
