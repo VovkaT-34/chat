@@ -1,53 +1,63 @@
 // ===============================
 // Пакетное обновление списка чатов
 // ===============================
-// Сохраняем существующую логику UI, но при загрузке списка
-// не выполняем отдельный RPC для каждого чата.
 
-async function batchUpdateChatListData(chatIds) {
-    if (!currentUser || !supabaseClient || !Array.isArray(chatIds) || !chatIds.length) return;
+(function(){
+    var originalLoadChats = window.loadChats;
+    if (typeof originalLoadChats !== "function") return;
 
-    var ids = chatIds.map(Number).filter(function(id){ return id > 0; });
-    if (!ids.length) return;
+    window.loadChats = async function(){
+        var originalUnread = window.updateUnreadCount;
+        var originalStatus = window.updateChatListMessageStatus;
 
-    // Один запрос получает последние собственные сообщения сразу для всех чатов.
-    var messagesResult = await supabaseClient
-        .from("messages")
-        .select("id,chat_id,created_at")
-        .in("chat_id", ids)
-        .eq("user_id", currentUser.id)
-        .order("created_at", {ascending:false});
+        // Во время построения списка запрещаем старые per-chat запросы.
+        window.updateUnreadCount = function(){};
+        window.updateChatListMessageStatus = function(){};
 
-    if (messagesResult.error) {
-        console.error("Ошибка пакетной загрузки статусов чатов:", messagesResult.error);
-        return;
-    }
+        try {
+            await originalLoadChats();
+        } finally {
+            window.updateUnreadCount = originalUnread;
+            window.updateChatListMessageStatus = originalStatus;
+        }
 
-    var latestByChat = {};
-    (messagesResult.data || []).forEach(function(message){
-        var chatId = Number(message.chat_id);
-        if (!latestByChat[chatId]) latestByChat[chatId] = message;
-    });
+        var list = document.getElementById("chatList");
+        if (!list || !currentUser || !supabaseClient) return;
 
-    // Статусы в списке нужны только для последнего собственного сообщения.
-    // Запрашиваем их только там, где такое сообщение действительно есть.
-    await Promise.all(Object.keys(latestByChat).map(async function(chatId){
-        var last = latestByChat[chatId];
-        var el = document.querySelector('[data-chat-status-id="'+Number(chatId)+'"]');
-        if (!el) return;
+        var ids = Array.prototype.map.call(
+            list.querySelectorAll(".chat-item[data-chat-id]"),
+            function(item){ return Number(item.dataset.chatId); }
+        ).filter(function(id){ return id > 0; });
 
-        var statusResult = await supabaseClient.rpc("get_message_status", {p_message_id:last.id});
-        if (statusResult.error) return;
+        if (!ids.length) return;
 
-        el.dataset.messageStatus = "sent";
-        setMessageStatus(el, statusResult.data);
-    }));
+        var result = await supabaseClient.rpc("get_my_chat_list_data", {
+            p_chat_ids: ids
+        });
 
-    // Unread остаётся через существующий RPC, но запускается только после
-    // построения списка и с уже существующими debounce-таймерами.
-    ids.forEach(function(chatId){
-        updateUnreadCount(chatId);
-    });
-}
+        if (result.error) {
+            console.error("Ошибка пакетной загрузки данных чатов:", result.error);
+            ids.forEach(function(id){
+                updateUnreadCount(id);
+                updateChatListMessageStatus(id);
+            });
+            return;
+        }
 
-window.batchUpdateChatListData = batchUpdateChatListData;
+        (result.data || []).forEach(function(row){
+            var id = Number(row.chat_id);
+            var badge = document.getElementById("count-" + id);
+            if (badge) {
+                var count = Number(row.unread_count) || 0;
+                badge.textContent = count > 0 ? count : "";
+                badge.style.display = count > 0 ? "inline-block" : "none";
+            }
+
+            var statusEl = document.querySelector('[data-chat-status-id="'+id+'"]');
+            if (statusEl && row.last_message_id && row.last_message_status) {
+                statusEl.dataset.messageStatus = "sent";
+                setMessageStatus(statusEl, row.last_message_status);
+            }
+        });
+    };
+})();
