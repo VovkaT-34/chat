@@ -451,18 +451,6 @@ function subscribeToMessageReads() {
 subscribeToMessageDeliveries();
 subscribeToMessageReads();
 
-setInterval(async function () {
-    if (messageStatusRefreshBusy) return;
-
-    messageStatusRefreshBusy = true;
-    try {
-        await refreshOwnMessageStatuses();
-    } catch (error) {
-        console.warn("Ошибка обновления статусов:", error);
-    }
-    messageStatusRefreshBusy = false;
-}, 5000);
-
 document.addEventListener("visibilitychange", function () {
     if (!document.hidden) {
         void reconnectChatRealtime();
