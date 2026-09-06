@@ -11,6 +11,7 @@
     const isSupportedMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || "") && Number(navigator.maxTouchPoints || 0) > 0;
     let requestedFacingMode = null;
     let currentFacingMode = "user";
+    let cameraSwitchBusy = false;
 
     function prepareCallAudioSession() {
         try {
@@ -96,20 +97,148 @@
         button.style.display = localVideoEnabled() ? "flex" : "none";
     }
 
-    function switchCamera() {
-        if (!isSupportedMobile || !localVideoEnabled()) return;
-        const target = detectCurrentFacingMode() === "environment" ? "user" : "environment";
-        requestedFacingMode = target;
-        const videoButton = document.getElementById("cv2VideoControl");
-        if (!videoButton) return;
-        videoButton.click();
-        setTimeout(() => {
-            if (!document.getElementById("chatCallV2")?.classList.contains("open")) return;
-            requestedFacingMode = target;
-            videoButton.click();
-        }, 120);
-        currentFacingMode = target;
-        setTimeout(() => { requestedFacingMode = null; ensureCameraSwitchButton(); }, 1200);
+    async function getCameraTrack(facingMode) {
+        requestedFacingMode = facingMode;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    frameRate: { ideal: 30, max: 30 },
+                    facingMode: { exact: facingMode }
+                },
+                audio: false
+            });
+            const track = stream.getVideoTracks()[0];
+            if (!track) {
+                stream.getTracks().forEach(item => item.stop());
+                throw new Error("Видеотрек не получен");
+            }
+            return track;
+        } finally {
+            requestedFacingMode = null;
+        }
+    }
+
+    async function switchCamera() {
+        if (!isSupportedMobile || !localVideoEnabled() || cameraSwitchBusy) return;
+
+        const video = localVideo();
+        const oldTrack = localVideoTrack();
+        if (!video || !oldTrack) return;
+
+        cameraSwitchBusy = true;
+        const previousFacingMode = detectCurrentFacingMode();
+        const targetFacingMode = previousFacingMode === "environment" ? "user" : "environment";
+        const sender = window.__chatCallGetVideoSender?.() || null;
+
+        try {
+            setTimeout(() => {
+                try {
+                    const status = document.getElementById("cv2Status");
+                    if (status) status.textContent = "Переключаем камеру…";
+                } catch {}
+            }, 0);
+
+            // На мобильных браузерах, особенно iOS Safari, новую камеру
+            // надёжнее запрашивать после освобождения текущей.
+            oldTrack.stop();
+            localStream?.removeTrack?.(oldTrack);
+
+            let newTrack;
+            try {
+                newTrack = await getCameraTrack(targetFacingMode);
+            } catch (firstError) {
+                // Мягкий fallback для браузеров, где exact facingMode
+                // временно не проходит после смены камеры.
+                requestedFacingMode = targetFacingMode;
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            frameRate: { ideal: 30, max: 30 },
+                            facingMode: targetFacingMode
+                        },
+                        audio: false
+                    });
+                    newTrack = stream.getVideoTracks()[0];
+                    if (!newTrack) throw firstError;
+                } finally {
+                    requestedFacingMode = null;
+                }
+            }
+
+            if (!newTrack) throw new Error("Новая камера не получена");
+
+            if (sender) {
+                await sender.replaceTrack(newTrack);
+            } else {
+                // В активном видеозвонке sender должен существовать. Этот
+                // fallback оставлен только для защиты от нестандартного состояния.
+                if (window.__chatCallAddVideoTrack) {
+                    await window.__chatCallAddVideoTrack(newTrack);
+                } else {
+                    throw new Error("Видеосендер WebRTC не найден");
+                }
+            }
+
+            if (!localStream) localStream = new MediaStream();
+            localStream.addTrack(newTrack);
+
+            video.srcObject = localStream;
+            video.style.display = "block";
+            await video.play().catch(() => {});
+
+            const actualFacingMode = newTrack.getSettings?.().facingMode;
+            currentFacingMode = actualFacingMode === "environment" || actualFacingMode === "user"
+                ? actualFacingMode
+                : targetFacingMode;
+
+            const control = document.getElementById("cv2VideoControl");
+            if (control) {
+                control.classList.add("green");
+                control.title = "Выключить видео";
+            }
+
+            const status = document.getElementById("cv2Status");
+            if (status) status.textContent = "Видеозвонок";
+
+            newTrack.onended = () => {
+                const current = localVideoTrack();
+                if (current === newTrack) {
+                    const button = document.getElementById("cv2VideoControl");
+                    if (button) button.classList.remove("green");
+                }
+            };
+        } catch (error) {
+            console.error("Ошибка переключения камеры:", error);
+
+            // Если новая камера не открылась, возвращаем исходную камеру.
+            try {
+                const restoreTrack = await getCameraTrack(previousFacingMode);
+                if (sender) {
+                    await sender.replaceTrack(restoreTrack);
+                } else if (window.__chatCallAddVideoTrack) {
+                    await window.__chatCallAddVideoTrack(restoreTrack);
+                }
+                if (!localStream) localStream = new MediaStream();
+                localStream.addTrack(restoreTrack);
+                video.srcObject = localStream;
+                video.style.display = "block";
+                await video.play().catch(() => {});
+                currentFacingMode = previousFacingMode;
+            } catch (restoreError) {
+                console.error("Не удалось восстановить предыдущую камеру:", restoreError);
+            }
+
+            const status = document.getElementById("cv2Status");
+            if (status) status.textContent = "Не удалось переключить камеру";
+        } finally {
+            requestedFacingMode = null;
+            cameraSwitchBusy = false;
+            ensureCameraSwitchButton();
+        }
     }
 
     function installCameraSwitch() {
