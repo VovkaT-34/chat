@@ -17,11 +17,57 @@ function focusMobileMessageInput(){
     if(!isMobile)return;
     try{input.focus();}catch(error){}
 }
+function isMobileChatLayout(){return window.matchMedia&&window.matchMedia("(max-width: 900px)").matches;}
+function ensureMobileChatBackButton(){
+    var header=document.querySelector(".chat-window > div:first-child");
+    if(!header)return null;
+    var existing=document.getElementById("mobileChatBackButton");
+    if(existing)return existing;
+    var button=document.createElement("button");
+    button.id="mobileChatBackButton";
+    button.type="button";
+    button.setAttribute("aria-label","Назад к чатам");
+    button.title="Назад к чатам";
+    button.innerHTML='<svg class="icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+    button.addEventListener("click",function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        currentChatId=0;
+        document.body.classList.remove("mobile-chat-open");
+        var title=document.getElementById("chatTitle");
+        if(title)title.textContent="Выберите чат";
+        updateCallButtonsForChat(0,"public");
+        var input=document.getElementById("messageInput");
+        if(input){try{input.blur();}catch(error){}}
+        document.querySelectorAll(".chat-item.active").forEach(function(item){item.classList.remove("active");});
+    });
+    header.insertBefore(button,header.firstChild);
+    return button;
+}
+function openMobileChatView(){
+    if(!isMobileChatLayout())return;
+    ensureMobileChatBackButton();
+    document.body.classList.add("mobile-chat-open");
+}
+window.openMobileChatView=openMobileChatView;
 function sortChatListItems(){var list=document.getElementById("chatList");if(!list)return;var items=Array.prototype.slice.call(list.querySelectorAll(".chat-item"));items.sort(function(a,b){var ta=a.dataset.chatType||"public",tb=b.dataset.chatType||"public",rank={private:0,group:0,public:1},ra=rank[ta]!==undefined?rank[ta]:1,rb=rank[tb]!==undefined?rank[tb]:1;if(ra!==rb)return ra-rb;if(ta==="public")return Number(a.dataset.chatId)-Number(b.dataset.chatId);var aa=Date.parse(a.dataset.lastActivity||"")||0,bb=Date.parse(b.dataset.lastActivity||"")||0;if(aa!==bb)return bb-aa;return Number(b.dataset.chatId)-Number(a.dataset.chatId);});items.forEach(function(item){list.appendChild(item);});}
 function moveChatToTop(chatId,lastActivity){var item=document.querySelector('.chat-item[data-chat-id="'+Number(chatId)+'"]');if(!item)return;if((item.dataset.chatType||"public")==="public")return;var activity=getEffectiveChatActivity(chatId,lastActivity||new Date().toISOString());item.dataset.lastActivity=activity;rememberChatActivity(chatId,activity);sortChatListItems();}
 window.sortChatListItems=sortChatListItems;window.moveChatToTop=moveChatToTop;
 async function loadChats(){var list=document.getElementById("chatList");if(!list)return;var selectedChatId=Number(window.currentChatId||0);list.innerHTML="";
-function addChatToList(chatId,chatName,icon,extraClass,chatType,lastActivity){if(list.querySelector('[data-chat-id="'+chatId+'"]'))return;var div=document.createElement("div"),activity=getEffectiveChatActivity(chatId,lastActivity);div.className="chat-item "+(extraClass||"");div.dataset.chatId=chatId;div.dataset.chatType=chatType||"public";div.dataset.lastActivity=activity;if(activity)rememberChatActivity(chatId,activity);div.innerHTML='<span class="chat-item-main"><span class="chat-item-icon">'+(icon||getChatIcon(chatType))+'</span><span class="chat-item-name" title="'+chatName+'">'+chatName+'</span><span class="chat-message-status" data-chat-status-id="'+chatId+'"></span></span><span class="chat-item-actions"><span class="chat-unread-badge-wrap"><span id="count-'+chatId+'" class="chat-unread-badge"></span></span><button type="button" class="chat-sound-button" data-sound-chat-id="'+chatId+'" onclick="event.stopPropagation();toggleChatSound('+chatId+')" title="Звук" aria-label="Звук">'+CHAT_ICON_SVG.soundOn+'</button></span>';div.onclick=async function(){currentChatId=Number(chatId);var title=document.getElementById("chatTitle");if(title)title.textContent=chatName;updateCallButtonsForChat(chatId,chatType);focusMobileMessageInput();await loadMessages();await updateUnreadCount(Number(chatId));updateCallButtonsForChat(chatId,chatType);if(typeof updateChatCallButtonVisibility==="function")setTimeout(updateChatCallButtonVisibility,50);if(typeof updateChatCallButton==="function")setTimeout(updateChatCallButton,50);};list.appendChild(div);updateChatSoundButton(Number(chatId));updateUnreadCount(Number(chatId));updateChatListMessageStatus(Number(chatId));}
+function addChatToList(chatId,chatName,icon,extraClass,chatType,lastActivity){if(list.querySelector('[data-chat-id="'+chatId+'"]'))return;var div=document.createElement("div"),activity=getEffectiveChatActivity(chatId,lastActivity);div.className="chat-item "+(extraClass||"");div.dataset.chatId=chatId;div.dataset.chatType=chatType||"public";div.dataset.lastActivity=activity;if(activity)rememberChatActivity(chatId,activity);div.innerHTML='<span class="chat-item-main"><span class="chat-item-icon">'+(icon||getChatIcon(chatType))+'</span><span class="chat-item-name" title="'+chatName+'">'+chatName+'</span><span class="chat-message-status" data-chat-status-id="'+chatId+'"></span></span><span class="chat-item-actions"><span class="chat-unread-badge-wrap"><span id="count-'+chatId+'" class="chat-unread-badge"></span></span><button type="button" class="chat-sound-button" data-sound-chat-id="'+chatId+'" onclick="event.stopPropagation();toggleChatSound('+chatId+')" title="Звук" aria-label="Звук">'+CHAT_ICON_SVG.soundOn+'</button></span>';div.onclick=async function(){
+    currentChatId=Number(chatId);
+    document.querySelectorAll(".chat-item.active").forEach(function(item){item.classList.remove("active");});
+    div.classList.add("active");
+    var title=document.getElementById("chatTitle");if(title)title.textContent=chatName;
+    updateCallButtonsForChat(chatId,chatType);
+    openMobileChatView();
+    focusMobileMessageInput();
+    await loadMessages();
+    await updateUnreadCount(Number(chatId));
+    updateCallButtonsForChat(chatId,chatType);
+    if(typeof updateChatCallButtonVisibility==="function")setTimeout(updateChatCallButtonVisibility,50);
+    if(typeof updateChatCallButton==="function")setTimeout(updateChatCallButton,50);
+};list.appendChild(div);updateChatSoundButton(Number(chatId));updateUnreadCount(Number(chatId));updateChatListMessageStatus(Number(chatId));}
 var r1=await supabaseClient.rpc("get_my_private_chats"),p=r1?r1.data:null,e1=r1?r1.error:null;if(e1)console.error("Ошибка загрузки личных чатов:",e1);(p||[]).forEach(function(c){addChatToList(c.chat_id,c.chat_name||"Личный чат",getChatIcon("private"),"private-chat","private",c.last_message_at);});
 var r2=await supabaseClient.rpc("get_my_group_chats"),g=r2?r2.data:null,e2=r2?r2.error:null;if(e2)console.error("Ошибка загрузки групповых чатов:",e2);(g||[]).forEach(function(c){addChatToList(c.chat_id,c.chat_name||"Групповой чат",getChatIcon("group"),"group-chat","group",c.last_message_at);});
 var r3=await supabaseClient.from("chats").select("id,name,type").eq("type","public").order("id",{ascending:true}),pub=r3?r3.data:null,e3=r3?r3.error:null;if(e3){console.error("Ошибка загрузки общих чатов:",e3);return;}(pub||[]).forEach(function(c){addChatToList(c.id,c.name,getChatIcon("public"),"","public",null);});sortChatListItems();if(selectedChatId){var selected=list.querySelector('[data-chat-id="'+selectedChatId+'"]');if(selected)selected.classList.add("active");if(selected)updateCallButtonsForChat(selected.dataset.chatId,selected.dataset.chatType);}else updateCallButtonsForChat(0,"public");}
