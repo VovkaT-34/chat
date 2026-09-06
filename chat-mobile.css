@@ -1,526 +1,60 @@
-/* =========================================
-МОБИЛЬНАЯ АДАПТАЦИЯ
-========================================= */
-
-html,
-body {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-}
-
-html {
-    overflow-x: hidden;
-}
-
-body {
-    overscroll-behavior-x: none;
-}
-
-@media (max-width: 700px) {
-
-    body {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        padding: 10px;
-        overflow-x: hidden;
-        overscroll-behavior-x: none;
-        -webkit-text-size-adjust: 100%;
-    }
-
-    .top-actions {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        overflow: hidden;
-    }
-
-    .chat-container {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        margin: 16px auto;
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-        overflow-x: hidden;
-    }
-
-    /* Список чатов немного уже экрана,
-       чтобы по краям оставалось место для
-       обычного вертикального свайпа. */
-    .chat-list {
-        width: calc(100% - 20px);
-        max-width: 380px;
-        min-width: 0;
-        height: 270px;
-        padding: 11px;
-        border-radius: 14px;
-        overflow-y: auto;
-        overflow-x: hidden;
-        overscroll-behavior-x: none;
-    }
-
-    .chat-list h2 {
-        margin: 2px 4px 10px;
-        font-size: 17px;
-    }
-
-    .chat-item {
-        width: 100%;
-        min-width: 0;
-        height: 42px;
-        min-height: 42px;
-        padding: 5px 6px 5px 8px;
-        margin-bottom: 6px;
-    }
-
-    .chat-item-main {
-        min-width: 0;
-    }
-
-    .chat-item-actions {
-        width: 56px;
-        min-width: 56px;
-        margin-left: 4px;
-    }
-
-    .chat-window {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        padding: 12px;
-        border-radius: 14px;
-        overflow: hidden;
-    }
-
-    .chat-window h2 {
-        font-size: 18px;
-        margin-bottom: 12px;
-    }
-
-    #messages {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        height: 400px;
-        padding: 10px;
-        margin-bottom: 12px;
-        overflow-y: auto;
-        overflow-x: hidden;
-        overscroll-behavior-x: none;
-    }
-
-    .message {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    .send-box {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        position: sticky;
-        bottom: 0;
-        z-index: 100;
-        padding: 6px 0;
-        background: rgba(255, 251, 245, .97);
-        border-radius: 10px;
-        padding-bottom: max(6px, env(safe-area-inset-bottom));
-        overflow: hidden;
-    }
-
-    #messageInput {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        scroll-margin-top: 20px;
-        scroll-margin-bottom: 20px;
-    }
-
-    /* =========================================
-       Шапка чата на iPhone / Android
-       Имя и кнопки звонка находятся в одной
-       нижней строке. Длинное имя не переносится
-       на вторую строку и обрезается многоточием.
-       ========================================= */
-
-    .chat-window > div:first-child {
-        display: grid !important;
-        grid-template-columns: minmax(0, 1fr) auto !important;
-        grid-template-areas:
-            "main main"
-            "title calls" !important;
-        align-items: center !important;
-        column-gap: 8px !important;
-        row-gap: 7px !important;
-        width: 100% !important;
-        min-width: 0 !important;
-    }
-
-    .chat-window > div:first-child > h2#chatTitle {
-        grid-area: title !important;
-        min-width: 0 !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-        white-space: nowrap !important;
-        text-overflow: ellipsis !important;
-        word-break: normal !important;
-        overflow-wrap: normal !important;
-        text-align: left !important;
-        line-height: 1.25 !important;
-        font-size: 18px !important;
-    }
-
-    .chat-header-actions {
-        display: contents !important;
-    }
-
-    .chat-header-main-actions {
-        grid-area: main !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        display: flex !important;
-        justify-content: flex-end !important;
-        align-items: center !important;
-        gap: 6px !important;
-        flex-wrap: nowrap !important;
-    }
-
-    .chat-call-actions {
-        grid-area: calls !important;
-        width: auto !important;
-        min-width: 0 !important;
-        min-height: 46px !important;
-        display: flex !important;
-        justify-content: flex-end !important;
-        align-items: center !important;
-        gap: 10px !important;
-        flex-wrap: nowrap !important;
-    }
-
-    /* Не даём кнопкам звонка сжимать область имени. */
-    .chat-call-actions .chat-call-button,
-    .chat-header-actions .chat-call-button {
-        flex: 0 0 46px !important;
-        width: 46px !important;
-        height: 46px !important;
-        min-width: 46px !important;
-        min-height: 46px !important;
-        padding: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border-radius: 50% !important;
-    }
-
-    /* Трубка: аккуратная светло-серая иконка,
-       без emoji. */
-    .chat-header-actions .chat-call-audio {
-        color: #e4e7e9 !important;
-    }
-
-    .chat-header-actions .call-icon-phone {
-        position: relative !important;
-        display: block !important;
-        width: 22px !important;
-        height: 22px !important;
-        margin: 0 !important;
-        font-size: 0 !important;
-        line-height: 0 !important;
-        transform: rotate(-4deg) !important;
-    }
-
-    .chat-header-actions .call-icon-phone::before,
-    .chat-header-actions .call-icon-phone::after {
-        content: "" !important;
-        position: absolute !important;
-        width: 8px !important;
-        height: 11px !important;
-        border: 3px solid currentColor !important;
-        box-sizing: border-box !important;
-    }
-
-    .chat-header-actions .call-icon-phone::before {
-        left: 1px !important;
-        top: 1px !important;
-        border-right-color: transparent !important;
-        border-bottom-color: transparent !important;
-        border-radius: 7px 3px 3px 7px !important;
-        transform: rotate(-30deg) !important;
-    }
-
-    .chat-header-actions .call-icon-phone::after {
-        right: 1px !important;
-        bottom: 1px !important;
-        border-left-color: transparent !important;
-        border-top-color: transparent !important;
-        border-radius: 3px 7px 7px 3px !important;
-        transform: rotate(-30deg) !important;
-    }
-
-    /* Видеокамера: прямоугольник слева,
-       треугольник справа, остриём наружу. */
-    .chat-header-actions .call-icon-video {
-        position: relative !important;
-        display: block !important;
-        width: 18px !important;
-        height: 13px !important;
-        border: 0 !important;
-        border-radius: 3px !important;
-        background: #e4e7e9 !important;
-        box-sizing: border-box !important;
-    }
-
-    .chat-header-actions .call-icon-video::after {
-        content: "" !important;
-        position: absolute !important;
-        right: -7px !important;
-        left: auto !important;
-        top: 2px !important;
-        width: 0 !important;
-        height: 0 !important;
-        border-top: 4.5px solid transparent !important;
-        border-bottom: 4.5px solid transparent !important;
-        border-left: 7px solid #e4e7e9 !important;
-        border-right: 0 !important;
-    }
-
-}
-
-@media (max-width: 380px) {
-
-    body {
-        padding: 8px;
-    }
-
-    .chat-list {
-        width: calc(100% - 12px);
-        height: 250px;
-        padding: 9px;
-    }
-
-    .chat-window {
-        padding: 10px;
-    }
-
-    #messages {
-        padding: 8px;
-    }
-
-    .chat-item-actions {
-        width: 52px;
-        min-width: 52px;
-    }
-
-    .chat-sound-button {
-        width: 27px;
-    }
-
-    .chat-window > div:first-child {
-        column-gap: 6px !important;
-        row-gap: 6px !important;
-    }
-
-    .chat-window > div:first-child > h2#chatTitle {
-        font-size: 17px !important;
-    }
-
-    .chat-call-actions {
-        gap: 8px !important;
-    }
-
-    .chat-call-actions .chat-call-button,
-    .chat-header-actions .chat-call-button {
-        flex-basis: 44px !important;
-        width: 44px !important;
-        height: 44px !important;
-        min-width: 44px !important;
-        min-height: 44px !important;
-    }
-}
+@import url("./chat-mobile-base.css");
 
 /* =========================================
-   МЕССЕНДЖЕР НА ТЕЛЕФОНЕ И ПЛАНШЕТЕ
-   Список чатов и открытый чат занимают весь
-   доступный экран. Страница сама не скроллится:
-   прокручивается только список или сообщения.
+   ТОЧЕЧНАЯ ДОРАБОТКА МОБИЛЬНОГО ЭКРАНА
    ========================================= */
+
+/* Android / не-iOS мобильные браузеры:
+   белый список чатов занимает весь доступный экран,
+   а сами чаты прокручиваются внутри списка. */
 @media (max-width: 900px) {
-    html,
-    body {
-        height: 100%;
-        min-height: 100%;
-    }
+    @supports not (-webkit-touch-callout: none) {
+        html,
+        body {
+            height: 100%;
+            min-height: 100%;
+        }
 
-    body {
-        min-height: 100dvh;
-        height: 100dvh;
-        padding: 10px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
+        body {
+            height: 100svh !important;
+            min-height: 100svh !important;
+            max-height: 100svh !important;
+        }
 
-    .top-actions,
-    body > h1 {
-        flex: 0 0 auto;
-    }
+        .chat-container {
+            flex: 1 1 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+        }
 
-    body > h1 {
-        margin-top: 0;
-        margin-bottom: 0;
-    }
+        body:not(.mobile-chat-open) .chat-list {
+            flex: 1 1 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow: hidden !important;
+        }
 
-    .chat-container {
-        flex: 1 1 auto;
-        height: auto;
-        min-height: 0;
-        margin: 12px 0 0;
-        width: 100%;
-        max-width: none;
-        gap: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        overflow: visible;
-    }
-
-    .chat-list {
-        order: 1;
-        display: flex;
-        flex-direction: column;
-        flex: 1 1 auto;
-        width: 100%;
-        max-width: none;
-        height: auto;
-        max-height: none;
-        min-height: 0;
-        margin: 0;
-        padding: 11px;
-        border-radius: 14px;
-        overflow: hidden;
-    }
-
-    .chat-list h2 {
-        flex: 0 0 auto;
-        margin: 2px 4px 10px;
-    }
-
-    #chatList {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow-y: auto;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-    }
-
-    .chat-window {
-        order: 2;
-        display: none;
-        flex: 1 1 auto;
-        width: 100%;
-        max-width: none;
-        height: auto;
-        min-height: 0;
-        margin: 0;
-        padding: 10px;
-        border-radius: 14px;
-        overflow: hidden;
-        flex-direction: column;
-    }
-
-    body.mobile-chat-open .chat-list {
-        display: none;
-    }
-
-    body.mobile-chat-open .chat-window {
-        display: flex;
-    }
-
-    /* На главном экране список чатов доходит до нижнего края,
-       сохраняя серую область по бокам. Открытый чат не затрагиваем. */
-    body:not(.mobile-chat-open) .chat-list {
-        margin-bottom: 0;
-        border-bottom-left-radius: 14px;
-        border-bottom-right-radius: 14px;
-    }
-
-    #mobileChatBackButton {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        flex: 0 0 40px;
-        width: 40px;
-        height: 40px;
-        min-width: 40px;
-        min-height: 40px;
-        padding: 0;
-        margin: 0;
-        border: 1px solid rgba(117,82,50,.16);
-        border-radius: 50%;
-        background: rgba(255,255,255,.72);
-        color: #5a4636;
-        cursor: pointer;
-    }
-
-    .chat-window > div:first-child {
-        flex: 0 0 auto;
-    }
-
-    body.mobile-chat-open .chat-window > div:first-child {
-        grid-template-columns: 40px minmax(0, 1fr) auto !important;
-        grid-template-areas:
-            "back main main"
-            "back title calls" !important;
-    }
-
-    body.mobile-chat-open .chat-window > div:first-child > #mobileChatBackButton {
-        grid-area: back !important;
-    }
-
-    body.mobile-chat-open .chat-window > div:first-child > h2#chatTitle {
-        grid-column: 2 / 4 !important;
-    }
-
-    #messages {
-        flex: 1 1 auto;
-        height: auto;
-        min-height: 0;
-        margin-bottom: 8px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-    }
-
-    .send-box {
-        flex: 0 0 auto;
-        position: relative;
-        bottom: auto;
+        body:not(.mobile-chat-open) #chatList {
+            flex: 1 1 0 !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch;
+        }
     }
 }
 
-@media (max-width: 380px) {
-    #mobileChatBackButton {
-        flex-basis: 38px;
-        width: 38px;
-        height: 38px;
-        min-width: 38px;
-        min-height: 38px;
-    }
-
-    body.mobile-chat-open .chat-window > div:first-child {
-        grid-template-columns: 38px minmax(0, 1fr) auto !important;
-    }
-
-    body:not(.mobile-chat-open) .chat-list {
-        margin-bottom: 0;
+/* iPhone / iOS:
+   более округлый белый контейнер — одинаково со всех четырёх сторон.
+   Apple не задаёт универсальный CSS-радиус для физических углов iPhone;
+   здесь используется увеличенный радиус, визуально согласованный
+   с округлой геометрией современных iPhone. */
+@media (max-width: 900px) {
+    @supports (-webkit-touch-callout: none) {
+        body:not(.mobile-chat-open) .chat-list,
+        body.mobile-chat-open .chat-window {
+            border-radius: 26px !important;
+        }
     }
 }
