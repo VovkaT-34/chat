@@ -11,8 +11,8 @@ async function loadMessages(){
     const readInfo=readResult.data;
     const lastReadId=readInfo&&readInfo.last_read_message_id?Number(readInfo.last_read_message_id):0;
     localLastReadMessageId=lastReadId;
-    const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`).eq("chat_id",chatIdAtLoad).order("created_at");
-    const data=result.data,error=result.error;
+    const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`).eq("chat_id",chatIdAtLoad).order("created_at",{ascending:false}).limit(100);
+    const data=(result.data||[]).reverse(),error=result.error;
     if(error){console.log(error);return;}
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
     const box=document.getElementById("messages");if(!box)return;box.innerHTML="";
@@ -31,7 +31,7 @@ async function loadMessages(){
 
 async function appendMessage(message){
     const box=document.getElementById("messages");if(!box||!message)return;if(box.querySelector('[data-message-id="'+message.id+'"]'))return;
-    try{if(currentUser&&message.user_id!==currentUser.id){const delivery=await supabaseClient.rpc("mark_message_delivered",{p_message_id:Number(message.id)});if(delivery.error)console.log("Ошибка подтверждения доставки:",delivery.error);}}catch(error){console.warn("Ошибка подтверждения доставки:",error);}
+    try{if(currentUser&&message.user_id!==currentUser.id){const delivery=await supabaseClient.rpc("mark_message_delivered",{p_message_id:Number(message.id)});if(delivery.error)console.log("Ошибка подтверждения доставки:",delivery.error);}}catch(error){console.warn("Ошибка доставки:",error);}
     const wasNearBottom=isMessagesBoxNearBottom(),previousScrollTop=box.scrollTop;
     const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`).eq("id",message.id).single();
     const fullMessage=result.data,error=result.error;if(error||!fullMessage)return;if(box.querySelector('[data-message-id="'+fullMessage.id+'"]'))return;
