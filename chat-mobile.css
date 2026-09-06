@@ -75,13 +75,13 @@
 
     .chat-header-main-actions .leave-chat-button {
         position: absolute !important;
-        left: calc(50% - 24px) !important;
+        left: calc(50% - 54px) !important;
         right: auto !important;
         top: calc(50% - 5px) !important;
         transform: translate(-50%, -50%) !important;
         margin: 0 !important;
-        padding: 3px 6px !important;
-        min-height: 23px !important;
+        padding: 2px 4px !important;
+        min-height: 21px !important;
         font-size: 10px !important;
         border-radius: 6px !important;
         gap: 3px !important;
@@ -100,7 +100,7 @@
 /* Небольшие экраны: ещё компактнее. */
 @media (max-width: 380px) {
     .chat-header-main-actions .leave-chat-button {
-        padding: 3px 5px !important;
+        padding: 2px 4px !important;
         min-height: 21px !important;
         font-size: 9px !important;
         border-radius: 6px !important;
@@ -112,15 +112,15 @@
     }
 }
 
-/* iPhone / iOS: кнопка ещё левее и выше,
-   при этом размер букв и иконки сохраняем. */
+/* iPhone / iOS: кнопка ещё левее и компактнее,
+   размер букв и иконки сохраняем. */
 @media (max-width: 900px) {
     @supports (-webkit-touch-callout: none) {
         .chat-header-main-actions .leave-chat-button {
-            left: calc(50% - 34px) !important;
+            left: calc(50% - 54px) !important;
             top: calc(50% - 5px) !important;
-            padding: 2px 5px !important;
-            min-height: 21px !important;
+            padding: 1px 4px !important;
+            min-height: 19px !important;
             font-size: 8px !important;
             border-radius: 6px !important;
             gap: 3px !important;
