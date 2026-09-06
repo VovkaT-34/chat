@@ -55,10 +55,6 @@ window.supabaseClient = supabase.createClient(
             }
         }, { passive: false });
 
-        document.addEventListener("dblclick", function (event) {
-            event.preventDefault();
-        }, { passive: false });
-
         document.addEventListener("wheel", function (event) {
             if (event.ctrlKey) event.preventDefault();
         }, { passive: false });
