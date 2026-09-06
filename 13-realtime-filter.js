@@ -19,7 +19,10 @@
     supabaseClient.channel = function (name, options) {
         var channel = originalChannel(name, options);
 
-        if (String(name).indexOf("messages-realtime-") !== 0) {
+        if (
+            String(name).indexOf("messages-realtime-") !== 0 &&
+            String(name).indexOf("message-deliveries-realtime") !== 0
+        ) {
             return channel;
         }
 
@@ -42,6 +45,20 @@
                 } else if (chatIds.length > 100) {
                     console.warn("Слишком много чатов для одного Realtime-фильтра:", chatIds.length);
                 }
+            }
+
+            if (
+                type === "postgres_changes" &&
+                config &&
+                config.table === "message_deliveries" &&
+                config.event === "INSERT" &&
+                currentUser &&
+                currentUser.id
+            ) {
+                config = Object.assign({}, config, {
+                    filter: "user_id=neq." + currentUser.id
+                });
+                console.log("Realtime доставок отфильтрован по user_id");
             }
 
             return originalOn(type, config, callback);
