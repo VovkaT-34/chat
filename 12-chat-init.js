@@ -26,12 +26,23 @@ async function startChat() {
     await loadChats();
 
 
-    // 3. Подключаем Realtime сообщений
+    // 3. Подключаем фильтрацию Realtime по доступным чатам
+
+    await new Promise(function (resolve) {
+        var script = document.createElement("script");
+        script.src = "13-realtime-filter.js";
+        script.onload = resolve;
+        script.onerror = resolve;
+        document.head.appendChild(script);
+    });
+
+
+    // 4. Подключаем Realtime сообщений
 
     await subscribeToMessages();
 
 
-    // 4. Подключаем индикатор печати
+    // 5. Подключаем индикатор печати
 
     await subscribeToTyping();
 
