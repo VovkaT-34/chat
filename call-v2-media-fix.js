@@ -70,6 +70,30 @@
         return currentFacingMode;
     }
 
+    function positionCameraSwitchButton() {
+        const button = document.getElementById("cv2CameraSwitch");
+        const video = localVideo();
+        const media = document.querySelector("#chatCallV2 .cv2-media");
+        if (!button || !video || !media) return;
+
+        const videoRect = video.getBoundingClientRect();
+        const mediaRect = media.getBoundingClientRect();
+        const buttonWidth = button.offsetWidth || 40;
+        const buttonHeight = button.offsetHeight || 40;
+        const inset = 6;
+
+        button.style.left = Math.max(
+            0,
+            videoRect.right - mediaRect.left - buttonWidth - inset
+        ) + "px";
+        button.style.top = Math.max(
+            0,
+            videoRect.bottom - mediaRect.top - buttonHeight - inset
+        ) + "px";
+        button.style.right = "auto";
+        button.style.bottom = "auto";
+    }
+
     function ensureCameraSwitchButton() {
         if (!isSupportedMobile) return;
         const video = localVideo();
@@ -81,7 +105,7 @@
             const style = document.createElement("style");
             style.id = "cv2-camera-switch-style";
             style.textContent = `
-                #cv2CameraSwitch{position:absolute;right:20px;bottom:20px;z-index:20;width:40px;height:40px;min-width:40px;min-height:40px;padding:0;border:1px solid rgba(255,255,255,.75);border-radius:50%;background:rgba(20,18,18,.72);color:#fff;display:none;align-items:center;justify-content:center;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+                #cv2CameraSwitch{position:absolute;left:0;top:0;z-index:20;width:40px;height:40px;min-width:40px;min-height:40px;padding:0;border:1px solid rgba(255,255,255,.75);border-radius:50%;background:rgba(20,18,18,.72);color:#fff;display:none;align-items:center;justify-content:center;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
                 #cv2CameraSwitch:active{transform:scale(.94)}
             `;
             document.head.appendChild(style);
@@ -94,7 +118,9 @@
             button.addEventListener("click", switchCamera);
             media.appendChild(button);
         }
+
         button.style.display = localVideoEnabled() ? "flex" : "none";
+        if (localVideoEnabled()) positionCameraSwitchButton();
     }
 
     async function getCameraTrack(facingMode) {
@@ -197,12 +223,15 @@
             }
 
             if (status) status.textContent = "Видеозвонок";
+            positionCameraSwitchButton();
 
             newTrack.onended = () => {
                 const current = localVideoTrack();
                 if (current === newTrack) {
                     const button = document.getElementById("cv2VideoControl");
                     if (button) button.classList.remove("green");
+                    const switchButton = document.getElementById("cv2CameraSwitch");
+                    if (switchButton) switchButton.style.display = "none";
                 }
             };
         } catch (error) {
@@ -240,6 +269,7 @@
     function installCameraSwitch() {
         if (!isSupportedMobile) return;
         ensureCameraSwitchButton();
+        if (localVideoEnabled()) positionCameraSwitchButton();
     }
 
     if (typeof RTCPeerConnection === "undefined") {
@@ -256,6 +286,30 @@
         RTCPeerConnection.prototype.addTrack = function (...args) {
             window.__chatCallActivePeerConnection = this;
             return originalAddTrack.apply(this, args);
+        };
+    }
+
+    // При завершении звонка call-v2.js закрывает RTCPeerConnection и отдельно
+    // останавливает свой localStream. После переключения камеры новый track
+    // живёт в отдельном preview MediaStream, поэтому он не входил в localStream
+    // и мог продолжать держать камеру занятой. Останавливаем все локальные
+    // sender tracks именно в момент закрытия активного WebRTC-соединения.
+    if (!window.__chatCallMediaFixCloseHooked) {
+        window.__chatCallMediaFixCloseHooked = true;
+        const originalClose = RTCPeerConnection.prototype.close;
+        RTCPeerConnection.prototype.close = function (...args) {
+            if (this === window.__chatCallActivePeerConnection) {
+                try {
+                    this.getSenders?.().forEach(sender => {
+                        const track = sender?.track;
+                        if (track && track.readyState === "live") track.stop();
+                    });
+                } catch (error) {
+                    console.warn("Не удалось остановить локальные медиатреки при завершении звонка:", error);
+                }
+            }
+
+            return originalClose.apply(this, args);
         };
     }
 
@@ -360,5 +414,6 @@
     if (isSupportedMobile) {
         setInterval(installCameraSwitch, 500);
         document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(installCameraSwitch, 100); });
+        window.addEventListener("resize", () => { if (localVideoEnabled()) positionCameraSwitchButton(); });
     }
 })();
