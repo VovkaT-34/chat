@@ -62,7 +62,7 @@
 
 /* =========================================
    КНОПКА «ВЫЙТИ ИЗ ЧАТА» — МОБИЛЬНЫЕ
-   Кнопка находится строго по центру своей области,
+   Кнопка находится по центру своей области,
    независимо от расположения кнопок звонка.
    ========================================= */
 @media (max-width: 900px) {
@@ -75,7 +75,7 @@
 
     .chat-header-main-actions .leave-chat-button {
         position: absolute !important;
-        left: 50% !important;
+        left: calc(50% - 4px) !important;
         right: auto !important;
         top: 50% !important;
         transform: translate(-50%, -50%) !important;
@@ -112,21 +112,22 @@
     }
 }
 
-/* iPhone / iOS: кнопка немного меньше и уже,
-   при этом оставляем нормальный зазор между дверью и краями кнопки. */
+/* iPhone / iOS: кнопка ещё меньше и уже,
+   при этом сохраняем нормальный зазор между иконкой и текстом. */
 @media (max-width: 900px) {
     @supports (-webkit-touch-callout: none) {
         .chat-header-main-actions .leave-chat-button {
-            padding: 4px 7px !important;
-            min-height: 25px !important;
-            font-size: 9px !important;
+            left: calc(50% - 4px) !important;
+            padding: 3px 6px !important;
+            min-height: 23px !important;
+            font-size: 8px !important;
             border-radius: 6px !important;
-            gap: 4px !important;
+            gap: 3px !important;
         }
 
         .chat-header-main-actions .leave-chat-button .icon-svg {
-            width: 10px !important;
-            height: 10px !important;
+            width: 9px !important;
+            height: 9px !important;
         }
     }
 }
