@@ -4,116 +4,62 @@
    ТОЧЕЧНАЯ ДОРАБОТКА МОБИЛЬНОГО ЭКРАНА
    ========================================= */
 
-/* Android / не-iOS мобильные браузеры:
-   белый список чатов занимает весь доступный экран,
-   а сами чаты прокручиваются внутри списка. */
 @media (max-width: 900px) {
     @supports not (-webkit-touch-callout: none) {
         html,
-        body {
-            height: 100%;
-            min-height: 100%;
-        }
-
-        body {
-            height: 100svh !important;
-            min-height: 100svh !important;
-            max-height: 100svh !important;
-        }
-
-        .chat-container {
-            flex: 1 1 0 !important;
-            height: auto !important;
-            min-height: 0 !important;
-        }
-
-        body:not(.mobile-chat-open) .chat-list {
-            flex: 1 1 0 !important;
-            height: auto !important;
-            min-height: 0 !important;
-            max-height: none !important;
-            overflow: hidden !important;
-            border-radius: 26px !important;
-        }
-
-        body:not(.mobile-chat-open) #chatList {
-            flex: 1 1 0 !important;
-            min-height: 0 !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            -webkit-overflow-scrolling: touch;
-        }
+        body { height: 100%; min-height: 100%; }
+        body { height: 100svh !important; min-height: 100svh !important; max-height: 100svh !important; }
+        .chat-container { flex: 1 1 0 !important; height: auto !important; min-height: 0 !important; }
+        body:not(.mobile-chat-open) .chat-list { flex: 1 1 0 !important; height: auto !important; min-height: 0 !important; max-height: none !important; overflow: hidden !important; border-radius: 26px !important; }
+        body:not(.mobile-chat-open) #chatList { flex: 1 1 0 !important; min-height: 0 !important; overflow-y: auto !important; overflow-x: hidden !important; -webkit-overflow-scrolling: touch; }
     }
 }
 
-/* iPhone / iOS:
-   более округлый белый контейнер — одинаково со всех четырёх сторон.
-   Apple не задаёт универсальный CSS-радиус для физических углов iPhone;
-   здесь используется увеличенный радиус, визуально согласованный
-   с округлой геометрией современных iPhone. */
 @media (max-width: 900px) {
     @supports (-webkit-touch-callout: none) {
         body:not(.mobile-chat-open) .chat-list,
-        body.mobile-chat-open .chat-window {
-            border-radius: 26px !important;
-        }
+        body.mobile-chat-open .chat-window { border-radius: 26px !important; }
     }
 }
 
 /* =========================================
    КНОПКА «ВЫЙТИ ИЗ ЧАТА» — МОБИЛЬНЫЕ
-   Кнопка находится по центру своей области,
-   независимо от расположения кнопок звонка.
    ========================================= */
 @media (max-width: 900px) {
-    .chat-header-main-actions {
-        position: relative !important;
-        width: 100% !important;
-        justify-content: center !important;
-        align-items: center !important;
-    }
-
+    .chat-header-main-actions { position: relative !important; width: 100% !important; justify-content: center !important; align-items: center !important; }
     .chat-header-main-actions .leave-chat-button {
         position: absolute !important;
-        left: calc(50% - 54px) !important;
+        left: calc(50% - 89px) !important;
         right: auto !important;
         top: calc(50% - 5px) !important;
         transform: translate(-50%, -50%) !important;
         margin: 0 !important;
-        padding: 2px 4px !important;
+        padding: 2px 0 !important;
+        width: 44px !important;
+        min-width: 44px !important;
         min-height: 21px !important;
         font-size: 10px !important;
         border-radius: 6px !important;
         gap: 3px !important;
+        white-space: nowrap !important;
     }
-
-    .chat-header-main-actions .leave-chat-button:hover {
-        transform: translate(-50%, -50%) translateY(-1px) !important;
-    }
-
-    .chat-header-main-actions .leave-chat-button .icon-svg {
-        width: 12px !important;
-        height: 12px !important;
-    }
+    .chat-header-main-actions .leave-chat-button:hover { transform: translate(-50%, -50%) translateY(-1px) !important; }
+    .chat-header-main-actions .leave-chat-button .icon-svg { width: 12px !important; height: 12px !important; }
 }
 
-/* Небольшие экраны: ещё компактнее. */
 @media (max-width: 380px) {
     .chat-header-main-actions .leave-chat-button {
-        padding: 2px 4px !important;
+        padding: 2px 0 !important;
+        width: 44px !important;
+        min-width: 44px !important;
         min-height: 21px !important;
         font-size: 9px !important;
         border-radius: 6px !important;
     }
-
-    .chat-header-main-actions .leave-chat-button .icon-svg {
-        width: 11px !important;
-        height: 11px !important;
-    }
+    .chat-header-main-actions .leave-chat-button .icon-svg { width: 11px !important; height: 11px !important; }
 }
 
-/* iPhone / iOS: кнопка ещё левее и компактнее,
-   размер букв и иконки сохраняем. */
+/* iPhone / iOS — оставлено без изменений */
 @media (max-width: 900px) {
     @supports (-webkit-touch-callout: none) {
         .chat-header-main-actions .leave-chat-button {
@@ -125,10 +71,6 @@
             border-radius: 6px !important;
             gap: 3px !important;
         }
-
-        .chat-header-main-actions .leave-chat-button .icon-svg {
-            width: 9px !important;
-            height: 9px !important;
-        }
+        .chat-header-main-actions .leave-chat-button .icon-svg { width: 9px !important; height: 9px !important; }
     }
 }
