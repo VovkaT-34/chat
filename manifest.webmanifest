@@ -7,8 +7,8 @@
   "scope": "https://vovkat-34.github.io/chat/",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen", "minimal-ui"],
-  "background_color": "#24122f",
-  "theme_color": "#24122f",
+  "background_color": "#8b4fa8",
+  "theme_color": "#8b4fa8",
   "lang": "ru",
   "prefer_related_applications": false,
   "icons": [
