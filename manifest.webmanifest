@@ -13,19 +13,19 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "https://vovkat-34.github.io/chat/favicon.svg?v=20260906-193",
+      "src": "https://vovkat-34.github.io/chat/android-favicon.svg?v=20260906-194",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "https://vovkat-34.github.io/chat/favicon.svg?v=20260906-193",
+      "src": "https://vovkat-34.github.io/chat/android-favicon.svg?v=20260906-194",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "https://vovkat-34.github.io/chat/favicon.svg?v=20260906-193",
+      "src": "https://vovkat-34.github.io/chat/android-favicon.svg?v=20260906-194",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
