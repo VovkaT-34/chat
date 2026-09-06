@@ -59,3 +59,45 @@
         }
     }
 }
+
+/* =========================================
+   КНОПКА «ВЫЙТИ ИЗ ЧАТА» — МОБИЛЬНЫЕ
+   Центрируем и уменьшаем одинаково для iPhone и Android.
+   ========================================= */
+@media (max-width: 900px) {
+    .chat-header-main-actions {
+        position: relative;
+        width: 100% !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+
+    .chat-header-main-actions .leave-chat-button {
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding: 5px 8px !important;
+        min-height: 28px;
+        font-size: 10px !important;
+        border-radius: 7px !important;
+        gap: 4px;
+    }
+
+    .chat-header-main-actions .leave-chat-button .icon-svg {
+        width: 12px !important;
+        height: 12px !important;
+    }
+}
+
+@media (max-width: 380px) {
+    .chat-header-main-actions .leave-chat-button {
+        padding: 4px 7px !important;
+        min-height: 26px;
+        font-size: 9px !important;
+        border-radius: 6px !important;
+    }
+
+    .chat-header-main-actions .leave-chat-button .icon-svg {
+        width: 11px !important;
+        height: 11px !important;
+    }
+}
