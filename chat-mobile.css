@@ -29,7 +29,7 @@
     .chat-header-main-actions { position: relative !important; width: 100% !important; justify-content: center !important; align-items: center !important; }
     .chat-header-main-actions .leave-chat-button {
         position: absolute !important;
-        left: calc(50% - 54px) !important;
+        left: calc(50% - 39px) !important;
         right: auto !important;
         top: calc(50% - 5px) !important;
         transform: translate(-50%, -50%) !important;
@@ -47,23 +47,11 @@
     .chat-header-main-actions .leave-chat-button .icon-svg { width: 9px !important; height: 9px !important; }
 }
 
-@media (max-width: 380px) {
-    .chat-header-main-actions .leave-chat-button {
-        padding: 2px 6px !important;
-        width: 90px !important;
-        min-width: 90px !important;
-        min-height: 21px !important;
-        font-size: 9px !important;
-        border-radius: 6px !important;
-    }
-    .chat-header-main-actions .leave-chat-button .icon-svg { width: 11px !important; height: 11px !important; }
-}
-
-/* iPhone / iOS — оставлено без изменений */
+/* iPhone / iOS — те же прежние параметры, только смещение вправо на 15px */
 @media (max-width: 900px) {
     @supports (-webkit-touch-callout: none) {
         .chat-header-main-actions .leave-chat-button {
-            left: calc(50% - 54px) !important;
+            left: calc(50% - 39px) !important;
             top: calc(50% - 5px) !important;
             padding: 1px 4px !important;
             min-height: 19px !important;
