@@ -1,10 +1,10 @@
 {
-  "id": "./",
+  "id": "https://vovkat-34.github.io/chat/",
   "name": "Чат",
   "short_name": "Чат",
   "description": "Браузерный мессенджер",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "https://vovkat-34.github.io/chat/index.html",
+  "scope": "https://vovkat-34.github.io/chat/",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen", "minimal-ui"],
   "background_color": "#e4f0e8",
@@ -13,19 +13,19 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "favicon.svg?v=20260905-192",
+      "src": "https://vovkat-34.github.io/chat/favicon.svg?v=20260906-192",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "favicon.svg?v=20260905-512",
+      "src": "https://vovkat-34.github.io/chat/favicon.svg?v=20260906-512",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "favicon.svg?v=20260905",
+      "src": "https://vovkat-34.github.io/chat/favicon.svg?v=20260906",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
