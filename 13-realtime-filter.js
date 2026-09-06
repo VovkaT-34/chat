@@ -52,21 +52,21 @@
 
     // После появления/исчезновения чата пересоздаём подписку,
     // чтобы новый список chat_id сразу попал в Realtime-фильтр.
-    if (typeof window.loadChats === "function" && !window.__filteredLoadChatsInstalled) {
+    if (typeof loadChats === "function" && !window.__filteredLoadChatsInstalled) {
         window.__filteredLoadChatsInstalled = true;
 
-        var originalLoadChats = window.loadChats;
+        var originalLoadChats = loadChats;
 
         window.loadChats = async function () {
             var result = await originalLoadChats.apply(this, arguments);
 
             if (
-                typeof window.reconnectChatRealtime === "function" &&
-                window.currentUser &&
-                window.supabaseClient
+                typeof reconnectChatRealtime === "function" &&
+                currentUser &&
+                supabaseClient
             ) {
                 try {
-                    await window.reconnectChatRealtime();
+                    await reconnectChatRealtime();
                 } catch (error) {
                     console.warn("Ошибка обновления Realtime-фильтра чатов:", error);
                 }
