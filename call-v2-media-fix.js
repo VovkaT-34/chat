@@ -174,8 +174,6 @@
             if (sender) {
                 await sender.replaceTrack(newTrack);
             } else {
-                // В активном видеозвонке sender должен существовать. Этот
-                // fallback оставлен только для защиты от нестандартного состояния.
                 if (window.__chatCallAddVideoTrack) {
                     await window.__chatCallAddVideoTrack(newTrack);
                 } else {
@@ -214,7 +212,6 @@
         } catch (error) {
             console.error("Ошибка переключения камеры:", error);
 
-            // Если новая камера не открылась, возвращаем исходную камеру.
             try {
                 const restoreTrack = await getCameraTrack(previousFacingMode);
                 if (sender) {
@@ -250,6 +247,30 @@
         if (isSupportedMobile) setInterval(installCameraSwitch, 500);
         return;
     }
+
+    // call-v2.js хранит RTCPeerConnection внутри замыкания. Перехватываем
+    // только addTrack, чтобы получить ссылку на уже созданное соединение
+    // для безопасного replaceTrack() без изменения остальной архитектуры.
+    if (!window.__chatCallMediaFixPeerHooked) {
+        window.__chatCallMediaFixPeerHooked = true;
+        const originalAddTrack = RTCPeerConnection.prototype.addTrack;
+        RTCPeerConnection.prototype.addTrack = function (...args) {
+            window.__chatCallActivePeerConnection = this;
+            return originalAddTrack.apply(this, args);
+        };
+    }
+
+    window.__chatCallGetVideoSender = function () {
+        const peer = window.__chatCallActivePeerConnection;
+        if (!peer || peer.connectionState === "closed") return null;
+        return peer.getSenders?.().find(sender => sender.track?.kind === "video") || null;
+    };
+
+    window.__chatCallAddVideoTrack = async function (track) {
+        const peer = window.__chatCallActivePeerConnection;
+        if (!peer || peer.connectionState === "closed") throw new Error("WebRTC соединение не найдено");
+        return peer.addTrack(track, localVideo()?.srcObject || new MediaStream([track]));
+    };
 
     const earlyIce = new Map();
     let incomingCallId = null;
