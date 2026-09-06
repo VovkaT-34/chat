@@ -5,7 +5,7 @@
 const CHAT_SOUND_KEY = "chatSoundSettings";
 
 const CHAT_SOUND_ICON_ON = '<svg class="icon-svg chat-sound-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#171d24" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M17 9.5a4 4 0 0 1 0 5M19.5 7a7.5 7.5 0 0 1 0 10"/></svg>';
-const CHAT_SOUND_ICON_OFF = '<svg class="icon-svg chat-sound-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#171d24" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="m17 10 4 4M21 10l-4 4"/></svg>';
+const CHAT_SOUND_ICON_OFF = '<svg class="icon-svg chat-sound-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10v4h4l5 4V6l-5 4H4Z" stroke="#171d24" stroke-width="1.9"/><path d="m17 10 4 4M21 10l-4 4" stroke="#ff0000" stroke-width="2.4"/></svg>';
 
 let chatSoundAudioUnlocked = false;
 
