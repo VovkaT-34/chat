@@ -40,7 +40,6 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     let recognizerNode=null;
     let silentGain=null;
     let running=false;
-    let finished=false;
     let finalParts=[];
     let baseText="";
 
@@ -104,12 +103,13 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
             recognizer=null;
         }
         running=false;
+        button.disabled=false;
         button.title="Голосовой ввод завершён";
         button.setAttribute("aria-pressed","false");
     }
 
     async function startVoice(){
-        if(running||finished)return;
+        if(running)return;
         try{
             button.disabled=true;
             baseText=input.value.trim();
@@ -160,7 +160,6 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
         }catch(error){
             console.error("Голосовой ввод:",error);
             cleanup();
-            button.disabled=false;
             alert("Не удалось запустить голосовой ввод.");
         }
     }
@@ -168,15 +167,17 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     function stopVoice(){
         if(!running)return;
         running=false;
-        finished=true;
         button.disabled=true;
         if(recognizer){
             try{recognizer.retrieveFinalResult();}catch(e){}
         }
-        setTimeout(function(){cleanup();button.disabled=true;},250);
+        setTimeout(function(){cleanup();},250);
     }
 
-    button.addEventListener("click",function(){
+    button.addEventListener("click",function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        button.blur();
         if(running)stopVoice();
         else startVoice();
     });
