@@ -34,7 +34,7 @@ async function createFcmAccessToken(){
 async function sendFcm(token:string,title:string,body:string,chatId:number,messageId:number){
  const accessToken=await createFcmAccessToken();
  if(!accessToken)return {sent:false,invalid:false};
- const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${accessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token,notification:{title,body},data:{chatId:String(chatId),messageId:String(messageId)},android:{priority:"high",notification:{channel_id:"chat_messages_v3",sound:"default",click_action:"FLUTTER_NOTIFICATION_CLICK"}}}})});
+ const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${accessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token,notification:{title,body},data:{chatId:String(chatId),messageId:String(messageId)},android:{priority:"high",notification:{channel_id:"chat_messages_v2",sound:"default",click_action:"FLUTTER_NOTIFICATION_CLICK"}}}})});
  if(response.ok)return {sent:true,invalid:false};
  const text=await response.text();
  const invalid=/UNREGISTERED|registration-token-not-registered|INVALID_ARGUMENT/.test(text);
@@ -74,7 +74,7 @@ Deno.serve(async(req:Request)=>{
     const deliveryToken=await sign(`${id}.${member.user_id}.${exp}`);
     for(const subscription of subscriptions||[]){
      try{
-      await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({web_push:8030,notification:{title:senderName,body:message.text||"Новое сообщение",navigate:`https://vovkat-34.github.io/chat/index.html?chat=${encodeURIComponent(message.chat_id)}`,silent:false,tag:`chat-${message.chat_id}`,app_badge:String(unreadCount)},title:senderName,body:message.text||"Новое сообщение",icon:"https://vovkat-34.github.io/chat/favicon.svg",badge:"https://vovkat-34.github.io/chat/favicon.svg",tag:`chat-${message.chat_id}`,renotify:true,chatId:message.chat_id,messageId:message.id,count:unreadCount,userId:member.user_id,exp,deliveryToken,url:`https://vovkat-34.github.io/chat/index.html?chat=${encodeURIComponent(message.chat_id)}`}));
+      await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:senderName,body:message.text||"Новое сообщение",icon:"https://vovkat-34.github.io/chat/favicon.svg",badge:"https://vovkat-34.github.io/chat/favicon.svg",tag:`chat-${message.chat_id}`,chatId:message.chat_id,messageId:message.id,count:unreadCount,userId:member.user_id,exp,deliveryToken,url:`https://vovkat-34.github.io/chat/index.html?chat=${encodeURIComponent(message.chat_id)}`}));
       sent++;
      }catch(error){const statusCode=Number((error as {statusCode?:number})?.statusCode||0);if(statusCode===404||statusCode===410){await admin.from("web_push_subscriptions").delete().eq("id",subscription.id);removed++;}else console.error("Web Push send error:",error);}
     }
@@ -87,7 +87,7 @@ Deno.serve(async(req:Request)=>{
     if(fcmAccessToken){
      for(const fcmTokenRow of fcmTokens){
       try{
-       const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${fcmAccessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token:fcmTokenRow.token,notification:{title:senderName,body:message.text||"Новое сообщение"},data:{chatId:String(message.chat_id),messageId:String(message.id)},android:{priority:"high",notification:{channel_id:"chat_messages_v3",sound:"default"}}}})});
+       const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${fcmAccessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token:fcmTokenRow.token,notification:{title:senderName,body:message.text||"Новое сообщение"},data:{chatId:String(message.chat_id),messageId:String(message.id)},android:{priority:"high",notification:{channel_id:"chat_messages_v2",sound:"default"}}}})});
        if(response.ok){fcmSent++;}else{const errorText=await response.text();if(/UNREGISTERED|registration-token-not-registered|INVALID_ARGUMENT/.test(errorText)){await admin.from("android_push_tokens").delete().eq("id",fcmTokenRow.id);fcmRemoved++;}else console.error("FCM send error:",errorText);}
       }catch(error){console.error("FCM send exception:",error);}
      }
