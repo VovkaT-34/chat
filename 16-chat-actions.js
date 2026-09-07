@@ -11,6 +11,7 @@
     headerStyle.id = "stable-chat-header-style";
     headerStyle.textContent = `
         .chat-window > div:first-child {
+            position: relative !important;
             display: grid !important;
             grid-template-columns: minmax(0, 1fr) auto !important;
             grid-template-areas:
@@ -65,6 +66,11 @@
             align-items: center !important;
             gap: 10px !important;
             flex-wrap: nowrap !important;
+            position: absolute !important;
+            right: 0 !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            z-index: 5 !important;
         }
 
         .chat-call-actions .chat-call-button,
