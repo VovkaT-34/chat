@@ -8,12 +8,11 @@
 
     let audioContext = null;
     let master = null;
-    let audio = null;
     let timer = null;
     let lastState = "";
     let unlocked = false;
 
-    function ensureAudioContext() {
+    function ensureAudio() {
         try {
             if (!audioContext) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -30,52 +29,20 @@
         }
     }
 
-    function ensureAudio() {
-        if (audio) return audio;
-        try {
-            audio = document.createElement("audio");
-            audio.id = "chatCallRingtoneAudio";
-            audio.preload = "auto";
-            audio.loop = true;
-            audio.volume = 0.82;
-            audio.setAttribute("playsinline", "");
-            audio.setAttribute("webkit-playsinline", "");
-            audio.src = "ringtone.mp3";
-            audio.style.display = "none";
-            document.body.appendChild(audio);
-            return audio;
-        } catch (error) {
-            return null;
-        }
-    }
-
     async function unlockAudio() {
-        const ctx = ensureAudioContext();
-        const media = ensureAudio();
-        let ok = false;
+        const ctx = ensureAudio();
+        if (!ctx) return false;
         try {
-            if (ctx && ctx.state === "suspended") await ctx.resume();
-            ok = Boolean(ctx && ctx.state === "running");
+            if (ctx.state === "suspended") await ctx.resume();
+            unlocked = ctx.state === "running";
         } catch (error) {
             console.debug("Не удалось возобновить AudioContext:", error);
         }
-        if (media) {
-            try {
-                const old = media.volume;
-                media.volume = 0;
-                await media.play();
-                media.pause();
-                media.currentTime = 0;
-                media.volume = old;
-                ok = true;
-            } catch (error) {}
-        }
-        unlocked = ok || unlocked;
         return unlocked;
     }
 
     function tone(frequency, start, duration, gainValue) {
-        const ctx = ensureAudioContext();
+        const ctx = ensureAudio();
         if (!ctx || !master || ctx.state !== "running") return;
 
         const oscillator = ctx.createOscillator();
@@ -94,7 +61,7 @@
     }
 
     function playPhrase() {
-        const ctx = ensureAudioContext();
+        const ctx = ensureAudio();
         if (!ctx || !unlocked || ctx.state !== "running") return;
 
         const now = ctx.currentTime + 0.02;
@@ -105,22 +72,10 @@
     }
 
     async function playNow() {
+        // If iOS suspended the context after backgrounding/locking,
+        // try to resume it before producing the next ringtone phrase.
         if (!unlocked || audioContext?.state !== "running") {
             await unlockAudio();
-        }
-
-        const media = ensureAudio();
-        if (media) {
-            try {
-                media.currentTime = 0;
-                media.volume = 0.82;
-                const p = media.play();
-                if (p) {
-                    await p;
-                    return;
-                }
-                return;
-            } catch (error) {}
         }
         playPhrase();
     }
@@ -129,9 +84,6 @@
         if (timer) clearInterval(timer);
         timer = null;
         lastState = "";
-        if (audio) {
-            try { audio.pause(); audio.currentTime = 0; } catch (error) {}
-        }
     }
 
     function start(kind) {
@@ -169,6 +121,8 @@
         stop();
     }
 
+    // Keep the broader set of iOS user-gesture events. The previous
+    // touchend/mousedown-only variant could miss the first gesture on Safari.
     ["pointerdown", "touchstart", "touchend", "mousedown", "click", "keydown"].forEach(type => {
         document.addEventListener(type, () => {
             void unlockAudio().then(detect);
@@ -179,6 +133,8 @@
         if (!document.hidden) {
             void unlockAudio().then(detect);
         } else {
+            // Do not destroy the AudioContext. iOS may suspend it temporarily;
+            // playNow() will attempt to resume it when the page becomes active.
             if (timer) clearInterval(timer);
             timer = null;
         }
