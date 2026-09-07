@@ -1,1 +1,237 @@
 <!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Чат</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#5a4636">
+<link rel="apple-touch-icon" href="favicon.svg">
+<link rel="stylesheet" href="chat.css">
+<link rel="stylesheet" href="chat-mobile.css">
+<style>
+.top-actions{position:relative;width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.settings-button,.admin-panel-button{min-height:40px;padding:9px 15px;border:1px solid rgba(255,255,255,.22);border-radius:11px;color:#fffaf5;font-family:Arial,sans-serif;font-size:14px;font-weight:700;line-height:1;cursor:pointer;box-shadow:0 5px 14px rgba(55,38,25,.18);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;display:inline-flex;align-items:center;gap:6px}
+.settings-button{position:absolute;right:0;top:50%;transform:translateY(-50%);width:42px;height:42px;min-width:42px;min-height:42px;padding:0;border-radius:50%;font-size:0;line-height:1;justify-content:center;background:linear-gradient(135deg,#211a16 0%,#5b3d2b 48%,#9a6a43 100%);background-size:180% 180%;animation:settingsGradient 5s ease infinite}
+.settings-button:hover{transform:translateY(-50%) translateY(-1px) scale(1.03);box-shadow:0 7px 18px rgba(55,38,25,.28);filter:brightness(1.08)}
+.settings-button .settings-icon-svg{display:block;width:22px;height:22px;flex:none;color:currentColor;stroke:currentColor;transform:rotate(0deg);transition:transform .22s ease}
+.settings-button:hover .settings-icon-svg{transform:rotate(28deg)}
+.settings-button:active .settings-icon-svg{transform:rotate(52deg) scale(.94)}
+.admin-panel-button{position:absolute;left:0;top:50%;transform:translateY(-50%);background:linear-gradient(135deg,#263238 0%,#405b73 45%,#7661a8 100%);background-size:180% 180%;animation:adminGradient 5s ease infinite}
+.admin-panel-button:hover{transform:translateY(-50%) translateY(-1px) scale(1.03);box-shadow:0 7px 18px rgba(55,55,85,.25);filter:brightness(1.08)}
+@keyframes settingsGradient{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes adminGradient{0%,100%{background-position:100% 50%}50%{background-position:0% 50%}}
+@media(max-width:700px){.top-actions{min-height:42px;margin-bottom:2px}.settings-button,.admin-panel-button{min-height:38px;padding:8px 12px;font-size:13px;border-radius:10px}.settings-button{width:44px;height:44px;min-width:44px;min-height:44px;padding:0;font-size:0;border-radius:50%;right:0;left:auto}.settings-button .settings-icon-svg{width:23px;height:23px}.admin-panel-button{left:0;right:auto}}
+@media(max-width:380px){.settings-button,.admin-panel-button{padding:8px 10px;font-size:12px}.settings-button{width:44px;height:44px;min-width:44px;min-height:44px;padding:0;font-size:0;border-radius:50%}.chat-header-actions{gap:5px}.leave-chat-button{padding:7px 9px;font-size:12px;border-radius:8px}.chat-call-button{width:40px!important;height:40px!important;font-size:18px!important}}
+
+.coin-1c{position:absolute;left:50%;top:calc(50% + 20px);width:190px;height:190px;margin:0;display:block;perspective:800px;transform:translate(-50%,-50%) scale(.64);transform-origin:center center;z-index:10}
+.coin-body{position:absolute;top:10px;left:10px;width:170px;height:170px;border-radius:50%;transform-style:preserve-3d;animation:coinMotion 5s linear infinite}
+.coin-depth{position:absolute;top:0;left:0;width:170px;height:170px;border-radius:50%;box-sizing:border-box;background:repeating-linear-gradient(90deg,#704700 0px,#9a6300 1px,#d39400 2px,#f1bd32 3px,#ffe06a 4px,#e7aa18 5px,#b87500 6px,#805000 7px);border:7px solid #b77a00;box-shadow:inset 0 0 3px rgba(255,250,180,.75),inset 0 2px 2px rgba(255,235,110,.55),inset 0 -2px 4px rgba(50,25,0,.55)}
+.coin-depth-1{transform:translateZ(-5.5px)}.coin-depth-2{transform:translateZ(-4.95px)}.coin-depth-3{transform:translateZ(-4.4px)}.coin-depth-4{transform:translateZ(-3.85px)}.coin-depth-5{transform:translateZ(-3.3px)}.coin-depth-6{transform:translateZ(-2.75px)}.coin-depth-7{transform:translateZ(-2.2px)}.coin-depth-8{transform:translateZ(-1.65px)}.coin-depth-9{transform:translateZ(-1.1px)}.coin-depth-10{transform:translateZ(-.55px)}.coin-depth-11{transform:translateZ(0)}.coin-depth-12{transform:translateZ(.55px)}.coin-depth-13{transform:translateZ(1.1px)}.coin-depth-14{transform:translateZ(1.65px)}.coin-depth-15{transform:translateZ(2.2px)}.coin-depth-16{transform:translateZ(2.75px)}.coin-depth-17{transform:translateZ(3.3px)}.coin-depth-18{transform:translateZ(3.85px)}.coin-depth-19{transform:translateZ(4.4px)}.coin-depth-20{transform:translateZ(4.95px)}.coin-depth-21{transform:translateZ(5.5px)}
+.coin-face{position:absolute;top:0;left:0;width:170px;height:170px;border-radius:50%;box-sizing:border-box;display:flex;justify-content:center;align-items:center;backface-visibility:hidden;overflow:hidden}
+.coin-front,.coin-back{font-size:88px;font-weight:900;font-family:Arial,sans-serif;color:#fff9cf;letter-spacing:-6px;text-shadow:0 2px 0 #8a5b00,0 4px 7px rgba(65,35,0,.72),0 0 12px rgba(255,255,190,.95),0 0 2px rgba(255,255,255,.9);border:10px solid transparent;background:radial-gradient(circle at 31% 24%,rgba(255,255,230,.98) 0%,rgba(255,247,180,.92) 4%,rgba(255,226,90,.85) 10%,rgba(255,205,45,.38) 17%,transparent 25%),radial-gradient(circle at 50% 50%,#ffe16a 0%,#f7cc3b 14%,#efbd20 28%,#dda40e 43%,#c88905 58%,#a96d00 72%,#875300 86%,#603a00 100%) padding-box,repeating-conic-gradient(from 0deg,#fff6b0 0deg 2deg,#c98b00 2deg 4deg,#ffe06a 4deg 6deg,#a86e00 6deg 8deg) border-box;box-shadow:inset 0 5px 5px rgba(255,255,255,.95),inset 0 -8px 14px rgba(45,22,0,.38),inset 4px 0 8px rgba(255,235,120,.65),inset -3px 0 7px rgba(120,65,0,.28),0 0 12px rgba(255,215,40,.5),0 0 28px rgba(255,193,7,.3);isolation:isolate}
+.coin-front{transform:translateZ(6px)}.coin-back{transform:translateZ(-6px) rotateY(180deg)}
+.coin-front::before,.coin-back::before{content:"";position:absolute;inset:9px;border-radius:50%;border:3px solid rgba(255,240,145,.95);box-shadow:inset 0 2px 3px rgba(255,255,255,.85),inset 0 -4px 6px rgba(80,40,0,.4),0 0 3px rgba(255,255,255,.95),0 0 8px rgba(255,220,80,.35);pointer-events:none;z-index:2}
+.coin-front::after,.coin-back::after{content:"";position:absolute;top:-55%;left:-130%;width:38%;height:210%;background:linear-gradient(120deg,transparent 0%,transparent 30%,rgba(255,255,255,.05) 36%,rgba(255,255,255,.35) 42%,rgba(255,255,255,1) 48%,rgba(255,255,255,1) 50%,rgba(255,255,255,.65) 53%,rgba(255,255,255,.18) 58%,transparent 66%,transparent 100%);transform:rotate(20deg) scaleX(1.15);filter:blur(.2px) drop-shadow(0 0 8px rgba(255,255,255,.95)) drop-shadow(0 0 20px rgba(255,240,160,.85)) drop-shadow(0 0 35px rgba(255,220,80,.5));animation:coinShine 2.8s cubic-bezier(.2,.5,.3,1) infinite;pointer-events:none;z-index:4}
+.coin-1c{filter:drop-shadow(0 0 15px rgba(255,215,0,.6)) drop-shadow(0 0 30px rgba(255,193,7,.35)) drop-shadow(0 0 55px rgba(255,225,100,.18))}
+.coin-one{font-family:Arial,sans-serif;font-size:88px;font-weight:900;line-height:1;color:#fff9cf;text-shadow:0 2px 0 #8a6200,0 4px 7px rgba(80,45,0,.7),0 0 12px rgba(255,255,190,.95),0 0 3px rgba(255,255,255,.8)}
+.coin-s{font-family:Arial,sans-serif;font-size:88px;font-weight:900;line-height:1;margin-left:-1px;margin-top:0;color:#fff8c7;text-shadow:0 2px 0 #8a6200,0 3px 6px rgba(80,45,0,.7),0 0 10px rgba(255,255,190,.9)}
+@keyframes coinMotion{0%{transform:perspective(800px) translateY(0) rotateY(0deg)}25%{transform:perspective(800px) translateY(-7px) rotateY(90deg)}50%{transform:perspective(800px) translateY(0) rotateY(180deg)}75%{transform:perspective(800px) translateY(7px) rotateY(270deg)}100%{transform:perspective(800px) translateY(0) rotateY(360deg)}}
+@keyframes coinShine{0%{left:-130%;opacity:0}8%{opacity:.15}18%{opacity:1}35%{opacity:1}48%{opacity:.9}58%{opacity:.35}70%{opacity:0}100%{left:190%;opacity:0}}
+
+.chat-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.chat-header-main-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.chat-call-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:nowrap}
+.leave-chat-button{display:none;padding:6px 11px;background:#8b5a3c;color:white;border:none;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;white-space:nowrap;transition:background .2s ease,transform .15s ease;align-items:center;gap:5px}
+.leave-chat-button:hover{background:#6f452e;transform:translateY(-1px)}
+
+.chat-header-actions .chat-call-button{display:flex!important;width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;padding:0!important;border:1px solid rgba(255,255,255,.72)!important;border-radius:50%!important;align-items:center!important;justify-content:center!important;color:#fff!important;box-shadow:0 3px 10px rgba(35,25,18,.18)!important;cursor:pointer!important;transition:transform .16s ease,box-shadow .16s ease,filter .16s ease!important}
+.chat-header-actions .chat-call-button:hover{transform:translateY(-1px) scale(1.04)!important;box-shadow:0 5px 13px rgba(35,25,18,.24)!important;filter:brightness(1.05)!important}
+.chat-header-actions .chat-call-button:active{transform:scale(.96)!important;box-shadow:inset 0 2px 4px rgba(0,0,0,.12)!important}
+.chat-header-actions .chat-call-audio{background:#6eae83!important;color:#f7fff9!important}
+.chat-header-actions .chat-call-video{background:#a96d6d!important;color:#fffaf8!important}
+
+/* ===== ТЕЛЕФОН — своя картинка ===== */
+.chat-header-actions .call-icon-phone{position:relative;display:block;width:22px!important;height:22px!important;margin:0 auto!important;background:transparent!important}
+.chat-header-actions .call-icon-phone:before{content:"";position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%) rotate(-20deg);background:url("phone-handset.svg") no-repeat center / contain}
+.chat-header-actions .call-icon-phone:after{content:none!important}
+
+/* ===== ВИДЕОКАМЕРА — без изменений ===== */
+.chat-header-actions .call-icon-video{position:relative;display:block;width:15px!important;height:10px!important;border:0!important;border-radius:2.5px!important;background:#edf0f2!important;box-sizing:border-box;margin:0 auto!important;transform:translateX(2px)}
+.chat-header-actions .call-icon-video:after{content:"";position:absolute;left:auto!important;right:-5px!important;top:1px!important;width:6px!important;height:8px!important;border:0!important;background:#edf0f2!important;clip-path:polygon(0 0, 0 100%, 100% 50%)!important;box-sizing:border-box}
+
+@media(max-width:700px){
+.chat-header-actions{width:100%;align-items:flex-end;justify-content:flex-end;gap:8px;flex-direction:column;flex-wrap:nowrap}
+.chat-header-main-actions{width:100%;justify-content:flex-end;align-items:center;gap:6px}
+.chat-call-actions{width:100%;justify-content:flex-end;align-items:center;gap:10px;min-height:44px}
+.chat-header-actions .chat-call-button{width:46px!important;height:46px!important;min-width:46px!important;min-height:46px!important}
+}
+@media(max-width:380px){
+.chat-header-actions{gap:7px}
+.chat-header-actions .chat-call-button{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important}
+.chat-call-actions{gap:8px}
+}
+.icon-svg{display:inline-block;vertical-align:middle;flex-shrink:0}
+
+/* ===== СПИСОК ЧАТОВ — кнопка нового чата ===== */
+.chat-list-header{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:0;margin:0 0 12px}
+.chat-list-header h2{margin:2px 4px!important;min-width:0}
+.chat-list-new-chat{position:relative;flex:0 0 auto}
+.chat-list-new-chat #newChatButton{padding:5px 8px;background:#ff9800;color:white;border:none;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;white-space:nowrap;transition:background .2s ease,transform .15s ease;display:inline-flex;align-items:center;gap:4px}
+.chat-list-new-chat #newChatButton:hover{background:#e68a00;transform:translateY(-1px)}
+.chat-list-new-chat #newChatMenu{top:34px!important;right:0!important;left:auto!important}
+
+/* ===== ANDROID / МОБИЛЬНЫЕ — такие же круглые углы, как на iPhone ===== */
+@media(max-width:900px){
+    body:not(.mobile-chat-open) .chat-list{border-radius:26px!important}
+}
+
+@media(max-width:380px){
+    .chat-list-header{gap:6px;margin-bottom:10px}
+    .chat-list-header h2{font-size:17px!important}
+    .chat-list-new-chat #newChatButton{padding:5px 7px;font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="top-actions">
+    <button id="adminPanelButton" class="admin-panel-button" onclick="window.location.href='admin.html'" style="display:none;">
+        <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+        Админ-панель
+    </button>
+    <button onclick="window.location.href='settings.html'" class="settings-button" aria-label="Настройки" title="Настройки" type="button">
+        <svg class="settings-icon-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3.2l1.1 1.9a7.5 7.5 0 0 1 1.7.7l2.1-.6 1.6 1.6-.6 2.1c.3.5.5 1.1.7 1.7l.6 2.1-1.6 1.6-2.1-.6a7.5 7.5 0 0 1-1.7.7L12 20.8h-2.5l-1.1-1.9a7.5 7.5 0 0 1-1.7-.7l-2.1.6-1.6-1.6.6-2.1a7.5 7.5 0 0 1-.7-1.7L1 12.3V9.8l1.9-1.1a7.5 7.5 0 0 1 .7-1.7L3 4.9l1.6-1.6 2.1.6a7.5 7.5 0 0 1 1.7-.7l1.1-1.9H12z" transform="translate(1 0) scale(.92)"/>
+            <circle cx="12" cy="11" r="3.1"/>
+        </svg>
+    </button>
+    <div class="coin-1c">
+        <div class="coin-body">
+            <div class="coin-depth coin-depth-1"></div><div class="coin-depth coin-depth-2"></div><div class="coin-depth coin-depth-3"></div><div class="coin-depth coin-depth-4"></div><div class="coin-depth coin-depth-5"></div><div class="coin-depth coin-depth-6"></div><div class="coin-depth coin-depth-7"></div><div class="coin-depth coin-depth-8"></div><div class="coin-depth coin-depth-9"></div><div class="coin-depth coin-depth-10"></div><div class="coin-depth coin-depth-11"></div><div class="coin-depth coin-depth-12"></div><div class="coin-depth coin-depth-13"></div><div class="coin-depth coin-depth-14"></div><div class="coin-depth coin-depth-15"></div><div class="coin-depth coin-depth-16"></div><div class="coin-depth coin-depth-17"></div><div class="coin-depth coin-depth-18"></div><div class="coin-depth coin-depth-19"></div><div class="coin-depth coin-depth-20"></div><div class="coin-depth coin-depth-21"></div>
+            <div class="coin-face coin-front"><span class="coin-one">$</span></div>
+            <div class="coin-face coin-back"><span class="coin-one">$</span></div>
+        </div>
+    </div>
+</div>
+<h1 align="center" style="display:flex;align-items:center;justify-content:center;gap:8px;visibility:hidden;">
+    <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-4 4v-4H7a3 3 0 0 1-3-3V6z"/></svg>
+    Чат
+</h1>
+<div class="chat-container">
+    <div class="chat-list">
+        <div class="chat-list-header">
+            <h2>Чаты</h2>
+            <div class="chat-list-new-chat">
+                <button id="newChatButton">
+                    <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Новый чат
+                </button>
+                <div id="newChatMenu" style="display:none;position:absolute;right:0;top:32px;z-index:1000;background:white;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);overflow:hidden;min-width:160px;">
+                    <button id="newPrivateChatMenuButton" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px;border:none;background:white;text-align:left;cursor:pointer;">
+                        <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/></svg>
+                        Личный чат
+                    </button>
+                    <button id="newGroupChatMenuButton" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px;border:none;background:white;text-align:left;cursor:pointer;">
+                        <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M3 20c0-3.5 2.8-6 6-6s6 2.5 6 6"/><path d="M14 20c0-2.2 1.6-4 3.5-4s3.5 1.8 3.5 4"/></svg>
+                        Групповой чат
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="chatList"></div>
+    </div>
+    <div class="chat-window">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <h2 id="chatTitle" style="margin:0;">Выберите чат</h2>
+            <div class="chat-header-actions">
+                <div class="chat-header-main-actions">
+                    <button id="leaveChatButton" class="leave-chat-button" type="button">
+                        <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M15 12h6"/><path d="M18 9l3 3-3 3"/><circle cx="9" cy="12" r="1" fill="currentColor"/></svg>
+                        Выйти из чата
+                    </button>
+                </div>
+                <div id="chatCallActions" class="chat-call-actions"></div>
+            </div>
+        </div>
+        <div id="messages"></div>
+        <div id="typingIndicator" style="display:none;color:#777;font-style:italic;margin:10px;"></div>
+        <div class="send-box">
+            <div style="display:flex;flex-direction:column;width:100%;">
+                <div id="replyBox" style="display:none;background:#eeeeee;padding:8px;border-left:4px solid #8E44AD;border-radius:6px;margin-bottom:5px;font-size:14px;">
+                    <span id="replyText"></span>
+                    <button onclick="cancelReply()" style="float:right;border:none;background:none;cursor:pointer;color:red;font-weight:bold;display:inline-flex;align-items:center;">
+                        <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    </button>
+                </div>
+
+                <div style="position:relative;width:100%;">
+                    <input id="messageInput" type="text" placeholder="Введите сообщение..." style="width:100%;padding-right:48px;">
+                    <button id="voiceInputButton" type="button" title="Голосовой ввод" aria-label="Голосовой ввод" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;padding:0;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:19px;line-height:1;z-index:2;">🎙️</button>
+                </div>
+
+            </div>
+            <button id="sendButton" title="Отправить сообщение" style="display:inline-flex;align-items:center;justify-content:center;">
+                <svg class="icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2.5-7.5L3 11z"/><path d="M11.5 13.5L20 4"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@Supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="auth-check.js"></script>
+<script src="logout.js"></script>
+<audio id="messageSound" src="message.mp3"></audio>
+<script src="01-chat-state.js"></script>
+<script src="02-chat-user.js"></script>
+<script src="03-chat-list.js"></script>
+<script src="04-chat-private.js"></script>
+<script src="05-chat-messages.js"></script>
+<script src="14-chat-message-render.js"></script>
+<script src="15-chat-scroll.js"></script>
+<script src="06-chat-send.js"></script>
+<script src="07-chat-read.js"></script>
+<script src="08-chat-realtime.js"></script>
+<script src="17-chat-order.js"></script>
+<script src="09-chat-unread.js"></script>
+<script src="10-chat-typing.js"></script>
+<script src="11-chat-reply.js"></script>
+<script src="16-chat-actions.js"></script>
+<script src="12-chat-init.js"></script>
+<script src="13-chat-sound.js"></script>
+<script src="push.js"></script>
+<script src="call-v2-media-fix.js"></script>
+<script src="call-v2-ice-fix.js"></script>
+<script src="call-v2.js"></script>
+<script src="call-v2-controls-fix.js"></script>
+<script src="call-v2-chat-order.js"></script>
+<script src="call-v2-ringtone.js"></script>
+<script>
+(function arrangeCallButtons(){
+    function moveButtons(){
+        const actions=document.getElementById("chatCallActions");
+        const header=document.querySelector(".chat-header-actions");
+        if(!actions || !header) return;
+        header.querySelectorAll(":scope > .chat-call-button").forEach(button=>actions.appendChild(button));
+        header.querySelectorAll(":scope > button.chat-call-button, :scope > div > .chat-call-button").forEach(button=>{
+            if(button.parentElement!==actions) actions.appendChild(button);
+        });
+    }
+    moveButtons();
+    const observer=new MutationObserver(moveButtons);
+    observer.observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+<script>
+(async function showAdminButton(){
+    const adminButton=document.getElementById("adminPanelButton");
+    if(!adminButton)return;
+    const {data:{user},error:userError}=await supabaseClient.auth.getUser();
+    if(userError||!user)return;
+    const {data:profile,error:profileError}=await supabaseClient.from("profiles").select("role, approved").eq("id",user.id).maybeSingle();
+    if(profileError||!profile||profile.role!=="admin"||profile.approved!==true)return;
+    adminButton.style.display="inline-flex";
+})();
+</script>
+</body>
+</html>
