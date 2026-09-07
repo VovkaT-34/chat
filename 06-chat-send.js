@@ -24,176 +24,64 @@ const sendButton=document.getElementById("sendButton");if(sendButton)sendButton.
 const messageInput=document.getElementById("messageInput");if(messageInput){messageInput.addEventListener("keydown",function(event){if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendMessage();}});messageInput.addEventListener("input",function(){sendTypingStatus();});}
 
 (function(){
-    const button=document.getElementById("voiceInputButton");
-    const input=document.getElementById("messageInput");
+    const button=document.getElementById("voiceInputButton"),input=document.getElementById("messageInput");
     if(!button||!input)return;
-
     const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.5/dist/vosk.js";
-    const VOSK_LANGUAGES={
-        ru:{name:"Русский",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-ru-0.22.tar.gz"},
-        en:{name:"English",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-en-us-0.15.tar.gz"},
-        cn:{name:"中文",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-cn-0.22.tar.gz"}
-    };
-
+    const VOSK_LANGUAGES={ru:{name:"Русский",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-ru-0.22.tar.gz"},en:{name:"English",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-en-us-0.15.tar.gz"},cn:{name:"中文",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-cn-0.22.tar.gz"}};
     button.type="button";
-
-    let models={};
-    let modelPromises={};
-    let recognizer=null;
-    let mediaStream=null;
-    let audioContext=null;
-    let source=null;
-    let recognizerNode=null;
-    let silentGain=null;
-    let running=false;
-    let starting=false;
-    let finalParts=[];
-    let baseText="";
-
-    function getLanguage(){
-        const code=localStorage.getItem("chat-voice-language")||"ru";
-        return VOSK_LANGUAGES[code]?code:"ru";
-    }
-
+    let models={},modelPromises={},recognizer=null,mediaStream=null,audioContext=null,source=null,recognizerNode=null,silentGain=null,running=false,starting=false,cancelRequested=false,finalParts=[],baseText="";
+    function getLanguage(){const code=localStorage.getItem("chat-voice-language")||"ru";return VOSK_LANGUAGES[code]?code:"ru";}
     function loadScript(){
         if(window.Vosk)return Promise.resolve();
-        return new Promise(function(resolve,reject){
-            const script=document.createElement("script");
-            script.src=VOSK_SCRIPT;
-            script.onload=resolve;
-            script.onerror=function(){reject(new Error("Не удалось загрузить движок голосового ввода"));};
-            document.head.appendChild(script);
-        });
+        return new Promise(function(resolve,reject){const script=document.createElement("script");script.src=VOSK_SCRIPT;script.onload=resolve;script.onerror=function(){reject(new Error("Не удалось загрузить движок голосового ввода"));};document.head.appendChild(script);});
     }
-
     async function loadModel(code){
         if(models[code])return models[code];
         if(!modelPromises[code]){
-            modelPromises[code]=loadScript().then(function(){
-                return Vosk.createModel(VOSK_LANGUAGES[code].url);
-            }).then(function(value){
-                models[code]=value;
-                localStorage.setItem("chat-voice-language-ready-"+code,"true");
-                return value;
-            }).catch(function(error){
-                delete modelPromises[code];
-                throw error;
-            });
+            modelPromises[code]=loadScript().then(function(){return Vosk.createModel(VOSK_LANGUAGES[code].url);}).then(function(value){models[code]=value;localStorage.setItem("chat-voice-language-ready-"+code,"true");return value;}).catch(function(error){delete modelPromises[code];throw error;});
         }
         return modelPromises[code];
     }
-
-    function setText(partial){
-        const voiceText=finalParts.join(" ")+(partial?(finalParts.length?" ":"")+partial:"");
-        input.value=(baseText?baseText+(voiceText?" ":""):"")+voiceText;
-        input.dispatchEvent(new Event("input",{bubbles:true}));
-    }
-
+    function setText(partial){const voiceText=finalParts.join(" ")+(partial?(finalParts.length?" ":"")+partial:"");input.value=(baseText?baseText+(voiceText?" ":""):"")+voiceText;input.dispatchEvent(new Event("input",{bubbles:true}));}
     function cleanup(){
-        if(recognizerNode){
-            recognizerNode.onaudioprocess=null;
-            try{recognizerNode.disconnect();}catch(e){}
-            recognizerNode=null;
-        }
-        if(silentGain){
-            try{silentGain.disconnect();}catch(e){}
-            silentGain=null;
-        }
-        if(source){
-            try{source.disconnect();}catch(e){}
-            source=null;
-        }
-        if(mediaStream){
-            mediaStream.getTracks().forEach(function(track){track.stop();});
-            mediaStream=null;
-        }
-        if(audioContext){
-            try{audioContext.close();}catch(e){}
-            audioContext=null;
-        }
-        if(recognizer){
-            try{recognizer.remove();}catch(e){}
-            recognizer=null;
-        }
-        running=false;
-        starting=false;
-        button.disabled=false;
-        button.title="Голосовой ввод";
-        button.setAttribute("aria-pressed","false");
-        button.setAttribute("aria-busy","false");
+        if(recognizerNode){recognizerNode.onaudioprocess=null;try{recognizerNode.disconnect();}catch(e){}recognizerNode=null;}
+        if(silentGain){try{silentGain.disconnect();}catch(e){}silentGain=null;}
+        if(source){try{source.disconnect();}catch(e){}source=null;}
+        if(mediaStream){mediaStream.getTracks().forEach(function(track){track.stop();});mediaStream=null;}
+        if(audioContext){try{audioContext.close();}catch(e){}audioContext=null;}
+        if(recognizer){try{recognizer.remove();}catch(e){}recognizer=null;}
+        running=false;starting=false;cancelRequested=false;button.disabled=false;button.title="Голосовой ввод";button.setAttribute("aria-pressed","false");button.setAttribute("aria-busy","false");
     }
-
     async function startVoice(){
         if(running||starting)return;
-        starting=true;
-        input.blur();
-        button.title="Запуск голосового ввода...";
-        button.setAttribute("aria-busy","true");
-        baseText=input.value.trim();
-        finalParts=[];
+        starting=true;cancelRequested=false;input.blur();button.title="Загрузка языка…";button.setAttribute("aria-busy","true");baseText=input.value.trim();finalParts=[];
         const language=getLanguage();
         try{
+            const currentModel=await loadModel(language);
+            if(cancelRequested){cleanup();return;}
             if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("Микрофон недоступен в этом браузере");
             mediaStream=await navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,channelCount:1,sampleRate:16000}});
-            button.title="Загрузка языка: "+VOSK_LANGUAGES[language].name;
-            const currentModel=await loadModel(language);
-            audioContext=new (window.AudioContext||window.webkitAudioContext)();
+            if(cancelRequested){cleanup();return;}
+            audioContext=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
             if(audioContext.state==="suspended")await audioContext.resume();
             recognizer=new currentModel.KaldiRecognizer(audioContext.sampleRate);
-            recognizer.on("result",function(message){
-                const text=(message&&message.result&&message.result.text||"").trim();
-                if(text){finalParts.push(text);setText("");}
-            });
-            recognizer.on("partialresult",function(message){
-                const partial=(message&&message.result&&message.result.partial||"").trim();
-                setText(partial);
-            });
+            recognizer.on("result",function(message){const text=(message&&message.result&&message.result.text||"").trim();if(text){finalParts.push(text);setText("");}});
+            recognizer.on("partialresult",function(message){const partial=(message&&message.result&&message.result.partial||"").trim();setText(partial);});
             source=audioContext.createMediaStreamSource(mediaStream);
-            recognizerNode=audioContext.createScriptProcessor(4096,1,1);
-            silentGain=audioContext.createGain();
-            silentGain.gain.value=0;
-            recognizerNode.onaudioprocess=function(event){
-                if(!running||!recognizer)return;
-                try{recognizer.acceptWaveform(event.inputBuffer);}catch(error){console.error("Vosk:",error);}
-            };
-            source.connect(recognizerNode);
-            recognizerNode.connect(silentGain);
-            silentGain.connect(audioContext.destination);
-            running=true;
-            starting=false;
-            localStorage.setItem("chat-voice-language",language);
-            button.title="Остановить голосовой ввод";
-            button.setAttribute("aria-pressed","true");
-            button.setAttribute("aria-busy","false");
-        }catch(error){
-            console.error("Голосовой ввод:",error);
-            cleanup();
-            alert("Не удалось запустить голосовой ввод: "+(error&&error.message?error.message:"неизвестная ошибка"));
-        }
+            recognizerNode=audioContext.createScriptProcessor(4096,1,1);silentGain=audioContext.createGain();silentGain.gain.value=0;
+            recognizerNode.onaudioprocess=function(event){if(!running||!recognizer)return;try{recognizer.acceptWaveform(event.inputBuffer);}catch(error){console.error("Vosk:",error);}};
+            source.connect(recognizerNode);recognizerNode.connect(silentGain);silentGain.connect(audioContext.destination);
+            running=true;starting=false;localStorage.setItem("chat-voice-language",language);button.title="Остановить голосовой ввод";button.setAttribute("aria-pressed","true");button.setAttribute("aria-busy","false");
+        }catch(error){console.error("Голосовой ввод:",error);cleanup();if(!cancelRequested)alert("Не удалось запустить голосовой ввод: "+(error&&error.message?error.message:"неизвестная ошибка"));}
     }
-
     function stopVoice(){
-        if(!running)return;
-        running=false;
+        if(!running&&!starting)return;
+        cancelRequested=true;running=false;
         if(recognizer){try{recognizer.retrieveFinalResult();}catch(e){}}
-        setTimeout(function(){cleanup();},250);
+        cleanup();
     }
-
-    function activateVoice(event){
-        event.preventDefault();
-        event.stopPropagation();
-        input.blur();
-        if(running)stopVoice();else startVoice();
-    }
-
+    function activateVoice(event){event.preventDefault();event.stopPropagation();input.blur();if(running||starting)stopVoice();else startVoice();}
     let ignoreNextClick=false;
-    button.addEventListener("pointerdown",function(event){
-        ignoreNextClick=true;
-        activateVoice(event);
-        setTimeout(function(){ignoreNextClick=false;},0);
-    });
-    button.addEventListener("click",function(event){
-        if(ignoreNextClick){event.preventDefault();event.stopPropagation();return;}
-        activateVoice(event);
-    });
+    button.addEventListener("pointerdown",function(event){event.preventDefault();event.stopPropagation();ignoreNextClick=true;setTimeout(function(){ignoreNextClick=false;},500);});
+    button.addEventListener("click",function(event){if(ignoreNextClick){event.preventDefault();event.stopPropagation();ignoreNextClick=false;return;}activateVoice(event);});
 })();
