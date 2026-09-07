@@ -34,7 +34,7 @@ async function createFcmAccessToken(){
 async function sendFcm(token:string,title:string,body:string,chatId:number,messageId:number){
  const accessToken=await createFcmAccessToken();
  if(!accessToken)return {sent:false,invalid:false};
- const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${accessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token,notification:{title,body},data:{chatId:String(chatId),messageId:String(messageId)},android:{priority:"high",notification:{channel_id:"chat_messages_v2",sound:"default",click_action:"FLUTTER_NOTIFICATION_CLICK"}}}})});
+ const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${accessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token,notification:{title,body},data:{chatId:String(chatId),messageId:String(messageId)},android:{priority:"high",notification:{channel_id:"chat_messages_v3",sound:"default",click_action:"FLUTTER_NOTIFICATION_CLICK"}}}})});
  if(response.ok)return {sent:true,invalid:false};
  const text=await response.text();
  const invalid=/UNREGISTERED|registration-token-not-registered|INVALID_ARGUMENT/.test(text);
@@ -79,7 +79,6 @@ Deno.serve(async(req:Request)=>{
      }catch(error){const statusCode=Number((error as {statusCode?:number})?.statusCode||0);if(statusCode===404||statusCode===410){await admin.from("web_push_subscriptions").delete().eq("id",subscription.id);removed++;}else console.error("Web Push send error:",error);}
     }
    }
-
    const {data:fcmTokens,error:fcmTokenError}=await admin.from("android_push_tokens").select("id,token").eq("user_id",member.user_id);
    if(!fcmTokenError && fcmTokens?.length && fcmClientEmail && fcmPrivateKey){
     if(!fcmAccessTokenPromise)fcmAccessTokenPromise=createFcmAccessToken();
@@ -87,7 +86,7 @@ Deno.serve(async(req:Request)=>{
     if(fcmAccessToken){
      for(const fcmTokenRow of fcmTokens){
       try{
-       const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${fcmAccessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token:fcmTokenRow.token,notification:{title:senderName,body:message.text||"Новое сообщение"},data:{chatId:String(message.chat_id),messageId:String(message.id)},android:{priority:"high",notification:{channel_id:"chat_messages_v2",sound:"default"}}}})});
+       const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${fcmAccessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token:fcmTokenRow.token,notification:{title:senderName,body:message.text||"Новое сообщение"},data:{chatId:String(message.chat_id),messageId:String(message.id)},android:{priority:"high",notification:{channel_id:"chat_messages_v3",sound:"default"}}}})});
        if(response.ok){fcmSent++;}else{const errorText=await response.text();if(/UNREGISTERED|registration-token-not-registered|INVALID_ARGUMENT/.test(errorText)){await admin.from("android_push_tokens").delete().eq("id",fcmTokenRow.id);fcmRemoved++;}else console.error("FCM send error:",errorText);}
       }catch(error){console.error("FCM send exception:",error);}
      }
