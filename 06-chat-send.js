@@ -29,7 +29,7 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     if(!button||!input)return;
 
     const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.5/dist/vosk.js";
-    const VOSK_MODEL="https://raw.githubusercontent.com/w-okada/vosk-browser-ts/c236127eddb6dd5cb29301bd93a07d4cf56bc9d0/docs/assets/vosk-browser-ts/assets/models/vosk-model-small-ru-0.22.tar.gz";
+    const VOSK_MODEL="https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-ru-0.22.tar.gz";
 
     let model=null;
     let modelPromise=null;
