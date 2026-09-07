@@ -23,7 +23,7 @@
             .emoji-button{width:46px;height:46px;min-width:46px;min-height:46px;border:1px solid #cbb9a7;border-radius:50%;background:rgba(255,255,255,.92);color:#5a4636;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;font-size:25px;line-height:1;box-shadow:0 3px 9px rgba(72,49,31,.08);transition:transform .16s ease,background .16s ease,box-shadow .16s ease}
             .emoji-button:hover{background:#fffaf3;transform:scale(1.05);box-shadow:0 5px 13px rgba(72,49,31,.14)}
             .emoji-button:active{transform:scale(.95)}
-            .emoji-panel{position:absolute;left:0;bottom:54px;width:min(390px,calc(100vw - 30px));height:330px;background:rgba(255,251,245,.98);border:1px solid rgba(117,82,50,.18);border-radius:14px;box-shadow:0 10px 30px rgba(72,49,31,.2);z-index:100;display:none;overflow:hidden;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+            .emoji-panel{position:absolute;left:0;bottom:46px;width:min(390px,calc(100vw - 30px));height:330px;background:rgba(255,251,245,.98);border:1px solid rgba(117,82,50,.18);border-radius:14px;box-shadow:0 10px 30px rgba(72,49,31,.2);z-index:1000;display:none;overflow:hidden;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
             .emoji-panel.open{display:flex;flex-direction:column}
             .emoji-categories{display:flex;gap:3px;padding:7px;border-bottom:1px solid #dfd1c2;overflow-x:auto;flex-shrink:0}
             .emoji-category{border:0;background:transparent;border-radius:8px;padding:5px 7px;font-size:16px;cursor:pointer;flex:0 0 auto}
@@ -32,8 +32,8 @@
             .emoji-grid{padding:6px 8px 10px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;overflow-y:auto}
             .emoji-item{border:0;background:transparent;border-radius:7px;padding:5px 1px;font-size:25px;line-height:1.15;cursor:pointer;text-align:center}
             .emoji-item:hover{background:#eadcc8}
-            @media(max-width:700px){.emoji-button{width:44px;height:44px;min-width:44px;min-height:44px;font-size:24px}.emoji-panel{left:50%;transform:translateX(-50%);bottom:51px;width:min(360px,calc(100vw - 20px));height:315px}.emoji-grid{grid-template-columns:repeat(8,1fr)}.emoji-item{font-size:24px}}
-            @media(max-width:380px){.emoji-panel{width:calc(100vw - 14px);height:300px}.emoji-grid{grid-template-columns:repeat(7,1fr)}.emoji-item{font-size:23px}}
+            @media(max-width:700px){.send-box:has(.emoji-picker-wrap){overflow:visible!important}.emoji-button{width:44px;height:44px;min-width:44px;min-height:44px;font-size:24px}.emoji-panel{left:50%;transform:translateX(-50%);bottom:44px;width:min(360px,calc(100vw - 20px));height:315px}.emoji-grid{grid-template-columns:repeat(8,1fr)}.emoji-item{font-size:24px}}
+            @media(max-width:380px){.emoji-panel{width:calc(100vw - 14px);height:300px;bottom:44px}.emoji-grid{grid-template-columns:repeat(7,1fr)}.emoji-item{font-size:23px}}
             @media(pointer:fine){.emoji-picker-wrap:hover .emoji-panel{display:flex;flex-direction:column}.emoji-picker-wrap:hover .emoji-button{background:#fffaf3}}
         `;
         document.head.appendChild(style);
