@@ -86,7 +86,10 @@
 /* Монета должна свободно выходить за пределы узкой шапки на мобильных. */
 @media (max-width: 900px) {
     .top-actions { overflow: visible !important; }
-    .coin-1c { transform: translate(-50%, -50%) scale(.32) !important; }
+    .coin-1c {
+        left: 0 !important;
+        transform: translate(0, -50%) scale(.32) !important;
+    }
 }
 
 /* Только кнопка выхода: коричнево-оранжевый цвет на всех устройствах. */
@@ -107,5 +110,8 @@
 
 /* Только Windows: монета в 2 раза меньше. */
 @media (min-width: 901px) {
-    .coin-1c { transform: translate(-50%, -50%) scale(.40) !important; }
+    .coin-1c {
+        left: 0 !important;
+        transform: translate(0, -50%) scale(.40) !important;
+    }
 }
