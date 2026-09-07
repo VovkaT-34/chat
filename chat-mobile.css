@@ -88,3 +88,19 @@
     .top-actions { overflow: visible !important; }
     .coin-1c { transform: translate(-50%, -50%) scale(.32) !important; }
 }
+
+/* Только кнопка выхода: коричнево-оранжевый цвет на всех устройствах. */
+.leave-chat-button {
+    background: linear-gradient(135deg, #8b5a3c 0%, #a96332 50%, #d9822b 100%) !important;
+}
+.leave-chat-button:hover {
+    background: linear-gradient(135deg, #7f5035 0%, #9f5d2d 50%, #c87526 100%) !important;
+}
+
+/* Только Windows: кнопка выхода немного меньше. */
+@media (min-width: 901px) {
+    .chat-header-main-actions .leave-chat-button {
+        padding: 5px 9px !important;
+        font-size: 11px !important;
+    }
+}
