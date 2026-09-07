@@ -34,7 +34,7 @@ public class MainActivity extends Activity {
     private static final String START_URL = "https://vovkat-34.github.io/chat/";
     private static final int MEDIA_PERMISSION_REQUEST = 4101;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 4102;
-    private static final String NOTIFICATION_CHANNEL_ID = "chat_messages_v2";
+    private static final String NOTIFICATION_CHANNEL_ID = "chat_messages_v3";
     private static final String PREFS_NAME = "chat_android";
     private static final String PREF_NOTIFICATION_REQUESTED = "notification_permission_requested";
     private static final String PREF_FCM_TOKEN = "fcm_token";
