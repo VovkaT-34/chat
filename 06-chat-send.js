@@ -29,18 +29,31 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.5/dist/vosk.js";
     const VOSK_LANGUAGES={ru:{name:"Русский",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-ru-0.22.tar.gz"},en:{name:"English",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-en-us-0.15.tar.gz"},cn:{name:"中文",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-cn-0.22.tar.gz"}};
     button.type="button";
-    let models={},modelPromises={},recognizer=null,mediaStream=null,audioContext=null,source=null,recognizerNode=null,silentGain=null,running=false,starting=false,cancelRequested=false,finalParts=[],baseText="";
+    let models={},modelPromises={},recognizer=null,mediaStream=null,audioContext=null,source=null,recognizerNode=null,silentGain=null,running=false,starting=false,finalParts=[],baseText="",startToken=0;
     function getLanguage(){const code=localStorage.getItem("chat-voice-language")||"ru";return VOSK_LANGUAGES[code]?code:"ru";}
+    function isReady(code){return localStorage.getItem("chat-voice-language-ready-"+code)==="true";}
     function loadScript(){
         if(window.Vosk)return Promise.resolve();
         return new Promise(function(resolve,reject){const script=document.createElement("script");script.src=VOSK_SCRIPT;script.onload=resolve;script.onerror=function(){reject(new Error("Не удалось загрузить движок голосового ввода"));};document.head.appendChild(script);});
     }
-    async function loadModel(code){
-        if(models[code])return models[code];
+    function loadModel(code){
+        if(models[code])return Promise.resolve(models[code]);
         if(!modelPromises[code]){
-            modelPromises[code]=loadScript().then(function(){return Vosk.createModel(VOSK_LANGUAGES[code].url);}).then(function(value){models[code]=value;localStorage.setItem("chat-voice-language-ready-"+code,"true");return value;}).catch(function(error){delete modelPromises[code];throw error;});
+            modelPromises[code]=loadScript().then(function(){return Vosk.createModel(VOSK_LANGUAGES[code].url);}).then(function(value){models[code]=value;localStorage.setItem("chat-voice-language-ready-"+code,"true");return value;}).catch(function(error){delete modelPromises[code];localStorage.removeItem("chat-voice-language-ready-"+code);throw error;});
         }
         return modelPromises[code];
+    }
+    function showLanguageChooser(){
+        const old=document.getElementById("voiceLanguageChooser");if(old)old.remove();
+        const overlay=document.createElement("div");overlay.id="voiceLanguageChooser";overlay.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;padding:14px";
+        const box=document.createElement("div");box.style.cssText="width:min(430px,100%);background:#fff;border-radius:18px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.25);font-family:Arial,sans-serif;color:#30251e";
+        const title=document.createElement("div");title.textContent="Нужен языковой пакет";title.style.cssText="font-size:18px;font-weight:700;margin-bottom:7px";
+        const text=document.createElement("div");text.textContent="Выберите язык для офлайн-распознавания. Сначала его нужно скачать в настройках.";text.style.cssText="font-size:14px;color:#786e67;line-height:1.4;margin-bottom:14px";
+        box.appendChild(title);box.appendChild(text);
+        Object.keys(VOSK_LANGUAGES).forEach(function(code){const b=document.createElement("button");b.type="button";b.textContent=VOSK_LANGUAGES[code].name;b.style.cssText="display:block;width:100%;padding:12px;margin:7px 0;border:0;border-radius:10px;background:#6eae83;color:#fff;font-weight:700;font-size:15px;cursor:pointer";b.onclick=function(){localStorage.setItem("chat-voice-language",code);overlay.remove();location.href="settings.html#voice-language";};box.appendChild(b);});
+        const settings=document.createElement("button");settings.type="button";settings.textContent="Открыть настройки";settings.style.cssText="display:block;width:100%;padding:11px;margin-top:9px;border:1px solid #d9cec5;border-radius:10px;background:#fff;color:#5d4637;font-weight:700;cursor:pointer";settings.onclick=function(){overlay.remove();location.href="settings.html#voice-language";};
+        const cancel=document.createElement("button");cancel.type="button";cancel.textContent="Отмена";cancel.style.cssText="display:block;width:100%;padding:9px;margin-top:4px;border:0;background:transparent;color:#786e67;cursor:pointer";cancel.onclick=function(){overlay.remove();};
+        box.appendChild(settings);box.appendChild(cancel);overlay.appendChild(box);document.body.appendChild(overlay);
     }
     function setText(partial){const voiceText=finalParts.join(" ")+(partial?(finalParts.length?" ":"")+partial:"");input.value=(baseText?baseText+(voiceText?" ":""):"")+voiceText;input.dispatchEvent(new Event("input",{bubbles:true}));}
     function cleanup(){
@@ -50,20 +63,22 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
         if(mediaStream){mediaStream.getTracks().forEach(function(track){track.stop();});mediaStream=null;}
         if(audioContext){try{audioContext.close();}catch(e){}audioContext=null;}
         if(recognizer){try{recognizer.remove();}catch(e){}recognizer=null;}
-        running=false;starting=false;cancelRequested=false;button.disabled=false;button.title="Голосовой ввод";button.setAttribute("aria-pressed","false");button.setAttribute("aria-busy","false");
+        running=false;starting=false;button.disabled=false;button.title="Голосовой ввод";button.setAttribute("aria-pressed","false");button.setAttribute("aria-busy","false");
     }
     async function startVoice(){
         if(running||starting)return;
-        starting=true;cancelRequested=false;input.blur();button.title="Загрузка языка…";button.setAttribute("aria-busy","true");baseText=input.value.trim();finalParts=[];
+        const token=++startToken;starting=true;input.blur();button.title="Подготовка голосового ввода…";button.setAttribute("aria-busy","true");baseText=input.value.trim();finalParts=[];
         const language=getLanguage();
+        if(!isReady(language)){starting=false;button.setAttribute("aria-busy","false");showLanguageChooser();return;}
         try{
             const currentModel=await loadModel(language);
-            if(cancelRequested){cleanup();return;}
+            if(token!==startToken||!starting)return cleanup();
             if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("Микрофон недоступен в этом браузере");
             mediaStream=await navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,channelCount:1,sampleRate:16000}});
-            if(cancelRequested){cleanup();return;}
+            if(token!==startToken||!starting)return cleanup();
             audioContext=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
             if(audioContext.state==="suspended")await audioContext.resume();
+            if(token!==startToken||!starting)return cleanup();
             recognizer=new currentModel.KaldiRecognizer(audioContext.sampleRate);
             recognizer.on("result",function(message){const text=(message&&message.result&&message.result.text||"").trim();if(text){finalParts.push(text);setText("");}});
             recognizer.on("partialresult",function(message){const partial=(message&&message.result&&message.result.partial||"").trim();setText(partial);});
@@ -72,16 +87,15 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
             recognizerNode.onaudioprocess=function(event){if(!running||!recognizer)return;try{recognizer.acceptWaveform(event.inputBuffer);}catch(error){console.error("Vosk:",error);}};
             source.connect(recognizerNode);recognizerNode.connect(silentGain);silentGain.connect(audioContext.destination);
             running=true;starting=false;localStorage.setItem("chat-voice-language",language);button.title="Остановить голосовой ввод";button.setAttribute("aria-pressed","true");button.setAttribute("aria-busy","false");
-        }catch(error){console.error("Голосовой ввод:",error);cleanup();if(!cancelRequested)alert("Не удалось запустить голосовой ввод: "+(error&&error.message?error.message:"неизвестная ошибка"));}
+        }catch(error){console.error("Голосовой ввод:",error);cleanup();alert("Не удалось запустить голосовой ввод: "+(error&&error.message?error.message:"неизвестная ошибка"));}
     }
     function stopVoice(){
         if(!running&&!starting)return;
-        cancelRequested=true;running=false;
+        ++startToken;running=false;starting=false;
         if(recognizer){try{recognizer.retrieveFinalResult();}catch(e){}}
         cleanup();
     }
     function activateVoice(event){event.preventDefault();event.stopPropagation();input.blur();if(running||starting)stopVoice();else startVoice();}
-    let ignoreNextClick=false;
-    button.addEventListener("pointerdown",function(event){event.preventDefault();event.stopPropagation();ignoreNextClick=true;setTimeout(function(){ignoreNextClick=false;},500);});
-    button.addEventListener("click",function(event){if(ignoreNextClick){event.preventDefault();event.stopPropagation();ignoreNextClick=false;return;}activateVoice(event);});
+    button.addEventListener("pointerdown",function(event){event.preventDefault();event.stopPropagation();input.blur();});
+    button.addEventListener("click",function(event){activateVoice(event);});
 })();
