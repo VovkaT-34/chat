@@ -115,3 +115,8 @@
         transform: translate(0, -50%) scale(.40) !important;
     }
 }
+
+/* Только Admin Panel: поверх монеты, чтобы кнопка всегда нажималась. */
+.admin-panel-button {
+    z-index: 100 !important;
+}
