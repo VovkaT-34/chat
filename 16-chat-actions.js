@@ -65,6 +65,7 @@
             align-items: center !important;
             gap: 10px !important;
             flex-wrap: nowrap !important;
+            transform: translateY(-23px) !important;
         }
 
         .chat-call-actions .chat-call-button,
