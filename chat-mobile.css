@@ -86,4 +86,5 @@
 /* Монета должна свободно выходить за пределы узкой шапки на мобильных. */
 @media (max-width: 900px) {
     .top-actions { overflow: visible !important; }
+    .coin-1c { transform: translate(-50%, -50%) scale(.32) !important; }
 }
