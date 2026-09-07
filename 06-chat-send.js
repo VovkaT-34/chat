@@ -31,6 +31,8 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.5/dist/vosk.js";
     const VOSK_MODEL="https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-ru-0.22.tar.gz";
 
+    button.type="button";
+
     let model=null;
     let modelPromise=null;
     let recognizer=null;
@@ -40,6 +42,7 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     let recognizerNode=null;
     let silentGain=null;
     let running=false;
+    let starting=false;
     let finalParts=[];
     let baseText="";
 
@@ -103,44 +106,36 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
             recognizer=null;
         }
         running=false;
+        starting=false;
         button.disabled=false;
-        button.title="Голосовой ввод завершён";
+        button.title="Голосовой ввод";
         button.setAttribute("aria-pressed","false");
+        button.setAttribute("aria-busy","false");
     }
 
     async function startVoice(){
-        if(running)return;
+        if(running||starting)return;
+        starting=true;
+        input.blur();
+        button.title="Запуск голосового ввода...";
+        button.setAttribute("aria-busy","true");
+        baseText=input.value.trim();
+        finalParts=[];
         try{
-            button.disabled=true;
-            baseText=input.value.trim();
-            finalParts=[];
-
+            if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("Микрофон недоступен в этом браузере");
+            mediaStream=await navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,channelCount:1,sampleRate:16000}});
             const currentModel=await loadModel();
-            mediaStream=await navigator.mediaDevices.getUserMedia({
-                video:false,
-                audio:{
-                    echoCancellation:true,
-                    noiseSuppression:true,
-                    channelCount:1
-                }
-            });
-
-            audioContext=new (window.AudioContext||window.webkitAudioContext)();
+            audioContext=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
             if(audioContext.state==="suspended")await audioContext.resume();
-
             recognizer=new currentModel.KaldiRecognizer(audioContext.sampleRate);
             recognizer.on("result",function(message){
                 const text=(message&&message.result&&message.result.text||"").trim();
-                if(text){
-                    finalParts.push(text);
-                    setText("");
-                }
+                if(text){finalParts.push(text);setText("");}
             });
             recognizer.on("partialresult",function(message){
                 const partial=(message&&message.result&&message.result.partial||"").trim();
                 setText(partial);
             });
-
             source=audioContext.createMediaStreamSource(mediaStream);
             recognizerNode=audioContext.createScriptProcessor(4096,1,1);
             silentGain=audioContext.createGain();
@@ -152,33 +147,40 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
             source.connect(recognizerNode);
             recognizerNode.connect(silentGain);
             silentGain.connect(audioContext.destination);
-
             running=true;
-            button.disabled=false;
+            starting=false;
             button.title="Остановить голосовой ввод";
             button.setAttribute("aria-pressed","true");
+            button.setAttribute("aria-busy","false");
         }catch(error){
             console.error("Голосовой ввод:",error);
             cleanup();
-            alert("Не удалось запустить голосовой ввод.");
+            alert("Не удалось запустить голосовой ввод: "+(error&&error.message?error.message:"неизвестная ошибка"));
         }
     }
 
     function stopVoice(){
         if(!running)return;
         running=false;
-        button.disabled=true;
-        if(recognizer){
-            try{recognizer.retrieveFinalResult();}catch(e){}
-        }
+        if(recognizer){try{recognizer.retrieveFinalResult();}catch(e){}}
         setTimeout(function(){cleanup();},250);
     }
 
-    button.addEventListener("click",function(event){
+    function activateVoice(event){
         event.preventDefault();
         event.stopPropagation();
-        button.blur();
-        if(running)stopVoice();
-        else startVoice();
+        input.blur();
+        if(running)stopVoice();else startVoice();
+    }
+
+    let ignoreNextClick=false;
+    button.addEventListener("pointerdown",function(event){
+        ignoreNextClick=true;
+        activateVoice(event);
+        setTimeout(function(){ignoreNextClick=false;},0);
+    });
+    button.addEventListener("click",function(event){
+        if(ignoreNextClick){event.preventDefault();event.stopPropagation();return;}
+        activateVoice(event);
     });
 })();
