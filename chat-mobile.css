@@ -82,3 +82,8 @@
         transform: translate(-50%, -50%) translateY(-1px) scale(1) !important;
     }
 }
+
+/* Монета должна свободно выходить за пределы узкой шапки на мобильных. */
+@media (max-width: 900px) {
+    .top-actions { overflow: visible !important; }
+}
