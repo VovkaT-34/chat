@@ -48,7 +48,8 @@
         var end = input.selectionEnd == null ? input.value.length : input.selectionEnd;
         input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
         var cursor = start + emoji.length;
-        input.focus();
+        var isMobile = window.matchMedia && window.matchMedia("(max-width: 700px)").matches;
+        if (!isMobile) input.focus();
         input.setSelectionRange(cursor, cursor);
         input.dispatchEvent(new Event("input", { bubbles: true }));
     }
@@ -102,7 +103,6 @@
                 emojiButton.addEventListener("click", function () {
                     insertEmoji(input, emoji);
                     if (window.matchMedia && window.matchMedia("(pointer:fine)").matches) return;
-                    panel.classList.remove("open");
                 });
                 grid.appendChild(emojiButton);
             });
