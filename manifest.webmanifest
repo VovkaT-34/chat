@@ -1,10 +1,10 @@
 {
-  "id": "https://chat.browserchat.workers.dev/",
+  "id": "./",
   "name": "Чат",
   "short_name": "Чат",
   "description": "Браузерный мессенджер",
-  "start_url": "https://chat.browserchat.workers.dev/index.html",
-  "scope": "https://chat.browserchat.workers.dev/",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "fullscreen", "minimal-ui"],
   "background_color": "#8b4fa8",
@@ -13,19 +13,19 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "https://chat.browserchat.workers.dev/android-favicon.svg?v=20260906-195",
+      "src": "android-favicon.svg?v=20260906-195",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "https://chat.browserchat.workers.dev/android-favicon.svg?v=20260906-195",
+      "src": "android-favicon.svg?v=20260906-195",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "https://chat.browserchat.workers.dev/android-favicon.svg?v=20260906-195",
+      "src": "android-favicon.svg?v=20260906-195",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
