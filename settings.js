@@ -100,8 +100,80 @@ async function enableNotifications() {
     }
 }
 
+const VOICE_LANGUAGES = {
+    ru: {name: "Русский", url: "https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-ru-0.22.tar.gz"},
+    en: {name: "English", url: "https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-en-us-0.15.tar.gz"},
+    cn: {name: "中文", url: "https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-cn-0.22.tar.gz"}
+};
+
+let voiceModelLoadPromise = null;
+
+function loadVoskScript() {
+    if (window.Vosk) return Promise.resolve();
+    if (voiceModelLoadPromise) return voiceModelLoadPromise;
+    voiceModelLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/vosk-browser@0.0.5/dist/vosk.js";
+        script.onload = resolve;
+        script.onerror = () => reject(new Error("Не удалось загрузить движок голосового ввода."));
+        document.head.appendChild(script);
+    }).catch(error => {
+        voiceModelLoadPromise = null;
+        throw error;
+    });
+    return voiceModelLoadPromise;
+}
+
+function updateVoiceLanguageButtons() {
+    document.querySelectorAll("[data-voice-language]").forEach(button => {
+        const code = button.getAttribute("data-voice-language");
+        const ready = localStorage.getItem("chat-voice-language-ready-" + code) === "true";
+        const selected = (localStorage.getItem("chat-voice-language") || "ru") === code;
+        button.textContent = ready ? (selected ? "Выбрано" : "Готово") : "Скачать";
+        button.disabled = false;
+    });
+}
+
+async function downloadVoiceLanguage(code) {
+    const language = VOICE_LANGUAGES[code];
+    const button = document.querySelector('[data-voice-language="' + code + '"]');
+    if (!language || !button) return;
+
+    button.disabled = true;
+    button.textContent = "Скачивание…";
+    showMessage("Скачивается модель " + language.name + ". Это может занять некоторое время.");
+
+    try {
+        await loadVoskScript();
+        await Vosk.createModel(language.url);
+        localStorage.setItem("chat-voice-language-ready-" + code, "true");
+        localStorage.setItem("chat-voice-language", code);
+        showMessage("Язык " + language.name + " скачан и выбран для голосового ввода.");
+    } catch (error) {
+        console.error("Ошибка загрузки голосовой модели:", error);
+        showMessage("Не удалось скачать " + language.name + ": " + (error && error.message ? error.message : "ошибка загрузки"), true);
+    } finally {
+        updateVoiceLanguageButtons();
+    }
+}
+
 $("usernameToggle").onclick = () => $("usernameField").classList.toggle("open");
 $("passwordToggle").onclick = () => $("passwordField").classList.toggle("open");
+
+const voiceLanguageToggle = $("voiceLanguageToggle");
+if (voiceLanguageToggle) {
+    voiceLanguageToggle.onclick = () => {
+        const box = $("voiceLanguages");
+        if (!box) return;
+        box.classList.toggle("open");
+        voiceLanguageToggle.textContent = box.classList.contains("open") ? "Скрыть" : "Открыть";
+        updateVoiceLanguageButtons();
+    };
+}
+
+document.querySelectorAll("[data-voice-language]").forEach(button => {
+    button.onclick = () => void downloadVoiceLanguage(button.getAttribute("data-voice-language"));
+});
 
 $("usernameSave").onclick = async () => {
     const username = $("usernameInput").value.trim();
@@ -155,6 +227,7 @@ async function loadSettings() {
     const soundEnabled = localStorage.getItem("chat-sound-enabled");
     $("soundToggle").textContent = soundEnabled === "false" ? "Выкл." : "Вкл.";
     updateNotificationUi();
+    updateVoiceLanguageButtons();
 }
 
 loadSettings();
