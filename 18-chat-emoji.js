@@ -33,7 +33,7 @@
             .emoji-item{border:0;background:transparent;border-radius:7px;padding:5px 1px;font-size:25px;line-height:1.15;cursor:pointer;text-align:center}
             .emoji-item:hover{background:#eadcc8}
             @media(max-width:700px){.send-box:has(.emoji-picker-wrap){overflow:visible!important}.emoji-button{width:44px;height:44px;min-width:44px;min-height:44px;font-size:24px}.emoji-panel{left:0;transform:none;bottom:44px;width:min(360px,calc(100vw - 20px));height:315px}.emoji-grid{grid-template-columns:repeat(8,1fr)}.emoji-item{font-size:24px}}
-            @media(max-width:380px){.emoji-panel{left:0;transform:none;width:calc(100vw - 14px);height:300px;bottom:44px}.emoji-grid{grid-template-columns:repeat(7,1fr)}.emoji-item{font-size:23px}}
+            @media(max-width:380px){.emoji-panel{left:-8px;transform:none;width:calc(100vw - 14px);height:300px;bottom:44px}.emoji-grid{grid-template-columns:repeat(7,1fr)}.emoji-item{font-size:23px}}
             @media(pointer:fine){.emoji-picker-wrap:hover .emoji-panel{display:flex;flex-direction:column}.emoji-picker-wrap:hover .emoji-button{background:#fffaf3}}
         `;
         document.head.appendChild(style);
