@@ -1,7 +1,7 @@
 // =========================================
 // Web Push / PWA / установка приложения
 // =========================================
-const CHAT_VAPID_PUBLIC_KEY="BDiBPq7oIur30bHa0GLYLuNxBwzkph4srXdSHVD2j_rzbJVmxAwXJIKZucYWEgRIXzTAXwHuZv73lEpd5g0h36w";
+const CHAT_VAPID_PUBLIC_KEY="BDiBPq7oIur30bHa0GlYLuNxBwzkph4srXdSHVD2j_rzbJVmxAwXJIKZucYWEgRIXzTAXwHuZv73lEpd5g0h36w";
 const CHAT_PUSH_SUBSCRIPTION_KEY="chat_push_subscription";
 const CHAT_PUSH_BUTTON_ID="enablePushButton";
 const CHAT_INSTALL_BUTTON_ID="installAppButton";
