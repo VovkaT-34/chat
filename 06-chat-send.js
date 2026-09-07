@@ -27,19 +27,49 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     const button=document.getElementById("voiceInputButton"),input=document.getElementById("messageInput");
     if(!button||!input)return;
     const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.5/dist/vosk.js";
-    const VOSK_LANGUAGES={ru:{name:"Русский",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-ru-0.22.tar.gz"},en:{name:"English",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-en-us-0.15.tar.gz"},cn:{name:"中文",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-cn-0.22.tar.gz"}};
+    const FFLATE_SCRIPT="https://cdn.jsdelivr.net/npm/fflate@0.8.3/umd/index.js";
+    const VOICE_MODEL_CACHE="chat-vosk-models-v1";
+    const VOSK_LANGUAGES={ru:{name:"Русский"},en:{name:"English"},cn:{name:"中文"}};
     button.type="button";
-    let models={},modelPromises={},recognizer=null,mediaStream=null,audioContext=null,source=null,recognizerNode=null,silentGain=null,running=false,starting=false,finalParts=[],baseText="",startToken=0;
+    let models={},modelPromises={},recognizer=null,mediaStream=null,audioContext=null,source=null,recognizerNode=null,silentGain=null,running=false,starting=false,finalParts=[],baseText="",startToken=0,scriptPromise=null,toolsPromise=null;
     function getLanguage(){const code=localStorage.getItem("chat-voice-language")||"ru";return VOSK_LANGUAGES[code]?code:"ru";}
     function isReady(code){return localStorage.getItem("chat-voice-language-ready-"+code)==="true";}
     function loadScript(){
         if(window.Vosk)return Promise.resolve();
-        return new Promise(function(resolve,reject){const script=document.createElement("script");script.src=VOSK_SCRIPT;script.onload=resolve;script.onerror=function(){reject(new Error("Не удалось загрузить движок голосового ввода"));};document.head.appendChild(script);});
+        if(scriptPromise)return scriptPromise;
+        scriptPromise=new Promise(function(resolve,reject){const script=document.createElement("script");script.src=VOSK_SCRIPT;script.onload=resolve;script.onerror=function(){reject(new Error("Не удалось загрузить движок голосового ввода"));};document.head.appendChild(script);}).catch(function(error){scriptPromise=null;throw error;});
+        return scriptPromise;
     }
-    function loadModel(code){
+    function loadTools(){
+        if(window.fflate)return Promise.resolve();
+        if(toolsPromise)return toolsPromise;
+        toolsPromise=new Promise(function(resolve,reject){const script=document.createElement("script");script.src=FFLATE_SCRIPT;script.onload=resolve;script.onerror=function(){reject(new Error("Не удалось загрузить архиватор голосовой модели"));};document.head.appendChild(script);}).catch(function(error){toolsPromise=null;throw error;});
+        return toolsPromise;
+    }
+    function modelUrl(code){return "https://chat.local/voice-model/"+code+".tar.gz";}
+    function zipToTarGz(zipBytes){
+        const files=window.fflate.unzipSync(zipBytes),entries=Object.keys(files).filter(function(name){return !name.endsWith("/");});
+        const encoder=new TextEncoder();let total=1024;entries.forEach(function(name){const size=files[name].length;total+=512+Math.ceil(size/512)*512;});
+        const tar=new Uint8Array(total),view=new DataView(tar.buffer),put=function(text,offset,length){const bytes=encoder.encode(text);for(let i=0;i<Math.min(bytes.length,length);i++)view.setUint8(offset+i,bytes[i]);};
+        let offset=0;
+        entries.forEach(function(name){const data=files[name];put(name,offset,100);put("0000644",offset+100,8);put("0000000",offset+108,8);put("0000000",offset+116,8);put(data.length.toString(8).padStart(11,"0")+" ",offset+124,12);put("00000000000 ",offset+136,12);view.setUint8(offset+156,48);put("ustar\\0",offset+257,6);put("00",offset+263,2);for(let i=148;i<156;i++)view.setUint8(offset+i,32);let checksum=0;for(let i=0;i<512;i++)checksum+=view.getUint8(offset+i);put(checksum.toString(8).padStart(6,"0")+" ",offset+148,8);offset+=512;tar.set(data,offset);offset+=Math.ceil(data.length/512)*512;});
+        return window.fflate.gzipSync(tar,{level:6});
+    }
+    async function getCachedArchive(code){
+        if(!window.caches)throw new Error("Кэш моделей недоступен в этом браузере");
+        const cache=await caches.open(VOICE_MODEL_CACHE),response=await cache.match(modelUrl(code));
+        if(!response)return null;return new Uint8Array(await response.arrayBuffer());
+    }
+    async function loadModel(code){
         if(models[code])return Promise.resolve(models[code]);
         if(!modelPromises[code]){
-            modelPromises[code]=loadScript().then(function(){return Vosk.createModel(VOSK_LANGUAGES[code].url);}).then(function(value){models[code]=value;localStorage.setItem("chat-voice-language-ready-"+code,"true");return value;}).catch(function(error){delete modelPromises[code];localStorage.removeItem("chat-voice-language-ready-"+code);throw error;});
+            modelPromises[code]=(async function(){
+                await loadScript();
+                const archive=await getCachedArchive(code);
+                if(!archive)throw new Error("Языковой пакет не найден в памяти браузера. Скачайте его в настройках.");
+                const blobUrl=URL.createObjectURL(new Blob([archive],{type:"application/gzip"}));
+                try{return await Vosk.createModel(blobUrl);}finally{URL.revokeObjectURL(blobUrl);}
+            })().then(function(value){models[code]=value;return value;}).catch(function(error){delete modelPromises[code];throw error;});
         }
         return modelPromises[code];
     }
