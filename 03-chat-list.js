@@ -11,6 +11,7 @@ function rememberChatActivity(id,last){id=Number(id);if(!id||!last)return;var a=
 function getEffectiveChatActivity(id,server){var a=readPersistedChatActivities(),local=a[Number(id)]||"",st=Date.parse(server||"")||0,lt=Date.parse(local||"")||0;return lt>st?local:(server||local||"");}
 function updateCallButtonsForChat(chatId,chatType){var audio=document.getElementById("callAudioButton"),video=document.getElementById("callVideoButton");if(!audio||!video)return;var visible=Number(chatId)>0&&String(chatType||"")==="private",display=visible?"inline-flex":"none";audio.style.setProperty("display",display,"important");video.style.setProperty("display",display,"important");}
 function isMobileChatLayout(){return window.matchMedia&&window.matchMedia("(max-width: 900px)").matches;}
+function isWindowsDesktop(){return /Windows NT/i.test(navigator.userAgent||"");}
 function ensureMobileChatBackButton(){
     var header=document.querySelector(".chat-window > div:first-child");
     if(!header)return null;
@@ -59,6 +60,7 @@ function addChatToList(chatId,chatName,icon,extraClass,chatType,lastActivity){if
     updateCallButtonsForChat(chatId,chatType);
     if(typeof updateChatCallButtonVisibility==="function")setTimeout(updateChatCallButtonVisibility,50);
     if(typeof updateChatCallButton==="function")setTimeout(updateChatCallButton,50);
+    if(isWindowsDesktop()){var input=document.getElementById("messageInput");if(input){setTimeout(function(){try{input.focus();}catch(error){}},0);}}
 };list.appendChild(div);updateChatSoundButton(Number(chatId));updateUnreadCount(Number(chatId));updateChatListMessageStatus(Number(chatId));}
 var r1=await supabaseClient.rpc("get_my_private_chats"),p=r1?r1.data:null,e1=r1?r1.error:null;if(e1)console.error("Ошибка загрузки личных чатов:",e1);(p||[]).forEach(function(c){addChatToList(c.chat_id,c.chat_name||"Личный чат",getChatIcon("private"),"private-chat","private",c.last_message_at);});
 var r2=await supabaseClient.rpc("get_my_group_chats"),g=r2?r2.data:null,e2=r2?r2.error:null;if(e2)console.error("Ошибка загрузки групповых чатов:",e2);(g||[]).forEach(function(c){addChatToList(c.chat_id,c.chat_name||"Групповой чат",getChatIcon("group"),"group-chat","group",c.last_message_at);});
