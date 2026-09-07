@@ -38,7 +38,9 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     let audioContext=null;
     let source=null;
     let recognizerNode=null;
+    let silentGain=null;
     let running=false;
+    let finished=false;
     let finalParts=[];
     let baseText="";
 
@@ -81,6 +83,10 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
             try{recognizerNode.disconnect();}catch(e){}
             recognizerNode=null;
         }
+        if(silentGain){
+            try{silentGain.disconnect();}catch(e){}
+            silentGain=null;
+        }
         if(source){
             try{source.disconnect();}catch(e){}
             source=null;
@@ -98,12 +104,12 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
             recognizer=null;
         }
         running=false;
-        button.title="Голосовой ввод";
+        button.title="Голосовой ввод завершён";
         button.setAttribute("aria-pressed","false");
     }
 
     async function startVoice(){
-        if(running)return;
+        if(running||finished)return;
         try{
             button.disabled=true;
             baseText=input.value.trim();
@@ -137,12 +143,15 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
 
             source=audioContext.createMediaStreamSource(mediaStream);
             recognizerNode=audioContext.createScriptProcessor(4096,1,1);
+            silentGain=audioContext.createGain();
+            silentGain.gain.value=0;
             recognizerNode.onaudioprocess=function(event){
                 if(!running||!recognizer)return;
                 try{recognizer.acceptWaveform(event.inputBuffer);}catch(error){console.error("Vosk:",error);}
             };
             source.connect(recognizerNode);
-            recognizerNode.connect(audioContext.destination);
+            recognizerNode.connect(silentGain);
+            silentGain.connect(audioContext.destination);
 
             running=true;
             button.disabled=false;
@@ -159,13 +168,12 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     function stopVoice(){
         if(!running)return;
         running=false;
+        finished=true;
+        button.disabled=true;
         if(recognizer){
             try{recognizer.retrieveFinalResult();}catch(e){}
         }
-        setTimeout(function(){
-            cleanup();
-            button.disabled=false;
-        },250);
+        setTimeout(function(){cleanup();button.disabled=true;},250);
     }
 
     button.addEventListener("click",function(){
