@@ -107,5 +107,5 @@
 
 /* Только Windows: монета в 2 раза меньше. */
 @media (min-width: 901px) {
-    .coin-1c { transform: translate(-50%, -50%) scale(.32) !important; }
+    .coin-1c { transform: translate(-50%, -50%) scale(.40) !important; }
 }
