@@ -21,7 +21,18 @@ async function startChat() {
     }
 
 
-    // 2. Подключаем пакетную загрузку данных списка чатов
+    // 2. Подключаем эмодзи
+
+    await new Promise(function (resolve) {
+        var script = document.createElement("script");
+        script.src = "18-chat-emoji.js";
+        script.onload = resolve;
+        script.onerror = resolve;
+        document.head.appendChild(script);
+    });
+
+
+    // 3. Подключаем пакетную загрузку данных списка чатов
 
     await new Promise(function (resolve) {
         var script = document.createElement("script");
@@ -32,12 +43,12 @@ async function startChat() {
     });
 
 
-    // 3. Загружаем список чатов
+    // 4. Загружаем список чатов
 
     await loadChats();
 
 
-    // 4. Подключаем пакетное восстановление статусов сообщений
+    // 5. Подключаем пакетное восстановление статусов сообщений
 
     await new Promise(function (resolve) {
         var script = document.createElement("script");
@@ -48,7 +59,7 @@ async function startChat() {
     });
 
 
-    // 5. Подключаем оптимизированное Realtime-прочтение
+    // 6. Подключаем оптимизированное Realtime-прочтение
 
     await new Promise(function (resolve) {
         var script = document.createElement("script");
@@ -59,7 +70,7 @@ async function startChat() {
     });
 
 
-    // 6. Подключаем фильтрацию Realtime по доступным чатам
+    // 7. Подключаем фильтрацию Realtime по доступным чатам
 
     await new Promise(function (resolve) {
         var script = document.createElement("script");
@@ -70,12 +81,12 @@ async function startChat() {
     });
 
 
-    // 7. Подключаем Realtime сообщений
+    // 8. Подключаем Realtime сообщений
 
     await subscribeToMessages();
 
 
-    // 8. Подключаем индикатор печати
+    // 9. Подключаем индикатор печати
 
     await subscribeToTyping();
 
