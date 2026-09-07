@@ -29,12 +29,16 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     if(!button||!input)return;
 
     const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.5/dist/vosk.js";
-    const VOSK_MODEL="https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-ru-0.22.tar.gz";
+    const VOSK_LANGUAGES={
+        ru:{name:"Русский",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-ru-0.22.tar.gz"},
+        en:{name:"English",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-en-us-0.15.tar.gz"},
+        cn:{name:"中文",url:"https://plan98.org/public/cdn/cache/alphacephei.com/models/vosk-model-small-cn-0.22.tar.gz"}
+    };
 
     button.type="button";
 
-    let model=null;
-    let modelPromise=null;
+    let models={};
+    let modelPromises={};
     let recognizer=null;
     let mediaStream=null;
     let audioContext=null;
@@ -46,31 +50,37 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     let finalParts=[];
     let baseText="";
 
+    function getLanguage(){
+        const code=localStorage.getItem("chat-voice-language")||"ru";
+        return VOSK_LANGUAGES[code]?code:"ru";
+    }
+
     function loadScript(){
         if(window.Vosk)return Promise.resolve();
         return new Promise(function(resolve,reject){
             const script=document.createElement("script");
             script.src=VOSK_SCRIPT;
             script.onload=resolve;
-            script.onerror=function(){reject(new Error("Не удалось загрузить Vosk"));};
+            script.onerror=function(){reject(new Error("Не удалось загрузить движок голосового ввода"));};
             document.head.appendChild(script);
         });
     }
 
-    async function loadModel(){
-        if(model)return model;
-        if(!modelPromise){
-            modelPromise=loadScript().then(function(){
-                return Vosk.createModel(VOSK_MODEL);
+    async function loadModel(code){
+        if(models[code])return models[code];
+        if(!modelPromises[code]){
+            modelPromises[code]=loadScript().then(function(){
+                return Vosk.createModel(VOSK_LANGUAGES[code].url);
             }).then(function(value){
-                model=value;
+                models[code]=value;
+                localStorage.setItem("chat-voice-language-ready-"+code,"true");
                 return value;
             }).catch(function(error){
-                modelPromise=null;
+                delete modelPromises[code];
                 throw error;
             });
         }
-        return modelPromise;
+        return modelPromises[code];
     }
 
     function setText(partial){
@@ -121,11 +131,13 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
         button.setAttribute("aria-busy","true");
         baseText=input.value.trim();
         finalParts=[];
+        const language=getLanguage();
         try{
             if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("Микрофон недоступен в этом браузере");
             mediaStream=await navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,channelCount:1,sampleRate:16000}});
-            const currentModel=await loadModel();
-            audioContext=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+            button.title="Загрузка языка: "+VOSK_LANGUAGES[language].name;
+            const currentModel=await loadModel(language);
+            audioContext=new (window.AudioContext||window.webkitAudioContext)();
             if(audioContext.state==="suspended")await audioContext.resume();
             recognizer=new currentModel.KaldiRecognizer(audioContext.sampleRate);
             recognizer.on("result",function(message){
@@ -149,6 +161,7 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
             silentGain.connect(audioContext.destination);
             running=true;
             starting=false;
+            localStorage.setItem("chat-voice-language",language);
             button.title="Остановить голосовой ввод";
             button.setAttribute("aria-pressed","true");
             button.setAttribute("aria-busy","false");
