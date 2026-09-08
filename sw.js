@@ -5,7 +5,15 @@ const CONFIRM_DELIVERY_URL=SUPABASE_URL+"/functions/v1/confirm-push-delivery";
 
 self.addEventListener("install",function(event){event.waitUntil(caches.open(CACHE_NAME).then(function(cache){return cache.addAll(APP_SHELL);}).catch(function(){return undefined;}));self.skipWaiting();});
 self.addEventListener("activate",function(event){event.waitUntil(caches.keys().then(function(keys){return Promise.all(keys.filter(function(key){return key.indexOf("chat-pwa-")===0&&key!==CACHE_NAME;}).map(function(key){return caches.delete(key);}));}));self.clients.claim();});
-self.addEventListener("fetch",function(event){if(event.request.method!=="GET")return;event.respondWith(fetch(event.request).then(function(response){if(response&&response.ok){var copy=response.clone();caches.open(CACHE_NAME).then(function(cache){return cache.put(event.request,copy);}).catch(function(){});}return response;}).catch(function(){return caches.match(event.request);}));});
+self.addEventListener("fetch",function(event){
+    if(event.request.method!=="GET")return;
+    var url=new URL(event.request.url);
+    if(url.origin===self.location.origin&&url.pathname.indexOf("/voice-model/")===0){
+        event.respondWith(caches.match(event.request).then(function(response){return response||new Response("Not found",{status:404});}));
+        return;
+    }
+    event.respondWith(fetch(event.request).then(function(response){if(response&&response.ok){var copy=response.clone();caches.open(CACHE_NAME).then(function(cache){return cache.put(event.request,copy);}).catch(function(){});}return response;}).catch(function(){return caches.match(event.request);}));
+});
 
 async function confirmPushDelivery(data){
     if(!data||!data.messageId||!data.deliveryToken||!data.userId||!data.exp)return;
