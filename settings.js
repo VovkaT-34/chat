@@ -78,7 +78,7 @@ function loadVoiceTools() {
 }
 function writeTarHeader(view, offset, name, size) {
     const put = (text, at, length) => { const bytes = new TextEncoder().encode(text); for (let i = 0; i < Math.min(bytes.length, length); i++) view.setUint8(offset + at + i, bytes[i]); };
-    put(name, 0, 100); put(("0000644").padStart(8, "0"), 100, 8); put(("0000000").padStart(8, "0"), 108, 8); put(("0000000").padStart(8, "0"), 116, 8); put(size.toString(8).padStart(11, "0") + " ", 124, 12); put("00000000000 ", 136, 12); view.setUint8(offset + 156, 0); put("0", 156, 1); put("ustar\0", 257, 6); put("00", 263, 2);
+    put(name, 0, 100); put("0000644", 100, 8); put("0000000", 108, 8); put("0000000", 116, 8); put(size.toString(8).padStart(11, "0") + " ", 124, 12); put("00000000000 ", 136, 12); view.setUint8(offset + 156, 0); put("ustar\0", 257, 6); put("00", 263, 2);
     for (let i = 148; i < 156; i++) view.setUint8(offset + i, 32);
     let checksum = 0; for (let i = 0; i < 512; i++) checksum += view.getUint8(offset + i); put(checksum.toString(8).padStart(6, "0") + " ", 148, 8);
 }
@@ -89,6 +89,22 @@ function zipToTarGz(zipBytes) {
     const tar = new Uint8Array(total), view = new DataView(tar.buffer); let offset = 0;
     entries.forEach(name => { const data = files[name]; writeTarHeader(view, offset, name, data.length); offset += 512; tar.set(data, offset); offset += Math.ceil(data.length / 512) * 512; });
     return window.fflate.gzipSync(tar, {level: 6});
+}
+function updateVoiceDownload(text, visible = true) {
+    const box = $("voiceDownload"), label = $("voiceDownloadText"), percent = $("voiceDownloadPercent"), progress = $("voiceDownloadProgress");
+    if (!box || !label || !percent || !progress) return;
+    if (!visible) { box.classList.remove("open"); return; }
+    box.classList.add("open"); label.textContent = text;
+    const match = String(text).match(/(\d+(?:\.\d+)?)%/); const value = match ? Math.max(0, Math.min(100, Number(match[1]))) : (text.indexOf("Готово:") === 0 ? 100 : 0);
+    percent.textContent = Math.round(value) + "%"; progress.value = value;
+}
+function hideVoiceDownload() { const box = $("voiceDownload"); if (box) box.classList.remove("open"); }
+function updateVoiceLanguageButtons() {
+    document.querySelectorAll("[data-voice-language]").forEach(button => {
+        const code = button.getAttribute("data-voice-language"), ready = localStorage.getItem("chat-voice-language-ready-" + code) === "true";
+        if (ready) { button.textContent = localStorage.getItem("chat-voice-language") === code ? "Установлен" : "Установить снова"; }
+        else if (!button.disabled) button.textContent = "Скачать";
+    });
 }
 async function downloadVoiceArchive(url, code) {
     const response = await fetch(url, {cache: "no-store"});
@@ -111,9 +127,7 @@ async function downloadVoiceLanguage(code) {
     const language = VOICE_LANGUAGES[code], button = document.querySelector('[data-voice-language="' + code + '"]');
     if (!language || !button) return;
     if (voiceModelPromises[code]) return voiceModelPromises[code];
-    button.disabled = true;
-    updateVoiceDownload("Подготовка " + language.name + "…", true);
-    showMessage("Загружается модель " + language.name + ". Это может занять несколько минут.");
+    button.disabled = true; updateVoiceDownload("Подготовка " + language.name + "…", true); showMessage("Загружается модель " + language.name + ". Это может занять несколько минут.");
     voiceModelPromises[code] = (async () => {
         try {
             await loadVoskScript(); await loadVoiceTools();
@@ -125,10 +139,10 @@ async function downloadVoiceLanguage(code) {
             try { const model = await Vosk.createModel(blobUrl); if (!model) throw new Error("Модель не создана"); }
             finally { URL.revokeObjectURL(blobUrl); }
             localStorage.setItem("chat-voice-language-ready-" + code, "true"); localStorage.setItem("chat-voice-language", code);
-            updateVoiceDownload("Готово: " + language.name + " установлен", false); showMessage("Язык " + language.name + " установлен и выбран для голосового ввода."); updateVoiceLanguageButtons(); setTimeout(hideVoiceDownload, 1800); return true;
+            updateVoiceDownload("Готово: " + language.name + " установлен", true); showMessage("Язык " + language.name + " установлен и выбран для голосового ввода."); updateVoiceLanguageButtons(); setTimeout(hideVoiceDownload, 1800); return true;
         } catch (error) {
             console.error("Ошибка загрузки голосовой модели:", error); localStorage.removeItem("chat-voice-language-ready-" + code); hideVoiceDownload(); showMessage("Не удалось установить " + language.name + ": " + (error && error.message ? error.message : "ошибка загрузки"), true); throw error;
-        } finally { delete voiceModelPromises[code]; updateVoiceLanguageButtons(); }
+        } finally { delete voiceModelPromises[code]; button.disabled = false; updateVoiceLanguageButtons(); }
     })();
     return voiceModelPromises[code];
 }
