@@ -171,7 +171,13 @@ async function downloadVoiceLanguage(code) {
             updateVoiceDownload("Распаковка и подготовка " + language.name + "… 100%", true);
             await new Promise(resolve => setTimeout(resolve, 0));
             updateVoiceDownload("Проверка модели…", true);
-            const model = await Vosk.createModel(voiceModelUrl(code));
+            const cached = await caches.open(VOICE_MODEL_CACHE).then(cache => cache.match(voiceModelUrl(code)));
+            if (!cached) throw new Error("Языковой пакет не найден в памяти браузера. Скачайте его заново.");
+            const archiveBuffer = await cached.arrayBuffer();
+            const blobUrl = URL.createObjectURL(new Blob([archiveBuffer], {type:"application/gzip"}));
+            let model;
+            try { model = await Vosk.createModel(blobUrl); }
+            finally { URL.revokeObjectURL(blobUrl); }
             if (!model) throw new Error("Модель не создана");
             localStorage.setItem("chat-voice-language-ready-" + code, "true"); localStorage.setItem("chat-voice-language", code);
             updateVoiceDownload("Готово: " + language.name + " установлен", true); showMessage("Язык " + language.name + " установлен и выбран для голосового ввода."); updateVoiceLanguageButtons(); setTimeout(hideVoiceDownload, 1800); return true;
