@@ -28,7 +28,7 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     if(!button||!input)return;
     const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.8/dist/vosk.js";
     const FFLATE_SCRIPT="https://cdn.jsdelivr.net/npm/fflate@0.8.3/umd/index.js";
-    const VOICE_MODEL_CACHE="chat-vosk-models-v1";
+    const VOICE_MODEL_CACHE="chat-vosk-models-v2";
     const VOSK_LANGUAGES={ru:{name:"Русский",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-ru-0.22.zip"},en:{name:"English",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-en-us-0.15.zip"},cn:{name:"中文",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-cn-0.22.zip"}};
     button.type="button";
     let models={},modelPromises={},recognizer=null,mediaStream=null,audioContext=null,source=null,recognizerNode=null,silentGain=null,running=false,starting=false,finalParts=[],baseText="",startToken=0,scriptPromise=null,toolsPromise=null,downloadPromises={},voiceServiceWorkerPromise=null;
@@ -90,7 +90,8 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
         return archive;
     }
     async function downloadArchive(code,overlay){const language=VOSK_LANGUAGES[code],response=await fetch(language.url,{cache:"no-store"});if(!response.ok||!response.body)throw new Error("Сервер вернул ошибку загрузки ("+response.status+")");const total=Number(response.headers.get("content-length"))||0,reader=response.body.getReader(),chunks=[];let loadedStart=0;while(true){const part=await reader.read();if(part.done)break;chunks.push(part.value);loadedStart+=part.value.length;const progress=total?Math.round(loadedStart/total*100):0;setDownloadUi(overlay,"Скачивание "+language.name+": "+(loadedStart/1048576).toFixed(1)+(total?" из "+(total/1048576).toFixed(1):"")+" МБ",progress);}const zip=new Uint8Array(loadedStart);let offset=0;chunks.forEach(function(chunk){zip.set(chunk,offset);offset+=chunk.length;});return zip;}
-    async function cacheArchive(code,archive){const cache=await caches.open(VOICE_MODEL_CACHE);await cache.put(new Request(modelUrl(code)),new Response(archive,{headers:{"Content-Type":"application/gzip","Cache-Control":"no-store","Content-Length":String(archive.byteLength)}}));if(navigator.storage&&navigator.storage.persist){try{await navigator.storage.persist();}catch(e){}}}
+    async function cacheArchive(code,archive){const cache=await caches.open(VOICE_MODEL_CACHE);await cache.put(new Request(modelUrl(code)),new Response(archive,{headers:{"Content-Type":"application/gzip","Cache-Control":"no-store","Content-Length":String(archive.byteLength)}}));if(navigator.storage&&navigator.storage.persist){try{await navigator.storage.persist();}catch(e){}}
+    }
     async function getCachedArchive(code){if(!window.caches)throw new Error("Кэш моделей недоступен в этом браузере");const cache=await caches.open(VOICE_MODEL_CACHE);let response=await cache.match(modelUrl(code));if(response)return response;response=await cache.match(oldModelUrl(code));if(response){await cache.put(new Request(modelUrl(code)),response.clone());return response;}return null;}
     async function createVoiceModel(code,overlay){
         if(overlay)setDownloadUi(overlay,"Загрузка модели в движок… 98%",98);
