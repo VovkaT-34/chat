@@ -142,17 +142,6 @@ async function cacheVoiceModel(code, archive) {
     await cache.put(new Request(voiceModelUrl(code)), new Response(archive, {headers:{"Content-Type":"application/gzip","Cache-Control":"no-store"}}));
     if (navigator.storage && navigator.storage.persist) { try { await navigator.storage.persist(); } catch (e) {} }
 }
-async function getCachedVoiceModel(code) {
-    const cache = await caches.open(VOICE_MODEL_CACHE);
-    let response = await cache.match(voiceModelUrl(code));
-    if (response) return response;
-    response = await cache.match(oldVoiceModelUrl(code));
-    if (response) {
-        await cache.put(new Request(voiceModelUrl(code)), response.clone());
-        return response;
-    }
-    return null;
-}
 async function deleteVoiceLanguage(code) {
     const cache = await caches.open(VOICE_MODEL_CACHE);
     await cache.delete(voiceModelUrl(code));
