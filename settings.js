@@ -54,6 +54,7 @@ const VOICE_LANGUAGES = {
 const VOICE_MODEL_CACHE = "chat-vosk-models-v1";
 let voiceScriptPromise = null;
 let voiceModelPromises = {};
+let voiceServiceWorkerPromise = null;
 function loadVoskScript() {
     if (window.Vosk) return Promise.resolve();
     if (voiceScriptPromise) return voiceScriptPromise;
@@ -76,6 +77,24 @@ function loadVoiceTools() {
         document.head.appendChild(script);
     });
 }
+function ensureVoiceServiceWorker() {
+    if (voiceServiceWorkerPromise) return voiceServiceWorkerPromise;
+    if (!("serviceWorker" in navigator)) return Promise.reject(new Error("Service Worker недоступен в этом браузере."));
+    voiceServiceWorkerPromise = navigator.serviceWorker.register("./sw.js", {scope:"./"}).then(async function(){
+        await navigator.serviceWorker.ready;
+        if (!navigator.serviceWorker.controller) {
+            await new Promise(function(resolve){
+                var done=false;
+                function finish(){if(done)return;done=true;clearTimeout(timer);resolve();}
+                var timer=setTimeout(finish,3000);
+                navigator.serviceWorker.addEventListener("controllerchange",finish,{once:true});
+            });
+        }
+    }).catch(function(error){voiceServiceWorkerPromise=null;throw error;});
+    return voiceServiceWorkerPromise;
+}
+function voiceModelUrl(code) { return "./voice-model/" + code + ".tar.gz"; }
+function oldVoiceModelUrl(code) { return "https://chat.local/voice-model/" + code + ".tar.gz"; }
 function writeTarHeader(view, offset, name, size) {
     const put = (text, at, length) => { const bytes = new TextEncoder().encode(text); for (let i = 0; i < Math.min(bytes.length, length); i++) view.setUint8(offset + at + i, bytes[i]); };
     put(name, 0, 100); put("0000644", 100, 8); put("0000000", 108, 8); put("0000000", 116, 8); put(size.toString(8).padStart(11, "0") + " ", 124, 12); put("00000000000 ", 136, 12); view.setUint8(offset + 156, 0); put("ustar\0", 257, 6); put("00", 263, 2);
@@ -102,7 +121,7 @@ function hideVoiceDownload() { const box = $("voiceDownload"); if (box) box.clas
 function updateVoiceLanguageButtons() {
     document.querySelectorAll("[data-voice-language]").forEach(button => {
         const code = button.getAttribute("data-voice-language"), ready = localStorage.getItem("chat-voice-language-ready-" + code) === "true";
-        if (ready) { button.textContent = localStorage.getItem("chat-voice-language") === code ? "Установлен" : "Установить снова"; }
+        if (ready) button.textContent = "Удалить";
         else if (!button.disabled) button.textContent = "Скачать";
     });
 }
@@ -120,24 +139,48 @@ async function downloadVoiceArchive(url, code) {
 }
 async function cacheVoiceModel(code, archive) {
     const cache = await caches.open(VOICE_MODEL_CACHE);
-    await cache.put(new Request("https://chat.local/voice-model/" + code + ".tar.gz"), new Response(archive, {headers:{"Content-Type":"application/gzip","Cache-Control":"no-store"}}));
+    await cache.put(new Request(voiceModelUrl(code)), new Response(archive, {headers:{"Content-Type":"application/gzip","Cache-Control":"no-store"}}));
     if (navigator.storage && navigator.storage.persist) { try { await navigator.storage.persist(); } catch (e) {} }
+}
+async function getCachedVoiceModel(code) {
+    const cache = await caches.open(VOICE_MODEL_CACHE);
+    let response = await cache.match(voiceModelUrl(code));
+    if (response) return response;
+    response = await cache.match(oldVoiceModelUrl(code));
+    if (response) {
+        await cache.put(new Request(voiceModelUrl(code)), response.clone());
+        return response;
+    }
+    return null;
+}
+async function deleteVoiceLanguage(code) {
+    const cache = await caches.open(VOICE_MODEL_CACHE);
+    await cache.delete(voiceModelUrl(code));
+    await cache.delete(oldVoiceModelUrl(code));
+    localStorage.removeItem("chat-voice-language-ready-" + code);
+    if (localStorage.getItem("chat-voice-language") === code) {
+        const next = Object.keys(VOICE_LANGUAGES).find(key => localStorage.getItem("chat-voice-language-ready-" + key) === "true");
+        if (next) localStorage.setItem("chat-voice-language", next); else localStorage.removeItem("chat-voice-language");
+    }
+    updateVoiceLanguageButtons();
+    showMessage("Язык " + VOICE_LANGUAGES[code].name + " удалён из памяти браузера.");
 }
 async function downloadVoiceLanguage(code) {
     const language = VOICE_LANGUAGES[code], button = document.querySelector('[data-voice-language="' + code + '"]');
     if (!language || !button) return;
     if (voiceModelPromises[code]) return voiceModelPromises[code];
+    if (localStorage.getItem("chat-voice-language-ready-" + code) === "true") return deleteVoiceLanguage(code);
     button.disabled = true; updateVoiceDownload("Подготовка " + language.name + "…", true); showMessage("Загружается модель " + language.name + ". Это может занять несколько минут.");
     voiceModelPromises[code] = (async () => {
         try {
-            await loadVoskScript(); await loadVoiceTools();
+            await loadVoskScript(); await loadVoiceTools(); await ensureVoiceServiceWorker();
             const zip = await downloadVoiceArchive(language.url, code);
             updateVoiceDownload("Распаковка и подготовка " + language.name + "…", true);
             const archive = zipToTarGz(zip);
             await cacheVoiceModel(code, archive);
-            const blobUrl = URL.createObjectURL(new Blob([archive], {type:"application/gzip"}));
-            try { const model = await Vosk.createModel(blobUrl); if (!model) throw new Error("Модель не создана"); }
-            finally { URL.revokeObjectURL(blobUrl); }
+            updateVoiceDownload("Проверка модели…", true);
+            const model = await Vosk.createModel(voiceModelUrl(code));
+            if (!model) throw new Error("Модель не создана");
             localStorage.setItem("chat-voice-language-ready-" + code, "true"); localStorage.setItem("chat-voice-language", code);
             updateVoiceDownload("Готово: " + language.name + " установлен", true); showMessage("Язык " + language.name + " установлен и выбран для голосового ввода."); updateVoiceLanguageButtons(); setTimeout(hideVoiceDownload, 1800); return true;
         } catch (error) {
