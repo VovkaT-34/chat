@@ -72,11 +72,14 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
         const files=await new Promise(function(resolve,reject){window.fflate.unzip(zipBytes,function(error,result){if(error)reject(error);else resolve(result);});});
         setDownloadUi(overlay,"Распаковка ZIP… 50%",50);
         await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
-        const entries=Object.keys(files).filter(function(name){return !name.endsWith("/");});
-        let total=1024;entries.forEach(function(name){const size=files[name].length;total+=512+Math.ceil(size/512)*512;});
+        const rawEntries=Object.keys(files).filter(function(name){return !name.endsWith("/");}).map(function(name){return {name:name.replace(/\\/g,"/").replace(/^\.\//,""),data:files[name]};});
+        const hasModelRoot=rawEntries.some(function(entry){return /^(am|conf|graph|ivector|rescore|rnnlm)\//.test(entry.name);});
+        const root=hasModelRoot?"":(function(){const first=rawEntries[0]&&rawEntries[0].name.split("/")[0];return first&&rawEntries.every(function(entry){return entry.name.indexOf(first+"/")===0;})?first+"/":"";})();
+        const entries=rawEntries.map(function(entry){return {name:root&&entry.name.indexOf(root)===0?entry.name.slice(root.length):entry.name,data:entry.data};}).filter(function(entry){return entry.name&&!entry.name.endsWith("/");});
+        let total=1024;entries.forEach(function(entry){total+=512+Math.ceil(entry.data.length/512)*512;});
         const tar=new Uint8Array(total),view=new DataView(tar.buffer);let offset=0;
         for(let i=0;i<entries.length;i++){
-            const name=entries[i],data=files[name];writeTarHeader(view,offset,name,data.length);offset+=512;tar.set(data,offset);offset+=Math.ceil(data.length/512)*512;
+            const name=entries[i].name,data=entries[i].data;writeTarHeader(view,offset,name,data.length);offset+=512;tar.set(data,offset);offset+=Math.ceil(data.length/512)*512;
             setDownloadUi(overlay,"Подготовка модели… "+Math.round(50+30*((i+1)/entries.length))+"%",50+30*((i+1)/entries.length));
             if(i%4===3)await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
         }
