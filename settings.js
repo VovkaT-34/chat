@@ -164,9 +164,12 @@ async function downloadVoiceLanguage(code) {
         try {
             await loadVoskScript(); await loadVoiceTools(); await ensureVoiceServiceWorker();
             const zip = await downloadVoiceArchive(language.url, code);
-            updateVoiceDownload("Распаковка и подготовка " + language.name + "…", true);
+            updateVoiceDownload("Распаковка и подготовка " + language.name + "… 0%", true);
+            await new Promise(resolve => setTimeout(resolve, 0));
             const archive = zipToTarGz(zip);
             await cacheVoiceModel(code, archive);
+            updateVoiceDownload("Распаковка и подготовка " + language.name + "… 100%", true);
+            await new Promise(resolve => setTimeout(resolve, 0));
             updateVoiceDownload("Проверка модели…", true);
             const model = await Vosk.createModel(voiceModelUrl(code));
             if (!model) throw new Error("Модель не создана");
