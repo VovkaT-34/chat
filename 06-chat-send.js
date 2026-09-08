@@ -90,7 +90,7 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     async function cacheArchive(code,archive){const cache=await caches.open(VOICE_MODEL_CACHE);await cache.put(new Request(modelUrl(code)),new Response(archive,{headers:{"Content-Type":"application/gzip","Cache-Control":"no-store","Content-Length":String(archive.byteLength)}}));if(navigator.storage&&navigator.storage.persist){try{await navigator.storage.persist();}catch(e){}}}
     async function getCachedArchive(code){if(!window.caches)throw new Error("Кэш моделей недоступен в этом браузере");const cache=await caches.open(VOICE_MODEL_CACHE);let response=await cache.match(modelUrl(code));if(response)return response;response=await cache.match(oldModelUrl(code));if(response){await cache.put(new Request(modelUrl(code)),response.clone());return response;}return null;}
     async function createVoiceModel(code,overlay){
-        setDownloadUi(overlay,"Загрузка модели в движок… 98%",98);
+        if(overlay)setDownloadUi(overlay,"Загрузка модели в движок… 98%",98);
         await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
         return new Promise(function(resolve,reject){
             let settled=false;
