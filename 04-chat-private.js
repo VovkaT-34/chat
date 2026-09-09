@@ -15,6 +15,15 @@ const newGroupChatMenuButton =
     document.getElementById("newGroupChatMenuButton");
 
 
+// Прикрепление слева от динамика в списке чатов.
+const chatListActionStyle = document.createElement("style");
+chatListActionStyle.textContent = `
+    .chat-item-actions .chat-pin-indicator { order: 1; }
+    .chat-item-actions .chat-sound-button { order: 2; }
+`;
+document.head.appendChild(chatListActionStyle);
+
+
 // =========================================
 // ОТКРЫТИЕ / ЗАКРЫТИЕ МЕНЮ
 // =========================================
