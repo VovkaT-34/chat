@@ -9,6 +9,7 @@ const CHAT_SOUND_ICON_OFF = '<svg class="icon-svg chat-sound-svg" width="18" hei
 
 let chatSoundAudioUnlocked = false;
 let chatSoundUnlockPromise = null;
+let chatSoundUnlockLastAttempt = 0;
 let chatSoundQueue = 0;
 let chatSoundPlaying = false;
 
@@ -32,7 +33,6 @@ function toggleChatSound(chatId) {
     localStorage.setItem(CHAT_SOUND_KEY, JSON.stringify(settings));
     updateChatSoundButton(chatId);
 
-    // A real user gesture is the most reliable place to unlock WebView audio.
     unlockChatSound();
 }
 
@@ -61,13 +61,18 @@ function unlockChatSound() {
 
     if (chatSoundUnlockPromise) return chatSoundUnlockPromise;
 
+    const now = Date.now();
+    if (now - chatSoundUnlockLastAttempt < 2000) {
+        return Promise.reject(new Error("Разблокировка звука недавно выполнялась"));
+    }
+    chatSoundUnlockLastAttempt = now;
+
     const sound = document.getElementById("messageSound");
     if (!sound) return Promise.reject(new Error("messageSound не найден"));
 
     chatSoundUnlockPromise = new Promise(function (resolve, reject) {
         try {
             sound.muted = true;
-            sound.volume = 1;
             sound.currentTime = 0;
 
             const promise = sound.play();
@@ -81,6 +86,8 @@ function unlockChatSound() {
                     chatSoundAudioUnlocked = true;
                     resolve();
                 }).catch(function (error) {
+                    sound.pause();
+                    sound.currentTime = 0;
                     sound.muted = false;
                     sound.volume = 1;
                     chatSoundUnlockPromise = null;
@@ -95,8 +102,6 @@ function unlockChatSound() {
                 resolve();
             }
         } catch (error) {
-            sound.muted = false;
-            sound.volume = 1;
             chatSoundUnlockPromise = null;
             reject(error);
         }
@@ -118,7 +123,6 @@ function playNextChatSound() {
     chatSoundPlaying = true;
     sound.muted = false;
     sound.volume = 1;
-    sound.pause();
     sound.currentTime = 0;
 
     const finish = function () {
@@ -159,16 +163,12 @@ function playMessageSound(chatId) {
         });
 }
 
-// Unlock HTML audio after a real interaction with the app.
-// Keep the listeners active so iOS can retry unlocking after a failed attempt.
-["touchstart", "touchend", "click", "keydown"].forEach(function (eventName) {
+["touchend", "click", "keydown"].forEach(function (eventName) {
     document.addEventListener(eventName, unlockChatSound, {
         passive: true
     });
 });
 
-// Android 13+ requires a runtime notification permission. The APK already
-// exposes a native bridge for it; ask only after the page is usable.
 function requestAndroidNotificationPermission() {
     if (!window.AndroidNotifications ||
         typeof window.AndroidNotifications.requestPermission !== "function") {
