@@ -152,9 +152,6 @@ function playNextChatSound() {
         return;
     }
 
-    chatSoundQueue--;
-    chatSoundPlaying = true;
-
     if (context.state !== "running") {
         context.resume()
             .then(function () {
@@ -162,10 +159,14 @@ function playNextChatSound() {
             })
             .catch(function (error) {
                 console.log("Звук не воспроизведён:", error);
+                chatSoundQueue = Math.max(0, chatSoundQueue - 1);
                 chatSoundPlaying = false;
             });
         return;
     }
+
+    chatSoundQueue--;
+    chatSoundPlaying = true;
 
     try {
         const source = context.createBufferSource();
