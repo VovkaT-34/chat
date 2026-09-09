@@ -1,4 +1,4 @@
-const CACHE_NAME="chat-pwa-v11";
+const CACHE_NAME="chat-pwa-v10";
 const APP_SHELL=["./","./index.html","./chat.css","./chat-mobile.css","./manifest.webmanifest","./favicon.svg","./android-favicon.svg","./android-notification.svg","./message.mp3"];
 const SUPABASE_URL="https://sxkukrqjtgkxmzuzondm.supabase.co";
 const CONFIRM_DELIVERY_URL=SUPABASE_URL+"/functions/v1/confirm-push-delivery";
