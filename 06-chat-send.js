@@ -26,9 +26,9 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
 (function(){
     const button=document.getElementById("voiceInputButton"),input=document.getElementById("messageInput");
     if(!button||!input)return;
-    const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.8/dist/vosk.js";
+    const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/@lichess-org/vosk-browser@0.0.3/dist/vosk.js";
     const FFLATE_SCRIPT="https://cdn.jsdelivr.net/npm/fflate@0.8.3/umd/index.js";
-    const VOICE_MODEL_CACHE="chat-vosk-models-v6";
+    const VOICE_MODEL_CACHE="chat-vosk-models-v7";
     const VOSK_LANGUAGES={ru:{name:"Русский",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-ru-0.22.zip"},en:{name:"English",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-en-us-0.15.zip"},cn:{name:"中文",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-cn-0.22.zip"}};
     button.type="button";
     let models={},modelPromises={},recognizer=null,mediaStream=null,audioContext=null,source=null,recognizerNode=null,silentGain=null,running=false,starting=false,finalParts=[],baseText="",startToken=0,scriptPromise=null,toolsPromise=null,downloadPromises={},voiceServiceWorkerPromise=null;
@@ -103,7 +103,7 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
         await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
         return new Promise(function(resolve,reject){
             let settled=false;
-            const model=new Vosk.Model(modelUrl(code));
+            const model=new Vosk.Model(modelUrl(code),3);
             const timer=setTimeout(function(){
                 if(settled)return;
                 settled=true;
@@ -112,12 +112,15 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
             },120000);
             model.on("load",function(message){
                 if(settled)return;
-                if(message&&message.result){settled=true;clearTimeout(timer);resolve(model);}
+                if(message&&message.result){settled=true;clearTimeout(timer);resolve(model);return;}
+                settled=true;clearTimeout(timer);try{model.terminate();}catch(e){}
+                reject(new Error("Vosk вернул неуспешную загрузку модели"));
             });
             model.on("error",function(message){
                 if(settled)return;
                 settled=true;clearTimeout(timer);try{model.terminate();}catch(e){}
-                reject(new Error(message&&message.error?message.error:"Движок не смог загрузить языковую модель"));
+                const details=message&&message.error!=null?String(message.error):message!=null?String(message):"неизвестная ошибка движка";
+                reject(new Error("Vosk: "+details));
             });
         });
     }
