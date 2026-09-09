@@ -72,7 +72,8 @@ function unlockChatSound() {
 
     chatSoundUnlockPromise = new Promise(function (resolve, reject) {
         try {
-            sound.muted = true;
+            sound.muted = false;
+            sound.volume = 0;
             sound.currentTime = 0;
 
             const promise = sound.play();
@@ -81,14 +82,12 @@ function unlockChatSound() {
                 promise.then(function () {
                     sound.pause();
                     sound.currentTime = 0;
-                    sound.muted = false;
                     sound.volume = 1;
                     chatSoundAudioUnlocked = true;
                     resolve();
                 }).catch(function (error) {
                     sound.pause();
                     sound.currentTime = 0;
-                    sound.muted = false;
                     sound.volume = 1;
                     chatSoundUnlockPromise = null;
                     reject(error);
@@ -96,7 +95,6 @@ function unlockChatSound() {
             } else {
                 sound.pause();
                 sound.currentTime = 0;
-                sound.muted = false;
                 sound.volume = 1;
                 chatSoundAudioUnlocked = true;
                 resolve();
@@ -163,7 +161,7 @@ function playMessageSound(chatId) {
         });
 }
 
-["touchend", "click", "keydown"].forEach(function (eventName) {
+["click", "keydown"].forEach(function (eventName) {
     document.addEventListener(eventName, unlockChatSound, {
         passive: true
     });
