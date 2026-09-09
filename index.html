@@ -78,116 +78,16 @@
 .chat-list-header{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:0;margin:0 0 12px}
 .chat-list-header h2{margin:2px 4px!important;min-width:0}
 .chat-list-new-chat{position:relative;flex:0 0 auto}
-.chat-list-new-chat #newChatButton{padding:5px 8px;background:#ff9800;color:white;border:none;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;white-space:nowrap;transition:background .2s ease,transform .15s ease;display:inline-flex;align-items:center;gap:4px}
-.chat-list-new-chat #newChatButton:hover{background:#e68a00;transform:translateY(-1px)}
-.chat-list-new-chat #newChatMenu{top:34px!important;right:0!important;left:auto!important}
-
-/* ===== ANDROID / МОБИЛЬНЫЕ — такие же круглые углы, как на iPhone ===== */
-@media(max-width:900px){
-    body:not(.mobile-chat-open) .chat-list{border-radius:26px!important}
-}
-
-@media(max-width:380px){
-    .chat-list-header{gap:6px;margin-bottom:10px}
-    .chat-list-header h2{font-size:17px!important}
-    .chat-list-new-chat #newChatButton{padding:5px 7px;font-size:10px}
-}
+.chat-list-new-chat #newChatButton{padding:5px 8px;background:#ff9800;color:white;border:none;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;white-space:nowrap;transition:background .2s ease,transform .15s ease}
 </style>
 </head>
 <body>
-<div class="top-actions">
-    <button id="adminPanelButton" class="admin-panel-button" onclick="window.location.href='admin.html'" style="display:none;">
-        <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
-        Админ-панель
-    </button>
-    <button onclick="window.location.href='settings.html'" class="settings-button" aria-label="Настройки" title="Настройки" type="button">
-        <svg class="settings-icon-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 3.2l1.1 1.9a7.5 7.5 0 0 1 1.7.7l2.1-.6 1.6 1.6-.6 2.1c.3.5.5 1.1.7 1.7l.6 2.1-1.6 1.6-2.1-.6a7.5 7.5 0 0 1-1.7.7L12 20.8h-2.5l-1.1-1.9a7.5 7.5 0 0 1-1.7-.7l-2.1.6-1.6-1.6.6-2.1a7.5 7.5 0 0 1-.7-1.7L1 12.3V9.8l1.9-1.1a7.5 7.5 0 0 1 .7-1.7L3 4.9l1.6-1.6 2.1.6a7.5 7.5 0 0 1 1.7-.7l1.1-1.9H12z" transform="translate(1 0) scale(.92)"/>
-            <circle cx="12" cy="11" r="3.1"/>
-        </svg>
-    </button>
-    <div class="coin-1c">
-        <div class="coin-body">
-            <div class="coin-depth coin-depth-1"></div><div class="coin-depth coin-depth-2"></div><div class="coin-depth coin-depth-3"></div><div class="coin-depth coin-depth-4"></div><div class="coin-depth coin-depth-5"></div><div class="coin-depth coin-depth-6"></div><div class="coin-depth coin-depth-7"></div><div class="coin-depth coin-depth-8"></div><div class="coin-depth coin-depth-9"></div><div class="coin-depth coin-depth-10"></div><div class="coin-depth coin-depth-11"></div><div class="coin-depth coin-depth-12"></div><div class="coin-depth coin-depth-13"></div><div class="coin-depth coin-depth-14"></div><div class="coin-depth coin-depth-15"></div><div class="coin-depth coin-depth-16"></div><div class="coin-depth coin-depth-17"></div><div class="coin-depth coin-depth-18"></div><div class="coin-depth coin-depth-19"></div><div class="coin-depth coin-depth-20"></div><div class="coin-depth coin-depth-21"></div>
-            <div class="coin-face coin-front"><span class="coin-one">$</span></div>
-            <div class="coin-face coin-back"><span class="coin-one">$</span></div>
-        </div>
-    </div>
-</div>
-<h1 align="center" style="display:flex;align-items:center;justify-content:center;gap:8px;visibility:hidden;">
-    <svg class="icon-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-4 4v-4H7a3 3 0 0 1-3-3V6z"/></svg>
-    Чат
-</h1>
-<div class="chat-container">
-    <div class="chat-list">
-        <div class="chat-list-header">
-            <h2>Чаты</h2>
-            <div class="chat-list-new-chat">
-                <button id="newChatButton">
-                    <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                    Новый чат
-                </button>
-                <div id="newChatMenu" style="display:none;position:absolute;right:0;top:32px;z-index:1000;background:white;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);overflow:hidden;min-width:160px;">
-                    <button id="newPrivateChatMenuButton" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px;border:none;background:white;text-align:left;cursor:pointer;">
-                        <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/></svg>
-                        Личный чат
-                    </button>
-                    <button id="newGroupChatMenuButton" style="display:flex;align-items:center;gap:8px;width:100%;padding:10px;border:none;background:white;text-align:left;cursor:pointer;">
-                        <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M3 20c0-3.5 2.8-6 6-6s6 2.5 6 6"/><path d="M14 20c0-2.2 1.6-4 3.5-4s3.5 1.8 3.5 4"/></svg>
-                        Групповой чат
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div id="chatList"></div>
-    </div>
-    <div class="chat-window">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-            <h2 id="chatTitle" style="margin:0;">Выберите чат</h2>
-            <div class="chat-header-actions">
-                <div class="chat-header-main-actions">
-                    <button id="leaveChatButton" class="leave-chat-button" type="button">
-                        <svg class="icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M15 12h6"/><path d="M18 9l3 3-3 3"/><circle cx="9" cy="12" r="1" fill="currentColor"/></svg>
-                        Выйти из чата
-                    </button>
-                </div>
-                <div id="chatCallActions" class="chat-call-actions"></div>
-            </div>
-        </div>
-        <div id="messages"></div>
-        <div id="typingIndicator" style="display:none;color:#777;font-style:italic;margin:10px;"></div>
-        <div class="send-box">
-            <div style="display:flex;flex-direction:column;width:100%;">
-                <div id="replyBox" style="display:none;background:#eeeeee;padding:8px;border-left:4px solid #8E44AD;border-radius:6px;margin-bottom:5px;font-size:14px;">
-                    <span id="replyText"></span>
-                    <button onclick="cancelReply()" style="float:right;border:none;background:none;cursor:pointer;color:red;font-weight:bold;display:inline-flex;align-items:center;">
-                        <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-                    </button>
-                </div>
-
-                <div style="position:relative;width:100%;">
-                    <input id="messageInput" type="text" placeholder="Введите сообщение..." style="width:100%;padding-right:48px;">
-                    <button id="voiceInputButton" type="button" title="Голосовой ввод" aria-label="Голосовой ввод" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;padding:0;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:19px;line-height:1;z-index:2;">🎙️</button>
-                </div>
-
-            </div>
-            <button id="sendButton" title="Отправить сообщение" style="display:inline-flex;align-items:center;justify-content:center;">
-                <svg class="icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-8-8 18-2.5-7.5L3 11z"/><path d="M11.5 13.5L20 4"/></svg>
-            </button>
-        </div>
-    </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase.js"></script>
-<script src="auth-check.js"></script>
-<script src="logout.js"></script>
-<audio id="messageSound" src="message.mp3"></audio>
 <script src="01-chat-state.js"></script>
 <script src="02-chat-user.js"></script>
 <script src="03-chat-list.js"></script>
 <script src="04-chat-private.js"></script>
 <script src="05-chat-messages.js"></script>
-<script src="14-chat-message-render.js"></script>
+<script src="14-chat-message-render.js?v=20260909-1"></script>
 <script src="15-chat-scroll.js"></script>
 <script src="06-chat-send.js"></script>
 <script src="07-chat-read.js"></script>
@@ -202,36 +102,5 @@
 <script src="push.js"></script>
 <script src="call-v2-media-fix.js"></script>
 <script src="call-v2-ice-fix.js"></script>
-<script src="call-v2.js"></script>
-<script src="call-v2-controls-fix.js"></script>
-<script src="call-v2-chat-order.js"></script>
-<script src="call-v2-ringtone.js"></script>
-<script>
-(function arrangeCallButtons(){
-    function moveButtons(){
-        const actions=document.getElementById("chatCallActions");
-        const header=document.querySelector(".chat-header-actions");
-        if(!actions || !header) return;
-        header.querySelectorAll(":scope > .chat-call-button").forEach(button=>actions.appendChild(button));
-        header.querySelectorAll(":scope > button.chat-call-button, :scope > div > .chat-call-button").forEach(button=>{
-            if(button.parentElement!==actions) actions.appendChild(button);
-        });
-    }
-    moveButtons();
-    const observer=new MutationObserver(moveButtons);
-    observer.observe(document.body,{childList:true,subtree:true});
-})();
-</script>
-<script>
-(async function showAdminButton(){
-    const adminButton=document.getElementById("adminPanelButton");
-    if(!adminButton)return;
-    const {data:{user},error:userError}=await supabaseClient.auth.getUser();
-    if(userError||!user)return;
-    const {data:profile,error:profileError}=await supabaseClient.from("profiles").select("role, approved").eq("id",user.id).maybeSingle();
-    if(profileError||!profile||profile.role!=="admin"||profile.approved!==true)return;
-    adminButton.style.display="inline-flex";
-})();
-</script>
 </body>
 </html>
