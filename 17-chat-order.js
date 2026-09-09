@@ -110,12 +110,28 @@
             var username = message.profiles && message.profiles.username ? message.profiles.username : "Пользователь";
             var text = message.text || "";
             add("Ответить", MESSAGE_ACTION_ICON_SVG.reply, function () { closeMessageActionMenu(); replyToMessage(message.id, username, text); });
+            add("Копировать", MESSAGE_ACTION_ICON_SVG.copy, async function () {
+                try {
+                    await navigator.clipboard.writeText(text);
+                } catch (error) {
+                    var area = document.createElement("textarea");
+                    area.value = text;
+                    area.style.position = "fixed";
+                    area.style.opacity = "0";
+                    document.body.appendChild(area);
+                    area.focus();
+                    area.select();
+                    try { document.execCommand("copy"); } catch (copyError) {}
+                    area.remove();
+                }
+                closeMessageActionMenu();
+            });
             var pinned = !!getPinnedMessages()[String(message.id)];
             add(pinned ? "Открепить" : "Прикрепить", MESSAGE_ACTION_ICON_SVG.pin, function () { toggleMessagePin(message.id); });
             document.body.appendChild(menu);
             var r = anchor.getBoundingClientRect();
             menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 205)) + "px";
-            menu.style.top = Math.max(8, Math.min(r.bottom + 4, window.innerHeight - 130)) + "px";
+            menu.style.top = Math.max(8, Math.min(r.bottom + 4, window.innerHeight - 220)) + "px";
             setTimeout(function () { document.addEventListener("click", closeMessageActionMenu, { once: true }); }, 0);
         };
     }
