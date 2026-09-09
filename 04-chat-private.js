@@ -302,6 +302,18 @@ async function createNewPrivateChat(
     );
 
 
+    // Если чат ранее был скрыт из списка, возвращаем его при повторном создании.
+    const hiddenChats =
+        readChatMenuMap(CHAT_MENU_HIDDEN_KEY);
+
+    delete hiddenChats[String(chatId)];
+
+    writeChatMenuMap(
+        CHAT_MENU_HIDDEN_KEY,
+        hiddenChats
+    );
+
+
     await loadChats();
 
 
