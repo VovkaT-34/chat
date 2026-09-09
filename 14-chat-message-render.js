@@ -84,6 +84,9 @@ function showMessageActionMenu(message,anchor){
         b.type="button";
         b.innerHTML=icon+'<span>'+text+'</span>';
         b.style.cssText="display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;color:#fff;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;";
+        if(text==="Копировать")b.style.setProperty("display","flex","important");
+        b.style.setProperty("visibility","visible","important");
+        b.style.setProperty("opacity","1","important");
         b.addEventListener("contextmenu",function(e){e.preventDefault();e.stopPropagation();});
         b.addEventListener("click",function(e){e.stopPropagation();handler();});
         menu.appendChild(b);
