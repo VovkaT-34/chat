@@ -113,6 +113,15 @@ function playNextChatSound() {
     chatSoundPlaying = true;
     sound.muted = false;
     sound.volume = 1;
+
+    // iOS WebKit can keep an HTMLAudioElement in a stale playback state.
+    // Reassigning its source and loading it immediately before play() resets it.
+    const soundSource = sound.currentSrc || sound.src;
+    if (soundSource) {
+        sound.src = soundSource;
+        sound.load();
+    }
+
     sound.currentTime = 0;
 
     const finish = function () {
@@ -153,11 +162,11 @@ function playMessageSound(chatId) {
         });
 }
 
-// Unlock HTML audio after the first real interaction with the app.
+// Unlock HTML audio after a real interaction with the app.
+// Keep the listeners active so iOS can retry unlocking after a failed attempt.
 ["touchstart", "touchend", "click", "keydown"].forEach(function (eventName) {
     document.addEventListener(eventName, unlockChatSound, {
-        passive: true,
-        once: true
+        passive: true
     });
 });
 
