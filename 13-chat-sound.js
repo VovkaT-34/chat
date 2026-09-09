@@ -66,8 +66,8 @@ function unlockChatSound() {
 
     chatSoundUnlockPromise = new Promise(function (resolve, reject) {
         try {
-            sound.muted = false;
-            sound.volume = 0;
+            sound.muted = true;
+            sound.volume = 1;
             sound.currentTime = 0;
 
             const promise = sound.play();
@@ -76,10 +76,12 @@ function unlockChatSound() {
                 promise.then(function () {
                     sound.pause();
                     sound.currentTime = 0;
+                    sound.muted = false;
                     sound.volume = 1;
                     chatSoundAudioUnlocked = true;
                     resolve();
                 }).catch(function (error) {
+                    sound.muted = false;
                     sound.volume = 1;
                     chatSoundUnlockPromise = null;
                     reject(error);
@@ -87,11 +89,14 @@ function unlockChatSound() {
             } else {
                 sound.pause();
                 sound.currentTime = 0;
+                sound.muted = false;
                 sound.volume = 1;
                 chatSoundAudioUnlocked = true;
                 resolve();
             }
         } catch (error) {
+            sound.muted = false;
+            sound.volume = 1;
             chatSoundUnlockPromise = null;
             reject(error);
         }
@@ -113,15 +118,7 @@ function playNextChatSound() {
     chatSoundPlaying = true;
     sound.muted = false;
     sound.volume = 1;
-
-    // iOS WebKit can keep an HTMLAudioElement in a stale playback state.
-    // Reassigning its source and loading it immediately before play() resets it.
-    const soundSource = sound.currentSrc || sound.src;
-    if (soundSource) {
-        sound.src = soundSource;
-        sound.load();
-    }
-
+    sound.pause();
     sound.currentTime = 0;
 
     const finish = function () {
