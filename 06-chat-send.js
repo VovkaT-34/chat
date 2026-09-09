@@ -49,16 +49,13 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     function ensureVoiceServiceWorker(){
         if(voiceServiceWorkerPromise)return voiceServiceWorkerPromise;
         if(!(navigator.serviceWorker))return Promise.reject(new Error("Service Worker недоступен в этом браузере"));
-        voiceServiceWorkerPromise=navigator.serviceWorker.register("./sw.js",{scope:"./"}).then(async function(){
+        voiceServiceWorkerPromise=navigator.serviceWorker.register("./sw.js",{scope:"./"}).then(async function(registration){
             await navigator.serviceWorker.ready;
-            if(!navigator.serviceWorker.controller){
-                await new Promise(function(resolve){
-                    var done=false;
-                    function finish(){if(done)return;done=true;clearTimeout(timer);resolve();}
-                    var timer=setTimeout(finish,3000);
-                    navigator.serviceWorker.addEventListener("controllerchange",finish,{once:true});
-                });
-            }
+            if(navigator.serviceWorker.controller)return;
+            if(sessionStorage.getItem("voice-sw-reloaded")==="true")throw new Error("Service Worker не получил управление страницей. Обновите страницу и повторите установку языкового пакета.");
+            sessionStorage.setItem("voice-sw-reloaded","true");
+            location.reload();
+            return new Promise(function(){});
         }).catch(function(error){voiceServiceWorkerPromise=null;throw error;});
         return voiceServiceWorkerPromise;
     }
