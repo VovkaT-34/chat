@@ -3,7 +3,7 @@
 // ===============================
 const chatReadBoundaryCache = new Map();
 const MESSAGE_PIN_STORAGE_KEY = "message-pin-v1:";
-const MESSAGE_ACTION_ICON_SVG = { reply:'<svg class="message-action-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15 4 10l5-5"/><path d="M4 10h9a7 7 0 0 1 7 7v2"/></svg>', copy:'<svg class="message-action-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/></svg>', pin:'<svg class="message-action-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 4 6 0 1 6 3 3-5 1v6l-2-2-2 2v-6l-5-1 3-3 1-6Z"/></svg>' };
+const MESSAGE_ACTION_ICON_SVG = { reply:'<svg class="message-action-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15 4 10l5-5"/><path d="M4 10h9a7 7 0 0 1 7 7v2"/></svg>', copy:'<svg class="message-action-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0 2 2h3"/></svg>', pin:'<svg class="message-action-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 4 6 0 1 6 3 3-5 1v6l-2-2-2 2v-6l-5-1 3-3 1-6Z"/></svg>' };
 
 function getPinnedMessages(){try{var raw=localStorage.getItem(MESSAGE_PIN_STORAGE_KEY+(currentUser&&currentUser.id?currentUser.id:"guest"));var parsed=raw?JSON.parse(raw):{};return parsed&&typeof parsed==="object"?parsed:{};}catch(error){return {};}}
 function savePinnedMessages(map){try{localStorage.setItem(MESSAGE_PIN_STORAGE_KEY+(currentUser&&currentUser.id?currentUser.id:"guest"),JSON.stringify(map));}catch(error){}}
@@ -26,7 +26,7 @@ function updatePinnedMessagesBar(){
         bar.id="pinnedMessagesBar";
         bar.type="button";
         bar.setAttribute("aria-label","Прикреплённое сообщение");
-        bar.style.cssText="position:sticky;top:0;z-index:30;display:flex;align-items:center;width:100%;min-height:52px;margin:-14px -14px 12px;padding:8px 12px;border:0;border-bottom:1px solid rgba(160,95,35,.25);background:rgba(244,190,120,.88);color:#5b3920;text-align:left;cursor:pointer;box-shadow:0 2px 8px rgba(100,60,25,.12);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font:inherit;";
+        bar.style.cssText="position:sticky;top:0;z-index:30;display:flex;align-items:center;width:calc(100% - 16px);min-height:52px;margin:4px 8px 12px;padding:8px 12px;border:1px solid rgba(78,128,92,.65);border-radius:14px;background:linear-gradient(135deg,rgba(224,240,218,.94),rgba(244,218,169,.92));color:#294832;text-align:left;cursor:pointer;box-shadow:0 3px 12px rgba(52,86,58,.16),inset 0 0 0 1px rgba(255,255,255,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font:inherit;box-sizing:border-box;position:sticky;overflow:hidden;";
         bar.addEventListener("click",function(event){
             event.preventDefault();
             event.stopPropagation();
@@ -52,7 +52,7 @@ function updatePinnedMessagesBar(){
     content.style.cssText="display:block;min-width:0;flex:1;overflow:hidden;";
     var label=document.createElement("span");
     label.textContent="📌 Прикреплено";
-    label.style.cssText="display:block;font-size:11px;font-weight:700;color:#9a5b22;margin-bottom:2px;";
+    label.style.cssText="display:block;font-size:11px;font-weight:700;color:#4f7b57;margin-bottom:2px;";
     var user=document.createElement("span");
     user.textContent=username?username.textContent:"Сообщение";
     user.style.cssText="display:block;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
