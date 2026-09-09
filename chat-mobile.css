@@ -120,3 +120,11 @@
 .admin-panel-button {
     z-index: 100 !important;
 }
+
+/* Список чатов: long press не должен выделять текст на iPhone и Android. */
+.chat-list .chat-item,
+.chat-list .chat-item * {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+}
