@@ -147,8 +147,7 @@ function playMessageSound(chatId) {
 // Unlock HTML audio after the first real interaction with the app.
 ["touchstart", "touchend", "click", "keydown"].forEach(function (eventName) {
     document.addEventListener(eventName, unlockChatSound, {
-        passive: true,
-        once: true
+        passive: true
     });
 });
 
