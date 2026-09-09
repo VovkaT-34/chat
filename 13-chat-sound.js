@@ -101,40 +101,31 @@ function unlockChatSound() {
 }
 
 function playNextChatSound() {
-    if (chatSoundPlaying || chatSoundQueue <= 0) return;
-
     const sound = document.getElementById("messageSound");
     if (!sound) {
         chatSoundQueue = 0;
+        chatSoundPlaying = false;
         return;
     }
 
-    chatSoundQueue--;
+    chatSoundQueue = Math.max(0, chatSoundQueue - 1);
     chatSoundPlaying = true;
+    sound.pause();
     sound.muted = false;
     sound.volume = 1;
     sound.currentTime = 0;
-
-    const finish = function () {
-        chatSoundPlaying = false;
-        playNextChatSound();
-    };
-
-    sound.addEventListener("ended", finish, { once: true });
 
     try {
         const promise = sound.play();
         if (promise && typeof promise.catch === "function") {
             promise.catch(function (error) {
                 console.log("Звук не воспроизведён:", error);
-                sound.removeEventListener("ended", finish);
-                finish();
+                chatSoundPlaying = false;
             });
         }
     } catch (error) {
         console.log("Ошибка воспроизведения звука:", error);
-        sound.removeEventListener("ended", finish);
-        finish();
+        chatSoundPlaying = false;
     }
 }
 
