@@ -28,7 +28,7 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     if(!button||!input)return;
     const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.8/dist/vosk.js";
     const FFLATE_SCRIPT="https://cdn.jsdelivr.net/npm/fflate@0.8.3/umd/index.js";
-    const VOICE_MODEL_CACHE="chat-vosk-models-v4";
+    const VOICE_MODEL_CACHE="chat-vosk-models-v5";
     const VOSK_LANGUAGES={ru:{name:"Русский",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-ru-0.22.zip"},en:{name:"English",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-en-us-0.15.zip"},cn:{name:"中文",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-cn-0.22.zip"}};
     button.type="button";
     let models={},modelPromises={},recognizer=null,mediaStream=null,audioContext=null,source=null,recognizerNode=null,silentGain=null,running=false,starting=false,finalParts=[],baseText="",startToken=0,scriptPromise=null,toolsPromise=null,downloadPromises={},voiceServiceWorkerPromise=null;
@@ -65,7 +65,7 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     function modelUrl(code){return new URL("./voice-model/"+code+".tar.gz",window.location.href).href;}
     function oldModelUrl(code){return "https://chat.local/voice-model/"+code+".tar.gz";}
     function setDownloadUi(overlay,text,progress){const label=overlay.querySelector("[data-voice-download-text]"),bar=overlay.querySelector("[data-voice-download-progress]"),percent=overlay.querySelector("[data-voice-download-percent]");if(label)label.textContent=text;if(bar)bar.value=progress;if(percent)percent.textContent=Math.round(progress)+"%";}
-    function writeTarHeader(view,offset,name,size){const encoder=new TextEncoder(),put=function(text,at,length){const bytes=encoder.encode(text);for(let i=0;i<Math.min(bytes.length,length);i++)view.setUint8(offset+at+i,bytes[i]);};put(name,0,100);put("0000644",100,8);put("0000000",108,8);put("0000000",116,8);put(size.toString(8).padStart(11,"0")+" ",124,12);put("00000000000 ",136,12);view.setUint8(offset+156,0);put("ustar\0",257,6);put("00",263,2);for(let i=148;i<156;i++)view.setUint8(offset+i,32);let checksum=0;for(let i=0;i<512;i++)checksum+=view.getUint8(offset+i);put(checksum.toString(8).padStart(6,"0")+"\0 ",148,8);}
+    function writeTarHeader(view,offset,name,size,type){const encoder=new TextEncoder(),put=function(text,at,length){const bytes=encoder.encode(text);for(let i=0;i<Math.min(bytes.length,length);i++)view.setUint8(offset+at+i,bytes[i]);};put(name,0,100);put(type===5?"0000755":"0000644",100,8);put("0000000",108,8);put("0000000",116,8);put(size.toString(8).padStart(11,"0")+" ",124,12);put("00000000000 ",136,12);view.setUint8(offset+156,type||0);put("ustar\0",257,6);put("00",263,2);for(let i=148;i<156;i++)view.setUint8(offset+i,32);let checksum=0;for(let i=0;i<512;i++)checksum+=view.getUint8(offset+i);put(checksum.toString(8).padStart(6,"0")+"\0 ",148,8);}
     async function zipToTarGz(zipBytes,overlay,languageName){
         setDownloadUi(overlay,"Распаковка ZIP… 0%",0);
         await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
@@ -76,11 +76,19 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
         const hasModelRoot=rawEntries.some(function(entry){return /^(am|conf|graph|ivector|rescore|rnnlm)\//.test(entry.name);});
         const root=hasModelRoot?"":(function(){const first=rawEntries[0]&&rawEntries[0].name.split("/")[0];return first&&rawEntries.every(function(entry){return entry.name.indexOf(first+"/")===0;})?first+"/":"";})();
         const entries=rawEntries.map(function(entry){return {name:"model/"+(root&&entry.name.indexOf(root)===0?entry.name.slice(root.length):entry.name),data:entry.data};}).filter(function(entry){return entry.name!=="model/";});
-        let total=1024;entries.forEach(function(entry){total+=512+Math.ceil(entry.data.length/512)*512;});
+        const directoryNames={"model/":true};
+        entries.forEach(function(entry){const parts=entry.name.split("/");parts.pop();let current="";for(let i=0;i<parts.length;i++){current+=parts[i]+"/";directoryNames[current]=true;}});
+        const directories=Object.keys(directoryNames).sort();
+        let total=1024;directories.forEach(function(){total+=512;});entries.forEach(function(entry){total+=512+Math.ceil(entry.data.length/512)*512;});
         const tar=new Uint8Array(total),view=new DataView(tar.buffer);let offset=0;
+        for(let i=0;i<directories.length;i++){
+            writeTarHeader(view,offset,directories[i],0,5);offset+=512;
+            setDownloadUi(overlay,"Подготовка модели… "+Math.round(50+15*((i+1)/directories.length))+"%",50+15*((i+1)/directories.length));
+            if(i%8===7)await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
+        }
         for(let i=0;i<entries.length;i++){
-            const name=entries[i].name,data=entries[i].data;writeTarHeader(view,offset,name,data.length);offset+=512;tar.set(data,offset);offset+=Math.ceil(data.length/512)*512;
-            setDownloadUi(overlay,"Подготовка модели… "+Math.round(50+30*((i+1)/entries.length))+"%",50+30*((i+1)/entries.length));
+            const name=entries[i].name,data=entries[i].data;writeTarHeader(view,offset,name,data.length,0);offset+=512;tar.set(data,offset);offset+=Math.ceil(data.length/512)*512;
+            setDownloadUi(overlay,"Подготовка модели… "+Math.round(65+15*((i+1)/entries.length))+"%",65+15*((i+1)/entries.length));
             if(i%4===3)await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
         }
         setDownloadUi(overlay,"Сборка модели… 80%",80);
