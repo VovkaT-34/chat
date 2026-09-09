@@ -83,10 +83,18 @@ function showMessageActionMenu(message,anchor){
         var b=document.createElement("button");
         b.type="button";
         b.innerHTML=icon+'<span>'+text+'</span>';
-        b.style.cssText="display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;color:#fff;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;";
-        if(text==="Копировать")b.style.setProperty("display","flex","important");
-        b.style.setProperty("visibility","visible","important");
-        b.style.setProperty("opacity","1","important");
+        b.style.cssText="display:flex !important;visibility:visible !important;opacity:1 !important;align-items:center;gap:10px;width:100%;border:0;background:none;color:#fff !important;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;box-sizing:border-box;min-height:42px;";
+        if(text==="Копировать"){
+            b.className="message-copy-action";
+            b.setAttribute("data-message-action","copy");
+            b.querySelector(".message-action-icon").style.setProperty("display","block","important");
+            b.querySelector("span").style.setProperty("display","inline-block","important");
+            b.querySelector("span").style.setProperty("visibility","visible","important");
+            b.querySelector("span").style.setProperty("opacity","1","important");
+            b.querySelector("span").style.setProperty("color","#fff","important");
+            b.querySelector("span").style.setProperty("font-size","15px","important");
+            b.querySelector("span").style.setProperty("line-height","20px","important");
+        }
         b.addEventListener("contextmenu",function(e){e.preventDefault();e.stopPropagation();});
         b.addEventListener("click",function(e){e.stopPropagation();handler();});
         menu.appendChild(b);
