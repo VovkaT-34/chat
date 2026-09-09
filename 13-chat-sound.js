@@ -78,7 +78,7 @@ function unlockChatSound() {
                     sound.currentTime = 0;
                     sound.volume = 1;
                     chatSoundAudioUnlocked = true;
-                    resolve();
+                    setTimeout(resolve, 0);
                 }).catch(function (error) {
                     sound.volume = 1;
                     chatSoundUnlockPromise = null;
@@ -89,7 +89,7 @@ function unlockChatSound() {
                 sound.currentTime = 0;
                 sound.volume = 1;
                 chatSoundAudioUnlocked = true;
-                resolve();
+                setTimeout(resolve, 0);
             }
         } catch (error) {
             chatSoundUnlockPromise = null;
