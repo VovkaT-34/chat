@@ -9,6 +9,9 @@ const CHAT_SOUND_ICON_OFF = '<svg class="icon-svg chat-sound-svg" width="18" hei
 
 let chatSoundAudioUnlocked = false;
 let chatSoundUnlockPromise = null;
+let chatSoundAudioContext = null;
+let chatSoundAudioBuffer = null;
+let chatSoundAudioSource = null;
 let chatSoundQueue = 0;
 let chatSoundPlaying = false;
 
@@ -32,7 +35,7 @@ function toggleChatSound(chatId) {
     localStorage.setItem(CHAT_SOUND_KEY, JSON.stringify(settings));
     updateChatSoundButton(chatId);
 
-    // A real user gesture is the most reliable place to unlock WebView audio.
+    // A real user gesture is the most reliable place to unlock Web Audio.
     unlockChatSound();
 }
 
@@ -56,76 +59,136 @@ function updateChatSoundButton(chatId) {
     button.setAttribute("aria-label", button.title);
 }
 
+function getChatSoundAudioContext() {
+    if (chatSoundAudioContext) return chatSoundAudioContext;
+
+    const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) {
+        throw new Error("Web Audio API не поддерживается");
+    }
+
+    chatSoundAudioContext = new AudioContextClass();
+
+    return chatSoundAudioContext;
+}
+
 function unlockChatSound() {
-    if (chatSoundAudioUnlocked) return Promise.resolve();
+    if (
+        chatSoundAudioUnlocked &&
+        chatSoundAudioContext &&
+        chatSoundAudioContext.state === "running" &&
+        chatSoundAudioBuffer
+    ) {
+        return Promise.resolve();
+    }
 
     if (chatSoundUnlockPromise) return chatSoundUnlockPromise;
 
-    const sound = document.getElementById("messageSound");
-    if (!sound) return Promise.reject(new Error("messageSound не найден"));
+    let context;
 
-    chatSoundUnlockPromise = new Promise(function (resolve, reject) {
-        try {
-            sound.muted = false;
-            sound.volume = 0;
-            sound.currentTime = 0;
+    try {
+        context = getChatSoundAudioContext();
+    } catch (error) {
+        return Promise.reject(error);
+    }
 
-            const promise = sound.play();
+    // resume() is intentionally called synchronously from the user gesture.
+    const resumePromise =
+        context.state === "suspended"
+            ? context.resume()
+            : Promise.resolve();
 
-            if (promise && typeof promise.then === "function") {
-                promise.then(function () {
-                    sound.pause();
-                    sound.currentTime = 0;
-                    sound.volume = 1;
-                    chatSoundAudioUnlocked = true;
-                    setTimeout(resolve, 0);
-                }).catch(function (error) {
-                    sound.volume = 1;
-                    chatSoundUnlockPromise = null;
-                    reject(error);
-                });
-            } else {
-                sound.pause();
-                sound.currentTime = 0;
-                sound.volume = 1;
+    chatSoundUnlockPromise = resumePromise
+        .then(function () {
+            if (chatSoundAudioBuffer) {
                 chatSoundAudioUnlocked = true;
-                setTimeout(resolve, 0);
+                return;
             }
-        } catch (error) {
+
+            return fetch("message.mp3", { cache: "force-cache" })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error("Не удалось загрузить message.mp3");
+                    }
+                    return response.arrayBuffer();
+                })
+                .then(function (data) {
+                    return new Promise(function (resolve, reject) {
+                        context.decodeAudioData(
+                            data,
+                            function (buffer) {
+                                chatSoundAudioBuffer = buffer;
+                                chatSoundAudioUnlocked = true;
+                                resolve();
+                            },
+                            reject
+                        );
+                    });
+                });
+        })
+        .then(function () {
+            chatSoundAudioUnlocked = true;
+        })
+        .catch(function (error) {
             chatSoundUnlockPromise = null;
-            reject(error);
-        }
-    });
+            chatSoundAudioUnlocked = false;
+            throw error;
+        });
 
     return chatSoundUnlockPromise;
 }
 
 function playNextChatSound() {
-    const sound = document.getElementById("messageSound");
-    if (!sound) {
+    if (chatSoundPlaying || chatSoundQueue <= 0) return;
+
+    const context = chatSoundAudioContext;
+    const buffer = chatSoundAudioBuffer;
+
+    if (!context || !buffer) {
         chatSoundQueue = 0;
         chatSoundPlaying = false;
         return;
     }
 
-    chatSoundQueue = Math.max(0, chatSoundQueue - 1);
+    chatSoundQueue--;
     chatSoundPlaying = true;
-    sound.pause();
-    sound.muted = false;
-    sound.volume = 1;
-    sound.currentTime = 0;
 
-    try {
-        const promise = sound.play();
-        if (promise && typeof promise.catch === "function") {
-            promise.catch(function (error) {
+    if (context.state !== "running") {
+        context.resume()
+            .then(function () {
+                playNextChatSound();
+            })
+            .catch(function (error) {
                 console.log("Звук не воспроизведён:", error);
                 chatSoundPlaying = false;
             });
-        }
+        return;
+    }
+
+    try {
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        source.connect(context.destination);
+        chatSoundAudioSource = source;
+
+        source.onended = function () {
+            if (chatSoundAudioSource === source) {
+                chatSoundAudioSource = null;
+            }
+            chatSoundPlaying = false;
+            playNextChatSound();
+        };
+
+        source.start(0);
     } catch (error) {
         console.log("Ошибка воспроизведения звука:", error);
+        if (chatSoundAudioSource) {
+            chatSoundAudioSource = null;
+        }
         chatSoundPlaying = false;
+        playNextChatSound();
     }
 }
 
@@ -144,11 +207,18 @@ function playMessageSound(chatId) {
         });
 }
 
-// Unlock HTML audio after the first real interaction with the app.
+// Unlock Web Audio after the first real interaction with the app.
 ["touchstart", "touchend", "click", "keydown"].forEach(function (eventName) {
     document.addEventListener(eventName, unlockChatSound, {
         passive: true
     });
+});
+
+// Restore Web Audio after iOS interrupts the audio session.
+document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && chatSoundAudioContext) {
+        chatSoundAudioContext.resume().catch(function () {});
+    }
 });
 
 // Android 13+ requires a runtime notification permission. The APK already
