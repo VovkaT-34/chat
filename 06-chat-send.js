@@ -28,7 +28,7 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
     if(!button||!input)return;
     const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/vosk-browser@0.0.8/dist/vosk.js";
     const FFLATE_SCRIPT="https://cdn.jsdelivr.net/npm/fflate@0.8.3/umd/index.js";
-    const VOICE_MODEL_CACHE="chat-vosk-models-v3";
+    const VOICE_MODEL_CACHE="chat-vosk-models-v4";
     const VOSK_LANGUAGES={ru:{name:"Русский",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-ru-0.22.zip"},en:{name:"English",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-en-us-0.15.zip"},cn:{name:"中文",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-cn-0.22.zip"}};
     button.type="button";
     let models={},modelPromises={},recognizer=null,mediaStream=null,audioContext=null,source=null,recognizerNode=null,silentGain=null,running=false,starting=false,finalParts=[],baseText="",startToken=0,scriptPromise=null,toolsPromise=null,downloadPromises={},voiceServiceWorkerPromise=null;
@@ -75,7 +75,7 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
         const rawEntries=Object.keys(files).filter(function(name){return !name.endsWith("/");}).map(function(name){return {name:name.replace(/\\/g,"/").replace(/^\.\//,""),data:files[name]};});
         const hasModelRoot=rawEntries.some(function(entry){return /^(am|conf|graph|ivector|rescore|rnnlm)\//.test(entry.name);});
         const root=hasModelRoot?"":(function(){const first=rawEntries[0]&&rawEntries[0].name.split("/")[0];return first&&rawEntries.every(function(entry){return entry.name.indexOf(first+"/")===0;})?first+"/":"";})();
-        const entries=rawEntries.map(function(entry){return {name:root&&entry.name.indexOf(root)===0?entry.name.slice(root.length):entry.name,data:entry.data};}).filter(function(entry){return entry.name&&!entry.name.endsWith("/");});
+        const entries=rawEntries.map(function(entry){return {name:"model/"+(root&&entry.name.indexOf(root)===0?entry.name.slice(root.length):entry.name),data:entry.data};}).filter(function(entry){return entry.name!=="model/";});
         let total=1024;entries.forEach(function(entry){total+=512+Math.ceil(entry.data.length/512)*512;});
         const tar=new Uint8Array(total),view=new DataView(tar.buffer);let offset=0;
         for(let i=0;i<entries.length;i++){
