@@ -14,7 +14,6 @@
     function getCurrentChatType() {
         var id = Number(window.currentChatId || 0);
         if (!id) return null;
-
         var item = document.querySelector('.chat-item[data-chat-id="' + id + '"]');
         return item ? (item.dataset.chatType || null) : null;
     }
@@ -41,20 +40,17 @@
             "cursor:pointer",
             "font:inherit"
         ].join(";");
-
         item.addEventListener("click", function (event) {
             event.stopPropagation();
             handler(event);
         });
-
         return item;
     }
 
     function showMenu(button) {
         closeMenu();
-
         var type = getCurrentChatType();
-        if (type !== "private" && type !== "group") return;
+        if (type !== "private" && type !== "group" && type !== "public") return;
 
         var menu = document.createElement("div");
         menu.id = "chatHeaderMenu";
@@ -75,42 +71,36 @@
         var settingsTitle = type === "group" ? "Настройки группы" : "Настройки чата";
         var leaveTitle = type === "group" ? "Выйти из группы" : "Выйти из чата";
 
-        var usersItem = createMenuButton("Пользователи", function () {
-            closeMenu();
-            if (typeof window.openChatUsers === "function") {
-                window.openChatUsers();
-            } else {
-                console.error("Интерфейс пользователей не найден: window.openChatUsers");
-            }
-        });
+        if (type !== "public") {
+            var usersItem = createMenuButton("Пользователи", function () {
+                closeMenu();
+                if (typeof window.openChatUsers === "function") window.openChatUsers();
+                else console.error("Интерфейс пользователей не найден: window.openChatUsers");
+            });
+            menu.appendChild(usersItem);
+        }
 
         var settingsItem = createMenuButton(settingsTitle, function () {
             closeMenu();
-            if (typeof window.openChatSettings === "function") {
-                window.openChatSettings();
-            } else {
-                console.error("Интерфейс настроек не найден: window.openChatSettings");
-            }
+            if (typeof window.openChatSettings === "function") window.openChatSettings();
+            else console.error("Интерфейс настроек не найден: window.openChatSettings");
         });
-
-        var leaveItem = createMenuButton(leaveTitle, function () {
-            closeMenu();
-            if (typeof window.leaveCurrentChat === "function") {
-                window.leaveCurrentChat();
-            } else {
-                console.error("Механизм выхода из чата не найден: window.leaveCurrentChat");
-            }
-        });
-
-        menu.appendChild(usersItem);
         menu.appendChild(settingsItem);
-        menu.appendChild(leaveItem);
+
+        if (type !== "public") {
+            var leaveItem = createMenuButton(leaveTitle, function () {
+                closeMenu();
+                if (typeof window.leaveCurrentChat === "function") window.leaveCurrentChat();
+                else console.error("Механизм выхода из чата не найден: window.leaveCurrentChat");
+            });
+            menu.appendChild(leaveItem);
+        }
+
         document.body.appendChild(menu);
-
         var rect = button.getBoundingClientRect();
+        var menuHeight = type === "public" ? 58 : 155;
         menu.style.left = Math.max(8, Math.min(rect.right - 210, window.innerWidth - 218)) + "px";
-        menu.style.top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - 155)) + "px";
-
+        menu.style.top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - menuHeight - 8)) + "px";
         setTimeout(function () {
             document.addEventListener("click", closeMenu, { once: true });
         }, 0);
@@ -119,11 +109,11 @@
     function ensureButton() {
         var actions = getHeaderActions();
         if (!actions) return;
-
         var existing = document.getElementById("chatHeaderMenuButton");
         if (existing) {
+            var type = getCurrentChatType();
             var active = Number(window.currentChatId || 0) > 0 &&
-                (getCurrentChatType() === "private" || getCurrentChatType() === "group");
+                (type === "private" || type === "group" || type === "public");
             existing.style.display = active ? "inline-flex" : "none";
             return;
         }
@@ -152,44 +142,30 @@
             "box-shadow:0 3px 10px rgba(35,25,18,.18)"
         ].join(";");
         button.textContent = "⋮";
-
         button.addEventListener("click", function (event) {
             event.preventDefault();
             event.stopPropagation();
             showMenu(button);
         });
-
         actions.appendChild(button);
 
+        var type = getCurrentChatType();
         var active = Number(window.currentChatId || 0) > 0 &&
-            (getCurrentChatType() === "private" || getCurrentChatType() === "group");
+            (type === "private" || type === "group" || type === "public");
         button.style.display = active ? "inline-flex" : "none";
     }
 
-    function refresh() {
-        ensureButton();
-    }
-
+    function refresh() { ensureButton(); }
     window.refreshChatHeaderMenu = refresh;
 
-    document.addEventListener("click", function () {
-        setTimeout(refresh, 0);
-    });
-
-    var observer = new MutationObserver(function () {
-        ensureButton();
-    });
+    document.addEventListener("click", function () { setTimeout(refresh, 0); });
+    var observer = new MutationObserver(function () { ensureButton(); });
 
     function start() {
         ensureButton();
-        if (document.body) {
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
+        if (document.body) observer.observe(document.body, { childList: true, subtree: true });
     }
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", start, { once: true });
-    } else {
-        start();
-    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+    else start();
 })();
