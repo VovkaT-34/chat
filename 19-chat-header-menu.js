@@ -6,6 +6,11 @@
 (function () {
     "use strict";
 
+    function removeOldLeaveButton() {
+        var button = document.getElementById("leaveChatButton");
+        if (button) button.remove();
+    }
+
     function getHeaderActions() {
         return document.querySelector(".chat-call-actions") ||
             document.querySelector(".chat-header-actions");
@@ -113,6 +118,8 @@
     }
 
     function ensureButton() {
+        removeOldLeaveButton();
+
         var actions = getHeaderActions();
         if (!actions) return;
 
