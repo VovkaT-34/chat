@@ -22,11 +22,11 @@
 <div class="field" id="passwordField"><input id="passwordInput" type="password" minlength="6" placeholder="Новый пароль" autocomplete="new-password"><button class="primary" id="passwordSave">Сохранить</button></div>
 <div class="row"><div><strong>Звук сообщений</strong><small>Звуковые уведомления внутри чата</small></div><button id="soundToggle">Вкл.</button></div>
 <div class="row"><div><strong>Уведомления</strong><small id="notificationStatus">Системные уведомления о новых сообщениях</small></div><button id="notificationToggle" type="button">Включить</button></div>
-<div class="row"><div><strong>Скачать язык</strong><small>Язык для офлайн-распознавания голоса</small></div><button id="voiceLanguageToggle" type="button">Открыть</button></div>
+<div class="row"><div><strong>Язык голосового ввода</strong><small>Одна локальная модель Whisper для всех поддерживаемых языков</small></div><button id="voiceLanguageToggle" type="button">Открыть</button></div>
 <div class="voice-languages" id="voiceLanguages">
-<div class="voice-language"><div><strong>Русский</strong><small>Русский язык, около 45 МБ</small></div><button type="button" data-voice-language="ru">Скачать</button></div>
-<div class="voice-language"><div><strong>English</strong><small>English, около 40 МБ</small></div><button type="button" data-voice-language="en">Скачать</button></div>
-<div class="voice-language"><div><strong>中文</strong><small>Китайский, около 42 МБ</small></div><button type="button" data-voice-language="cn">Скачать</button></div>
+<div class="voice-language"><div><strong>Русский</strong><small>Русский язык</small></div><button type="button" data-voice-language="ru">Подготовить</button></div>
+<div class="voice-language"><div><strong>English</strong><small>English</small></div><button type="button" data-voice-language="en">Подготовить</button></div>
+<div class="voice-language"><div><strong>中文</strong><small>Китайский язык</small></div><button type="button" data-voice-language="cn">Подготовить</button></div>
 <div class="voice-download" id="voiceDownload"><div class="voice-download-line"><span id="voiceDownloadText">Подготовка…</span><span id="voiceDownloadPercent">0%</span></div><progress id="voiceDownloadProgress" max="100" value="0"></progress></div>
 </div>
 </section>
