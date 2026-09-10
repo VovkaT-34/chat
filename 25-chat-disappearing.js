@@ -98,10 +98,11 @@
         window.__chatDisappearingRenderWrapped = true;
     }
 
-    function addDisappearingSection(panel) {
-        if (!panel || panel.querySelector(".chat-disappearing-section")) return;
+    function buildDisappearingSection(panel) {
+        if (!panel || panel.querySelector(".chat-disappearing-section")) return panel && panel.querySelector(".chat-disappearing-section");
         var section = document.createElement("div");
         section.className = "chat-theme-section chat-disappearing-section";
+        section.dataset.settingsPage = "disappearing";
         var title = document.createElement("div");
         title.className = "chat-theme-section-title";
         title.textContent = "Исчезающие сообщения";
@@ -127,9 +128,58 @@
         });
         section.appendChild(grid);
         panel.insertBefore(section, panel.querySelector(".chat-theme-footer"));
+        return section;
     }
 
-    // Не заменяем окно настроек целиком: добавляем в него отдельный выбор таймера.
+    function setupSettingsNavigation(panel) {
+        if (!panel || panel.querySelector(".chat-settings-navigation")) return;
+        var themeSection = panel.querySelector(".chat-theme-section");
+        if (!themeSection) return;
+
+        var disappearingSection = buildDisappearingSection(panel);
+        if (!disappearingSection) return;
+        themeSection.dataset.settingsPage = "themes";
+
+        var nav = document.createElement("div");
+        nav.className = "chat-settings-navigation";
+        nav.style.cssText = "display:flex;gap:8px;margin:0 0 16px;";
+
+        function makeNavButton(text, active) {
+            var button = document.createElement("button");
+            button.type = "button";
+            button.textContent = text;
+            button.style.cssText = "flex:1;border:1px solid #d5d5d5;background:#fff;color:#222;border-radius:10px;padding:10px 8px;cursor:pointer;font:700 14px Arial,sans-serif;";
+            if (active) {
+                button.style.background = "#8b5a3c";
+                button.style.color = "#fff";
+                button.style.borderColor = "#8b5a3c";
+            }
+            return button;
+        }
+
+        var themesButton = makeNavButton("Темы", true);
+        var disappearingButton = makeNavButton("Исчезающие сообщения", false);
+        nav.appendChild(themesButton);
+        nav.appendChild(disappearingButton);
+        panel.insertBefore(nav, themeSection);
+
+        function show(page) {
+            var themes = page === "themes";
+            themeSection.style.display = themes ? "" : "none";
+            disappearingSection.style.display = themes ? "none" : "";
+            themesButton.style.background = themes ? "#8b5a3c" : "#fff";
+            themesButton.style.color = themes ? "#fff" : "#222";
+            themesButton.style.borderColor = themes ? "#8b5a3c" : "#d5d5d5";
+            disappearingButton.style.background = themes ? "#fff" : "#8b5a3c";
+            disappearingButton.style.color = themes ? "#222" : "#fff";
+            disappearingButton.style.borderColor = themes ? "#d5d5d5" : "#8b5a3c";
+        }
+
+        themesButton.addEventListener("click", function () { show("themes"); });
+        disappearingButton.addEventListener("click", function () { show("disappearing"); });
+        show("themes");
+    }
+
     function wrapSettings() {
         if (typeof window.openChatSettings !== "function" || window.__chatDisappearingSettingsWrapped) return;
         var originalOpenSettings = window.openChatSettings;
@@ -137,7 +187,8 @@
             originalOpenSettings();
             if (!isSupportedChat()) return;
             var panel = document.querySelector(".chat-theme-settings");
-            addDisappearingSection(panel);
+            if (!panel) return;
+            setupSettingsNavigation(panel);
         };
         window.__chatDisappearingSettingsWrapped = true;
     }
@@ -161,6 +212,5 @@
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
     else init();
 
-    // 24-chat-themes.js загружается раньше этого файла, поэтому обёртка гарантированно ставится после него.
     setTimeout(function () { wrapRender(); wrapSettings(); }, 0);
 })();
