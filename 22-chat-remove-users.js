@@ -1,6 +1,7 @@
 // =========================================
 // УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЕЙ ИЗ ГРУППЫ
-// Только администратор. Использует защищённый RPC remove_chat_member.
+// Администратор группы или глобальный администратор.
+// Использует защищённый RPC remove_chat_member.
 // =========================================
 
 (function () {
@@ -27,6 +28,13 @@
         return result.data || [];
     }
 
+    async function isGlobalAdmin() {
+        var user = window.currentUser;
+        if (!user || !user.id) return false;
+        var result = await window.supabaseClient.from("profiles").select("role,approved").eq("id", user.id).maybeSingle();
+        return !result.error && result.data && result.data.approved === true && ["admin", "superadmin"].includes(result.data.role);
+    }
+
     async function makeButton() {
         if (checking || document.getElementById("chatRemoveUserButton")) return;
         if (getChatType() !== "group") return;
@@ -41,7 +49,8 @@
             var currentMember = members.find(function (member) {
                 return String(member.user_id) === currentId;
             });
-            if (!currentMember || currentMember.role !== "admin") return;
+            var globalAdmin = await isGlobalAdmin();
+            if (!globalAdmin && (!currentMember || currentMember.role !== "admin")) return;
             if (!document.getElementById("chatUsersList")) return;
             if (document.getElementById("chatRemoveUserButton")) return;
 
