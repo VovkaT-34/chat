@@ -76,6 +76,17 @@ async function startChat() {
     });
 
 
+    // 2.5. Подключаем подпись общих чатов
+
+    await new Promise(function (resolve) {
+        var script = document.createElement("script");
+        script.src = "23-public-chat-labels.js";
+        script.onload = resolve;
+        script.onerror = resolve;
+        document.head.appendChild(script);
+    });
+
+
     // 3. Подключаем пакетную загрузку данных списка чатов
 
     await new Promise(function (resolve) {
