@@ -8,7 +8,8 @@ self.addEventListener("activate",function(event){event.waitUntil(caches.keys().t
 self.addEventListener("fetch",function(event){
     if(event.request.method!=="GET")return;
     var url=new URL(event.request.url);
-    if(url.origin===self.location.origin&&url.pathname.indexOf("/voice-model/")===0){
+    if(url.origin!==self.location.origin)return;
+    if(url.pathname.indexOf("/voice-model/")===0){
         event.respondWith(caches.match(event.request).then(function(response){return response||new Response("Not found",{status:404});}));
         return;
     }
