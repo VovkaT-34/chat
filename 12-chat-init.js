@@ -10,6 +10,19 @@ async function startChat() {
         return;
     }
 
+    var adminButton = document.getElementById("adminPanelButton");
+    if (adminButton && window.matchMedia("(min-width: 701px)").matches) {
+        try {
+            var profileResult = await supabaseClient.rpc("get_my_profile");
+            var profile = profileResult ? profileResult.data : null;
+            if (profile && (profile.role === "admin" || profile.role === "superadmin") && profile.approved === true) {
+                adminButton.style.display = "inline-block";
+            }
+        } catch (error) {
+            console.error("Не удалось определить права администратора:", error);
+        }
+    }
+
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="18-chat-emoji.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="19-chat-header-menu.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="20-group-chat-search.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
