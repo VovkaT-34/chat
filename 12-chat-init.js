@@ -87,6 +87,17 @@ async function startChat() {
     });
 
 
+    // 2.6. Подключаем темы чата и цвет текста
+
+    await new Promise(function (resolve) {
+        var script = document.createElement("script");
+        script.src = "24-chat-themes.js";
+        script.onload = resolve;
+        script.onerror = resolve;
+        document.head.appendChild(script);
+    });
+
+
     // 3. Подключаем пакетную загрузку данных списка чатов
 
     await new Promise(function (resolve) {
@@ -154,4 +165,3 @@ async function startChat() {
 // ===============================
 
 startChat();
-
