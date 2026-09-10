@@ -20,6 +20,7 @@
 <div class="field" id="usernameField"><input id="usernameInput" maxlength="40" autocomplete="nickname"><button class="primary" id="usernameSave">Сохранить</button></div>
 <div class="row"><div><strong>Пароль</strong><small>Изменение пароля аккаунта</small></div><button id="passwordToggle">Изменить</button></div>
 <div class="field" id="passwordField"><input id="passwordInput" type="password" minlength="6" placeholder="Новый пароль" autocomplete="new-password"><button class="primary" id="passwordSave">Сохранить</button></div>
+<div class="row"><div><strong>Настройка темы</strong><small>Тема сообщений и цвет текста</small></div><button id="themeToggle" type="button">Открыть</button></div>
 <div class="row"><div><strong>Звук сообщений</strong><small>Звуковые уведомления внутри чата</small></div><button id="soundToggle">Вкл.</button></div>
 <div class="row"><div><strong>Уведомления</strong><small id="notificationStatus">Системные уведомления о новых сообщениях</small></div><button id="notificationToggle" type="button">Включить</button></div>
 <div class="row"><div><strong>Язык голосового ввода</strong><small>Одна локальная модель Whisper для всех поддерживаемых языков</small></div><button id="voiceLanguageToggle" type="button">Открыть</button></div>
@@ -34,6 +35,7 @@
 <div id="message" class="message" aria-live="polite"></div>
 <button class="logout" id="logoutButton">Выйти из аккаунта</button>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase.js"></script><script src="logout.js"></script><script src="settings.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase.js"></script><script src="logout.js"></script><script src="settings.js"></script><script src="24-chat-themes.js"></script>
+<script>document.getElementById("themeToggle").onclick=function(){if(typeof window.openChatSettings==="function")window.openChatSettings();};</script>
 </body>
 </html>
