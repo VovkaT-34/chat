@@ -1,6 +1,6 @@
 // =========================================
 // УДАЛЕНИЕ ПОЛЬЗОВАТЕЛЕЙ ИЗ ГРУППЫ
-// Администратор группы или глобальный администратор.
+// Только создатель группы.
 // Использует защищённый RPC remove_chat_member.
 // =========================================
 
@@ -28,11 +28,11 @@
         return result.data || [];
     }
 
-    async function isGlobalAdmin() {
+    async function isGroupCreator(chatId) {
         var user = window.currentUser;
         if (!user || !user.id) return false;
-        var result = await window.supabaseClient.from("profiles").select("role,approved").eq("id", user.id).maybeSingle();
-        return !result.error && result.data && result.data.approved === true && ["admin", "superadmin"].includes(result.data.role);
+        var result = await window.supabaseClient.from("chats").select("created_by").eq("id", chatId).maybeSingle();
+        return !result.error && result.data && String(result.data.created_by) === String(user.id);
     }
 
     async function makeButton() {
@@ -44,13 +44,8 @@
 
         checking = true;
         try {
-            var members = await getMembers(getChatId());
-            var currentId = String(window.currentUser && window.currentUser.id);
-            var currentMember = members.find(function (member) {
-                return String(member.user_id) === currentId;
-            });
-            var globalAdmin = await isGlobalAdmin();
-            if (!globalAdmin && (!currentMember || currentMember.role !== "admin")) return;
+            var creator = await isGroupCreator(getChatId());
+            if (!creator) return;
             if (!document.getElementById("chatUsersList")) return;
             if (document.getElementById("chatRemoveUserButton")) return;
 
@@ -68,7 +63,7 @@
             });
             document.getElementById("chatUsersList").parentElement.appendChild(button);
         } catch (error) {
-            console.error("Не удалось проверить права администратора:", error);
+            console.error("Не удалось проверить создателя группы:", error);
         } finally {
             checking = false;
         }
