@@ -65,6 +65,17 @@ async function startChat() {
     });
 
 
+    // 2.4. Подключаем удаление пользователей администратором группы
+
+    await new Promise(function (resolve) {
+        var script = document.createElement("script");
+        script.src = "22-chat-remove-users.js";
+        script.onload = resolve;
+        script.onerror = resolve;
+        document.head.appendChild(script);
+    });
+
+
     // 3. Подключаем пакетную загрузку данных списка чатов
 
     await new Promise(function (resolve) {
