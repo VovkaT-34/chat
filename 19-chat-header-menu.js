@@ -15,6 +15,34 @@
     function closeMenu() { var menu = document.getElementById("chatHeaderMenu"); if (menu) menu.remove(); }
     function closeSettingsChoice() { var overlay = document.getElementById("chatSettingsChoiceOverlay"); if (overlay) overlay.remove(); }
 
+    function openGroupRename() {
+        var chatId = Number(window.currentChatId || 0);
+        if (!chatId) return;
+
+        var item = document.querySelector('.chat-item[data-chat-id="' + chatId + '"]');
+        var currentName = item ? (item.dataset.chatName || item.querySelector(".chat-name")?.textContent || "") : "";
+        currentName = String(currentName).trim();
+
+        var value = window.prompt("Ник группы:", currentName);
+        if (value === null) return;
+        value = value.trim();
+        if (!value || value === currentName) return;
+
+        window.supabaseClient.rpc("rename_group_chat", {
+            p_chat_id: chatId,
+            p_name: value
+        }).then(function (result) {
+            if (result.error) {
+                console.error("Не удалось изменить ник группы:", result.error);
+                alert(result.error.message || "Не удалось изменить ник группы.");
+                return;
+            }
+            if (typeof window.loadChats === "function") {
+                window.loadChats();
+            }
+        });
+    }
+
     function openSettingsChoice() {
         closeSettingsChoice();
         var overlay = document.createElement("div");
@@ -38,6 +66,9 @@
             panel.appendChild(button);
         }
 
+        if (getCurrentChatType() === "group") {
+            addChoice("Изменить ник группы", openGroupRename);
+        }
         addChoice("Настройка темы", function () {
             if (typeof window.openChatSettings === "function") window.openChatSettings();
         });
@@ -52,7 +83,7 @@
 
     function openSettingsFromMenu() {
         // Для всех типов чатов одинаково показываем сначала выбор настройки.
-        // Поддержка исчезающих сообщений внутри самого окна остаётся прежней.
+        // Для группы первым пунктом доступно изменение ника группы.
         openSettingsChoice();
     }
 
