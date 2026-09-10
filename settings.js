@@ -155,6 +155,8 @@ async function downloadVoiceLanguage(code) {
 
 $("usernameToggle").onclick = () => $("usernameField").classList.toggle("open");
 $("passwordToggle").onclick = () => $("passwordField").classList.toggle("open");
+const themeToggle = $("themeToggle");
+if (themeToggle) themeToggle.onclick = () => { if (typeof window.openChatSettings === "function") window.openChatSettings(); };
 const voiceLanguageToggle = $("voiceLanguageToggle");
 if (voiceLanguageToggle) voiceLanguageToggle.onclick = () => { const box = $("voiceLanguages"); if (!box) return; box.classList.toggle("open"); voiceLanguageToggle.textContent = box.classList.contains("open") ? "Скрыть" : "Открыть"; updateVoiceLanguageButtons(); };
 document.querySelectorAll("[data-voice-language]").forEach(button => { button.onclick = () => void downloadVoiceLanguage(button.getAttribute("data-voice-language")); });
@@ -163,7 +165,9 @@ $("passwordSave").onclick = async () => { const password = $("passwordInput").va
 $("soundToggle").onclick = () => { const next = localStorage.getItem("chat-sound-enabled") === "false"; localStorage.setItem("chat-sound-enabled", String(next)); $("soundToggle").textContent = next ? "Вкл." : "Выкл."; };
 $("notificationToggle").onclick = () => void enableNotifications(); $("logoutButton").onclick = () => void logout();
 async function loadSettings() {
-    const { data: { user }, error } = await supabaseClient.auth.getUser(); if (error || !user) { window.location.replace("./login.html"); return; } $("email").textContent = user.email || "";
+    const { data: { user }, error } = await supabaseClient.auth.getUser(); if (error || !user) { window.location.replace("./login.html"); return; }
+    window.currentUser = user;
+    $("email").textContent = user.email || "";
     const { data: profile, error: profileError } = await supabaseClient.rpc("get_my_profile"); if (!profileError && profile && profile[0]) { const name = profile[0].username || "Пользователь"; $("username").textContent = name; $("usernameInput").value = name; }
     const soundEnabled = localStorage.getItem("chat-sound-enabled"); $("soundToggle").textContent = soundEnabled === "false" ? "Выкл." : "Вкл."; updateNotificationUi(); updateVoiceLanguageButtons();
     if (location.hash === "#voice-language" && voiceLanguageToggle) { const box = $("voiceLanguages"); if (box) box.classList.add("open"); voiceLanguageToggle.textContent = "Скрыть"; }
