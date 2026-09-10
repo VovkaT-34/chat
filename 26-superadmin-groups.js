@@ -6,6 +6,7 @@
 
     var menuHooked = false;
     var refreshBusy = false;
+    var messagesHooked = false;
 
     function isSA() {
         var u = window.currentUser;
@@ -19,11 +20,133 @@
         return document.querySelector('.chat-item[data-chat-id="' + Number(id) + '"]');
     }
 
+    function isExternalGroup(chatId) {
+        var item = getItem(chatId);
+        return !!(item && item.dataset.chatType === "group" && item.dataset.superadminGroup === "true");
+    }
+
     function getMembers(chatId) {
         return window.supabaseClient.rpc("get_chat_members", { p_chat_id: chatId }).then(function (r) {
             if (r.error) throw r.error;
             return r.data || [];
         });
+    }
+
+    function mapSuperadminMessage(m) {
+        return {
+            id: m.id,
+            user_id: m.user_id,
+            text: m.text,
+            created_at: m.created_at,
+            reply_to: m.reply_to,
+            chat_id: Number(window.currentChatId),
+            profiles: { username: m.username || "Пользователь" },
+            reply_message: m.reply_to ? {
+                text: m.reply_text || "",
+                profiles: { username: m.reply_username || "Пользователь" }
+            } : null
+        };
+    }
+
+    async function loadSuperadminMessages() {
+        var chatId = Number(window.currentChatId);
+        if (!chatId || !isExternalGroup(chatId) || !window.currentUser) return false;
+        var r = await window.supabaseClient.rpc("get_group_messages_for_superadmin", {
+            p_chat_id: chatId,
+            p_before_id: null,
+            p_limit: 10
+        });
+        if (r.error) { console.error("Не удалось загрузить сообщения группы:", r.error); return true; }
+        var data = (r.data || []).map(mapSuperadminMessage).reverse();
+        var box = document.getElementById("messages");
+        if (!box) return true;
+        box.innerHTML = "";
+        data.forEach(function (m) {
+            var div = renderMessage(m);
+            if (div) box.appendChild(div);
+        });
+        window.__saGroupOlderDone = data.length < 10;
+        window.__saGroupOlderChatId = chatId;
+        window.__saGroupOldestId = data.length ? Number(data[0].id) : 0;
+        if (typeof scrollMessagesToBottom === "function") scrollMessagesToBottom();
+        else box.scrollTop = box.scrollHeight;
+        if (typeof updateScrollToBottomButton === "function") updateScrollToBottomButton();
+        return true;
+    }
+
+    async function loadSuperadminOlderMessages() {
+        var chatId = Number(window.currentChatId);
+        if (!chatId || !isExternalGroup(chatId) || window.__saGroupOlderLoading || window.__saGroupOlderDone) return;
+        var box = document.getElementById("messages");
+        var first = box && box.querySelector("[data-message-id]");
+        var beforeId = first ? Number(first.getAttribute("data-message-id")) : Number(window.__saGroupOldestId || 0);
+        if (!beforeId) return;
+        window.__saGroupOlderLoading = true;
+        var beforeHeight = box.scrollHeight;
+        var r = await window.supabaseClient.rpc("get_group_messages_for_superadmin", {
+            p_chat_id: chatId,
+            p_before_id: beforeId,
+            p_limit: 10
+        });
+        window.__saGroupOlderLoading = false;
+        if (r.error) { console.error("Не удалось загрузить старые сообщения группы:", r.error); return; }
+        var older = (r.data || []).map(mapSuperadminMessage).reverse();
+        if (older.length < 10) window.__saGroupOlderDone = true;
+        var fragment = document.createDocumentFragment();
+        older.forEach(function (m) {
+            if (box.querySelector('[data-message-id="' + m.id + '"]')) return;
+            var div = renderMessage(m);
+            if (div) fragment.appendChild(div);
+        });
+        box.insertBefore(fragment, box.firstChild);
+        box.scrollTop += box.scrollHeight - beforeHeight;
+    }
+
+    function hookMessageAccess() {
+        if (messagesHooked || typeof window.loadMessages !== "function") return;
+        var originalLoadMessages = window.loadMessages;
+        var originalLoadOlder = window.loadOlderMessages;
+        var originalAppend = window.appendMessage;
+
+        window.loadMessages = async function () {
+            if (await isSA() && isExternalGroup(Number(window.currentChatId))) {
+                return loadSuperadminMessages();
+            }
+            return originalLoadMessages.apply(this, arguments);
+        };
+
+        if (typeof originalLoadOlder === "function") {
+            window.loadOlderMessages = async function () {
+                if (isExternalGroup(Number(window.currentChatId))) return loadSuperadminOlderMessages();
+                return originalLoadOlder.apply(this, arguments);
+            };
+        }
+
+        if (typeof originalAppend === "function") {
+            window.appendMessage = async function (message) {
+                if (message && isExternalGroup(Number(window.currentChatId)) && Number(message.chat_id) === Number(window.currentChatId)) {
+                    var r = await window.supabaseClient.rpc("get_group_messages_for_superadmin", {
+                        p_chat_id: Number(window.currentChatId),
+                        p_before_id: null,
+                        p_limit: 100
+                    });
+                    if (r.error) return;
+                    var found = (r.data || []).find(function (m) { return Number(m.id) === Number(message.id); });
+                    if (!found) return;
+                    var box = document.getElementById("messages");
+                    if (!box || box.querySelector('[data-message-id="' + found.id + '"]')) return;
+                    var wasNearBottom = typeof isMessagesBoxNearBottom === "function" ? isMessagesBoxNearBottom() : true;
+                    var div = renderMessage(mapSuperadminMessage(found));
+                    if (!div) return;
+                    box.appendChild(div);
+                    if (wasNearBottom) box.scrollTop = box.scrollHeight;
+                    if (typeof updateScrollToBottomButton === "function") updateScrollToBottomButton();
+                    return;
+                }
+                return originalAppend.apply(this, arguments);
+            };
+        }
+        messagesHooked = true;
     }
 
     function addExternalGroup(c) {
@@ -222,9 +345,10 @@
     }
 
     function start() {
-        setTimeout(function () { hookDeleteMenu(); loadAllGroups(); refreshControls(); }, 400);
+        setTimeout(function () { hookMessageAccess(); hookDeleteMenu(); loadAllGroups(); refreshControls(); }, 400);
         if (document.body && window.MutationObserver) {
             new MutationObserver(function () {
+                hookMessageAccess();
                 hookDeleteMenu();
                 loadAllGroups();
                 refreshControls();
