@@ -7,6 +7,8 @@
     var menuHooked = false;
     var refreshBusy = false;
     var messagesHooked = false;
+    var chatsHooked = false;
+    var usersHooked = false;
 
     function isSA() {
         var u = window.currentUser;
@@ -81,14 +83,42 @@
         div.querySelector(".chat-item-name").textContent=name;var label=document.createElement("span");label.style.cssText="display:block;margin-top:2px;font-size:12px;opacity:.7";label.textContent="(вы не участник)";div.querySelector(".chat-item-name").appendChild(label);
         var timer=null,longPress=false;div.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse")return;longPress=false;clearTimeout(timer);timer=setTimeout(function(){longPress=true;if(typeof window.showChatActionMenu==="function")window.showChatActionMenu(c.chat_id,div);},500);},{passive:true});div.addEventListener("pointerup",function(){clearTimeout(timer)});div.addEventListener("pointercancel",function(){clearTimeout(timer)});
         div.addEventListener("contextmenu",function(e){e.preventDefault();e.stopPropagation();if(typeof window.showChatActionMenu==="function")window.showChatActionMenu(c.chat_id,div)});
-        div.addEventListener("click",async function(){if(longPress){longPress=false;return}if(document.getElementById("chatActionMenu"))return;window.currentChatId=Number(c.chat_id);document.querySelectorAll(".chat-item.active").forEach(function(x){x.classList.remove("active")});div.classList.add("active");var title=document.getElementById("chatTitle");if(title)title.textContent=name;if(typeof window.openMobileChatView==="function")window.openMobileChatView();if(typeof window.loadMessages==="function")await window.loadMessages();if(typeof window.updateUnreadCount==="function")await window.updateUnreadCount(Number(c.chat_id))});
+        div.addEventListener("click",async function(){if(longPress){longPress=false;return}if(document.getElementById("chatActionMenu"))return;window.currentChatId=Number(c.chat_id);document.querySelectorAll(".chat-item.active").forEach(function(x){x.classList.remove("active")});div.classList.add("active");var title=document.getElementById("chatTitle");if(title)title.textContent=name;if(typeof window.openMobileChatView==="function")window.openMobileChatView();if(typeof window.loadMessages==="function")await window.loadMessages();if(typeof window.updateUnreadCount==="function")await window.updateUnreadCount(Number(c.chat_id));});
         list.appendChild(div);
     }
 
+    function forceUnjoinedGroupsToEnd(){
+        var list=document.getElementById("chatList");if(!list)return;
+        var groups=Array.prototype.slice.call(list.querySelectorAll('.chat-item[data-superadmin-group="true"]'));
+        groups.forEach(function(x){list.appendChild(x)});
+    }
+
     async function loadAllGroups(){
-        if(refreshBusy)return;refreshBusy=true;try{if(!(await isSA()))return;var r=await window.supabaseClient.rpc("get_my_group_chats");if(r.error)throw r.error;(r.data||[]).forEach(function(c){if(!c.is_member)addExternalGroup(c)});
-            var list=document.getElementById("chatList");if(list)Array.prototype.slice.call(list.querySelectorAll('.chat-item[data-superadmin-group="true"]')).forEach(function(x){list.appendChild(x)});
+        if(refreshBusy)return;refreshBusy=true;try{if(!(await isSA()))return;var r=await window.supabaseClient.rpc("get_my_group_chats");if(r.error)throw r.error;(r.data||[]).forEach(function(c){if(!c.is_member)addExternalGroup(c)});forceUnjoinedGroupsToEnd();
         }catch(e){console.error("Не удалось загрузить группы суперадминистратору:",e)}finally{refreshBusy=false}
+    }
+
+    function hookLoadChats(){
+        if(chatsHooked||typeof window.loadChats!=="function")return;
+        var originalLoadChats=window.loadChats;
+        window.loadChats=async function(){
+            var result=await originalLoadChats.apply(this,arguments);
+            await loadAllGroups();
+            forceUnjoinedGroupsToEnd();
+            return result;
+        };
+        chatsHooked=true;
+    }
+
+    function hookOpenChatUsers(){
+        if(usersHooked||typeof window.openChatUsers!=="function")return;
+        var originalOpenChatUsers=window.openChatUsers;
+        window.openChatUsers=async function(){
+            var result=await originalOpenChatUsers.apply(this,arguments);
+            refreshControls();
+            return result;
+        };
+        usersHooked=true;
     }
 
     function hookDeleteMenu(){
@@ -106,12 +136,8 @@
 
     async function refreshControls(){if(!(await isSA()))return;var item=getItem(window.currentChatId||0);if(!item||item.dataset.chatType!=="group"||!usersRoot())return;addControl("＋ Добавить пользователя","sa-add-user-button",function(){openAdd(Number(window.currentChatId))});addControl("− Удалить пользователя","sa-remove-user-button",function(){openRemove(Number(window.currentChatId))})}
 
-    function forceUnjoinedGroupsToEnd(){var list=document.getElementById("chatList");if(!list)return;var groups=Array.prototype.slice.call(list.querySelectorAll('.chat-item[data-superadmin-group="true"]'));groups.forEach(function(x){list.appendChild(x)});}
-
     function start(){
-        setTimeout(function(){hookDeleteMenu();hookMessageAccess();loadAllGroups();refreshControls()},400);
-        if(document.body&&window.MutationObserver)new MutationObserver(function(){hookDeleteMenu();hookMessageAccess();loadAllGroups();refreshControls();forceUnjoinedGroupsToEnd()}).observe(document.body,{childList:true,subtree:true});
-        setInterval(function(){forceUnjoinedGroupsToEnd()},250);
+        setTimeout(function(){hookDeleteMenu();hookMessageAccess();hookLoadChats();hookOpenChatUsers();loadAllGroups();refreshControls()},400);
     }
     if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
 })();
