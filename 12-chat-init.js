@@ -14,7 +14,7 @@ async function startChat() {
     if (adminButton && window.matchMedia("(min-width: 701px)").matches) {
         try {
             var profileResult = await supabaseClient.rpc("get_my_profile");
-            var profile = profileResult ? profileResult.data : null;
+            var profile = profileResult && profileResult.data ? profileResult.data[0] : null;
             if (profile && (profile.role === "admin" || profile.role === "superadmin") && profile.approved === true) {
                 adminButton.style.display = "inline-block";
             }
