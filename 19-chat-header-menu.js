@@ -13,6 +13,53 @@
         return item ? (item.dataset.chatType || null) : null;
     }
     function closeMenu() { var menu = document.getElementById("chatHeaderMenu"); if (menu) menu.remove(); }
+    function closeSettingsChoice() { var overlay = document.getElementById("chatSettingsChoiceOverlay"); if (overlay) overlay.remove(); }
+
+    function openSettingsChoice() {
+        closeSettingsChoice();
+        var overlay = document.createElement("div");
+        overlay.id = "chatSettingsChoiceOverlay";
+        overlay.style.cssText = "position:fixed;inset:0;z-index:100002;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box;pointer-events:auto";
+
+        var panel = document.createElement("div");
+        panel.style.cssText = "width:min(300px,calc(100vw - 28px));background:#000;color:#fff;border:1px solid #333;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.45);padding:6px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:auto";
+
+        function addChoice(text, handler) {
+            var button = document.createElement("button");
+            button.type = "button";
+            button.textContent = text;
+            button.style.cssText = "display:block;width:100%;border:0;background:none;color:#fff;text-align:left;padding:12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:auto";
+            button.addEventListener("click", function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                closeSettingsChoice();
+                handler();
+            });
+            panel.appendChild(button);
+        }
+
+        addChoice("Настройка темы", function () {
+            if (typeof window.openChatSettings === "function") window.openChatSettings();
+        });
+        addChoice("Исчезающие сообщения", function () {
+            if (typeof window.openChatDisappearingSettings === "function") window.openChatDisappearingSettings();
+        });
+
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+        overlay.addEventListener("click", function (event) { if (event.target === overlay) closeSettingsChoice(); });
+    }
+
+    function openSettingsFromMenu() {
+        var type = getCurrentChatType();
+        if ((type === "group" || type === "public") && typeof window.openChatDisappearingSettings === "function") {
+            openSettingsChoice();
+            return;
+        }
+        if (typeof window.openChatSettings === "function") window.openChatSettings();
+        else console.error("Интерфейс настроек не найден: window.openChatSettings");
+    }
+
     function createMenuButton(text, handler) {
         var item = document.createElement("button"); item.type = "button"; item.textContent = text; item.setAttribute("role", "menuitem");
         item.style.cssText = ["display:block","width:100%","border:0","background:none","color:#fff","text-align:left","padding:11px 12px","border-radius:8px","cursor:pointer","font:inherit","user-select:none","-webkit-user-select:none","-webkit-touch-callout:none"].join(";");
@@ -28,7 +75,7 @@
         if (type !== "public") {
             menu.appendChild(createMenuButton("Пользователи", function () { closeMenu(); if (typeof window.openChatUsers === "function") window.openChatUsers(); else console.error("Интерфейс пользователей не найден: window.openChatUsers"); }));
         }
-        menu.appendChild(createMenuButton(settingsTitle, function () { closeMenu(); if (typeof window.openChatSettings === "function") window.openChatSettings(); else console.error("Интерфейс настроек не найден: window.openChatSettings"); }));
+        menu.appendChild(createMenuButton(settingsTitle, function () { closeMenu(); openSettingsFromMenu(); }));
         if (type !== "public") {
             menu.appendChild(createMenuButton(leaveTitle, function () { closeMenu(); if (typeof window.leaveCurrentChat === "function") window.leaveCurrentChat(); else console.error("Механизм выхода из чата не найден: window.leaveCurrentChat"); }));
         }
