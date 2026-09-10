@@ -15,14 +15,14 @@
     function closeMenu() { var menu = document.getElementById("chatHeaderMenu"); if (menu) menu.remove(); }
     function createMenuButton(text, handler) {
         var item = document.createElement("button"); item.type = "button"; item.textContent = text; item.setAttribute("role", "menuitem");
-        item.style.cssText = ["display:block","width:100%","border:0","background:none","color:#fff","text-align:left","padding:11px 12px","border-radius:8px","cursor:pointer","font:inherit"].join(";");
+        item.style.cssText = ["display:block","width:100%","border:0","background:none","color:#fff","text-align:left","padding:11px 12px","border-radius:8px","cursor:pointer","font:inherit","user-select:none","-webkit-user-select:none","-webkit-touch-callout:none"].join(";");
         item.addEventListener("click", function (event) { event.stopPropagation(); handler(event); }); return item;
     }
     function showMenu(button) {
         closeMenu(); var type = getCurrentChatType();
         if (type !== "private" && type !== "group" && type !== "public") return;
         var menu = document.createElement("div"); menu.id = "chatHeaderMenu"; menu.setAttribute("role", "menu");
-        menu.style.cssText = ["position:fixed","z-index:100000","min-width:210px","background:#000","border:1px solid #333","border-radius:12px","box-shadow:0 8px 28px rgba(0,0,0,.28)","padding:6px","font-size:15px","color:#fff"].join(";");
+        menu.style.cssText = ["position:fixed","z-index:100000","min-width:210px","background:#000","border:1px solid #333","border-radius:12px","box-shadow:0 8px 28px rgba(0,0,0,.28)","padding:6px","font-size:15px","color:#fff","user-select:none","-webkit-user-select:none","-webkit-touch-callout:none"].join(";");
         var settingsTitle = type === "group" ? "Настройки группы" : "Настройки чата";
         var leaveTitle = type === "group" ? "Выйти из группы" : "Выйти из чата";
         if (type !== "public") {
