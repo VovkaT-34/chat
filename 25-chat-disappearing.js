@@ -24,9 +24,7 @@
     }
 
     function isSupportedChat(chatId) {
-        var item;
-        if (chatId) item = document.querySelector('.chat-item[data-chat-id="' + Number(chatId) + '"]');
-        else item = getCurrentChatItem();
+        var item = chatId ? document.querySelector('.chat-item[data-chat-id="' + Number(chatId) + '"]') : getCurrentChatItem();
         if (!item) return false;
         var type = item.dataset.chatType || "";
         if (type === "group") return true;
@@ -47,10 +45,8 @@
     }
 
     function loadId(chatId) {
-        try {
-            var saved = localStorage.getItem(storageKey(chatId));
-            return getOption(saved || DEFAULT_ID).id;
-        } catch (error) { return DEFAULT_ID; }
+        try { return getOption(localStorage.getItem(storageKey(chatId)) || DEFAULT_ID).id; }
+        catch (error) { return DEFAULT_ID; }
     }
 
     function saveId(chatId, id) {
@@ -64,8 +60,7 @@
     function isExpired(message, chatId) {
         if (!isSupportedChat(chatId)) return false;
         var created = Date.parse(message && message.created_at ? message.created_at : "");
-        if (!created) return false;
-        return Date.now() - created >= getHours(chatId) * 60 * 60 * 1000;
+        return !!created && Date.now() - created >= getHours(chatId) * 60 * 60 * 1000;
     }
 
     function removeExpiredDomMessages() {
@@ -87,64 +82,70 @@
     }
 
     function refreshAfterChange() {
-        removeExpiredDomMessages();
         restartTimer();
         if (typeof window.updateScrollToBottomButton === "function") window.updateScrollToBottomButton();
     }
 
-    // Не меняем существующую отрисовку сообщений: только ставим фильтр перед ней.
-    if (typeof window.renderMessage === "function" && !window.__chatDisappearingRenderWrapped) {
+    function wrapRender() {
+        if (typeof window.renderMessage !== "function" || window.__chatDisappearingRenderWrapped) return;
         var originalRenderMessage = window.renderMessage;
         window.renderMessage = function (message) {
             if (isExpired(message)) return null;
             var element = originalRenderMessage(message);
-            if (element && message && message.created_at) {
-                element.setAttribute("data-message-created-at", message.created_at);
-            }
+            if (element && message && message.created_at) element.setAttribute("data-message-created-at", message.created_at);
             return element;
         };
         window.__chatDisappearingRenderWrapped = true;
     }
 
-    // Расширяем уже существующее окно «Настройки оформления».
-    if (typeof window.openChatSettings === "function" && !window.__chatDisappearingSettingsWrapped) {
+    function addDisappearingSection(panel) {
+        if (!panel || panel.querySelector(".chat-disappearing-section")) return;
+        var section = document.createElement("div");
+        section.className = "chat-theme-section chat-disappearing-section";
+        var title = document.createElement("div");
+        title.className = "chat-theme-section-title";
+        title.textContent = "Исчезающие сообщения";
+        section.appendChild(title);
+
+        var grid = document.createElement("div");
+        grid.className = "chat-text-grid";
+        var chatId = Number(window.currentChatId || 0);
+        var current = loadId(chatId);
+        OPTIONS.forEach(function (option) {
+            var button = document.createElement("button");
+            button.type = "button";
+            button.className = "chat-text-option" + (current === option.id ? " selected" : "");
+            button.textContent = option.label;
+            button.addEventListener("click", function () {
+                saveId(chatId, option.id);
+                grid.querySelectorAll(".chat-text-option").forEach(function (item) { item.classList.remove("selected"); });
+                button.classList.add("selected");
+                refreshAfterChange();
+                if (typeof window.loadMessages === "function") void window.loadMessages();
+            });
+            grid.appendChild(button);
+        });
+        section.appendChild(grid);
+        panel.insertBefore(section, panel.querySelector(".chat-theme-footer"));
+    }
+
+    // Не заменяем окно настроек целиком: добавляем в него отдельный выбор таймера.
+    function wrapSettings() {
+        if (typeof window.openChatSettings !== "function" || window.__chatDisappearingSettingsWrapped) return;
         var originalOpenSettings = window.openChatSettings;
         window.openChatSettings = function () {
             originalOpenSettings();
             if (!isSupportedChat()) return;
-
             var panel = document.querySelector(".chat-theme-settings");
-            if (!panel || panel.querySelector(".chat-disappearing-section")) return;
-
-            var section = document.createElement("div");
-            section.className = "chat-theme-section chat-disappearing-section";
-            var title = document.createElement("div");
-            title.className = "chat-theme-section-title";
-            title.textContent = "Исчезающие сообщения";
-            section.appendChild(title);
-
-            var grid = document.createElement("div");
-            grid.className = "chat-text-grid";
-            var chatId = Number(window.currentChatId || 0);
-            var current = loadId(chatId);
-            OPTIONS.forEach(function (option) {
-                var button = document.createElement("button");
-                button.type = "button";
-                button.className = "chat-text-option" + (current === option.id ? " selected" : "");
-                button.textContent = option.label;
-                button.addEventListener("click", function () {
-                    saveId(chatId, option.id);
-                    grid.querySelectorAll(".chat-text-option").forEach(function (item) { item.classList.remove("selected"); });
-                    button.classList.add("selected");
-                    refreshAfterChange();
-                    if (typeof window.loadMessages === "function") void window.loadMessages();
-                });
-                grid.appendChild(button);
-            });
-            section.appendChild(grid);
-            panel.insertBefore(section, panel.querySelector(".chat-theme-footer"));
+            addDisappearingSection(panel);
         };
         window.__chatDisappearingSettingsWrapped = true;
+    }
+
+    function init() {
+        wrapRender();
+        wrapSettings();
+        restartTimer();
     }
 
     window.chatDisappearing = {
@@ -157,5 +158,9 @@
         refresh: refreshAfterChange
     };
 
-    restartTimer();
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
+    else init();
+
+    // 24-chat-themes.js загружается раньше этого файла, поэтому обёртка гарантированно ставится после него.
+    setTimeout(function () { wrapRender(); wrapSettings(); }, 0);
 })();
