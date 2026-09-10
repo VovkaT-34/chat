@@ -16,7 +16,6 @@
     ];
     var DEFAULT_ID = "1w";
     var timer = null;
-    var originalThemeSettings = null;
 
     function getCurrentChatItem() {
         var id = Number(window.currentChatId || 0);
@@ -108,10 +107,10 @@
         closeDisappearingSettings();
         var overlay = document.createElement("div");
         overlay.id = "chatDisappearingSettingsOverlay";
-        overlay.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
+        overlay.style.cssText = "position:fixed;inset:0;z-index:100003;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box;pointer-events:auto";
 
         var panel = document.createElement("div");
-        panel.style.cssText = "width:min(420px,calc(100vw - 28px));background:#fff;color:#222;border-radius:16px;box-shadow:0 18px 55px rgba(0,0,0,.30);padding:18px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+        panel.style.cssText = "width:min(420px,calc(100vw - 28px));background:#fff;color:#222;border-radius:16px;box-shadow:0 18px 55px rgba(0,0,0,.30);padding:18px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:auto";
 
         var title = document.createElement("h3");
         title.textContent = "Исчезающие сообщения";
@@ -164,58 +163,7 @@
         overlay.addEventListener("click", function (event) { if (event.target === overlay) closeDisappearingSettings(); });
     }
 
-    function closeSettingsChoice() {
-        var overlay = document.getElementById("chatSettingsChoiceOverlay");
-        if (overlay) overlay.remove();
-    }
-
-    function openSettingsChoice() {
-        closeSettingsChoice();
-        var overlay = document.createElement("div");
-        overlay.id = "chatSettingsChoiceOverlay";
-        overlay.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
-
-        var panel = document.createElement("div");
-        panel.style.cssText = "width:min(300px,calc(100vw - 28px));background:#000;color:#fff;border:1px solid #333;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:6px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
-
-        function addChoice(text, handler) {
-            var button = document.createElement("button");
-            button.type = "button";
-            button.textContent = text;
-            button.style.cssText = "display:block;width:100%;border:0;background:none;color:#fff;text-align:left;padding:12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
-            button.addEventListener("click", function (event) { event.stopPropagation(); closeSettingsChoice(); handler(); });
-            panel.appendChild(button);
-        }
-
-        addChoice("Настройка темы", function () {
-            if (typeof originalThemeSettings === "function") originalThemeSettings();
-        });
-        addChoice("Исчезающие сообщения", openDisappearingSettings);
-
-        document.body.appendChild(overlay);
-        overlay.addEventListener("click", function (event) { if (event.target === overlay) closeSettingsChoice(); });
-    }
-
-    function wrapSettings() {
-        if (typeof window.openChatSettings !== "function") return;
-        if (!originalThemeSettings) originalThemeSettings = window.openChatSettings;
-        if (window.__chatDisappearingSettingsWrapped) return;
-        window.openChatSettings = function () {
-            if (!isSupportedChat()) {
-                originalThemeSettings();
-                return;
-            }
-            openSettingsChoice();
-        };
-        window.__chatDisappearingSettingsWrapped = true;
-    }
-
-    function init() {
-        wrapRender();
-        wrapSettings();
-        restartTimer();
-    }
-
+    window.openChatDisappearingSettings = openDisappearingSettings;
     window.chatDisappearing = {
         options: OPTIONS,
         isSupportedChat: isSupportedChat,
@@ -226,8 +174,13 @@
         refresh: refreshAfterChange
     };
 
+    function init() {
+        wrapRender();
+        restartTimer();
+    }
+
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
     else init();
 
-    setTimeout(function () { wrapRender(); wrapSettings(); }, 0);
+    setTimeout(wrapRender, 0);
 })();
