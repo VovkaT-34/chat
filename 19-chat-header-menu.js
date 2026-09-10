@@ -51,13 +51,9 @@
     }
 
     function openSettingsFromMenu() {
-        var type = getCurrentChatType();
-        if ((type === "group" || type === "public") && typeof window.openChatDisappearingSettings === "function") {
-            openSettingsChoice();
-            return;
-        }
-        if (typeof window.openChatSettings === "function") window.openChatSettings();
-        else console.error("Интерфейс настроек не найден: window.openChatSettings");
+        // Для всех типов чатов одинаково показываем сначала выбор настройки.
+        // Поддержка исчезающих сообщений внутри самого окна остаётся прежней.
+        openSettingsChoice();
     }
 
     function createMenuButton(text, handler) {
