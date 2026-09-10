@@ -32,6 +32,17 @@ async function startChat() {
     });
 
 
+    // 2.1. Подключаем меню трёх точек в шапке чата
+
+    await new Promise(function (resolve) {
+        var script = document.createElement("script");
+        script.src = "19-chat-header-menu.js";
+        script.onload = resolve;
+        script.onerror = resolve;
+        document.head.appendChild(script);
+    });
+
+
     // 3. Подключаем пакетную загрузку данных списка чатов
 
     await new Promise(function (resolve) {
