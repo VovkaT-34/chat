@@ -1,7 +1,7 @@
 // =========================================
 // ИСЧЕЗАЮЩИЕ СООБЩЕНИЯ
 // Локальная настройка для Общего чата и групп (3+).
-// Supabase сообщения не удаляются этим механизмом.
+// Supabase сообщения этим механизмом не удаляются.
 // =========================================
 
 (function () {
@@ -17,13 +17,24 @@
     var DEFAULT_ID = "1w";
     var timer = null;
 
-    function isSupportedChat() {
+    function getCurrentChatItem() {
         var id = Number(window.currentChatId || 0);
-        if (!id) return false;
-        var item = document.querySelector('.chat-item[data-chat-id="' + id + '"]');
+        if (!id) return null;
+        return document.querySelector('.chat-item[data-chat-id="' + id + '"]');
+    }
+
+    function isSupportedChat(chatId) {
+        var item;
+        if (chatId) item = document.querySelector('.chat-item[data-chat-id="' + Number(chatId) + '"]');
+        else item = getCurrentChatItem();
         if (!item) return false;
         var type = item.dataset.chatType || "";
-        return type === "public" || type === "group";
+        if (type === "group") return true;
+        if (type === "public") {
+            var name = item.querySelector(".chat-item-name");
+            return !!name && name.textContent.trim() === "Общий чат";
+        }
+        return false;
     }
 
     function storageKey(chatId) {
@@ -39,9 +50,7 @@
         try {
             var saved = localStorage.getItem(storageKey(chatId));
             return getOption(saved || DEFAULT_ID).id;
-        } catch (error) {
-            return DEFAULT_ID;
-        }
+        } catch (error) { return DEFAULT_ID; }
     }
 
     function saveId(chatId, id) {
@@ -50,12 +59,10 @@
         return option;
     }
 
-    function getHours(chatId) {
-        return getOption(loadId(chatId)).hours;
-    }
+    function getHours(chatId) { return getOption(loadId(chatId)).hours; }
 
     function isExpired(message, chatId) {
-        if (!isSupportedChat() && !chatId) return false;
+        if (!isSupportedChat(chatId)) return false;
         var created = Date.parse(message && message.created_at ? message.created_at : "");
         if (!created) return false;
         return Date.now() - created >= getHours(chatId) * 60 * 60 * 1000;
@@ -65,12 +72,12 @@
         if (!isSupportedChat()) return;
         var box = document.getElementById("messages");
         if (!box) return;
-        var hours = getHours();
-        var cutoff = Date.now() - hours * 60 * 60 * 1000;
+        var cutoff = Date.now() - getHours() * 60 * 60 * 1000;
         box.querySelectorAll(".message[data-message-created-at]").forEach(function (node) {
             var created = Date.parse(node.getAttribute("data-message-created-at") || "");
             if (created && created <= cutoff) node.remove();
         });
+        if (typeof window.updatePinnedMessagesBar === "function") window.updatePinnedMessagesBar();
     }
 
     function restartTimer() {
@@ -83,6 +90,61 @@
         removeExpiredDomMessages();
         restartTimer();
         if (typeof window.updateScrollToBottomButton === "function") window.updateScrollToBottomButton();
+    }
+
+    // Не меняем существующую отрисовку сообщений: только ставим фильтр перед ней.
+    if (typeof window.renderMessage === "function" && !window.__chatDisappearingRenderWrapped) {
+        var originalRenderMessage = window.renderMessage;
+        window.renderMessage = function (message) {
+            if (isExpired(message)) return null;
+            var element = originalRenderMessage(message);
+            if (element && message && message.created_at) {
+                element.setAttribute("data-message-created-at", message.created_at);
+            }
+            return element;
+        };
+        window.__chatDisappearingRenderWrapped = true;
+    }
+
+    // Расширяем уже существующее окно «Настройки оформления».
+    if (typeof window.openChatSettings === "function" && !window.__chatDisappearingSettingsWrapped) {
+        var originalOpenSettings = window.openChatSettings;
+        window.openChatSettings = function () {
+            originalOpenSettings();
+            if (!isSupportedChat()) return;
+
+            var panel = document.querySelector(".chat-theme-settings");
+            if (!panel || panel.querySelector(".chat-disappearing-section")) return;
+
+            var section = document.createElement("div");
+            section.className = "chat-theme-section chat-disappearing-section";
+            var title = document.createElement("div");
+            title.className = "chat-theme-section-title";
+            title.textContent = "Исчезающие сообщения";
+            section.appendChild(title);
+
+            var grid = document.createElement("div");
+            grid.className = "chat-text-grid";
+            var chatId = Number(window.currentChatId || 0);
+            var current = loadId(chatId);
+            OPTIONS.forEach(function (option) {
+                var button = document.createElement("button");
+                button.type = "button";
+                button.className = "chat-text-option" + (current === option.id ? " selected" : "");
+                button.textContent = option.label;
+                button.addEventListener("click", function () {
+                    saveId(chatId, option.id);
+                    grid.querySelectorAll(".chat-text-option").forEach(function (item) { item.classList.remove("selected"); });
+                    button.classList.add("selected");
+                    refreshAfterChange();
+                    if (typeof window.loadMessages === "function") void window.loadMessages();
+                });
+                grid.appendChild(button);
+            });
+            section.appendChild(grid);
+            panel.insertBefore(section, panel.querySelector(".chat-theme-footer"));
+        };
+        window.__chatDisappearingSettingsWrapped = true;
     }
 
     window.chatDisappearing = {
