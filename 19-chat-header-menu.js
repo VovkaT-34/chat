@@ -1,6 +1,6 @@
 // =========================================
 // МЕНЮ ТРЁХ ТОЧЕК В ШАПКЕ ЧАТА
-// Только создание меню. Выход из чата/группы сюда не переносится.
+// Только создание меню. Выход из чата/группы использует существующий рабочий механизм.
 // =========================================
 
 (function () {
@@ -22,6 +22,32 @@
     function closeMenu() {
         var menu = document.getElementById("chatHeaderMenu");
         if (menu) menu.remove();
+    }
+
+    function createMenuButton(text, handler) {
+        var item = document.createElement("button");
+        item.type = "button";
+        item.textContent = text;
+        item.setAttribute("role", "menuitem");
+        item.style.cssText = [
+            "display:block",
+            "width:100%",
+            "border:0",
+            "background:none",
+            "color:#fff",
+            "text-align:left",
+            "padding:11px 12px",
+            "border-radius:8px",
+            "cursor:pointer",
+            "font:inherit"
+        ].join(";");
+
+        item.addEventListener("click", function (event) {
+            event.stopPropagation();
+            handler(event);
+        });
+
+        return item;
     }
 
     function showMenu(button) {
@@ -46,37 +72,30 @@
             "color:#fff"
         ].join(";");
 
-        var title = type === "group" ? "Настройки группы" : "Настройки чата";
+        var settingsTitle = type === "group" ? "Настройки группы" : "Настройки чата";
+        var leaveTitle = type === "group" ? "Выйти из группы" : "Выйти из чата";
 
-        var item = document.createElement("button");
-        item.type = "button";
-        item.textContent = title;
-        item.setAttribute("role", "menuitem");
-        item.style.cssText = [
-            "display:block",
-            "width:100%",
-            "border:0",
-            "background:none",
-            "color:#fff",
-            "text-align:left",
-            "padding:11px 12px",
-            "border-radius:8px",
-            "cursor:pointer",
-            "font:inherit"
-        ].join(";");
-
-        item.addEventListener("click", function (event) {
-            event.stopPropagation();
+        var settingsItem = createMenuButton(settingsTitle, function () {
             closeMenu();
-            console.log(title + ": интерфейс создан, обработчик настроек пока не подключается.");
+            console.log(settingsTitle + ": интерфейс создан, обработчик настроек пока не подключается.");
         });
 
-        menu.appendChild(item);
+        var leaveItem = createMenuButton(leaveTitle, function () {
+            closeMenu();
+            if (typeof window.leaveCurrentChat === "function") {
+                window.leaveCurrentChat();
+            } else {
+                console.error("Механизм выхода из чата не найден: window.leaveCurrentChat");
+            }
+        });
+
+        menu.appendChild(settingsItem);
+        menu.appendChild(leaveItem);
         document.body.appendChild(menu);
 
         var rect = button.getBoundingClientRect();
         menu.style.left = Math.max(8, Math.min(rect.right - 210, window.innerWidth - 218)) + "px";
-        menu.style.top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - 60)) + "px";
+        menu.style.top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - 110)) + "px";
 
         setTimeout(function () {
             document.addEventListener("click", closeMenu, { once: true });
