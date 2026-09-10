@@ -135,126 +135,253 @@ async function openNewPrivateChatDialog() {
     }
 
 
-    const username =
-        prompt(
-            "Введите имя пользователя, с которым хотите начать личный чат:"
-        );
+    const overlay = document.createElement("div");
+    overlay.id = "privateChatSearchOverlay";
+    overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 10vh 16px 24px;
+        background: rgba(0,0,0,.55);
+        box-sizing: border-box;
+    `;
 
+    const dialog = document.createElement("div");
+    dialog.style.cssText = `
+        width: min(460px, 100%);
+        max-height: min(70vh, 560px);
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        color: #222;
+        border-radius: 14px;
+        box-shadow: 0 12px 40px rgba(0,0,0,.28);
+        overflow: hidden;
+    `;
 
-    if (!username) {
-        return;
+    const title = document.createElement("div");
+    title.textContent = "Новый личный чат";
+    title.style.cssText = `
+        padding: 16px 18px 10px;
+        font-size: 19px;
+        font-weight: 700;
+    `;
+
+    const inputWrap = document.createElement("div");
+    inputWrap.style.cssText = `
+        padding: 0 14px 12px;
+    `;
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.autocomplete = "off";
+    input.autocapitalize = "none";
+    input.spellcheck = false;
+    input.placeholder = "Введите имя пользователя";
+    input.style.cssText = `
+        width: 100%;
+        box-sizing: border-box;
+        padding: 12px 14px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        font-size: 16px;
+        outline: none;
+    `;
+
+    inputWrap.appendChild(input);
+
+    const results = document.createElement("div");
+    results.style.cssText = `
+        overflow-y: auto;
+        padding: 0 8px 8px;
+    `;
+
+    const status = document.createElement("div");
+    status.style.cssText = `
+        padding: 12px 10px 16px;
+        color: #777;
+        font-size: 14px;
+        text-align: center;
+    `;
+
+    const footer = document.createElement("div");
+    footer.style.cssText = `
+        display: flex;
+        justify-content: flex-end;
+        padding: 10px 14px 14px;
+        border-top: 1px solid #eee;
+    `;
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.textContent = "Отмена";
+    cancelButton.style.cssText = `
+        border: 0;
+        background: transparent;
+        padding: 9px 12px;
+        font-size: 15px;
+        cursor: pointer;
+    `;
+
+    footer.appendChild(cancelButton);
+    dialog.appendChild(title);
+    dialog.appendChild(inputWrap);
+    dialog.appendChild(results);
+    dialog.appendChild(status);
+    dialog.appendChild(footer);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    let closed = false;
+    let timer = null;
+    let requestNumber = 0;
+
+    function closeDialog() {
+        if (closed) return;
+        closed = true;
+        if (timer) clearTimeout(timer);
+        overlay.remove();
     }
 
-
-    const searchText =
-        username.trim();
-
-
-    if (!searchText) {
-        return;
+    function setStatus(text) {
+        status.textContent = text || "";
+        status.style.display = text ? "block" : "none";
     }
 
+    function clearResults() {
+        results.innerHTML = "";
+    }
 
-    const {
-        data: users,
-        error
-    } = await supabaseClient.rpc(
-        "search_users",
-        {
-            p_search: searchText
+    function renderUsers(users) {
+        clearResults();
+
+        if (!users || users.length === 0) {
+            setStatus("Пользователь не найден");
+            return;
         }
-    );
 
+        setStatus("");
 
-    if (error) {
+        users.forEach(function (user) {
+            const row = document.createElement("button");
+            row.type = "button";
+            row.style.cssText = `
+                width: 100%;
+                display: flex;
+                align-items: center;
+                text-align: left;
+                border: 0;
+                background: transparent;
+                padding: 11px 10px;
+                border-radius: 10px;
+                cursor: pointer;
+                font-size: 16px;
+            `;
 
-        console.log(
-            "Ошибка поиска пользователей:",
-            error
-        );
+            const name = document.createElement("span");
+            name.textContent = user.username || "Пользователь";
+            name.style.cssText = `
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            `;
 
-        alert(
-            "Не удалось выполнить поиск пользователя."
-        );
+            row.appendChild(name);
+            row.addEventListener("mouseenter", function () {
+                row.style.background = "#f1f1f1";
+            });
+            row.addEventListener("mouseleave", function () {
+                row.style.background = "transparent";
+            });
 
-        return;
+            row.addEventListener("click", async function () {
+                if (closed) return;
+                closeDialog();
+                await createNewPrivateChat(user);
+            });
 
+            results.appendChild(row);
+        });
     }
 
+    async function searchUsers(searchText) {
+        const requestId = ++requestNumber;
 
-    if (!users || users.length === 0) {
+        clearResults();
+        setStatus("Поиск...");
 
-        alert(
-            "Пользователь с таким именем не найден."
+        const { data: users, error } = await supabaseClient.rpc(
+            "search_users",
+            {
+                p_search: searchText
+            }
         );
 
-        return;
+        if (closed || requestId !== requestNumber) return;
 
+        if (error) {
+            console.log("Ошибка поиска пользователей:", error);
+            setStatus("Не удалось выполнить поиск");
+            return;
+        }
+
+        renderUsers(users || []);
     }
 
+    function scheduleSearch() {
+        const searchText = input.value.trim();
 
-    if (users.length === 1) {
+        if (timer) clearTimeout(timer);
+        requestNumber++;
+        clearResults();
 
-        await createNewPrivateChat(
-            users[0]
-        );
+        if (!searchText) {
+            setStatus("Начните вводить имя пользователя");
+            return;
+        }
 
-        return;
+        if (searchText.length < 1) {
+            setStatus("Введите имя пользователя");
+            return;
+        }
 
+        timer = setTimeout(function () {
+            searchUsers(searchText);
+        }, 180);
     }
 
+    input.addEventListener("input", scheduleSearch);
 
-    const names =
-        users
-            .map(
-                user =>
-                    user.username ||
-                    "Пользователь"
-            )
-            .join("\n");
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            closeDialog();
+        }
+    });
 
+    cancelButton.addEventListener("click", closeDialog);
 
-    const selectedUsername =
-        prompt(
-            "Найдено несколько пользователей:\n\n" +
-            names +
-            "\n\nВведите точное имя пользователя:"
-        );
+    overlay.addEventListener("click", function (event) {
+        if (event.target === overlay) {
+            closeDialog();
+        }
+    });
 
+    document.addEventListener("keydown", function onDialogKeydown(event) {
+        if (!closed && event.key === "Escape") {
+            closeDialog();
+        }
+        if (closed) {
+            document.removeEventListener("keydown", onDialogKeydown);
+        }
+    });
 
-    if (!selectedUsername) {
-        return;
-    }
-
-
-    const selectedUser =
-        users.find(
-            user =>
-                (
-                    user.username ||
-                    ""
-                ).toLowerCase() ===
-                selectedUsername
-                    .trim()
-                    .toLowerCase()
-        );
-
-
-    if (!selectedUser) {
-
-        alert(
-            "Пользователь с таким именем не найден."
-        );
-
-        return;
-
-    }
-
-
-    await createNewPrivateChat(
-        selectedUser
-    );
-
+    input.focus();
+    setStatus("Начните вводить имя пользователя");
 }
 
 
