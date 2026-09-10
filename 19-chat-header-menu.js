@@ -52,15 +52,10 @@
         actions.appendChild(button);
         var type = getCurrentChatType(); button.style.display = Number(window.currentChatId || 0) > 0 && (type === "private" || type === "group" || type === "public") ? "inline-flex" : "none";
     }
-    function loadDisappearingScript() {
-        if (window.chatDisappearing || document.getElementById("chatDisappearingScript")) return;
-        var script = document.createElement("script"); script.id = "chatDisappearingScript"; script.src = "25-chat-disappearing.js"; script.async = false;
-        document.head.appendChild(script);
-    }
     function refresh() { ensureButton(); }
     window.refreshChatHeaderMenu = refresh;
     document.addEventListener("click", function () { setTimeout(refresh, 0); });
     var observer = new MutationObserver(function () { ensureButton(); });
-    function start() { loadDisappearingScript(); ensureButton(); if (document.body) observer.observe(document.body, { childList: true, subtree: true }); }
+    function start() { ensureButton(); if (document.body) observer.observe(document.body, { childList: true, subtree: true }); }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true }); else start();
 })();
