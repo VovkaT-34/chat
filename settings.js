@@ -46,68 +46,21 @@ async function enableNotifications() {
     finally { if (button) button.disabled = false; updateNotificationUi(); }
 }
 
+const TRANSFORMERS_SCRIPT = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
+const VOICE_MODEL = "onnx-community/whisper-tiny";
 const VOICE_LANGUAGES = {
-    ru: {name: "Русский", url: "https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-ru-0.22.zip"},
-    en: {name: "English", url: "https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-en-us-0.15.zip"},
-    cn: {name: "中文", url: "https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-cn-0.22.zip"}
+    ru: {name: "Русский", code: "russian"},
+    en: {name: "English", code: "english"},
+    cn: {name: "中文", code: "chinese"}
 };
-const VOICE_MODEL_CACHE = "chat-vosk-models-v1";
-let voiceScriptPromise = null;
-let voiceModelPromises = {};
-let voiceServiceWorkerPromise = null;
-function loadVoskScript() {
-    if (window.Vosk) return Promise.resolve();
-    if (voiceScriptPromise) return voiceScriptPromise;
-    voiceScriptPromise = new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/vosk-browser@0.0.5/dist/vosk.js";
-        script.onload = resolve;
-        script.onerror = () => reject(new Error("Не удалось загрузить движок голосового ввода."));
-        document.head.appendChild(script);
-    }).catch(error => { voiceScriptPromise = null; throw error; });
-    return voiceScriptPromise;
-}
-function loadVoiceTools() {
-    if (window.fflate) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/fflate@0.8.3/umd/index.js";
-        script.onload = resolve;
-        script.onerror = () => reject(new Error("Не удалось загрузить архиватор голосовой модели."));
-        document.head.appendChild(script);
-    });
-}
-function ensureVoiceServiceWorker() {
-    if (voiceServiceWorkerPromise) return voiceServiceWorkerPromise;
-    if (!("serviceWorker" in navigator)) return Promise.reject(new Error("Service Worker недоступен в этом браузере."));
-    voiceServiceWorkerPromise = navigator.serviceWorker.register("./sw.js", {scope:"./"}).then(async function(){
-        await navigator.serviceWorker.ready;
-        if (!navigator.serviceWorker.controller) {
-            await new Promise(function(resolve){
-                var done=false;
-                function finish(){if(done)return;done=true;clearTimeout(timer);resolve();}
-                var timer=setTimeout(finish,3000);
-                navigator.serviceWorker.addEventListener("controllerchange",finish,{once:true});
-            });
-        }
-    }).catch(function(error){voiceServiceWorkerPromise=null;throw error;});
-    return voiceServiceWorkerPromise;
-}
-function voiceModelUrl(code) { return "./voice-model/" + code + ".tar.gz"; }
-function oldVoiceModelUrl(code) { return "https://chat.local/voice-model/" + code + ".tar.gz"; }
-function writeTarHeader(view, offset, name, size) {
-    const put = (text, at, length) => { const bytes = new TextEncoder().encode(text); for (let i = 0; i < Math.min(bytes.length, length); i++) view.setUint8(offset + at + i, bytes[i]); };
-    put(name, 0, 100); put("0000644", 100, 8); put("0000000", 108, 8); put("0000000", 116, 8); put(size.toString(8).padStart(11, "0") + " ", 124, 12); put("00000000000 ", 136, 12); view.setUint8(offset + 156, 0); put("ustar\0", 257, 6); put("00", 263, 2);
-    for (let i = 148; i < 156; i++) view.setUint8(offset + i, 32);
-    let checksum = 0; for (let i = 0; i < 512; i++) checksum += view.getUint8(offset + i); put(checksum.toString(8).padStart(6, "0") + " ", 148, 8);
-}
-function zipToTarGz(zipBytes) {
-    const files = window.fflate.unzipSync(zipBytes);
-    const entries = Object.keys(files).filter(name => !name.endsWith("/"));
-    let total = 1024; entries.forEach(name => { const size = files[name].length; total += 512 + Math.ceil(size / 512) * 512; });
-    const tar = new Uint8Array(total), view = new DataView(tar.buffer); let offset = 0;
-    entries.forEach(name => { const data = files[name]; writeTarHeader(view, offset, name, data.length); offset += 512; tar.set(data, offset); offset += Math.ceil(data.length / 512) * 512; });
-    return window.fflate.gzipSync(tar, {level: 6});
+let voiceModulePromise = null;
+let voiceModelPromise = null;
+let voiceModel = null;
+function loadTransformers() {
+    if (window.__chatTransformers) return Promise.resolve(window.__chatTransformers);
+    if (voiceModulePromise) return voiceModulePromise;
+    voiceModulePromise = import(TRANSFORMERS_SCRIPT).then(module => { window.__chatTransformers = module; return module; }).catch(error => { voiceModulePromise = null; throw error; });
+    return voiceModulePromise;
 }
 function updateVoiceDownload(text, visible = true) {
     const box = $("voiceDownload"), label = $("voiceDownloadText"), percent = $("voiceDownloadPercent"), progress = $("voiceDownloadProgress");
@@ -119,73 +72,85 @@ function updateVoiceDownload(text, visible = true) {
 }
 function hideVoiceDownload() { const box = $("voiceDownload"); if (box) box.classList.remove("open"); }
 function updateVoiceLanguageButtons() {
+    const selected = localStorage.getItem("chat-voice-language") || "ru";
+    const ready = localStorage.getItem("chat-voice-model-ready") === "true";
     document.querySelectorAll("[data-voice-language]").forEach(button => {
-        const code = button.getAttribute("data-voice-language"), ready = localStorage.getItem("chat-voice-language-ready-" + code) === "true";
-        if (ready) button.textContent = "Удалить";
-        else if (!button.disabled) button.textContent = "Скачать";
+        const code = button.getAttribute("data-voice-language");
+        button.textContent = ready ? (selected === code ? "Выбрано" : "Выбрать") : "Подготовить";
     });
 }
-async function downloadVoiceArchive(url, code) {
-    const response = await fetch(url, {cache: "no-store"});
-    if (!response.ok || !response.body) throw new Error("Сервер вернул ошибку загрузки (" + response.status + ")");
-    const total = Number(response.headers.get("content-length")) || 0;
-    const reader = response.body.getReader(), chunks = []; let loaded = 0;
-    while (true) {
-        const part = await reader.read(); if (part.done) break; chunks.push(part.value); loaded += part.value.length;
-        const progress = total ? Math.round(loaded / total * 100) : 0;
-        updateVoiceDownload(("Скачивание " + VOICE_LANGUAGES[code].name + ": " + (loaded / 1048576).toFixed(1) + (total ? " из " + (total / 1048576).toFixed(1) : "") + " МБ (" + progress + "%)"), true);
-    }
-    const zip = new Uint8Array(loaded); let offset = 0; chunks.forEach(chunk => { zip.set(chunk, offset); offset += chunk.length; }); return zip;
-}
-async function cacheVoiceModel(code, archive) {
-    const cache = await caches.open(VOICE_MODEL_CACHE);
-    await cache.put(new Request(voiceModelUrl(code)), new Response(archive, {headers:{"Content-Type":"application/gzip","Cache-Control":"no-store"}}));
-    if (navigator.storage && navigator.storage.persist) { try { await navigator.storage.persist(); } catch (e) {} }
-}
-async function deleteVoiceLanguage(code) {
-    const cache = await caches.open(VOICE_MODEL_CACHE);
-    await cache.delete(voiceModelUrl(code));
-    await cache.delete(oldVoiceModelUrl(code));
-    localStorage.removeItem("chat-voice-language-ready-" + code);
-    if (localStorage.getItem("chat-voice-language") === code) {
-        const next = Object.keys(VOICE_LANGUAGES).find(key => localStorage.getItem("chat-voice-language-ready-" + key) === "true");
-        if (next) localStorage.setItem("chat-voice-language", next); else localStorage.removeItem("chat-voice-language");
-    }
-    updateVoiceLanguageButtons();
-    showMessage("Язык " + VOICE_LANGUAGES[code].name + " удалён из памяти браузера.");
+async function loadVoiceModel() {
+    if (voiceModel) return voiceModel;
+    if (voiceModelPromise) return voiceModelPromise;
+    voiceModelPromise = (async function() {
+        const module = await loadTransformers();
+        if (module.env) {
+            module.env.useBrowserCache = true;
+            module.env.useWasmCache = true;
+            module.env.allowRemoteModels = true;
+            module.env.logLevel = module.env.ERROR;
+        }
+        const options = {
+            dtype: "q8",
+            progress_callback: function(progress) {
+                let percent = 0;
+                if (progress && typeof progress.progress === "number") percent = progress.progress;
+                else if (progress && progress.status === "ready") percent = 100;
+                updateVoiceDownload(progress && progress.file_name ? "Загрузка модели: " + progress.file_name : "Загрузка модели…", true);
+                const value = $("voiceDownloadPercent"); if (value) value.textContent = Math.round(percent) + "%";
+                const bar = $("voiceDownloadProgress"); if (bar) bar.value = percent;
+            }
+        };
+        const safari = module.env && typeof module.env.isSafari === "function" ? module.env.isSafari() : /Safari/i.test(navigator.userAgent) && !/Chrome|CriOS|Android/i.test(navigator.userAgent);
+        if (!safari && navigator.gpu) options.device = "webgpu";
+        else options.device = "wasm";
+        try {
+            return await module.pipeline("automatic-speech-recognition", VOICE_MODEL, options);
+        } catch (error) {
+            if (options.device === "webgpu") {
+                options.device = "wasm";
+                return await module.pipeline("automatic-speech-recognition", VOICE_MODEL, options);
+            }
+            throw error;
+        }
+    })().then(model => {
+        voiceModel = model;
+        localStorage.setItem("chat-voice-model-ready", "true");
+        updateVoiceLanguageButtons();
+        return model;
+    }).catch(error => { voiceModelPromise = null; localStorage.removeItem("chat-voice-model-ready"); throw error; });
+    return voiceModelPromise;
 }
 async function downloadVoiceLanguage(code) {
     const language = VOICE_LANGUAGES[code], button = document.querySelector('[data-voice-language="' + code + '"]');
     if (!language || !button) return;
-    if (voiceModelPromises[code]) return voiceModelPromises[code];
-    if (localStorage.getItem("chat-voice-language-ready-" + code) === "true") return deleteVoiceLanguage(code);
-    button.disabled = true; updateVoiceDownload("Подготовка " + language.name + "…", true); showMessage("Загружается модель " + language.name + ". Это может занять несколько минут.");
-    voiceModelPromises[code] = (async () => {
-        try {
-            await loadVoskScript(); await loadVoiceTools(); await ensureVoiceServiceWorker();
-            const zip = await downloadVoiceArchive(language.url, code);
-            updateVoiceDownload("Распаковка и подготовка " + language.name + "… 0%", true);
-            await new Promise(resolve => setTimeout(resolve, 0));
-            const archive = zipToTarGz(zip);
-            await cacheVoiceModel(code, archive);
-            updateVoiceDownload("Распаковка и подготовка " + language.name + "… 100%", true);
-            await new Promise(resolve => setTimeout(resolve, 0));
-            updateVoiceDownload("Проверка модели…", true);
-            const cached = await caches.open(VOICE_MODEL_CACHE).then(cache => cache.match(voiceModelUrl(code)));
-            if (!cached) throw new Error("Языковой пакет не найден в памяти браузера. Скачайте его заново.");
-            const archiveBuffer = await cached.arrayBuffer();
-            const blobUrl = URL.createObjectURL(new Blob([archiveBuffer], {type:"application/gzip"}));
-            let model;
-            try { model = await Vosk.createModel(blobUrl); }
-            finally { URL.revokeObjectURL(blobUrl); }
-            if (!model) throw new Error("Модель не создана");
-            localStorage.setItem("chat-voice-language-ready-" + code, "true"); localStorage.setItem("chat-voice-language", code);
-            updateVoiceDownload("Готово: " + language.name + " установлен", true); showMessage("Язык " + language.name + " установлен и выбран для голосового ввода."); updateVoiceLanguageButtons(); setTimeout(hideVoiceDownload, 1800); return true;
-        } catch (error) {
-            console.error("Ошибка загрузки голосовой модели:", error); localStorage.removeItem("chat-voice-language-ready-" + code); hideVoiceDownload(); showMessage("Не удалось установить " + language.name + ": " + (error && error.message ? error.message : "ошибка загрузки"), true); throw error;
-        } finally { delete voiceModelPromises[code]; button.disabled = false; updateVoiceLanguageButtons(); }
-    })();
-    return voiceModelPromises[code];
+    document.querySelectorAll("[data-voice-language]").forEach(item => { item.disabled = true; });
+    try {
+        localStorage.setItem("chat-voice-language", code);
+        updateVoiceLanguageButtons();
+        if (voiceModel || localStorage.getItem("chat-voice-model-ready") === "true") {
+            updateVoiceDownload("Готово: " + language.name + " выбран", true);
+            showMessage("Язык " + language.name + " выбран для голосового ввода.");
+            setTimeout(hideVoiceDownload, 1200);
+            return true;
+        }
+        updateVoiceDownload("Подготовка голосового ввода…", true);
+        showMessage("Загружается общая модель голосового ввода. Это выполняется один раз и затем используется для всех языков.");
+        await loadVoiceModel();
+        updateVoiceDownload("Готово: модель установлена", true);
+        showMessage("Модель голосового ввода установлена. Выбран язык: " + language.name + ".");
+        setTimeout(hideVoiceDownload, 1800);
+        return true;
+    } catch (error) {
+        console.error("Ошибка загрузки голосовой модели:", error);
+        localStorage.removeItem("chat-voice-model-ready");
+        hideVoiceDownload();
+        showMessage("Не удалось подготовить голосовой ввод: " + (error && error.message ? error.message : "ошибка загрузки"), true);
+        throw error;
+    } finally {
+        document.querySelectorAll("[data-voice-language]").forEach(item => { item.disabled = false; });
+        updateVoiceLanguageButtons();
+    }
 }
 
 $("usernameToggle").onclick = () => $("usernameField").classList.toggle("open");
