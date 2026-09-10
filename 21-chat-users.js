@@ -132,7 +132,9 @@
             var add = document.createElement("button");
             add.type = "button";
             add.textContent = "＋ Добавить пользователя";
-            add.style.cssText = "display:block;width:100%;margin-top:10px;padding:12px 8px;border:0;border-top:1px solid #333;background:none;color:#fff;text-align:left;font:inherit;cursor:pointer";
+            add.style.cssText = "display:flex;width:100%;margin-top:12px;padding:11px 14px;border:1px solid #5a4636;border-radius:9px;background:#5a4636;color:#fff;text-align:center;align-items:center;justify-content:center;font:inherit;font-weight:600;cursor:pointer;box-sizing:border-box";
+            add.addEventListener("mouseenter", function () { add.style.background = "#6b5543"; });
+            add.addEventListener("mouseleave", function () { add.style.background = "#5a4636"; });
             add.addEventListener("click", function () {
                 showAddUser(chatId);
             });
@@ -240,50 +242,111 @@
         if (typeof window.loadChats === "function") await window.loadChats();
     }
 
-    function showAddUser(chatId) {
+    async function showAddUser(chatId) {
         var root = document.getElementById("chatUsersOverlay");
         if (!root) return;
         root.innerHTML = "";
 
-        var box = panel("Добавить пользователя");
+        var box = document.createElement("div");
+        box.style.cssText = [
+            "width:min(460px,100%)",
+            "max-height:min(70vh,560px)",
+            "display:flex",
+            "flex-direction:column",
+            "background:#fff",
+            "color:#222",
+            "border-radius:14px",
+            "box-shadow:0 12px 40px rgba(0,0,0,.28)",
+            "overflow:hidden"
+        ].join(";");
+
+        var title = document.createElement("div");
+        title.textContent = "Добавить пользователя";
+        title.style.cssText = "padding:16px 18px 10px;font-size:19px;font-weight:700";
+        box.appendChild(title);
+
+        var inputWrap = document.createElement("div");
+        inputWrap.style.cssText = "padding:0 14px 8px";
+
         var input = document.createElement("input");
         input.type = "text";
         input.placeholder = "Введите имя пользователя";
         input.autocomplete = "off";
-        input.style.cssText = "width:100%;box-sizing:border-box;padding:12px;border:1px solid #444;border-radius:10px;background:#1a1a1a;color:#fff;font:inherit";
-        box.appendChild(input);
+        input.autocapitalize = "none";
+        input.spellcheck = false;
+        input.style.cssText = "width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #ccc;border-radius:10px;font-size:16px;outline:none";
+        inputWrap.appendChild(input);
+        box.appendChild(inputWrap);
 
         var results = document.createElement("div");
-        results.style.cssText = "margin-top:8px";
+        results.style.cssText = "overflow-y:auto;padding:0 8px 8px";
         box.appendChild(results);
+
+        var status = document.createElement("div");
+        status.style.cssText = "padding:10px 10px 12px;color:#777;font-size:14px;text-align:center";
+        box.appendChild(status);
+
+        var footer = document.createElement("div");
+        footer.style.cssText = "display:flex;justify-content:flex-start;align-items:center;padding:10px 14px 14px;border-top:1px solid #eee";
 
         var back = document.createElement("button");
         back.type = "button";
-        back.textContent = "← Назад";
-        back.style.cssText = "display:block;width:100%;margin-top:8px;padding:10px;border:0;background:none;color:#aaa;font:inherit;cursor:pointer";
+        back.textContent = "Отмена";
+        back.style.cssText = "border:0;background:transparent;padding:9px 12px;font-size:15px;cursor:pointer";
         back.addEventListener("click", showMembers);
-        box.appendChild(back);
+        footer.appendChild(back);
+        box.appendChild(footer);
         root.appendChild(box);
 
+        var existingMembers = await loadMembers(chatId).catch(function () { return []; });
+        var existingIds = existingMembers.map(function (member) { return String(member.user_id); });
         var timer = null;
         var requestNo = 0;
+        var closed = false;
+
+        function setStatus(text) {
+            status.textContent = text || "";
+            status.style.display = text ? "block" : "none";
+        }
 
         async function search() {
             var q = input.value.trim();
             results.innerHTML = "";
-            if (q.length < 1) return;
+            if (!q) {
+                setStatus("Введите имя пользователя");
+                return;
+            }
 
             var request = ++requestNo;
-            var result = await window.supabaseClient.rpc("search_users", { p_search: q });
-            if (request !== requestNo) return;
-            if (result.error) return;
+            setStatus("Поиск...");
 
-            (result.data || []).forEach(function (user) {
+            var result = await window.supabaseClient.rpc("search_users", { p_search: q });
+            if (closed || request !== requestNo) return;
+            if (result.error) {
+                setStatus("Не удалось выполнить поиск");
+                return;
+            }
+
+            var users = (result.data || []).filter(function (user) {
+                return !existingIds.includes(String(user.id)) &&
+                    String(user.id) !== String(window.currentUser && window.currentUser.id);
+            });
+
+            if (!users.length) {
+                setStatus("Пользователь не найден");
+                return;
+            }
+
+            setStatus("");
+            users.forEach(function (user) {
                 var item = document.createElement("button");
                 item.type = "button";
+                item.style.cssText = "width:100%;display:flex;align-items:center;text-align:left;border:0;background:transparent;padding:11px 10px;border-radius:10px;cursor:pointer;font-size:16px";
                 item.textContent = user.username;
-                item.style.cssText = "display:block;width:100%;padding:11px 8px;border:0;border-radius:9px;background:none;color:#fff;text-align:left;font:inherit;cursor:pointer";
+                item.addEventListener("mouseenter", function () { item.style.background = "#f1f1f1"; });
+                item.addEventListener("mouseleave", function () { item.style.background = "transparent"; });
                 item.addEventListener("click", async function () {
+                    item.disabled = true;
                     var addResult = await window.supabaseClient.rpc("add_chat_member", {
                         p_chat_id: chatId,
                         p_user_id: user.id
@@ -291,6 +354,7 @@
                     if (addResult.error) {
                         console.error("Не удалось добавить пользователя:", addResult.error);
                         alert(addResult.error.message || "Не удалось добавить пользователя.");
+                        item.disabled = false;
                         return;
                     }
                     await showMembers();
@@ -303,7 +367,16 @@
             clearTimeout(timer);
             timer = setTimeout(search, 180);
         });
+
+        root.addEventListener("click", function (event) {
+            if (event.target === root) {
+                closed = true;
+                closeUsers();
+            }
+        });
+
         input.focus();
+        setStatus("Введите имя пользователя");
     }
 
     window.openChatUsers = showMembers;
