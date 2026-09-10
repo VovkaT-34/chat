@@ -16,6 +16,7 @@
     ];
     var DEFAULT_ID = "1w";
     var timer = null;
+    var originalThemeSettings = null;
 
     function getCurrentChatItem() {
         var id = Number(window.currentChatId || 0);
@@ -98,97 +99,113 @@
         window.__chatDisappearingRenderWrapped = true;
     }
 
-    function buildDisappearingSection(panel) {
-        if (!panel || panel.querySelector(".chat-disappearing-section")) return panel && panel.querySelector(".chat-disappearing-section");
-        var section = document.createElement("div");
-        section.className = "chat-theme-section chat-disappearing-section";
-        section.dataset.settingsPage = "disappearing";
-        var title = document.createElement("div");
-        title.className = "chat-theme-section-title";
+    function closeDisappearingSettings() {
+        var overlay = document.getElementById("chatDisappearingSettingsOverlay");
+        if (overlay) overlay.remove();
+    }
+
+    function openDisappearingSettings() {
+        closeDisappearingSettings();
+        var overlay = document.createElement("div");
+        overlay.id = "chatDisappearingSettingsOverlay";
+        overlay.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
+
+        var panel = document.createElement("div");
+        panel.style.cssText = "width:min(420px,calc(100vw - 28px));background:#fff;color:#222;border-radius:16px;box-shadow:0 18px 55px rgba(0,0,0,.30);padding:18px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+
+        var title = document.createElement("h3");
         title.textContent = "Исчезающие сообщения";
-        section.appendChild(title);
+        title.style.cssText = "margin:0 0 16px;font-size:20px";
+        panel.appendChild(title);
 
         var grid = document.createElement("div");
-        grid.className = "chat-text-grid";
+        grid.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:9px";
         var chatId = Number(window.currentChatId || 0);
         var current = loadId(chatId);
         OPTIONS.forEach(function (option) {
             var button = document.createElement("button");
             button.type = "button";
-            button.className = "chat-text-option" + (current === option.id ? " selected" : "");
             button.textContent = option.label;
+            button.style.cssText = "border:1px solid #d5d5d5;background:#fff;color:#222;border-radius:10px;padding:11px 8px;cursor:pointer;font:700 14px Arial,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+            if (current === option.id) {
+                button.style.background = "#8b5a3c";
+                button.style.color = "#fff";
+                button.style.borderColor = "#8b5a3c";
+            }
             button.addEventListener("click", function () {
                 saveId(chatId, option.id);
-                grid.querySelectorAll(".chat-text-option").forEach(function (item) { item.classList.remove("selected"); });
-                button.classList.add("selected");
+                grid.querySelectorAll("button").forEach(function (item) {
+                    item.style.background = "#fff";
+                    item.style.color = "#222";
+                    item.style.borderColor = "#d5d5d5";
+                });
+                button.style.background = "#8b5a3c";
+                button.style.color = "#fff";
+                button.style.borderColor = "#8b5a3c";
                 refreshAfterChange();
                 if (typeof window.loadMessages === "function") void window.loadMessages();
             });
             grid.appendChild(button);
         });
-        section.appendChild(grid);
-        panel.insertBefore(section, panel.querySelector(".chat-theme-footer"));
-        return section;
+        panel.appendChild(grid);
+
+        var footer = document.createElement("div");
+        footer.style.cssText = "display:flex;justify-content:flex-end;margin-top:18px";
+        var closeButton = document.createElement("button");
+        closeButton.type = "button";
+        closeButton.textContent = "Готово";
+        closeButton.style.cssText = "border:0;background:#8b5a3c;color:#fff;padding:9px 15px;border-radius:9px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+        closeButton.addEventListener("click", closeDisappearingSettings);
+        footer.appendChild(closeButton);
+        panel.appendChild(footer);
+
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+        overlay.addEventListener("click", function (event) { if (event.target === overlay) closeDisappearingSettings(); });
     }
 
-    function setupSettingsNavigation(panel) {
-        if (!panel || panel.querySelector(".chat-settings-navigation")) return;
-        var themeSection = panel.querySelector(".chat-theme-section");
-        if (!themeSection) return;
+    function closeSettingsChoice() {
+        var overlay = document.getElementById("chatSettingsChoiceOverlay");
+        if (overlay) overlay.remove();
+    }
 
-        var disappearingSection = buildDisappearingSection(panel);
-        if (!disappearingSection) return;
-        themeSection.dataset.settingsPage = "themes";
+    function openSettingsChoice() {
+        closeSettingsChoice();
+        var overlay = document.createElement("div");
+        overlay.id = "chatSettingsChoiceOverlay";
+        overlay.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
 
-        var nav = document.createElement("div");
-        nav.className = "chat-settings-navigation";
-        nav.style.cssText = "display:flex;gap:8px;margin:0 0 16px;";
+        var panel = document.createElement("div");
+        panel.style.cssText = "width:min(300px,calc(100vw - 28px));background:#000;color:#fff;border:1px solid #333;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:6px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
 
-        function makeNavButton(text, active) {
+        function addChoice(text, handler) {
             var button = document.createElement("button");
             button.type = "button";
             button.textContent = text;
-            button.style.cssText = "flex:1;border:1px solid #d5d5d5;background:#fff;color:#222;border-radius:10px;padding:10px 8px;cursor:pointer;font:700 14px Arial,sans-serif;";
-            if (active) {
-                button.style.background = "#8b5a3c";
-                button.style.color = "#fff";
-                button.style.borderColor = "#8b5a3c";
-            }
-            return button;
+            button.style.cssText = "display:block;width:100%;border:0;background:none;color:#fff;text-align:left;padding:12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+            button.addEventListener("click", function (event) { event.stopPropagation(); closeSettingsChoice(); handler(); });
+            panel.appendChild(button);
         }
 
-        var themesButton = makeNavButton("Темы", true);
-        var disappearingButton = makeNavButton("Исчезающие сообщения", false);
-        nav.appendChild(themesButton);
-        nav.appendChild(disappearingButton);
-        panel.insertBefore(nav, themeSection);
+        addChoice("Настройка темы", function () {
+            if (typeof originalThemeSettings === "function") originalThemeSettings();
+        });
+        addChoice("Исчезающие сообщения", openDisappearingSettings);
 
-        function show(page) {
-            var themes = page === "themes";
-            themeSection.style.display = themes ? "" : "none";
-            disappearingSection.style.display = themes ? "none" : "";
-            themesButton.style.background = themes ? "#8b5a3c" : "#fff";
-            themesButton.style.color = themes ? "#fff" : "#222";
-            themesButton.style.borderColor = themes ? "#8b5a3c" : "#d5d5d5";
-            disappearingButton.style.background = themes ? "#fff" : "#8b5a3c";
-            disappearingButton.style.color = themes ? "#222" : "#fff";
-            disappearingButton.style.borderColor = themes ? "#d5d5d5" : "#8b5a3c";
-        }
-
-        themesButton.addEventListener("click", function () { show("themes"); });
-        disappearingButton.addEventListener("click", function () { show("disappearing"); });
-        show("themes");
+        document.body.appendChild(overlay);
+        overlay.addEventListener("click", function (event) { if (event.target === overlay) closeSettingsChoice(); });
     }
 
     function wrapSettings() {
-        if (typeof window.openChatSettings !== "function" || window.__chatDisappearingSettingsWrapped) return;
-        var originalOpenSettings = window.openChatSettings;
+        if (typeof window.openChatSettings !== "function") return;
+        if (!originalThemeSettings) originalThemeSettings = window.openChatSettings;
+        if (window.__chatDisappearingSettingsWrapped) return;
         window.openChatSettings = function () {
-            originalOpenSettings();
-            if (!isSupportedChat()) return;
-            var panel = document.querySelector(".chat-theme-settings");
-            if (!panel) return;
-            setupSettingsNavigation(panel);
+            if (!isSupportedChat()) {
+                originalThemeSettings();
+                return;
+            }
+            openSettingsChoice();
         };
         window.__chatDisappearingSettingsWrapped = true;
     }
