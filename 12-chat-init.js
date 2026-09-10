@@ -54,6 +54,17 @@ async function startChat() {
     });
 
 
+    // 2.3. Подключаем список пользователей чата и локальные ники
+
+    await new Promise(function (resolve) {
+        var script = document.createElement("script");
+        script.src = "21-chat-users.js";
+        script.onload = resolve;
+        script.onerror = resolve;
+        document.head.appendChild(script);
+    });
+
+
     // 3. Подключаем пакетную загрузку данных списка чатов
 
     await new Promise(function (resolve) {
