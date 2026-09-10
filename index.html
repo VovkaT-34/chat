@@ -224,7 +224,7 @@
     const {data:{user},error:userError}=await supabaseClient.auth.getUser();
     if(userError||!user)return;
     const {data:profile,error:profileError}=await supabaseClient.from("profiles").select("role, approved").eq("id",user.id).maybeSingle();
-    if(profileError||!profile||profile.role!=="admin"||profile.approved!==true)return;
+    if(profileError||!profile||(profile.role!=="admin"&&profile.role!=="superadmin")||profile.approved!==true)return;
     adminButton.style.display="inline-flex";
 })();
 </script>
