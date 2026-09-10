@@ -26,149 +26,106 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
 (function(){
     const button=document.getElementById("voiceInputButton"),input=document.getElementById("messageInput");
     if(!button||!input)return;
-    const VOSK_SCRIPT="https://cdn.jsdelivr.net/npm/@lichess-org/vosk-browser@0.0.3/dist/vosk.js";
-    const FFLATE_SCRIPT="https://cdn.jsdelivr.net/npm/fflate@0.8.3/umd/index.js";
-    const VOICE_MODEL_CACHE="chat-vosk-models-v7";
-    const VOSK_LANGUAGES={ru:{name:"Русский",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-ru-0.22.zip"},en:{name:"English",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-en-us-0.15.zip"},cn:{name:"中文",url:"https://raw.githubusercontent.com/kercre123/vosk-models/main/vosk-model-small-cn-0.22.zip"}};
+    const TRANSFORMERS_SCRIPT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
+    const VOICE_MODEL="onnx-community/whisper-tiny";
+    const LANGUAGES={ru:{name:"Русский",code:"russian"},en:{name:"English",code:"english"},cn:{name:"中文",code:"chinese"}};
     button.type="button";
-    let models={},modelPromises={},recognizer=null,mediaStream=null,audioContext=null,source=null,recognizerNode=null,silentGain=null,running=false,starting=false,finalParts=[],baseText="",startToken=0,scriptPromise=null,toolsPromise=null,downloadPromises={},voiceServiceWorkerPromise=null;
-    function getLanguage(){const selected=localStorage.getItem("chat-voice-language");if(selected&&VOSK_LANGUAGES[selected]&&isReady(selected))return selected;const ready=Object.keys(VOSK_LANGUAGES).find(isReady);return ready||"ru";}
-    function isReady(code){return localStorage.getItem("chat-voice-language-ready-"+code)==="true";}
-    function loadScript(){
-        if(window.Vosk)return Promise.resolve();
-        if(scriptPromise)return scriptPromise;
-        scriptPromise=new Promise(function(resolve,reject){const script=document.createElement("script");script.src=VOSK_SCRIPT;script.onload=resolve;script.onerror=function(){reject(new Error("Не удалось загрузить движок голосового ввода"));};document.head.appendChild(script);}).catch(function(error){scriptPromise=null;throw error;});
-        return scriptPromise;
+    let transcriber=null,transcriberPromise=null,mediaStream=null,audioContext=null,source=null,processor=null,silentGain=null,running=false,starting=false,samples=[],baseText="",startToken=0,modulePromise=null;
+    function getLanguage(){const selected=localStorage.getItem("chat-voice-language");return LANGUAGES[selected]?selected:"ru";}
+    function setUi(text,busy){button.title=text;button.setAttribute("aria-busy",busy?"true":"false");}
+    function showDownloadOverlay(){
+        const old=document.getElementById("voiceLanguageChooser");if(old)old.remove();
+        const overlay=document.createElement("div");overlay.id="voiceLanguageChooser";overlay.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;padding:14px";
+        const box=document.createElement("div");box.style.cssText="width:min(430px,100%);background:#fff;border-radius:18px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.25);font-family:Arial,sans-serif;color:#30251e";
+        const title=document.createElement("div");title.textContent="Голосовой ввод";title.style.cssText="font-size:18px;font-weight:700;margin-bottom:7px";
+        const text=document.createElement("div");text.textContent="Распознавание работает прямо в браузере. Речь не отправляется на сервер.";text.style.cssText="font-size:14px;color:#786e67;line-height:1.4;margin-bottom:14px";
+        box.appendChild(title);box.appendChild(text);
+        Object.keys(LANGUAGES).forEach(function(code){const b=document.createElement("button");b.type="button";b.textContent=LANGUAGES[code].name;b.style.cssText="display:block;width:100%;padding:12px;margin:7px 0;border:0;border-radius:10px;background:#6eae83;color:#fff;font-weight:700;font-size:15px;cursor:pointer";b.onclick=function(){localStorage.setItem("chat-voice-language",code);overlay.remove();startVoice();};box.appendChild(b);});
+        const cancel=document.createElement("button");cancel.type="button";cancel.textContent="Отмена";cancel.style.cssText="display:block;width:100%;padding:9px;margin-top:4px;border:0;background:transparent;color:#786e67;cursor:pointer";cancel.onclick=function(){overlay.remove();};box.appendChild(cancel);overlay.appendChild(box);document.body.appendChild(overlay);
     }
-    function loadTools(){
-        if(window.fflate)return Promise.resolve();
-        if(toolsPromise)return toolsPromise;
-        toolsPromise=new Promise(function(resolve,reject){const script=document.createElement("script");script.src=FFLATE_SCRIPT;script.onload=resolve;script.onerror=function(){reject(new Error("Не удалось загрузить архиватор голосовой модели"));};document.head.appendChild(script);}).catch(function(error){toolsPromise=null;throw error;});
-        return toolsPromise;
+    function loadTransformers(){
+        if(window.__chatTransformers)return Promise.resolve(window.__chatTransformers);
+        if(modulePromise)return modulePromise;
+        modulePromise=import(TRANSFORMERS_SCRIPT).then(function(module){window.__chatTransformers=module;return module;}).catch(function(error){modulePromise=null;throw error;});
+        return modulePromise;
     }
-    function ensureVoiceServiceWorker(){
-        if(voiceServiceWorkerPromise)return voiceServiceWorkerPromise;
-        if(!(navigator.serviceWorker))return Promise.reject(new Error("Service Worker недоступен в этом браузере"));
-        voiceServiceWorkerPromise=navigator.serviceWorker.register("./sw.js",{scope:"./"}).then(async function(registration){
-            await navigator.serviceWorker.ready;
-            if(navigator.serviceWorker.controller)return;
-            if(sessionStorage.getItem("voice-sw-reloaded")==="true")throw new Error("Service Worker не получил управление страницей. Обновите страницу и повторите установку языкового пакета.");
-            sessionStorage.setItem("voice-sw-reloaded","true");
-            location.reload();
-            return new Promise(function(){});
-        }).catch(function(error){voiceServiceWorkerPromise=null;throw error;});
-        return voiceServiceWorkerPromise;
+    async function loadTranscriber(overlay){
+        if(transcriber)return transcriber;
+        if(transcriberPromise)return transcriberPromise;
+        transcriberPromise=(async function(){
+            const module=await loadTransformers();
+            if(module.env){module.env.useBrowserCache=true;module.env.useWasmCache=true;module.env.allowRemoteModels=true;module.env.logLevel=module.env.ERROR;}
+            const options={progress_callback:function(progress){
+                if(!overlay)return;
+                let percent=0;
+                if(progress&&typeof progress.progress==="number")percent=progress.progress;
+                else if(progress&&progress.status==="ready")percent=100;
+                const label=overlay.querySelector("[data-voice-download-text]"),bar=overlay.querySelector("[data-voice-download-progress]"),value=overlay.querySelector("[data-voice-download-percent]");
+                if(label)label.textContent=progress&&progress.file_name?"Загрузка модели: "+progress.file_name:"Загрузка модели…";
+                if(bar)bar.value=percent;
+                if(value)value.textContent=Math.round(percent)+"%";
+            }};
+            if(navigator.gpu)options.device="webgpu";
+            try{return await module.pipeline("automatic-speech-recognition",VOICE_MODEL,options);}catch(error){
+                if(options.device==="webgpu"){delete options.device;return await module.pipeline("automatic-speech-recognition",VOICE_MODEL,options);}
+                throw error;
+            }
+        })().then(function(value){transcriber=value;return value;}).catch(function(error){transcriberPromise=null;throw error;});
+        return transcriberPromise;
     }
-    function modelUrl(code){return new URL("./voice-model/"+code+".tar.gz",window.location.href).href;}
-    function oldModelUrl(code){return "https://chat.local/voice-model/"+code+".tar.gz";}
-    function setDownloadUi(overlay,text,progress){const label=overlay.querySelector("[data-voice-download-text]"),bar=overlay.querySelector("[data-voice-download-progress]"),percent=overlay.querySelector("[data-voice-download-percent]");if(label)label.textContent=text;if(bar)bar.value=progress;if(percent)percent.textContent=Math.round(progress)+"%";}
-    function writeTarHeader(view,offset,name,size,type){const encoder=new TextEncoder(),put=function(text,at,length){const bytes=encoder.encode(text);for(let i=0;i<Math.min(bytes.length,length);i++)view.setUint8(offset+at+i,bytes[i]);};put(name,0,100);put(type===5?"0000755":"0000644",100,8);put("0000000",108,8);put("0000000",116,8);put(size.toString(8).padStart(11,"0")+" ",124,12);put("00000000000 ",136,12);view.setUint8(offset+156,type||0);put("ustar\0",257,6);put("00",263,2);for(let i=148;i<156;i++)view.setUint8(offset+i,32);let checksum=0;for(let i=0;i<512;i++)checksum+=view.getUint8(offset+i);put(checksum.toString(8).padStart(6,"0")+"\0 ",148,8);}
-    async function zipToTarGz(zipBytes,overlay,languageName){
-        setDownloadUi(overlay,"Распаковка ZIP… 0%",0);
-        await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
-        const files=await new Promise(function(resolve,reject){window.fflate.unzip(zipBytes,function(error,result){if(error)reject(error);else resolve(result);});});
-        setDownloadUi(overlay,"Распаковка ZIP… 50%",50);
-        await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
-        const rawEntries=Object.keys(files).filter(function(name){return !name.endsWith("/");}).map(function(name){return {name:name.replace(/\\/g,"/").replace(/^\.\//,""),data:files[name]};});
-        const hasModelRoot=rawEntries.some(function(entry){return /^(am|conf|graph|ivector|rescore|rnnlm)\//.test(entry.name);});
-        const root=hasModelRoot?"":(function(){const first=rawEntries[0]&&rawEntries[0].name.split("/")[0];return first&&rawEntries.every(function(entry){return entry.name.indexOf(first+"/")===0;})?first+"/":"";})();
-        const entries=rawEntries.map(function(entry){return {name:"model/"+(root&&entry.name.indexOf(root)===0?entry.name.slice(root.length):entry.name),data:entry.data};}).filter(function(entry){return entry.name!=="model/";});
-        const directoryNames={"model/":true};
-        entries.forEach(function(entry){const parts=entry.name.split("/");parts.pop();let current="";for(let i=0;i<parts.length;i++){current+=parts[i]+"/";directoryNames[current]=true;}});
-        const directories=Object.keys(directoryNames).sort();
-        let total=1024;directories.forEach(function(){total+=512;});entries.forEach(function(entry){total+=512+Math.ceil(entry.data.length/512)*512;});
-        const tar=new Uint8Array(total),view=new DataView(tar.buffer);let offset=0;
-        for(let i=0;i<directories.length;i++){
-            writeTarHeader(view,offset,directories[i],0,5);offset+=512;
-            setDownloadUi(overlay,"Подготовка модели… "+Math.round(50+15*((i+1)/directories.length))+"%",50+15*((i+1)/directories.length));
-            if(i%8===7)await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
-        }
-        for(let i=0;i<entries.length;i++){
-            const name=entries[i].name,data=entries[i].data;writeTarHeader(view,offset,name,data.length,0);offset+=512;tar.set(data,offset);offset+=Math.ceil(data.length/512)*512;
-            setDownloadUi(overlay,"Подготовка модели… "+Math.round(65+15*((i+1)/entries.length))+"%",65+15*((i+1)/entries.length));
-            if(i%4===3)await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
-        }
-        setDownloadUi(overlay,"Сборка модели… 80%",80);
-        await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
-        const archive=await new Promise(function(resolve,reject){window.fflate.gzip(tar,{level:6},function(error,result){if(error)reject(error);else resolve(result);});});
-        setDownloadUi(overlay,"Сборка модели… 95%",95);
-        return archive;
+    function createOverlay(){
+        const old=document.getElementById("voiceLanguageChooser");if(old)old.remove();
+        const overlay=document.createElement("div");overlay.id="voiceLanguageChooser";overlay.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;padding:14px";
+        const box=document.createElement("div");box.style.cssText="width:min(430px,100%);background:#fff;border-radius:18px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.25);font-family:Arial,sans-serif;color:#30251e";
+        const title=document.createElement("div");title.textContent="Подготовка голосового ввода";title.style.cssText="font-size:18px;font-weight:700;margin-bottom:7px";
+        const text=document.createElement("div");text.textContent="Модель загружается один раз и затем хранится в кэше браузера.";text.style.cssText="font-size:14px;color:#786e67;line-height:1.4;margin-bottom:14px";
+        const progress=document.createElement("div");progress.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#5d5048;margin-bottom:7px"><span data-voice-download-text>Загрузка модели…</span><span data-voice-download-percent>0%</span></div><progress data-voice-download-progress max="100" value="0" style="display:block;width:100%;height:9px"></progress>';
+        const cancel=document.createElement("button");cancel.type="button";cancel.textContent="Отмена";cancel.style.cssText="display:block;width:100%;padding:9px;margin-top:10px;border:0;background:transparent;color:#786e67;cursor:pointer";cancel.onclick=function(){overlay.remove();};
+        box.appendChild(title);box.appendChild(text);box.appendChild(progress);box.appendChild(cancel);overlay.appendChild(box);document.body.appendChild(overlay);return overlay;
     }
-    async function downloadArchive(code,overlay){const language=VOSK_LANGUAGES[code],response=await fetch(language.url,{cache:"no-store"});if(!response.ok||!response.body)throw new Error("Сервер вернул ошибку загрузки ("+response.status+")");const total=Number(response.headers.get("content-length"))||0,reader=response.body.getReader(),chunks=[];let loadedStart=0;while(true){const part=await reader.read();if(part.done)break;chunks.push(part.value);loadedStart+=part.value.length;const progress=total?Math.round(loadedStart/total*100):0;setDownloadUi(overlay,"Скачивание "+language.name+": "+(loadedStart/1048576).toFixed(1)+(total?" из "+(total/1048576).toFixed(1):"")+" МБ",progress);}const zip=new Uint8Array(loadedStart);let offset=0;chunks.forEach(function(chunk){zip.set(chunk,offset);offset+=chunk.length;});return zip;}
-    async function cacheArchive(code,archive){const cache=await caches.open(VOICE_MODEL_CACHE);await cache.put(new Request(modelUrl(code)),new Response(archive,{headers:{"Content-Type":"application/gzip","Cache-Control":"no-store","Content-Length":String(archive.byteLength)}}));if(navigator.storage&&navigator.storage.persist){try{await navigator.storage.persist();}catch(e){}}
-    }
-    async function getCachedArchive(code){if(!window.caches)throw new Error("Кэш моделей недоступен в этом браузере");const cache=await caches.open(VOICE_MODEL_CACHE);let response=await cache.match(modelUrl(code));if(response)return response;response=await cache.match(oldModelUrl(code));if(response){await cache.put(new Request(modelUrl(code)),response.clone());return response;}return null;}
-    async function createVoiceModel(code,overlay){
-        if(overlay)setDownloadUi(overlay,"Загрузка модели в движок… 98%",98);
-        await new Promise(function(resolve){requestAnimationFrame(function(){resolve();});});
-        return new Promise(function(resolve,reject){
-            let settled=false;
-            const model=new Vosk.Model(modelUrl(code),3);
-            const timer=setTimeout(function(){
-                if(settled)return;
-                settled=true;
-                try{model.terminate();}catch(e){}
-                reject(new Error("Движок голосового ввода не завершил загрузку модели за 120 секунд"));
-            },120000);
-            model.on("load",function(message){
-                if(settled)return;
-                if(message&&message.result){settled=true;clearTimeout(timer);resolve(model);return;}
-                settled=true;clearTimeout(timer);try{model.terminate();}catch(e){}
-                reject(new Error("Vosk вернул неуспешную загрузку модели"));
-            });
-            model.on("error",function(message){
-                if(settled)return;
-                settled=true;clearTimeout(timer);try{model.terminate();}catch(e){}
-                const details=message&&message.error!=null?String(message.error):message!=null?String(message):"неизвестная ошибка движка";
-                reject(new Error("Vosk: "+details));
-            });
-        });
-    }
-    async function loadModel(code){if(models[code])return models[code];if(!modelPromises[code]){modelPromises[code]=(async function(){await loadScript();await ensureVoiceServiceWorker();const response=await getCachedArchive(code);if(!response)throw new Error("Языковой пакет не найден в памяти браузера. Скачайте его заново.");const model=await createVoiceModel(code,null);if(!model)throw new Error("Модель не создана");return model;})().then(function(value){models[code]=value;return value;}).catch(function(error){delete modelPromises[code];throw error;});}return modelPromises[code];}
-    function createDownloadOverlay(){const old=document.getElementById("voiceLanguageChooser");if(old)old.remove();const overlay=document.createElement("div");overlay.id="voiceLanguageChooser";overlay.style.cssText="position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;padding:14px";const box=document.createElement("div");box.style.cssText="width:min(430px,100%);background:#fff;border-radius:18px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.25);font-family:Arial,sans-serif;color:#30251e";const title=document.createElement("div");title.textContent="Нужен языковой пакет";title.style.cssText="font-size:18px;font-weight:700;margin-bottom:7px";const text=document.createElement("div");text.textContent="Выберите язык для офлайн-распознавания. Скачивание начнётся прямо здесь.";text.style.cssText="font-size:14px;color:#786e67;line-height:1.4;margin-bottom:14px";box.appendChild(title);box.appendChild(text);Object.keys(VOSK_LANGUAGES).forEach(function(code){const b=document.createElement("button");b.type="button";b.textContent=VOSK_LANGUAGES[code].name;b.style.cssText="display:block;width:100%;padding:12px;margin:7px 0;border:0;border-radius:10px;background:#6eae83;color:#fff;font-weight:700;font-size:15px;cursor:pointer";b.onclick=function(){void downloadFirstLanguage(code,overlay,b);};box.appendChild(b);});const settings=document.createElement("button");settings.type="button";settings.textContent="Открыть настройки";settings.style.cssText="display:block;width:100%;padding:11px;margin-top:9px;border:1px solid #d9cec5;border-radius:10px;background:#fff;color:#5d4637;font-weight:700;cursor:pointer";settings.onclick=function(){overlay.remove();location.href="settings.html#voice-language";};const cancel=document.createElement("button");cancel.type="button";cancel.textContent="Отмена";cancel.style.cssText="display:block;width:100%;padding:9px;margin-top:4px;border:0;background:transparent;color:#786e67;cursor:pointer";cancel.onclick=function(){overlay.remove();};box.appendChild(settings);box.appendChild(cancel);overlay.appendChild(box);document.body.appendChild(overlay);return overlay;}
-    async function downloadFirstLanguage(code,overlay,buttonElement){if(downloadPromises[code])return downloadPromises[code];Object.keys(VOSK_LANGUAGES).forEach(function(key){const el=overlay.querySelector('button[data-language="'+key+'"]');if(el)el.disabled=true;});if(buttonElement){buttonElement.disabled=true;buttonElement.textContent="Загрузка…";}const title=overlay.querySelector("div");if(title)title.textContent="Скачивание "+VOSK_LANGUAGES[code].name;const text=overlay.querySelector("div:nth-child(2)");if(text)text.textContent="Не закрывайте страницу до завершения загрузки.";const progress=document.createElement("div");progress.style.cssText="margin-top:14px";progress.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;color:#5d5048;margin-bottom:7px"><span data-voice-download-text>Подготовка…</span><span data-voice-download-percent>0%</span></div><progress data-voice-download-progress max="100" value="0" style="display:block;width:100%;height:9px"></progress>';const box=overlay.querySelector("div");box.appendChild(progress);downloadPromises[code]=(async function(){try{await loadScript();await loadTools();await ensureVoiceServiceWorker();let zip=await downloadArchive(code,overlay);let archive=await zipToTarGz(zip,overlay,VOSK_LANGUAGES[code].name);zip=null;await cacheArchive(code,archive);archive=null;await new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(resolve);});});const cached=await getCachedArchive(code);if(!cached)throw new Error("Языковой пакет не найден в памяти браузера. Скачайте его заново.");const model=await createVoiceModel(code,overlay);models[code]=model;localStorage.setItem("chat-voice-language-ready-"+code,"true");localStorage.setItem("chat-voice-language",code);setDownloadUi(overlay,"Готово: "+VOSK_LANGUAGES[code].name+" установлен",100);setTimeout(function(){overlay.remove();},900);return true;}catch(error){console.error("Ошибка загрузки голосовой модели:",error);setDownloadUi(overlay,"Ошибка: "+(error&&error.message?error.message:"не удалось установить пакет"),0);if(buttonElement){buttonElement.disabled=false;buttonElement.textContent="Повторить";}return false;}finally{delete downloadPromises[code];}})();return downloadPromises[code];}
-    function showLanguageChooser(){createDownloadOverlay();}
-    function setText(partial){const voiceText=finalParts.join(" ")+(partial?(finalParts.length?" ":"")+partial:"");input.value=(baseText?baseText+(voiceText?" ":""):"")+voiceText;input.dispatchEvent(new Event("input",{bubbles:true}));}
+    function downsample(data,inputRate,outputRate){if(inputRate===outputRate)return data;const ratio=inputRate/outputRate,length=Math.round(data.length/ratio),result=new Float32Array(length);for(let i=0;i<length;i++){const position=i*ratio,index=Math.floor(position),fraction=position-index;const a=data[index]||0,b=data[index+1]||a;result[i]=a+(b-a)*fraction;}return result;}
+    function setText(text){input.value=(baseText?baseText+(text?" ":""):"")+text;input.dispatchEvent(new Event("input",{bubbles:true}));}
     function cleanup(){
-        if(recognizerNode){recognizerNode.onaudioprocess=null;try{recognizerNode.disconnect();}catch(e){}recognizerNode=null;}
+        if(processor){processor.onaudioprocess=null;try{processor.disconnect();}catch(e){}processor=null;}
         if(silentGain){try{silentGain.disconnect();}catch(e){}silentGain=null;}
         if(source){try{source.disconnect();}catch(e){}source=null;}
         if(mediaStream){mediaStream.getTracks().forEach(function(track){track.stop();});mediaStream=null;}
         if(audioContext){try{audioContext.close();}catch(e){}audioContext=null;}
-        if(recognizer){try{recognizer.remove();}catch(e){}recognizer=null;}
-        running=false;starting=false;button.disabled=false;button.title="Голосовой ввод";button.setAttribute("aria-pressed","false");button.setAttribute("aria-busy","false");
+        samples=[];running=false;starting=false;button.disabled=false;setUi("Голосовой ввод",false);button.setAttribute("aria-pressed","false");
     }
     async function startVoice(){
         if(running||starting)return;
-        const token=++startToken;starting=true;input.blur();button.title="Подготовка голосового ввода…";button.setAttribute("aria-busy","true");baseText=input.value.trim();finalParts=[];
+        const token=++startToken;starting=true;input.blur();baseText=input.value.trim();setUi("Подготовка голосового ввода…",true);
         const language=getLanguage();
-        if(!isReady(language)){starting=false;button.setAttribute("aria-busy","false");showLanguageChooser();return;}
+        let overlay=null;
         try{
-            const currentModel=await loadModel(language);
+            if(!transcriber)overlay=createOverlay();
+            const current=await loadTranscriber(overlay);
+            if(overlay){overlay.remove();overlay=null;}
             if(token!==startToken||!starting)return cleanup();
             if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("Микрофон недоступен в этом браузере");
-            mediaStream=await navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,channelCount:1,sampleRate:16000}});
+            mediaStream=await navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,channelCount:1}});
             if(token!==startToken||!starting)return cleanup();
-            audioContext=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+            audioContext=new (window.AudioContext||window.webkitAudioContext)();
             if(audioContext.state==="suspended")await audioContext.resume();
-            if(token!==startToken||!starting)return cleanup();
-            recognizer=new currentModel.KaldiRecognizer(audioContext.sampleRate);
-            recognizer.on("result",function(message){const text=(message&&message.result&&message.result.text||"").trim();if(text){finalParts.push(text);setText("");}});
-            recognizer.on("partialresult",function(message){const partial=(message&&message.result&&message.result.partial||"").trim();setText(partial);});
             source=audioContext.createMediaStreamSource(mediaStream);
-            recognizerNode=audioContext.createScriptProcessor(4096,1,1);silentGain=audioContext.createGain();silentGain.gain.value=0;
-            recognizerNode.onaudioprocess=function(event){if(!running||!recognizer)return;try{recognizer.acceptWaveform(event.inputBuffer);}catch(error){console.error("Vosk:",error);}};
-            source.connect(recognizerNode);recognizerNode.connect(silentGain);silentGain.connect(audioContext.destination);
-            running=true;starting=false;localStorage.setItem("chat-voice-language",language);button.title="Остановить голосовой ввод";button.setAttribute("aria-pressed","true");button.setAttribute("aria-busy","false");
-        }catch(error){console.error("Голосовой ввод:",error);cleanup();alert("Не удалось запустить голосовой ввод: "+(error&&error.message?error.message:"неизвестная ошибка"));}
+            processor=audioContext.createScriptProcessor(4096,1,1);silentGain=audioContext.createGain();silentGain.gain.value=0;
+            processor.onaudioprocess=function(event){if(!starting&&!running)return;const data=event.inputBuffer.getChannelData(0);samples.push(new Float32Array(data));};
+            source.connect(processor);processor.connect(silentGain);silentGain.connect(audioContext.destination);
+            running=true;starting=false;setUi("Остановить голосовой ввод",false);button.setAttribute("aria-pressed","true");localStorage.setItem("chat-voice-language",language);
+        }catch(error){if(overlay)overlay.remove();console.error("Голосовой ввод:",error);cleanup();alert("Не удалось запустить голосовой ввод: "+(error&&error.message?error.message:"неизвестная ошибка"));}
     }
-    function stopVoice(){
+    async function stopVoice(){
         if(!running&&!starting)return;
         ++startToken;running=false;starting=false;
-        if(recognizer){try{recognizer.retrieveFinalResult();}catch(e){}}
+        const rate=audioContext?audioContext.sampleRate:16000;
+        const total=samples.reduce(function(sum,part){return sum+part.length;},0);const joined=new Float32Array(total);let offset=0;samples.forEach(function(part){joined.set(part,offset);offset+=part.length;});
         cleanup();
+        if(!joined.length)return;
+        setUi("Распознавание…",true);button.disabled=true;
+        try{const result=await transcriber(downsample(joined,rate,16000),{language:LANGUAGES[getLanguage()].code,task:"transcribe"});const text=(result&&result.text||"").trim();if(text)setText(text);}catch(error){console.error("Распознавание речи:",error);alert("Не удалось распознать речь: "+(error&&error.message?error.message:"неизвестная ошибка"));}finally{button.disabled=false;setUi("Голосовой ввод",false);button.setAttribute("aria-pressed","false");}
     }
-    function activateVoice(event){event.preventDefault();event.stopPropagation();input.blur();if(running||starting)stopVoice();else startVoice();}
+    function activateVoice(event){event.preventDefault();event.stopPropagation();input.blur();if(running||starting)void stopVoice();else void startVoice();}
     button.addEventListener("pointerdown",function(event){event.preventDefault();event.stopPropagation();input.blur();});
     button.addEventListener("click",function(event){activateVoice(event);});
 })();
