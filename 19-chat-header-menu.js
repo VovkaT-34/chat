@@ -75,6 +75,15 @@
         var settingsTitle = type === "group" ? "Настройки группы" : "Настройки чата";
         var leaveTitle = type === "group" ? "Выйти из группы" : "Выйти из чата";
 
+        var usersItem = createMenuButton("Пользователи", function () {
+            closeMenu();
+            if (typeof window.openChatUsers === "function") {
+                window.openChatUsers();
+            } else {
+                console.error("Интерфейс пользователей не найден: window.openChatUsers");
+            }
+        });
+
         var settingsItem = createMenuButton(settingsTitle, function () {
             closeMenu();
             console.log(settingsTitle + ": интерфейс создан, обработчик настроек пока не подключается.");
@@ -89,13 +98,14 @@
             }
         });
 
+        menu.appendChild(usersItem);
         menu.appendChild(settingsItem);
         menu.appendChild(leaveItem);
         document.body.appendChild(menu);
 
         var rect = button.getBoundingClientRect();
         menu.style.left = Math.max(8, Math.min(rect.right - 210, window.innerWidth - 218)) + "px";
-        menu.style.top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - 110)) + "px";
+        menu.style.top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - 155)) + "px";
 
         setTimeout(function () {
             document.addEventListener("click", closeMenu, { once: true });
