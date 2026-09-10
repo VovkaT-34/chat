@@ -180,7 +180,7 @@
         var self = window.currentUser && String(window.currentUser.id) === String(member.user_id);
         var action = document.createElement("button");
         action.type = "button";
-        action.textContent = self ? "Изменить свой ник" : "Изменить мой ник";
+        action.textContent = self ? "Изменить свой ник" : "Изменить ник пользователя";
         action.style.cssText = "display:block;width:100%;margin-top:20px;padding:12px;border:1px solid #444;border-radius:10px;background:#222;color:#fff;font:inherit;cursor:pointer";
         action.addEventListener("click", function () {
             if (self) editOwnUsername(member);
