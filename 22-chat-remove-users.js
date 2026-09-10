@@ -8,6 +8,7 @@
 
     var observer = null;
     var busy = false;
+    var checking = false;
 
     function getChatId() {
         return Number(window.currentChatId || 0);
@@ -26,32 +27,42 @@
         return result.data || [];
     }
 
-    function makeButton() {
-        if (document.getElementById("chatRemoveUserButton")) return;
+    async function makeButton() {
+        if (checking || document.getElementById("chatRemoveUserButton")) return;
         if (getChatType() !== "group") return;
 
         var list = document.getElementById("chatUsersList");
-        if (!list) return;
+        if (!list || !list.querySelectorAll("button").length) return;
 
-        var members = list.querySelectorAll("button");
-        if (!members.length) return;
+        checking = true;
+        try {
+            var members = await getMembers(getChatId());
+            var currentId = String(window.currentUser && window.currentUser.id);
+            var currentMember = members.find(function (member) {
+                return String(member.user_id) === currentId;
+            });
+            if (!currentMember || currentMember.role !== "admin") return;
+            if (!document.getElementById("chatUsersList")) return;
+            if (document.getElementById("chatRemoveUserButton")) return;
 
-        var existing = list.parentElement.querySelector("#chatRemoveUserButton");
-        if (existing) return;
-
-        var button = document.createElement("button");
-        button.id = "chatRemoveUserButton";
-        button.type = "button";
-        button.textContent = "− Удалить пользователя";
-        button.style.cssText = "display:flex;width:100%;margin-top:12px;padding:11px 14px;border:1px solid #5a4636;border-radius:9px;background:#5a4636;color:#fff;text-align:center;align-items:center;justify-content:center;font:inherit;font-weight:600;cursor:pointer;box-sizing:border-box;touch-action:manipulation;-webkit-tap-highlight-color:transparent";
-        button.addEventListener("mouseenter", function () { button.style.background = "#6b5543"; });
-        button.addEventListener("mouseleave", function () { button.style.background = "#5a4636"; });
-        button.addEventListener("click", function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-            openRemoveDialog();
-        });
-        list.parentElement.appendChild(button);
+            var button = document.createElement("button");
+            button.id = "chatRemoveUserButton";
+            button.type = "button";
+            button.textContent = "− Удалить пользователя";
+            button.style.cssText = "display:flex;width:100%;margin-top:12px;padding:11px 14px;border:1px solid #5a4636;border-radius:9px;background:#5a4636;color:#fff;text-align:center;align-items:center;justify-content:center;font:inherit;font-weight:600;cursor:pointer;box-sizing:border-box;touch-action:manipulation;-webkit-tap-highlight-color:transparent";
+            button.addEventListener("mouseenter", function () { button.style.background = "#6b5543"; });
+            button.addEventListener("mouseleave", function () { button.style.background = "#5a4636"; });
+            button.addEventListener("click", function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                openRemoveDialog();
+            });
+            document.getElementById("chatUsersList").parentElement.appendChild(button);
+        } catch (error) {
+            console.error("Не удалось проверить права администратора:", error);
+        } finally {
+            checking = false;
+        }
     }
 
     function overlay() {
