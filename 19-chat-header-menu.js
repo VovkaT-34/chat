@@ -86,7 +86,11 @@
 
         var settingsItem = createMenuButton(settingsTitle, function () {
             closeMenu();
-            console.log(settingsTitle + ": интерфейс создан, обработчик настроек пока не подключается.");
+            if (typeof window.openChatSettings === "function") {
+                window.openChatSettings();
+            } else {
+                console.error("Интерфейс настроек не найден: window.openChatSettings");
+            }
         });
 
         var leaveItem = createMenuButton(leaveTitle, function () {
