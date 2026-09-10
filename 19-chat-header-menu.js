@@ -7,7 +7,8 @@
     "use strict";
 
     function getHeaderActions() {
-        return document.querySelector(".chat-header-actions");
+        return document.querySelector(".chat-call-actions") ||
+            document.querySelector(".chat-header-actions");
     }
 
     function getCurrentChatType() {
