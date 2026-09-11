@@ -26,7 +26,7 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
 (function(){
     const button=document.getElementById("voiceInputButton"),input=document.getElementById("messageInput");
     if(!button||!input)return;
-    const TRANSFORMERS_SCRIPT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
+    const TRANSFORMERS_SCRIPT="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0/+esm";
     const VOICE_MODEL="onnx-community/whisper-tiny";
     const LANGUAGES={ru:{name:"Русский",code:"russian"},en:{name:"English",code:"english"},cn:{name:"中文",code:"chinese"}};
     button.type="button";
