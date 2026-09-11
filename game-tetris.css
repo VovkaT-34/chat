@@ -9,7 +9,7 @@ body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}
 .tetris-wrap{width:600px;height:600px;margin:auto;display:flex;justify-content:center;align-items:center;background:#2b2927;border:2px solid rgba(255,255,255,.28);border-radius:16px}
 .tetris-canvas{width:300px;height:600px;background:#0a0c0d;touch-action:none}
 .game-controls-wide{width:min(600px,100%);margin:14px auto 0}
-.wide-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.wide-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:auto auto auto;gap:8px}
 .wide-grid .pause-btn{grid-column:1/-1;grid-row:1}
 .wide-grid .game-btn[data-tetris="left"]{grid-column:1;grid-row:2 / span 2;align-self:center}
 .wide-grid .game-btn[data-tetris="rotate"]{grid-column:2;grid-row:2}
