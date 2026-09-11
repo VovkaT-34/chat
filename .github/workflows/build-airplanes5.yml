@@ -1,0 +1,154 @@
+name: Build Airplanes 5
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'airplanes5/**'
+      - 'game-airplanes2.*'
+      - '.github/workflows/build-airplanes5.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout chat
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.0'
+
+      - name: Fetch original Airplanes
+        run: git clone --depth 1 https://github.com/m110/airplanes.git /tmp/airplanes
+
+      - name: Apply mobile controls patch
+        run: |
+          cat > /tmp/airplanes/system/controls.go <<'EOF_CONTROLS'
+package system
+
+import (
+    "github.com/hajimehoshi/ebiten/v2"
+    "github.com/yohamta/donburi"
+    "github.com/yohamta/donburi/features/math"
+    "github.com/yohamta/donburi/features/transform"
+    "github.com/yohamta/donburi/filter"
+
+    "github.com/m110/airplanes/archetype"
+    "github.com/m110/airplanes/component"
+)
+
+type Controls struct {
+    query *donburi.Query
+}
+
+func NewControls() *Controls {
+    return &Controls{
+        query: donburi.NewQuery(
+            filter.Contains(
+                transform.Transform,
+                component.Input,
+                component.Velocity,
+                component.Sprite,
+                component.PlayerAirplane,
+            ),
+        ),
+    }
+}
+
+// mobileDirection returns the fixed four-button direction used by the web UI.
+// The game coordinate system is 480x800.
+func mobileDirection(x, y int) (dx, dy float64, ok bool) {
+    if y < 600 {
+        return 0, 0, false
+    }
+    switch {
+    case x >= 140 && x < 340 && y >= 600 && y < 700:
+        return 0, -1, true
+    case x < 140 && y >= 650:
+        return -1, 0, true
+    case x >= 340 && y >= 650:
+        return 1, 0, true
+    case x >= 140 && x < 340 && y >= 700:
+        return 0, 1, true
+    default:
+        return 0, 0, false
+    }
+}
+
+func (i *Controls) Update(w donburi.World) {
+    i.query.Each(w, func(entry *donburi.Entry) {
+        in := component.Input.Get(entry)
+        velocity := component.Velocity.Get(entry)
+
+        velocity.Velocity = math.Vec2{X: 0, Y: -0.5}
+        if ebiten.IsKeyPressed(in.MoveUpKey) {
+            velocity.Velocity.Y = -in.MoveSpeed
+        } else if ebiten.IsKeyPressed(in.MoveDownKey) {
+            velocity.Velocity.Y = in.MoveSpeed
+        }
+        if ebiten.IsKeyPressed(in.MoveRightKey) {
+            velocity.Velocity.X = in.MoveSpeed
+        }
+        if ebiten.IsKeyPressed(in.MoveLeftKey) {
+            velocity.Velocity.X = -in.MoveSpeed
+        }
+
+        touch := false
+        var touchX, touchY int
+        touchIDs := ebiten.AppendTouchIDs(nil)
+        if len(touchIDs) > 0 {
+            touch = true
+            touchX, touchY = ebiten.TouchPosition(touchIDs[0])
+            if dx, dy, ok := mobileDirection(touchX, touchY); ok && !in.Disabled {
+                velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
+            }
+        }
+
+        if in.Disabled {
+            return
+        }
+
+        airplane := component.PlayerAirplane.Get(entry)
+        player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
+        player.ShootTimer.Update()
+        pauseTouch := touch && touchX >= 150 && touchX < 330 && touchY >= 520 && touchY < 600
+        if (ebiten.IsKeyPressed(in.ShootKey) || (touch && !pauseTouch)) && player.ShootTimer.IsReady() {
+            position := transform.Transform.Get(entry).LocalPosition
+            archetype.NewPlayerBullet(w, player, position)
+            player.ShootTimer.Reset()
+        }
+    })
+}
+EOF_CONTROLS
+          python3 - <<'PY_PATCH'
+from pathlib import Path
+p=Path('/tmp/airplanes/scene/game.go')
+s=p.read_text()
+old='''\tif inpututil.IsKeyJustPressed(ebiten.KeyEscape) {\n\t\tgameData.Paused = !gameData.Paused\n\t}\n'''
+new='''\tif inpututil.IsKeyJustPressed(ebiten.KeyEscape) {\n\t\tgameData.Paused = !gameData.Paused\n\t}\n\n\tjustPressed := inpututil.AppendJustPressedTouchIDs(nil)\n\tfor _, id := range justPressed {\n\t\tx, y := ebiten.TouchPosition(id)\n\t\tif x >= 150 && x < 330 && y >= 520 && y < 600 {\n\t\t\tgameData.Paused = !gameData.Paused\n\t\t\tbreak\n\t\t}\n\t}\n'''
+if old not in s:
+    raise SystemExit('pause insertion point not found')
+p.write_text(s.replace(old,new,1))
+PY_PATCH
+          mkdir -p airplanes5
+          cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" airplanes5/wasm_exec.js
+          cd /tmp/airplanes
+          GOOS=js GOARCH=wasm go build -o "$GITHUB_WORKSPACE/airplanes5/game.wasm" .
+
+      - name: Commit generated game
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add airplanes5/game.wasm airplanes5/wasm_exec.js
+          if git diff --cached --quiet; then
+            echo "No generated changes."
+            exit 0
+          fi
+          git commit -m "build: update Airplanes 5 mobile game [skip ci]"
+          git push
