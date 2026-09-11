@@ -37,9 +37,9 @@ func mobileDirection(x, y int) (dx, dy float64, ok bool) {
 	switch {
 	case x >= 140 && x < 340 && y >= 600 && y < 700:
 		return 0, -1, true
-	case x < 140 && y >= 650:
+	case x < 140 && y >= 600 && y < 700:
 		return -1, 0, true
-	case x >= 340 && y >= 650:
+	case x >= 340 && y >= 600 && y < 700:
 		return 1, 0, true
 	case x >= 140 && x < 340 && y >= 700:
 		return 0, 1, true
