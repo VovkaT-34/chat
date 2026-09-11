@@ -13,7 +13,7 @@ body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}
 .controls{width:min(320px,100%);margin:14px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .mobile-pause{display:none}
 .ctrl{width:100%;height:auto;aspect-ratio:1/1;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.1);color:#fff;font-size:25px;font-weight:800;touch-action:manipulation}
-.up{grid-column:2}.left{grid-column:1}.down{grid-column:2}.right{grid-column:3}
+.up{grid-column:2;grid-row:1}.left{grid-column:1;grid-row:1 / span 2;align-self:center}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:1 / span 2;align-self:center}
 .pause-btn{width:100%;border:0;border-radius:12px;padding:12px;background:#d29a43;color:#201810;font-weight:800;font-size:15px;cursor:pointer;grid-column:1/-1;grid-row:1}
 .hint{text-align:center;color:#cfc7c0;font-size:13px;margin:10px 0 0}.desktop-hint{display:block}
 @media(max-width:700px){
