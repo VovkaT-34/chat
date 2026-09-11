@@ -11,9 +11,10 @@ body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}
 .game-controls-wide{width:min(600px,100%);margin:14px auto 0}
 .wide-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .wide-grid .pause-btn{grid-column:1/-1}
+.wide-grid .game-btn[data-tetris="down"]{grid-column:2}
 .mobile-pause{display:none}
 .pause-btn{width:100%;border:0;border-radius:12px;padding:12px;background:#d29a43;color:#201810;font-weight:800;font-size:15px;cursor:pointer;grid-column:1/-1;grid-row:1}
-.game-btn{height:56px;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.1);color:#fff;font-size:25px;font-weight:800;touch-action:manipulation}
+.game-btn{width:100%;height:auto;aspect-ratio:1/1;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.1);color:#fff;font-size:25px;font-weight:800;touch-action:manipulation}
 .hint{text-align:center;color:#cfc7c0;font-size:13px;margin:10px 0 0}
 .desktop-hint{display:block}
 @media(max-width:700px){.title{font-size:24px}.mobile-pause{display:block}.desktop-hint{display:none}.tetris-wrap{width:calc(100vw - 28px);height:calc(100vw - 28px);margin-left:50%;transform:translateX(-50%)}.tetris-canvas{width:calc((100vw - 28px)/2);height:calc(100vw - 28px)}.game-controls-wide{width:calc(100vw - 28px)}}
