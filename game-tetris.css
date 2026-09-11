@@ -11,7 +11,10 @@ body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}
 .game-controls-wide{width:min(600px,100%);margin:14px auto 0}
 .wide-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .wide-grid .pause-btn{grid-column:1/-1}
-.wide-grid .game-btn[data-tetris="down"]{grid-column:2}
+.wide-grid .game-btn[data-tetris="left"]{grid-column:1;grid-row:1 / span 2;align-self:center}
+.wide-grid .game-btn[data-tetris="rotate"]{grid-column:2;grid-row:1}
+.wide-grid .game-btn[data-tetris="right"]{grid-column:3;grid-row:1 / span 2;align-self:center}
+.wide-grid .game-btn[data-tetris="down"]{grid-column:2;grid-row:2}
 .mobile-pause{display:none}
 .pause-btn{width:100%;border:0;border-radius:12px;padding:12px;background:#d29a43;color:#201810;font-weight:800;font-size:15px;cursor:pointer;grid-column:1/-1;grid-row:1}
 .game-btn{width:100%;height:auto;aspect-ratio:1/1;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.1);color:#fff;font-size:25px;font-weight:800;touch-action:manipulation}
