@@ -46,8 +46,8 @@ async function enableNotifications() {
     finally { if (button) button.disabled = false; updateNotificationUi(); }
 }
 
-const TRANSFORMERS_SCRIPT = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0/+esm";
-const VOICE_MODEL = "onnx-community/whisper-tiny";
+const TRANSFORMERS_SCRIPT = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
+const VOICE_MODEL = "Xenova/whisper-tiny";
 const VOICE_LANGUAGES = {
     ru: {name: "Русский", code: "russian"},
     en: {name: "English", code: "english"},
