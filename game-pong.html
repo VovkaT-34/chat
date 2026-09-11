@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>🏓 Понг</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="game-pong.css">
+</head>
+<body>
+<div class="page">
+  <div class="top">
+    <button class="back" onclick="location.href='games.html'">← Игры</button>
+    <h1 class="title">🏓 Понг</h1>
+    <span id="pongScore" class="score">0 : 0</span>
+  </div>
+  <canvas id="pongCanvas" class="pong-canvas" width="600" height="600"></canvas>
+  <div class="game-controls-wide"><div class="wide-grid">
+    <button class="mobile-pause pause-btn" onclick="togglePongPause()">Пауза</button>
+    <button class="game-btn" data-pong="up">▲</button>
+    <button class="game-btn" data-pong="down">▼</button>
+  </div></div>
+  <p class="hint desktop-hint">Компьютер: ↑ ↓ движение ракетки · Пробел — пауза</p>
+</div>
+<script>var activeGame='pong';</script>
+<script src="game-pong.js"></script>
+<script>startPong();</script>
+</body>
+</html>
