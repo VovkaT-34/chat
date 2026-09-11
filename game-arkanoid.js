@@ -1,5 +1,5 @@
 var arkTimer,arkPaused=false,arkScore=0,arkP={x:270},arkBall={x:300,y:520,dx:4,dy:-4},arkBricks=[],arkHoldTimer=null,arkHoldInterval=null;
-function startArkanoid(){clearInterval(arkTimer);stopArkMove();arkPaused=false;arkScore=0;arkP={x:270};arkBall={x:300,y:520,dx:4,dy:-4};arkBricks=[];document.getElementById('arkanoidScore').textContent='0';for(var r=0;r<5;r++)for(var c=0;c<8;c++)arkBricks.push({x:55+c*62,y:60+r*28,a:true});drawArkanoid();arkTimer=setInterval(arkanoidStep,25)}
+function startArkanoid(){clearInterval(arkTimer);stopArkMove();arkPaused=false;arkScore=0;arkP={x:270};arkBall={x:300,y:520,dx:4,dy:-4};arkBricks=[];document.getElementById('arkanoidScore').textContent='0';for(var r=0;r<9;r++)for(var c=0;c<8;c++)arkBricks.push({x:55+c*62,y:60+r*22,a:true});drawArkanoid();arkTimer=setInterval(arkanoidStep,25)}
 function toggleArkanoidPause(){if(activeGame!=='arkanoid')return;arkPaused=!arkPaused}
 function moveArk(d){if(!arkPaused)arkP.x=Math.max(35,Math.min(565,arkP.x+d*28))}
 function startArkMove(d){stopArkMove();moveArk(d);arkHoldTimer=setTimeout(function(){arkHoldInterval=setInterval(function(){moveArk(d)},60)},180)}
