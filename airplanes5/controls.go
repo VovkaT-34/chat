@@ -1,7 +1,7 @@
 package system
 
 import (
-	"math"
+	stdmath "math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yohamta/donburi"
@@ -40,7 +40,7 @@ func mobileJoystick(x, y int) (dx, dy float64, ok bool) {
 
 	xd := float64(x) - centerX
 	yd := float64(y) - centerY
-	distance := math.Hypot(xd, yd)
+	distance := stdmath.Hypot(xd, yd)
 	if distance > radius || distance < 8 {
 		return 0, 0, false
 	}
