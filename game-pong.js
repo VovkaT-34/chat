@@ -1,5 +1,5 @@
-var pongTimer,pongPaused=false,pong={x:300,y:300,dx:6,dy:4.5},pongPlayer=260,pongAI=260,pongMe=0,pongEnemy=0,pongHoldTimer=null,pongHoldInterval=null;
-function startPong(){clearInterval(pongTimer);pongPaused=false;pong={x:300,y:300,dx:6,dy:4.5};pongPlayer=260;pongAI=260;pongMe=0;pongEnemy=0;document.getElementById('pongScore').textContent='0 : 0';drawPong();pongTimer=setInterval(pongStep,25)}
+var pongTimer,pongPaused=false,pong={x:35,y:260,dx:6,dy:4.5},pongPlayer=260,pongAI=260,pongMe=0,pongEnemy=0,pongHoldTimer=null,pongHoldInterval=null;
+function startPong(){clearInterval(pongTimer);pongPaused=false;pong={x:35,y:pongPlayer,dx:6,dy:4.5};pongPlayer=260;pongAI=260;pongMe=0;pongEnemy=0;document.getElementById('pongScore').textContent='0 : 0';drawPong();pongTimer=setInterval(pongStep,25)}
 function togglePongPause(){if(activeGame!=='pong')return;pongPaused=!pongPaused}
 function movePong(d){if(!pongPaused)pongPlayer=Math.max(45,Math.min(555,pongPlayer+d*25))}
 function startPongMove(d){stopPongMove();movePong(d);pongHoldTimer=setTimeout(function(){pongHoldInterval=setInterval(function(){movePong(d)},60)},180)}
