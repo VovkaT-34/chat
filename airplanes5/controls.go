@@ -1,6 +1,8 @@
 package system
 
 import (
+	"math"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yohamta/donburi"
 	"github.com/yohamta/donburi/features/math"
@@ -29,23 +31,20 @@ func NewControls() *Controls {
 	}
 }
 
-// mobileDirection maps the fixed mobile buttons to the game's 480x800 coordinates.
-func mobileDirection(x, y int) (dx, dy float64, ok bool) {
-	if y < 600 {
+// mobileJoystick maps a virtual joystick on the right side to the game's 480x800 coordinates.
+// The direction is proportional to the finger's displacement from the joystick center.
+func mobileJoystick(x, y int) (dx, dy float64, ok bool) {
+	const centerX = 390.0
+	const centerY = 600.0
+	const radius = 90.0
+
+	xd := float64(x) - centerX
+	yd := float64(y) - centerY
+	distance := math.Hypot(xd, yd)
+	if distance > radius || distance < 8 {
 		return 0, 0, false
 	}
-	switch {
-	case x >= 140 && x < 340 && y >= 600 && y < 700:
-		return 0, -1, true
-	case x < 140 && y >= 600 && y < 700:
-		return -1, 0, true
-	case x >= 340 && y >= 600 && y < 700:
-		return 1, 0, true
-	case x >= 140 && x < 340 && y >= 700:
-		return 0, 1, true
-	default:
-		return 0, 0, false
-	}
+	return xd / radius, yd / radius, true
 }
 
 func (i *Controls) Update(w donburi.World) {
@@ -67,14 +66,18 @@ func (i *Controls) Update(w donburi.World) {
 		}
 
 		touch := false
+		joystickTouch := false
+		pauseTouch := false
 		var touchX, touchY int
 		touchIDs := ebiten.AppendTouchIDs(nil)
 		if len(touchIDs) > 0 {
 			touch = true
 			touchX, touchY = ebiten.TouchPosition(touchIDs[0])
-			if dx, dy, ok := mobileDirection(touchX, touchY); ok && !in.Disabled {
+			if dx, dy, ok := mobileJoystick(touchX, touchY); ok && !in.Disabled {
+				joystickTouch = true
 				velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
 			}
+			pauseTouch = touchX >= 150 && touchX < 330 && touchY >= 720
 		}
 
 		if in.Disabled {
@@ -85,9 +88,8 @@ func (i *Controls) Update(w donburi.World) {
 		player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
 		player.ShootTimer.Update()
 
-		// Touching the mobile pause button must not fire the weapon.
-		pauseTouch := touch && touchX >= 150 && touchX < 330 && touchY >= 520 && touchY < 600
-		if (ebiten.IsKeyPressed(in.ShootKey) || (touch && !pauseTouch)) && player.ShootTimer.IsReady() {
+		// Touching the mobile joystick or pause button must not fire the weapon.
+		if (ebiten.IsKeyPressed(in.ShootKey) || (touch && !joystickTouch && !pauseTouch)) && player.ShootTimer.IsReady() {
 			position := transform.Transform.Get(entry).LocalPosition
 			archetype.NewPlayerBullet(w, player, position)
 			player.ShootTimer.Reset()
