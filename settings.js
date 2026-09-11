@@ -101,14 +101,14 @@ async function loadVoiceModel() {
                 const bar = $("voiceDownloadProgress"); if (bar) bar.value = percent;
             }
         };
-        const safari = module.env && typeof module.env.isSafari === "function" ? module.env.isSafari() : /Safari/i.test(navigator.userAgent) && !/Chrome|CriOS|Android/i.test(navigator.userAgent);
-        if (!safari && navigator.gpu) options.device = "webgpu";
-        else options.device = "wasm";
+        if (navigator.gpu) { options.device = "webgpu"; options.dtype = "fp16"; }
+        else { options.device = "wasm"; options.dtype = "q8"; }
         try {
             return await module.pipeline("automatic-speech-recognition", VOICE_MODEL, options);
         } catch (error) {
             if (options.device === "webgpu") {
                 options.device = "wasm";
+                options.dtype = "q8";
                 return await module.pipeline("automatic-speech-recognition", VOICE_MODEL, options);
             }
             throw error;
