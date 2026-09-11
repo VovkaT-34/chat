@@ -20,8 +20,18 @@ canvas{display:block!important;width:100vw!important;height:100vh!important;obje
 <body>
 <script src="wasm_exec.js"></script>
 <script>
+// Совместимость с браузерами без instantiateStreaming и с серверами,
+// которые отдают .wasm без MIME application/wasm.
+if(!WebAssembly.instantiateStreaming){
+  WebAssembly.instantiateStreaming=async(resp,importObject)=>{
+    const source=await (await resp).arrayBuffer();
+    return WebAssembly.instantiate(source,importObject);
+  };
+}
 const go=new Go();
-WebAssembly.instantiateStreaming(fetch('game.wasm'),go.importObject).then(r=>go.run(r.instance));
+WebAssembly.instantiateStreaming(fetch('game.wasm'),go.importObject)
+  .then(result=>go.run(result.instance))
+  .catch(error=>console.error('Airplanes 5 WASM error:',error));
 </script>
 <div class="mobile-controls" aria-hidden="true">
   <button class="pause">Ⅱ Пауза</button>
