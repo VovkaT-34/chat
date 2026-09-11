@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>🧱 Тетрис</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="game-tetris.css">
+</head>
+<body>
+<div class="page">
+  <div class="top">
+    <button class="back" onclick="location.href='games.html'">← Игры</button>
+    <h1 class="title">🧱 Тетрис</h1>
+    <span id="tetrisScore" class="score">0</span>
+  </div>
+  <div class="tetris-wrap"><canvas id="tetrisCanvas" class="tetris-canvas" width="300" height="600"></canvas></div>
+  <div class="game-controls-wide"><div class="wide-grid">
+    <button class="mobile-pause pause-btn" onclick="toggleTetrisPause()">Пауза</button>
+    <button class="game-btn" data-tetris="left">◀</button>
+    <button class="game-btn" data-tetris="rotate">↻</button>
+    <button class="game-btn" data-tetris="right">▶</button>
+    <button class="game-btn" data-tetris="down">▼</button>
+  </div></div>
+  <p class="hint desktop-hint">Компьютер: ← → движение · ↑ поворот · ↓ вниз · Пробел — пауза</p>
+</div>
+<script>var activeGame='tetris';</script>
+<script src="game-tetris.js"></script>
+<script>startTetris();document.addEventListener('keydown',function(e){if(e.code==='Space'){e.preventDefault();toggleTetrisPause();return}if(e.code==='ArrowLeft'){e.preventDefault();moveTetris(-1)}if(e.code==='ArrowRight'){e.preventDefault();moveTetris(1)}if(e.code==='ArrowDown'){e.preventDefault();tetrisStep()}if(e.code==='ArrowUp'){e.preventDefault();rotateTetris()}});</script>
+</body>
+</html>
