@@ -65,10 +65,9 @@ const messageInput=document.getElementById("messageInput");if(messageInput){mess
                 if(bar)bar.value=percent;
                 if(value)value.textContent=Math.round(percent)+"%";
             }};
-            const safari=module.env&&typeof module.env.isSafari==="function"?module.env.isSafari():/Safari/i.test(navigator.userAgent)&&!/Chrome|CriOS|Android/i.test(navigator.userAgent);
-            if(!safari&&navigator.gpu)options.device="webgpu";else options.device="wasm";
+            if(navigator.gpu){options.device="webgpu";options.dtype="fp16";}else{options.device="wasm";options.dtype="q8";}
             try{return await module.pipeline("automatic-speech-recognition",VOICE_MODEL,options);}catch(error){
-                if(options.device==="webgpu"){options.device="wasm";return await module.pipeline("automatic-speech-recognition",VOICE_MODEL,options);}
+                if(options.device==="webgpu"){options.device="wasm";options.dtype="q8";return await module.pipeline("automatic-speech-recognition",VOICE_MODEL,options);}
                 throw error;
             }
         })().then(function(value){transcriber=value;localStorage.setItem("chat-voice-model-ready","true");return value;}).catch(function(error){transcriberPromise=null;localStorage.removeItem("chat-voice-model-ready");throw error;});
