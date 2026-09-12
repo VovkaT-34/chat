@@ -25,12 +25,13 @@ if(!WebAssembly.instantiateStreaming){
   };
 }
 
-/* Лёгкий процедурный звук — без внешних аудиофайлов. */
+/* Лёгкий процедурный звук — только во время реального игрового процесса. */
 let audioCtx=null;
 let musicTimer=null;
-let shotTimer=null;
 let musicStep=0;
 let audioStarted=false;
+let gameplayActive=false;
+let paused=false;
 
 const melody=[261.63,329.63,392.00,329.63,293.66,349.23,440.00,349.23];
 const bass=[130.81,130.81,146.83,146.83,164.81,164.81,146.83,146.83];
@@ -40,9 +41,13 @@ function ensureAudio(){
   if(audioCtx.state==='suspended') audioCtx.resume();
   if(audioStarted) return;
   audioStarted=true;
+}
 
+function startMusic(){
+  ensureAudio();
+  if(musicTimer||paused||!gameplayActive) return;
   musicTimer=setInterval(()=>{
-    if(window.__airplanes5PauseRequest) return;
+    if(paused||!gameplayActive||!audioCtx) return;
     const now=audioCtx.currentTime;
     const osc=audioCtx.createOscillator();
     const gain=audioCtx.createGain();
@@ -66,36 +71,52 @@ function ensureAudio(){
     }
     musicStep++;
   },360);
-
-  /* В игре непрерывная автоматическая стрельба; звук синхронизирован с её темпом. */
-  shotTimer=setInterval(()=>{
-    if(window.__airplanes5PauseRequest) return;
-    const now=audioCtx.currentTime;
-    const osc=audioCtx.createOscillator();
-    const gain=audioCtx.createGain();
-    osc.type='square';
-    osc.frequency.setValueAtTime(760,now);
-    osc.frequency.exponentialRampToValueAtTime(240,now+0.075);
-    gain.gain.setValueAtTime(0.045,now);
-    gain.gain.exponentialRampToValueAtTime(0.001,now+0.085);
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start(now); osc.stop(now+0.09);
-  },520);
 }
+
+function stopMusic(){
+  if(musicTimer){
+    clearInterval(musicTimer);
+    musicTimer=null;
+  }
+  if(audioCtx&&audioCtx.state==='running') audioCtx.suspend();
+}
+
+window.__airplanes5SetGameplay=function(active){
+  gameplayActive=!!active;
+  if(gameplayActive&&!paused) startMusic();
+  else stopMusic();
+};
+
+window.__airplanes5PlayShot=function(){
+  if(!gameplayActive||paused) return;
+  ensureAudio();
+  const now=audioCtx.currentTime;
+  const osc=audioCtx.createOscillator();
+  const gain=audioCtx.createGain();
+  osc.type='square';
+  osc.frequency.setValueAtTime(760,now);
+  osc.frequency.exponentialRampToValueAtTime(240,now+0.075);
+  gain.gain.setValueAtTime(0.045,now);
+  gain.gain.exponentialRampToValueAtTime(0.001,now+0.085);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(now); osc.stop(now+0.09);
+};
 
 window.__airplanes5PauseRequest=false;
 window.__airplanes5Pause=function(e){
   if(e){e.preventDefault();e.stopPropagation();}
   window.__airplanes5PauseRequest=true;
-  ensureAudio();
 };
 
-['pointerdown','touchstart','keydown'].forEach(type=>{
-  window.addEventListener(type,()=>{
-    window.__airplanes5PauseRequest=false;
-    ensureAudio();
-  },{passive:true});
-});
+window.__airplanes5SetPaused=function(value){
+  paused=!!value;
+  if(paused) stopMusic();
+  else if(gameplayActive) startMusic();
+};
+
+window.addEventListener('pointerdown',()=>ensureAudio(),{passive:true});
+window.addEventListener('touchstart',()=>ensureAudio(),{passive:true});
+window.addEventListener('keydown',()=>ensureAudio(),{passive:true});
 
 const go=new Go();
 WebAssembly.instantiateStreaming(fetch('game.wasm'),go.importObject)
