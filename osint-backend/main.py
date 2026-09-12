@@ -12,8 +12,9 @@ from maigret.sites import MaigretDatabase
 from phonenumbers import carrier, geocoder, timezone
 
 from deep_sources import domain_info, email_info, image_info, ip_info, phone_info, phone_public_search, public_search, search_links, vin_info
+from plate_sources import image_plate_search, plate_like, plate_public_search, normalize_plate
 
-app = FastAPI(title="Glaz Boga OSINT", version="0.4.0")
+app = FastAPI(title="Glaz Boga OSINT", version="0.5.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("glaz-boga")
@@ -167,13 +168,21 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["count"] = len(public_results)
             job["checked_items"] = ["Python / public web"]
         elif kind == "vin":
-            info = await vin_info(query)
-            public_results = await public_search(query, "vin")
-            job["results"] = [{"source": "Python / NHTSA vPIC", "name": "VIN-анализ", "data": info}] + public_results
-            job["total"] = len(job["results"])
-            job["checked"] = job["total"]
-            job["count"] = len(public_results)
-            job["checked_items"] = ["Python / NHTSA vPIC", "Python / public web"]
+            if plate_like(query) and not len(normalize_plate(query)) == 17:
+                public_results = await plate_public_search(query)
+                job["results"] = [{"source": "Python / public web + DuckDuckGo Images", "name": "Поиск по номеру автомобиля", "data": {"plate": normalize_plate(query)}}] + public_results
+                job["total"] = len(job["results"])
+                job["checked"] = job["total"]
+                job["count"] = len(public_results)
+                job["checked_items"] = ["Нормализация номера", "Python / public web", "DuckDuckGo Images"]
+            else:
+                info = await vin_info(query)
+                public_results = await public_search(query, "vin")
+                job["results"] = [{"source": "Python / NHTSA vPIC", "name": "VIN-анализ", "data": info}] + public_results
+                job["total"] = len(job["results"])
+                job["checked"] = job["total"]
+                job["count"] = len(public_results)
+                job["checked_items"] = ["Python / NHTSA vPIC", "Python / public web"]
         elif kind == "domain":
             info = await domain_info(query)
             public_results = await public_search(query, "domain")
@@ -192,11 +201,16 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["checked_items"] = ["Python / ipaddress", "RDAP", "BGPView", "Python / public web"]
         elif kind == "image":
             info = await image_info(query)
-            job["results"] = [{"source": "Python / Pillow", "name": "Анализ изображения", "data": info}]
-            job["total"] = 1
-            job["checked"] = 1
-            job["count"] = 1 if "error" not in info else 0
-            job["checked_items"] = ["Python / Pillow"]
+            plate_scan = await image_plate_search(query)
+            extracted = plate_scan.get("plates") or []
+            plate_results = []
+            for plate in extracted[:3]:
+                plate_results.extend(await plate_public_search(plate, max_results=8))
+            job["results"] = [{"source": "Python / Pillow + RapidOCR", "name": "Анализ изображения и распознавание номера", "data": {**info, **plate_scan}}] + plate_results
+            job["total"] = len(job["results"])
+            job["checked"] = job["total"]
+            job["count"] = len(plate_results) + (1 if "error" not in info else 0)
+            job["checked_items"] = ["Python / Pillow", "RapidOCR / ONNX Runtime", "Поиск по распознанному номеру"]
         else:
             raise ValueError("Неизвестный тип глубокого поиска")
         job["status"] = "done"
