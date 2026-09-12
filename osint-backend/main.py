@@ -12,7 +12,7 @@ from maigret.sites import MaigretDatabase
 from phonenumbers import carrier, geocoder, timezone
 
 from deep_sources import domain_info, email_info, image_info, ip_info, phone_info, phone_public_search, public_search, search_links, vin_info
-from extended_search import extended_public_search
+from extended_search import extended_public_search, SOURCES_RU, SOURCES_FOREIGN
 from plate_sources import image_plate_search, plate_like, plate_public_search, normalize_plate
 
 app = FastAPI(title="Glaz Boga OSINT", version="0.5.1")
@@ -180,11 +180,12 @@ async def run_deep_job(job_id: str, kind: str, query: str):
                 job["results"] = list(results)
                 job["checked_items"] = [current]
             public_results = await extended_public_search(query, "email", max_results=30, progress=progress)
+            total_sources = len(SOURCES_RU["email"]) + len(SOURCES_FOREIGN["email"])
             job["results"] = public_results
-            job["total"] = 18
-            job["checked"] = 18
+            job["total"] = total_sources
+            job["checked"] = total_sources
             job["count"] = len(public_results)
-            job["checked_items"] = ["Готово: российские и зарубежные публичные сайты"]
+            job["checked_items"] = [f"Готово: Россия + иностранные публичные сайты ({total_sources})"]
         elif kind == "phone_extended":
             def progress(checked, total, current, results):
                 job["checked"] = checked
@@ -193,11 +194,12 @@ async def run_deep_job(job_id: str, kind: str, query: str):
                 job["results"] = list(results)
                 job["checked_items"] = [current]
             public_results = await extended_public_search(query, "phone", max_results=30, progress=progress)
+            total_sources = len(SOURCES_RU["phone"]) + len(SOURCES_FOREIGN["phone"])
             job["results"] = public_results
-            job["total"] = 17
-            job["checked"] = 17
+            job["total"] = total_sources
+            job["checked"] = total_sources
             job["count"] = len(public_results)
-            job["checked_items"] = ["Готово: российские и зарубежные публичные сайты"]
+            job["checked_items"] = [f"Готово: Россия + иностранные публичные сайты ({total_sources})"]
         elif kind == "person":
             public_results = await public_search(query, "person")
             job["results"] = public_results
