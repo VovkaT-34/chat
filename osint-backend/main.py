@@ -7,23 +7,30 @@ import logging
 import phonenumbers
 from phonenumbers import geocoder, carrier, timezone
 
-app = FastAPI(title="Glaz Boga OSINT", version="0.1.4")
+app = FastAPI(title="Glaz Boga OSINT", version="0.1.5")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("glaz-boga")
 MAIGRET_DATA = files("maigret").joinpath("resources", "data.json")
-DB = MaigretDatabase().load_from_path(str(MAIGRET_DATA))
-# Maigret's search API expects a dict. Use the complete database for maximum coverage.
-SITES = DB.sites_dict
+DB = None
+SITES = None
+
+def get_sites():
+    global DB, SITES
+    if SITES is None:
+        DB = MaigretDatabase().load_from_path(str(MAIGRET_DATA))
+        SITES = DB.sites_dict
+    return SITES
 
 @app.get("/health")
 def health():
-    return {"ok": True, "engine": "maigret", "sites": len(SITES)}
+    return {"ok": True, "engine": "maigret"}
 
 @app.get("/username")
 async def username(q: str = Query(min_length=1, max_length=64)):
-    results = await maigret_search(username=q, site_dict=SITES, logger=logger, timeout=20, is_parsing_enabled=True, max_connections=100, no_progressbar=True)
+    sites = get_sites()
+    results = await maigret_search(username=q, site_dict=sites, logger=logger, timeout=20, is_parsing_enabled=True, max_connections=100, no_progressbar=True)
     out = []
     for name, data in results.items():
         status = data.get("status")
