@@ -87,7 +87,7 @@
 @media (max-width: 900px) {
     .top-actions { overflow: visible !important; }
     .coin-1c {
-        left: 0 !important;
+        left: -10px !important;
         transform: translate(0, -50%) scale(.32) !important;
     }
 }
@@ -111,7 +111,7 @@
 /* Только Windows: монета в 2 раза меньше. */
 @media (min-width: 901px) {
     .coin-1c {
-        left: 0 !important;
+        left: -10px !important;
         transform: translate(0, -50%) scale(.40) !important;
     }
 }
