@@ -34,8 +34,8 @@ func NewControls() *Controls {
 	}
 }
 
-// Fixed mobile joystick on the lower-right.
-// The same finger remains captured even after leaving the visible circle.
+// Invisible mobile joystick on the lower-right.
+// The sensor remains active, but no joystick is drawn on screen.
 func mobileJoystick(x, y int) (dx, dy float64, ok bool) {
 	const centerX = 390.0
 	const centerY = 610.0
@@ -86,6 +86,18 @@ func (i *Controls) Update(w donburi.World) {
 		var touchX, touchY int
 		touchIDs := ebiten.AppendTouchIDs(nil)
 
+		if len(touchIDs) > 0 {
+			touch = true
+			// Pause button occupies the full-width bottom strip of the 480x800 game.
+			for _, id := range touchIDs {
+				x, y := ebiten.TouchPosition(id)
+				if x >= 0 && x < 480 && y >= 720 && y < 800 {
+					pauseTouch = true
+					break
+				}
+			}
+		}
+
 		if !i.joystickActive {
 			for _, id := range touchIDs {
 				x, y := ebiten.TouchPosition(id)
@@ -117,11 +129,6 @@ func (i *Controls) Update(w donburi.World) {
 			}
 		}
 
-		if len(touchIDs) > 0 {
-			touch = true
-		}
-		pauseTouch = touch && touchX >= 150 && touchX < 330 && touchY >= 720
-
 		if in.Disabled {
 			return
 		}
@@ -130,9 +137,8 @@ func (i *Controls) Update(w donburi.World) {
 		player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
 		player.ShootTimer.Update()
 
-		// On mobile, holding the movement joystick also fires continuously,
-		// matching the original touch-shoot behavior of the game.
-		if (ebiten.IsKeyPressed(in.ShootKey) || (joystickTouch && !pauseTouch) || (touch && !joystickTouch && !pauseTouch)) && player.ShootTimer.IsReady() {
+		// Continuous fire: the airplane shoots automatically whenever the game is running.
+		if !pauseTouch && player.ShootTimer.IsReady() {
 			position := transform.Transform.Get(entry).LocalPosition
 			archetype.NewPlayerBullet(w, player, position)
 			player.ShootTimer.Reset()
