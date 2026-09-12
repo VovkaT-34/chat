@@ -1,7 +1,7 @@
 """Safe public-source deep OSINT helpers for Glaz Boga."""
 
 import re
-from urllib.parse import quote, urljoin
+from urllib.parse import quote
 
 import httpx
 import phonenumbers
@@ -48,36 +48,33 @@ def phone_info(value: str) -> dict:
 
 
 async def phone_public_search(value: str) -> list[dict]:
-    """Fetch public search results server-side instead of sending the user to a search page."""
-    variants = {value.strip()}
+    """Deep phone analysis through the installed Python phonenumbers library.
+
+    This function intentionally does not redirect the user to a search engine.
+    It returns concrete, locally computed findings from the parsed number.
+    """
     info = phone_info(value)
-    for key in ("international", "e164", "national"):
-        if info.get(key):
-            variants.add(info[key])
-    results = []
-    seen = set()
-    headers = {"User-Agent": "Mozilla/5.0 (compatible; GlazBogaOSINT/1.0)"}
-    async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, headers=headers) as client:
-        for variant in list(variants)[:4]:
-            url = "https://html.duckduckgo.com/html/?q=" + quote(f'"{variant}"')
-            try:
-                response = await client.get(url)
-                if not response.is_success:
-                    continue
-                html = response.text
-                for match in re.finditer(r'class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', html, re.I | re.S):
-                    href = match.group(1)
-                    title = re.sub(r"<[^>]+>", "", match.group(2)).strip()
-                    href = urljoin("https://html.duckduckgo.com/", href)
-                    if href in seen or not href.startswith(("http://", "https://")):
-                        continue
-                    seen.add(href)
-                    results.append({"source": "DuckDuckGo", "name": title or href, "url": href, "query": variant})
-                    if len(results) >= 30:
-                        return results
-            except Exception:
-                continue
-    return results
+    if info.get("error"):
+        return [{"source": "Python / phonenumbers", "name": f"Ошибка разбора номера: {info['error']}", "kind": "error"}]
+
+    labels = [
+        ("Формат E.164", info.get("e164")),
+        ("Международный формат", info.get("international")),
+        ("Национальный формат", info.get("national")),
+        ("Страна", info.get("country")),
+        ("Код страны", info.get("country_code")),
+        ("Регион", info.get("location")),
+        ("Оператор", info.get("carrier")),
+        ("Часовые зоны", ", ".join(info.get("timezones") or [])),
+        ("Тип номера", info.get("type")),
+        ("Номер возможен", "Да" if info.get("possible") else "Нет"),
+        ("Номер валиден", "Да" if info.get("valid") else "Нет"),
+    ]
+    return [
+        {"source": "Python / phonenumbers", "name": f"{label}: {value}", "kind": "phone_metadata"}
+        for label, value in labels
+        if value not in (None, "", [])
+    ]
 
 
 def validate_vin(value: str) -> bool:
