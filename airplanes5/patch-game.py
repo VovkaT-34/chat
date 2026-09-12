@@ -1,10 +1,23 @@
 from pathlib import Path
+import re
 
 p = Path('/tmp/airplanes/scene/game.go')
 s = p.read_text()
-s = s.replace('import (\n\t"time"', 'import (\n\t"time"\n\t"syscall/js"', 1)
-old = "\tif inpututil.IsKeyJustPressed(ebiten.KeyEscape) {\n\t\tgameData.Paused = !gameData.Paused\n\t}\n\tif gameData.Paused {\n\t\treturn\n\t}\n"
-new = """\tif inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+
+if '"syscall/js"' not in s:
+    s = s.replace('import (\n\t"time"', 'import (\n\t"time"\n\t"syscall/js"', 1)
+
+pattern = re.compile(
+    r'func \(g \*Game\) Update\(\) \{\n'
+    r'\tgameData := component\.MustFindGame\(g\.world\)\n'
+    r'.*?'
+    r'\tif gameData\.Paused \{\n\t\treturn\n\t\}\n',
+    re.DOTALL,
+)
+
+replacement = '''func (g *Game) Update() {
+\tgameData := component.MustFindGame(g.world)
+\tif inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 \t\tgameData.Paused = !gameData.Paused
 \t}
 \tif js.Global().Get("__airplanes5PauseRequest").Truthy() {
@@ -15,7 +28,10 @@ new = """\tif inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 \tif gameData.Paused {
 \t\treturn
 \t}
-"""
-if old not in s:
-    raise SystemExit('pause handler insertion point not found')
-p.write_text(s.replace(old, new, 1))
+'''
+
+s, count = pattern.subn(replacement, s, count=1)
+if count != 1:
+    raise SystemExit('Update pause block not found')
+
+p.write_text(s)
