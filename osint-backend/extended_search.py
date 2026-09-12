@@ -63,6 +63,21 @@ SOURCES_RU = {
         ("Яндекс Маркет", "market.yandex.ru"), ("Яндекс Карты", "yandex.ru"),
         ("Telegram Public", "t.me"), ("Rutube", "rutube.ru"), ("YouTube RU", "youtube.com"),
     ],
+    "person": [
+        ("Яндекс", "yandex.ru"), ("Mail.ru", "mail.ru"), ("VK", "vk.com"), ("VK RU", "vk.ru"),
+        ("Одноклассники", "ok.ru"), ("Дзен", "dzen.ru"), ("Пикабу", "pikabu.ru"),
+        ("Habr", "habr.com"), ("VC.ru", "vc.ru"), ("LiveJournal", "livejournal.com"),
+        ("Proza.ru", "proza.ru"), ("Стихи.ру", "stihi.ru"), ("Author.Today", "author.today"),
+        ("LiveLib", "livelib.ru"), ("Avito", "avito.ru"), ("Юла", "youla.ru"),
+        ("FarPost", "farpost.ru"), ("2ГИС", "2gis.ru"), ("Zoon", "zoon.ru"),
+        ("Yell", "yell.ru"), ("Flamp", "flamp.ru"), ("ProDoctorov", "prodoctorov.ru"),
+        ("HeadHunter", "hh.ru"), ("SuperJob", "superjob.ru"), ("Rabota.ru", "rabota.ru"),
+        ("Зарплата.ру", "zarplata.ru"), ("Работа России", "trudvsem.ru"), ("ГородРабот", "gorodrabot.ru"),
+        ("Geekjob", "geekjob.ru"), ("Профи", "profi.ru"), ("YouDo", "youdo.com"),
+        ("Auto.ru", "auto.ru"), ("Drom", "drom.ru"), ("Ozon", "ozon.ru"),
+        ("Wildberries", "wildberries.ru"), ("Яндекс Карты", "yandex.ru"), ("Telegram Public", "t.me"),
+        ("Rutube", "rutube.ru"), ("YouTube RU", "youtube.com"), ("Российские форумы", "forumavia.ru"),
+    ],
 }
 
 SOURCES_FOREIGN = {
@@ -84,6 +99,13 @@ SOURCES_FOREIGN = {
         ("Blogger", "blogspot.com"), ("Pastebin", "pastebin.com"), ("Gist", "gist.github.com"),
         ("GitBook", "gitbook.io"), ("Bitbucket", "bitbucket.org"), ("CodePen", "codepen.io"),
         ("Quora", "quora.com"), ("Facebook", "facebook.com"), ("X", "x.com"),
+    ],
+    "person": [
+        ("GitHub", "github.com"), ("GitLab", "gitlab.com"), ("Reddit", "reddit.com"),
+        ("LinkedIn", "linkedin.com"), ("Stack Overflow", "stackoverflow.com"),
+        ("Stack Exchange", "stackexchange.com"), ("Medium", "medium.com"), ("Dev.to", "dev.to"),
+        ("WordPress", "wordpress.com"), ("Blogger", "blogspot.com"), ("Quora", "quora.com"),
+        ("Facebook", "facebook.com"), ("X", "x.com"), ("YouTube", "youtube.com"),
     ],
 }
 
@@ -111,8 +133,8 @@ def _phone_variants(value: str) -> list[str]:
 
 
 def _query_for(kind: str, value: str, domain: str | None = None) -> str:
-    if kind == "email":
-        base = f'"{value.lower()}"'
+    if kind in {"email", "person"}:
+        base = f'"{value.strip().lower() if kind == "email" else value.strip()}"'
     else:
         variants = _phone_variants(value)
         base = " OR ".join(f'"{variant}"' for variant in variants[:4])
@@ -120,8 +142,8 @@ def _query_for(kind: str, value: str, domain: str | None = None) -> str:
 
 
 def _engine_queries(kind: str, value: str) -> list[str]:
-    if kind == "email":
-        return [f'"{value.strip().lower()}"']
+    if kind in {"email", "person"}:
+        return [f'"{value.strip().lower() if kind == "email" else value.strip()}"']
     return [f'"{v}"' for v in _phone_variants(value)[:4]]
 
 
@@ -200,8 +222,9 @@ async def _multi_engine_search(kind: str, value: str) -> list[dict]:
 
 def _relevant(kind: str, query: str, title: str, body: str, href: str) -> bool:
     haystack = " ".join((title, body, href)).lower()
-    if kind == "email":
-        return query.strip().lower() in haystack
+    if kind in {"email", "person"}:
+        wanted = query.strip().lower()
+        return bool(wanted and wanted in haystack)
     wanted = re.sub(r"\D", "", query)
     found = re.sub(r"\D", "", haystack)
     return bool(wanted and wanted in found)
@@ -214,7 +237,7 @@ async def _verify_page(kind: str, query: str, url: str) -> bool:
         if not response.is_success:
             return False
         text = response.text[:2_000_000].lower()
-        if kind == "email":
+        if kind in {"email", "person"}:
             return query.strip().lower() in text
         wanted = re.sub(r"\D", "", query)
         compact = re.sub(r"\D", "", text)
