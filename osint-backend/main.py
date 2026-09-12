@@ -12,6 +12,7 @@ from maigret.sites import MaigretDatabase
 from phonenumbers import carrier, geocoder, timezone
 
 from deep_sources import domain_info, email_info, image_info, ip_info, phone_info, phone_public_search, public_search, search_links, vin_info
+from extended_search import extended_public_search
 from plate_sources import image_plate_search, plate_like, plate_public_search, normalize_plate
 
 app = FastAPI(title="Glaz Boga OSINT", version="0.5.1")
@@ -172,19 +173,31 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["count"] = len(public_results)
             job["checked_items"] = ["email-validator", "DNS/MX/TXT/DMARC", "Python / public web"]
         elif kind == "email_extended":
-            public_results = await public_search(query, "email", max_results=30)
+            def progress(checked, total, current, results):
+                job["checked"] = checked
+                job["total"] = total
+                job["count"] = len(results)
+                job["results"] = list(results)
+                job["checked_items"] = [current]
+            public_results = await extended_public_search(query, "email", max_results=30, progress=progress)
             job["results"] = public_results
-            job["total"] = len(public_results)
-            job["checked"] = job["total"]
+            job["total"] = 18
+            job["checked"] = 18
             job["count"] = len(public_results)
-            job["checked_items"] = ["Расширенный публичный поиск email", "Python / public web", "Индексируемые страницы популярных сайтов"]
+            job["checked_items"] = ["Готово: российские и зарубежные публичные сайты"]
         elif kind == "phone_extended":
-            public_results = await public_search(query, "phone", max_results=30)
+            def progress(checked, total, current, results):
+                job["checked"] = checked
+                job["total"] = total
+                job["count"] = len(results)
+                job["results"] = list(results)
+                job["checked_items"] = [current]
+            public_results = await extended_public_search(query, "phone", max_results=30, progress=progress)
             job["results"] = public_results
-            job["total"] = len(public_results)
-            job["checked"] = job["total"]
+            job["total"] = 17
+            job["checked"] = 17
             job["count"] = len(public_results)
-            job["checked_items"] = ["Расширенный публичный поиск телефона", "Python / public web", "Индексируемые страницы популярных сайтов"]
+            job["checked_items"] = ["Готово: российские и зарубежные публичные сайты"]
         elif kind == "person":
             public_results = await public_search(query, "person")
             job["results"] = public_results
@@ -239,6 +252,9 @@ async def run_deep_job(job_id: str, kind: str, query: str):
         else:
             raise ValueError("Неизвестный тип глубокого поиска")
         job["status"] = "done"
+    except asyncio.CancelledError:
+        job["status"] = "cancelled"
+        raise
     except Exception as exc:
         logger.exception("Deep job failed: %s", exc)
         job["status"] = "error"
