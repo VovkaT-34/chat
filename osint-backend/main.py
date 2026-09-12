@@ -147,11 +147,11 @@ async def run_deep_job(job_id: str, kind: str, query: str):
         elif kind == "phone":
             metadata = phone_info(query)
             public_results = await phone_public_search(query)
-            job["results"] = [{"source": "Phone metadata (phonenumbers)", "data": metadata}] + public_results
-            job["total"] = 1 + len(public_results)
-            job["checked"] = job["total"]
+            job["results"] = public_results
+            job["total"] = len(public_results)
+            job["checked"] = len(public_results)
             job["count"] = len(public_results)
-            job["checked_items"] = ["phonenumbers"] + [f"DuckDuckGo: {x.get('name', 'результат')}" for x in public_results[:20]]
+            job["checked_items"] = ["Python / phonenumbers"]
         elif kind == "email":
             job["results"] = [{"source": "Public-source search", "data": "Публичные упоминания"}] + search_links(query, "email")
             job["total"] = len(job["results"])
