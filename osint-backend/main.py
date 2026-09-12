@@ -11,7 +11,7 @@ from maigret import search as maigret_search
 from maigret.sites import MaigretDatabase
 from phonenumbers import carrier, geocoder, timezone
 
-app = FastAPI(title="Glaz Boga OSINT", version="0.2.4")
+app = FastAPI(title="Glaz Boga OSINT", version="0.2.5")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("glaz-boga")
@@ -20,8 +20,8 @@ DB = None
 SITES = None
 JOBS = {}
 ACTIVE_JOB_ID = None
-BATCH_SIZE = 25
-MAX_CONNECTIONS = 8
+BATCH_SIZE = 10
+MAX_CONNECTIONS = 4
 REQUEST_TIMEOUT = 3
 JOB_TTL = 1800
 
@@ -60,7 +60,7 @@ async def run_username_job(job_id: str, username: str, sites):
                     found[name] = {"name": name, "url": data.get("url_user"), "http_status": data.get("http_status"), "rank": data.get("rank"), "ids_data": data.get("ids_data", {})}
             job["checked"] = min(offset + len(batch), len(items))
             job["results"] = list(found.values())
-            await asyncio.sleep(0.15)
+            await asyncio.sleep(0.25)
         job["status"] = "done"
     except Exception as exc:
         logger.exception("Maigret job failed: %s", exc)
