@@ -1,13 +1,14 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from maigret import search as maigret_search
+from maigret.result import QueryStatus
 from maigret.sites import MaigretDatabase
 from importlib.resources import files
 import logging
 import phonenumbers
 from phonenumbers import geocoder, carrier, timezone
 
-app = FastAPI(title="Glaz Boga OSINT", version="0.1.0")
+app = FastAPI(title="Glaz Boga OSINT", version="0.1.1")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
 
 logging.basicConfig(level=logging.INFO)
@@ -26,7 +27,7 @@ async def username(q: str = Query(min_length=1, max_length=64)):
     out = []
     for name, data in results.items():
         status = data.get("status")
-        if not (status and status.is_found()):
+        if not status or status.status != QueryStatus.CLAIMED:
             continue
         out.append({"name": name, "url": data.get("url_user"), "http_status": data.get("http_status"), "rank": data.get("rank"), "ids_data": data.get("ids_data", {})})
     return {"type": "username", "query": q, "count": len(out), "checked": len(results), "results": out}
