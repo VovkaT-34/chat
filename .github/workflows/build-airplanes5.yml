@@ -40,6 +40,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp airplanes5/game.wasm /tmp/airplanes5-game.wasm
+          cp airplanes5/wasm_exec.js /tmp/airplanes5-wasm_exec.js
+          git fetch origin main
+          git reset --hard origin/main
+          cp /tmp/airplanes5-game.wasm airplanes5/game.wasm
+          cp /tmp/airplanes5-wasm_exec.js airplanes5/wasm_exec.js
           git add airplanes5/game.wasm airplanes5/wasm_exec.js
           if git diff --cached --quiet; then
             echo "No generated changes."
