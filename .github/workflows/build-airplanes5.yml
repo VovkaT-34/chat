@@ -1,5 +1,6 @@
 name: Build Airplanes 5
 
+# Rebuild the generated WASM after Airplanes 5 source changes.
 on:
   push:
     branches: [main]
