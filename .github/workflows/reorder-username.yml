@@ -1,0 +1,30 @@
+name: Reorder Glaz Boga username engines
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  reorder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reorder username options
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path("game-glaz-boga.html")
+          s = p.read_text(encoding="utf-8")
+          old = '<option value="username_sherlock">Username — Sherlock (быстрый)</option><option value="username">Username — Maigret (глубокий)</option><option value="username_wmn">Username — WhatsMyName</option>'
+          new = '<option value="username_sherlock">Username — Sherlock (быстрый)</option><option value="username_wmn">Username — WhatsMyName</option><option value="username">Username — Maigret (глубокий)</option>'
+          if old not in s:
+              raise SystemExit("username order pattern not found")
+          p.write_text(s.replace(old, new, 1), encoding="utf-8")
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add game-glaz-boga.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Reorder username engines"
+          git push
