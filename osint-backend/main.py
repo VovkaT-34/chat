@@ -26,9 +26,7 @@ async def username(q: str = Query(min_length=1, max_length=64)):
     out = []
     for name, data in results.items():
         status = data.get("status")
-        state = getattr(status, "status", None) if status else None
-        state_name = getattr(state, "name", str(state).split(".")[-1] if state is not None else "")
-        if state_name != "CLAIMED":
+        if not (status and status.is_found()):
             continue
         out.append({"name": name, "url": data.get("url_user"), "http_status": data.get("http_status"), "rank": data.get("rank"), "ids_data": data.get("ids_data", {})})
     return {"type": "username", "query": q, "count": len(out), "checked": len(results), "results": out}
