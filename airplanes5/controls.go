@@ -14,7 +14,9 @@ import (
 )
 
 type Controls struct {
-	query *donburi.Query
+	query          *donburi.Query
+	joystickTouch  ebiten.TouchID
+	joystickActive bool
 }
 
 func NewControls() *Controls {
@@ -28,23 +30,36 @@ func NewControls() *Controls {
 				component.PlayerAirplane,
 			),
 		),
+		joystickTouch: -1,
 	}
 }
 
-// mobileJoystick maps a virtual joystick on the right side to the game's 480x800 coordinates.
-// The direction is proportional to the finger's displacement from the joystick center.
+// Fixed mobile joystick, positioned in the lower-left like common mobile games.
+// The finger may leave the circle after activation; the same touch keeps controlling it.
 func mobileJoystick(x, y int) (dx, dy float64, ok bool) {
-	const centerX = 390.0
-	const centerY = 600.0
-	const radius = 90.0
+	const centerX = 90.0
+	const centerY = 610.0
+	const activationRadius = 120.0
+	const maxRadius = 90.0
+	const deadZone = 12.0
 
 	xd := float64(x) - centerX
 	yd := float64(y) - centerY
 	distance := stdmath.Hypot(xd, yd)
-	if distance > radius || distance < 8 {
+	if distance > activationRadius {
 		return 0, 0, false
 	}
-	return xd / radius, yd / radius, true
+	if distance <= deadZone {
+		return 0, 0, true
+	}
+	if distance > maxRadius {
+		scale := maxRadius / distance
+		xd *= scale
+		yd *= scale
+		distance = maxRadius
+	}
+	strength := (distance - deadZone) / (maxRadius - deadZone)
+	return (xd / distance) * strength, (yd / distance) * strength, true
 }
 
 func (i *Controls) Update(w donburi.World) {
@@ -70,15 +85,44 @@ func (i *Controls) Update(w donburi.World) {
 		pauseTouch := false
 		var touchX, touchY int
 		touchIDs := ebiten.AppendTouchIDs(nil)
+
+		// Capture the first finger that starts on the fixed joystick.
+		if !i.joystickActive {
+			for _, id := range touchIDs {
+				x, y := ebiten.TouchPosition(id)
+				if _, _, ok := mobileJoystick(x, y); ok {
+					i.joystickTouch = id
+					i.joystickActive = true
+					break
+				}
+			}
+		}
+
+		// Keep following that exact finger until it is released.
+		if i.joystickActive {
+			found := false
+			for _, id := range touchIDs {
+				if id == i.joystickTouch {
+					touchX, touchY = ebiten.TouchPosition(id)
+					found = true
+					break
+				}
+			}
+			if found {
+				if dx, dy, ok := mobileJoystick(touchX, touchY); ok && !in.Disabled {
+					joystickTouch = true
+					velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
+				}
+			} else {
+				i.joystickActive = false
+				i.joystickTouch = -1
+			}
+		}
+
 		if len(touchIDs) > 0 {
 			touch = true
-			touchX, touchY = ebiten.TouchPosition(touchIDs[0])
-			if dx, dy, ok := mobileJoystick(touchX, touchY); ok && !in.Disabled {
-				joystickTouch = true
-				velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
-			}
-			pauseTouch = touchX >= 150 && touchX < 330 && touchY >= 720
 		}
+		pauseTouch = touch && touchX >= 150 && touchX < 330 && touchY >= 720
 
 		if in.Disabled {
 			return
@@ -88,7 +132,7 @@ func (i *Controls) Update(w donburi.World) {
 		player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
 		player.ShootTimer.Update()
 
-		// Touching the mobile joystick or pause button must not fire the weapon.
+		// The movement joystick and pause area must not trigger shooting.
 		if (ebiten.IsKeyPressed(in.ShootKey) || (touch && !joystickTouch && !pauseTouch)) && player.ShootTimer.IsReady() {
 			position := transform.Transform.Get(entry).LocalPosition
 			archetype.NewPlayerBullet(w, player, position)
