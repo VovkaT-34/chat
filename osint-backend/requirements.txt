@@ -1,6 +1,7 @@
 fastapi==0.116.1
 uvicorn[standard]==0.35.0
 maigret==0.6.5
+sherlock-project==0.14.3
 httpx==0.28.1
 phonenumbers==9.0.13
 dnspython==2.8.0
