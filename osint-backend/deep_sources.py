@@ -171,22 +171,116 @@ async def public_search(query: str, kind: str, max_results: int = 20) -> list[di
                     if href.startswith("//"):
                         href = "https:" + href
                     parsed = urlparse(href)
-                    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+                    uddg = parse_qs(parsed.query).get("uddg", [None])[0]
+                    if uddg:
+                        href = unquote(uddg)
+                    if not href.startswith(("http://", "https://")) or href in seen:
                         continue
-                    title = re.sub(r"<[^>]+>", " ", html_lib.unescape(raw_title))
-                    title = re.sub(r"\s+", " ", title).strip()
-                    key = href.rstrip("/")
-                    if key in seen:
+                    title = re.sub(r"\s+", " ", html_lib.unescape(re.sub(r"<[^>]+>", " ", raw_title))).strip()
+                    if not title:
                         continue
-                    seen.add(key)
-                    results.append({
-                        "source": f"Публичное упоминание: {parsed.hostname or 'web'}",
-                        "name": title or href,
-                        "url": href,
-                        "kind": f"{kind}_public",
-                    })
+                    seen.add(href)
+                    source = "Python / public web"
+                    if kind == "email":
+                        source = f"Публичное упоминание email: {title}"
+                    elif kind == "phone":
+                        source = f"Публичное упоминание: {title}"
+                    results.append({"source": source, "name": title, "url": href, "snippet": "", "kind": f"{kind}_public"})
                     if len(results) >= max_results:
                         return results
             except Exception:
                 continue
     return results
+
+
+async def email_info(value: str) -> dict:
+    email = value.strip()
+    result = {"query": email}
+    try:
+        parsed = validate_email(email, check_deliverability=False)
+        result.update({"valid_syntax": True, "normalized": parsed.normalized, "domain": parsed.domain, "local_part": parsed.local_part})
+        domain = parsed.domain
+    except EmailNotValidError as exc:
+        return {"query": email, "valid_syntax": False, "error": str(exc)}
+    resolver = dns.resolver.Resolver(); resolver.timeout = 3; resolver.lifetime = 3
+    for record in ("MX", "A", "AAAA", "TXT"):
+        try:
+            answers = await asyncio.to_thread(resolver.resolve, domain, record)
+            result[record.lower()] = [str(answer).strip().strip('"') for answer in answers][:20]
+        except Exception:
+            result[record.lower()] = []
+    try:
+        answers = await asyncio.to_thread(resolver.resolve, f"_dmarc.{domain}", "TXT")
+        result["dmarc"] = [str(a).strip('"') for a in answers][:10]
+    except Exception:
+        result["dmarc"] = []
+    return result
+
+
+async def vin_info(value: str) -> dict:
+    vin = value.strip().upper()
+    if not re.fullmatch(r"[A-HJ-NPR-Z0-9]{17}", vin):
+        return {"valid_format": False, "error": "VIN должен содержать 17 символов без I, O и Q"}
+    url = f"https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/{quote(vin)}?format=json"
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
+            response = await client.get(url); response.raise_for_status(); row = (response.json().get("Results") or [{}])[0]
+        fields = ["Make", "Model", "ModelYear", "VehicleType", "BodyClass", "EngineCylinders", "FuelTypePrimary"]
+        return {"valid_format": True, "source": "Python / NHTSA vPIC", "data": {k: row.get(k) for k in fields if row.get(k)}}
+    except Exception as exc:
+        return {"valid_format": True, "source": "Python / NHTSA vPIC", "error": str(exc)}
+
+
+async def domain_info(domain: str) -> dict:
+    domain = domain.strip().lower().removeprefix("https://").removeprefix("http://").split("/")[0]
+    result = {"query": domain, "dns": {}, "certificates": []}
+    resolver = dns.resolver.Resolver(); resolver.timeout = 3; resolver.lifetime = 3
+    for record in ("A", "AAAA", "MX", "NS", "TXT", "CNAME"):
+        try:
+            answers = await asyncio.to_thread(resolver.resolve, domain, record); result["dns"][record] = [str(a).strip('"') for a in answers][:20]
+        except Exception: result["dns"][record] = []
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
+            cert, rdap = await asyncio.gather(client.get(f"https://crt.sh/?q={quote(domain)}&output=json"), client.get(f"https://rdap.org/domain/{quote(domain)}"), return_exceptions=True)
+        if not isinstance(cert, Exception) and cert.is_success:
+            names = set()
+            for item in cert.json()[:200]: names.update(x.strip().lower() for x in str(item.get("name_value", "")).splitlines() if x.strip())
+            result["certificates"] = sorted(names)[:100]
+        if not isinstance(rdap, Exception) and rdap.is_success:
+            data = rdap.json(); result["rdap"] = {"name": data.get("ldhName"), "status": data.get("status", [])}
+    except Exception as exc: result["error"] = str(exc)
+    return result
+
+
+async def ip_info(ip: str) -> dict:
+    result = {"query": ip.strip()}
+    try:
+        import ipaddress; result["version"] = ipaddress.ip_address(ip.strip()).version
+    except ValueError:
+        result["valid"] = False; return result
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
+            rdap, bgp = await asyncio.gather(client.get(f"https://rdap.org/ip/{quote(ip.strip())}"), client.get(f"https://api.bgpview.io/ip/{quote(ip.strip())}"), return_exceptions=True)
+        if not isinstance(rdap, Exception) and rdap.is_success:
+            data = rdap.json(); result["rdap"] = {"name": data.get("name"), "country": data.get("country"), "handle": data.get("handle")}
+        if not isinstance(bgp, Exception) and bgp.is_success:
+            data = bgp.json().get("data", {}); prefix = (data.get("prefixes") or [{}])[0]; asn = prefix.get("asn") or {}
+            result["bgp"] = {"prefix": prefix.get("prefix"), "asn": asn.get("asn"), "name": asn.get("name")}
+    except Exception as exc:
+        result["error"] = str(exc)
+    return result
+
+
+async def image_info(value: str) -> dict:
+    url = value.strip(); result = {"query": url}
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, headers=HEADERS) as client:
+            response = await client.get(url); response.raise_for_status()
+        result["content_type"] = response.headers.get("content-type", ""); result["size_bytes"] = len(response.content)
+        with Image.open(io.BytesIO(response.content)) as image:
+            result["format"] = image.format; result["width"] = image.width; result["height"] = image.height; result["mode"] = image.mode
+            exif = image.getexif()
+            if exif: result["exif"] = {str(k): str(v) for k, v in list(exif.items())[:30]}
+    except (UnidentifiedImageError, OSError) as exc: result["error"] = f"Не удалось распознать изображение: {exc}"
+    except Exception as exc: result["error"] = str(exc)
+    return result
