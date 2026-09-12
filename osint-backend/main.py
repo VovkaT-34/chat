@@ -11,7 +11,7 @@ from maigret import search as maigret_search
 from maigret.sites import MaigretDatabase
 from phonenumbers import carrier, geocoder, timezone
 
-app = FastAPI(title="Glaz Boga OSINT", version="0.2.0")
+app = FastAPI(title="Glaz Boga OSINT", version="0.2.1")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
 
 logging.basicConfig(level=logging.INFO)
@@ -22,7 +22,8 @@ SITES = None
 JOBS = {}
 ACTIVE_JOB_ID = None
 BATCH_SIZE = 100
-MAX_CONNECTIONS = 20
+MAX_CONNECTIONS = 10
+REQUEST_TIMEOUT = 5
 JOB_TTL = 1800
 
 
@@ -47,11 +48,10 @@ def health():
     return {"ok": True, "engine": "maigret"}
 
 
-async def run_username_job(job_id: str, username: str):
+async def run_username_job(job_id: str, username: str, sites):
     global ACTIVE_JOB_ID
     job = JOBS[job_id]
     try:
-        sites = get_sites()
         items = list(sites.items())
         job["total"] = len(items)
         job["status"] = "running"
@@ -63,7 +63,7 @@ async def run_username_job(job_id: str, username: str):
                 username=username,
                 site_dict=batch,
                 logger=logger,
-                timeout=8,
+                timeout=REQUEST_TIMEOUT,
                 is_parsing_enabled=False,
                 max_connections=MAX_CONNECTIONS,
                 no_progressbar=True,
@@ -80,7 +80,7 @@ async def run_username_job(job_id: str, username: str):
                     }
             job["checked"] = min(offset + len(batch), len(items))
             job["results"] = list(found.values())
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.01)
 
         job["status"] = "done"
     except Exception as exc:
@@ -112,19 +112,21 @@ async def username(q: str = Query(min_length=1, max_length=64)):
             }
         raise HTTPException(status_code=409, detail="Другой username-поиск уже выполняется")
 
+    sites = get_sites()
+    total = len(sites)
     job_id = uuid.uuid4().hex
     JOBS[job_id] = {
         "query": q.strip(),
         "status": "queued",
-        "total": 0,
+        "total": total,
         "checked": 0,
         "results": [],
         "error": None,
         "finished_at": None,
     }
     ACTIVE_JOB_ID = job_id
-    asyncio.create_task(run_username_job(job_id, q.strip()))
-    return {"type": "username", "query": q.strip(), "job_id": job_id, "status": "queued", "total": 0, "checked": 0, "count": 0, "results": []}
+    asyncio.create_task(run_username_job(job_id, q.strip(), sites))
+    return {"type": "username", "query": q.strip(), "job_id": job_id, "status": "queued", "total": total, "checked": 0, "count": 0, "results": []}
 
 
 @app.get("/username/status")
