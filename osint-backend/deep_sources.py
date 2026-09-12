@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, quote, unquote, urlparse
 import dns.resolver
 import httpx
 import phonenumbers
+from ddgs import DDGS
 from email_validator import EmailNotValidError, validate_email
 from PIL import Image, UnidentifiedImageError
 from phonenumbers import carrier, geocoder, timezone
@@ -70,7 +71,6 @@ def phone_info(value: str) -> dict:
             "type": type_names.get(number_type, str(number_type)),
             "type_code": number_type,
         }
-
     except Exception as exc:
         return {"possible": False, "valid": False, "error": str(exc)}
 
@@ -97,8 +97,49 @@ async def phone_public_search(value: str, max_results: int = 30) -> list[dict]:
     return [metadata] + public_results
 
 
+async def _email_extended_search(query: str, max_results: int = 30) -> list[dict]:
+    """Search exact email in public indexed pages and return real URLs."""
+    value = query.strip().lower()
+    if not value:
+        return []
+    results = await asyncio.to_thread(
+        lambda: DDGS(timeout=8).text(
+            f'"{value}"',
+            region="ru-ru",
+            safesearch="off",
+            max_results=max_results,
+            backend="auto",
+        )
+    )
+    output, seen = [], set()
+    for item in results:
+        href = str(item.get("href") or "").strip()
+        if not href.startswith(("http://", "https://")):
+            continue
+        href_key = href.rstrip("/")
+        if href_key in seen:
+            continue
+        seen.add(href_key)
+        title = str(item.get("title") or "").strip()
+        body = str(item.get("body") or "").strip()
+        domain = (urlparse(href).hostname or "").lower()
+        output.append({
+            "source": f"Публичное упоминание email: {domain or title}",
+            "name": title or domain or href,
+            "url": href,
+            "snippet": body,
+            "domain": domain,
+            "kind": "email_public",
+        })
+        if len(output) >= max_results:
+            break
+    return output
+
+
 async def public_search(query: str, kind: str, max_results: int = 20) -> list[dict]:
     """Fetch public indexed pages server-side; browser never redirects to a search engine."""
+    if kind == "email" and max_results == 30:
+        return await _email_extended_search(query, max_results=max_results)
     variants = [query.strip()]
     if kind == "email":
         variants.append(query.strip().lower())
