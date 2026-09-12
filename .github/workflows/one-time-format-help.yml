@@ -1,0 +1,35 @@
+name: One-time format help
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  update-format-help:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update game format help
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('game-glaz-boga.html')
+          s = p.read_text(encoding='utf-8')
+          old = '<p class="search-subtitle">Выбирает отдельную Python-библиотеку под тип запроса и выполняет расширенную проверку открытых источников с контролем скорости и прогрессом.</p>'
+          new = '<p class="search-subtitle"><b>Формат ввода:</b> Username — латиница, цифры, <code>_ . -</code> (например <code>vovka_34</code>). ФИО — полностью, например <code>Иванов Иван Иванович</code>. Телефон — только международный формат <code>+7 900 123-45-67</code> (без 8 в начале). Email — обычный адрес, например <code>user@example.com</code>. Авто / VIN — VIN ровно 17 символов или госномер, например <code>А123ВС163</code>. Домен — <code>example.com</code>, без <code>https://</code>. IP — IPv4, например <code>8.8.8.8</code>. Фото — прямая ссылка на изображение <code>https://...</code>.</p>'
+          if old not in s:
+              raise SystemExit('target text not found')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Commit and remove one-time workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add game-glaz-boga.html .github/workflows/one-time-format-help.yml
+          git rm .github/workflows/one-time-format-help.yml
+          git commit -m 'Добавить форматы ввода для глубокого поиска'
+          git push
