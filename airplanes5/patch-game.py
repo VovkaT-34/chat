@@ -25,7 +25,6 @@ replacement = '''func (g *Game) Update() {
 \t\tgameData.Paused = pauseRequest.Bool()
 \t\tjs.Global().Set("__airplanes5PauseRequest", js.Null())
 \t}
-\tjs.Global().Call("__airplanes5SetPaused", gameData.Paused)
 \tif gameData.Paused {
 \t\treturn
 \t}
