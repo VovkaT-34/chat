@@ -2,8 +2,10 @@ package system
 
 import (
 	stdmath "math"
+	"syscall/js"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/yohamta/donburi"
 	"github.com/yohamta/donburi/features/math"
 	"github.com/yohamta/donburi/features/transform"
@@ -15,6 +17,7 @@ import (
 
 type Controls struct {
 	query           *donburi.Query
+	playerQuery     *donburi.Query
 	leftTouch       ebiten.TouchID
 	rightTouch      ebiten.TouchID
 	leftActive      bool
@@ -32,15 +35,15 @@ func NewControls() *Controls {
 				component.PlayerAirplane,
 			),
 		),
-		leftTouch:  -1,
-		rightTouch: -1,
+		playerQuery: donburi.NewQuery(filter.Contains(component.Player)),
+		leftTouch:   -1,
+		rightTouch:  -1,
 	}
 }
 
 // Invisible mobile joystick on either side.
-// The sensors remain active, but no joystick is drawn on screen.
-func mobileJoystick(x, y int, centerX float64) (dx, dy float64, ok bool) {
-	const centerY = 610.0
+// The left sensor stays at its previous position; the right sensor is lower.
+func mobileJoystick(x, y int, centerX, centerY float64) (dx, dy float64, ok bool) {
 	const activationRadius = 120.0
 	const maxRadius = 90.0
 	const deadZone = 12.0
@@ -65,6 +68,71 @@ func mobileJoystick(x, y int, centerX float64) (dx, dy float64, ok bool) {
 }
 
 func (i *Controls) Update(w donburi.World) {
+	gameplayActive := false
+	i.playerQuery.Each(w, func(entry *donburi.Entry) {
+		player := component.Player.Get(entry)
+		if player.Lives > 0 && !player.Respawning {
+			gameplayActive = true
+		}
+	})
+	js.Global().Call("__airplanes5SetGameplay", gameplayActive)
+
+	activeTouchIDs := ebiten.AppendTouchIDs(nil)
+	justPressedIDs := inpututil.AppendJustPressedTouchIDs(nil)
+
+	if !i.leftActive {
+		for _, id := range justPressedIDs {
+			x, y := ebiten.TouchPosition(id)
+			if _, _, ok := mobileJoystick(x, y, 90.0, 610.0); ok {
+				i.leftTouch = id
+				i.leftActive = true
+				break
+			}
+		}
+	}
+
+	if !i.rightActive {
+		for _, id := range justPressedIDs {
+			if id == i.leftTouch {
+				continue
+			}
+			x, y := ebiten.TouchPosition(id)
+			if _, _, ok := mobileJoystick(x, y, 390.0, 700.0); ok {
+				i.rightTouch = id
+				i.rightActive = true
+				break
+			}
+		}
+	}
+
+	if i.leftActive {
+		found := false
+		for _, id := range activeTouchIDs {
+			if id == i.leftTouch {
+				found = true
+				break
+			}
+		}
+		if !found {
+			i.leftActive = false
+			i.leftTouch = -1
+		}
+	}
+
+	if i.rightActive {
+		found := false
+		for _, id := range activeTouchIDs {
+			if id == i.rightTouch {
+				found = true
+				break
+			}
+		}
+		if !found {
+			i.rightActive = false
+			i.rightTouch = -1
+		}
+	}
+
 	i.query.Each(w, func(entry *donburi.Entry) {
 		in := component.Input.Get(entry)
 		velocity := component.Velocity.Get(entry)
@@ -82,99 +150,14 @@ func (i *Controls) Update(w donburi.World) {
 			velocity.Velocity.X = -in.MoveSpeed
 		}
 
-		pauseTouch := false
-		var touchX, touchY int
-		touchIDs := ebiten.AppendTouchIDs(nil)
-
-		if len(touchIDs) > 0 {
-			// Pause button occupies the full-width bottom strip of the 480x1040 game.
-			for _, id := range touchIDs {
-				x, y := ebiten.TouchPosition(id)
-				if x >= 0 && x < 480 && y >= 960 && y < 1040 {
-					pauseTouch = true
-					break
-				}
-			}
-		}
-
-		// Keep the existing left-side touch control and add an identical right-side control.
-		// Either hand can control the airplane. If both are touching, the left control has priority.
-		if !i.leftActive {
-			for _, id := range touchIDs {
-				x, y := ebiten.TouchPosition(id)
-				if _, _, ok := mobileJoystick(x, y, 90.0); ok {
-					i.leftTouch = id
-					i.leftActive = true
-					break
-				}
-			}
-		}
-
-		if !i.rightActive {
-			for _, id := range touchIDs {
-				if id == i.leftTouch {
-					continue
-				}
-				x, y := ebiten.TouchPosition(id)
-				if _, _, ok := mobileJoystick(x, y, 390.0); ok {
-					i.rightTouch = id
-					i.rightActive = true
-					break
-				}
-			}
-		}
-
 		if i.leftActive {
-			found := false
-			for _, id := range touchIDs {
-				if id == i.leftTouch {
-					touchX, touchY = ebiten.TouchPosition(id)
-					found = true
-					break
-				}
-			}
-			if !found {
-				i.leftActive = false
-				i.leftTouch = -1
-			}
-		}
-
-		if i.rightActive {
-			found := false
-			for _, id := range touchIDs {
-				if id == i.rightTouch {
-					x, y := ebiten.TouchPosition(id)
-					if !i.leftActive {
-						touchX, touchY = x, y
-					}
-					found = true
-					break
-				}
-			}
-			if !found {
-				i.rightActive = false
-				i.rightTouch = -1
-			}
-		}
-
-		if i.leftActive {
-			for _, id := range touchIDs {
-				if id == i.leftTouch {
-					touchX, touchY = ebiten.TouchPosition(id)
-					break
-				}
-			}
-			if dx, dy, ok := mobileJoystick(touchX, touchY, 90.0); ok && !in.Disabled {
+			x, y := ebiten.TouchPosition(i.leftTouch)
+			if dx, dy, ok := mobileJoystick(x, y, 90.0, 610.0); ok && !in.Disabled {
 				velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
 			}
 		} else if i.rightActive {
-			for _, id := range touchIDs {
-				if id == i.rightTouch {
-					touchX, touchY = ebiten.TouchPosition(id)
-					break
-				}
-			}
-			if dx, dy, ok := mobileJoystick(touchX, touchY, 390.0); ok && !in.Disabled {
+			x, y := ebiten.TouchPosition(i.rightTouch)
+			if dx, dy, ok := mobileJoystick(x, y, 390.0, 700.0); ok && !in.Disabled {
 				velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
 			}
 		}
@@ -185,13 +168,17 @@ func (i *Controls) Update(w donburi.World) {
 
 		airplane := component.PlayerAirplane.Get(entry)
 		player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
+		if player.Respawning || player.Lives <= 0 {
+			return
+		}
 		player.ShootTimer.Update()
 
 		// Continuous fire: the airplane shoots automatically whenever the game is running.
-		if !pauseTouch && player.ShootTimer.IsReady() {
+		if player.ShootTimer.IsReady() {
 			position := transform.Transform.Get(entry).LocalPosition
 			archetype.NewPlayerBullet(w, player, position)
 			player.ShootTimer.Reset()
+			js.Global().Call("__airplanes5PlayShot")
 		}
 	})
 }
