@@ -2,6 +2,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from maigret import search as maigret_search
 from maigret.sites import MaigretDatabase
+from importlib.resources import files
 import logging
 import phonenumbers
 from phonenumbers import geocoder, carrier, timezone
@@ -11,7 +12,8 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], a
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("glaz-boga")
-DB = MaigretDatabase().load_from_path("maigret/resources/data.json")
+MAIGRET_DATA = files("maigret").joinpath("resources", "data.json")
+DB = MaigretDatabase().load_from_path(str(MAIGRET_DATA))
 SITES = DB.sites
 
 @app.get("/health")
