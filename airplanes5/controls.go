@@ -34,10 +34,10 @@ func NewControls() *Controls {
 	}
 }
 
-// Invisible mobile joystick on the lower-right.
+// Invisible mobile joystick on the lower-left.
 // The sensor remains active, but no joystick is drawn on screen.
 func mobileJoystick(x, y int) (dx, dy float64, ok bool) {
-	const centerX = 390.0
+	const centerX = 90.0
 	const centerY = 610.0
 	const activationRadius = 120.0
 	const maxRadius = 90.0
@@ -80,14 +80,11 @@ func (i *Controls) Update(w donburi.World) {
 			velocity.Velocity.X = -in.MoveSpeed
 		}
 
-		touch := false
-		joystickTouch := false
 		pauseTouch := false
 		var touchX, touchY int
 		touchIDs := ebiten.AppendTouchIDs(nil)
 
 		if len(touchIDs) > 0 {
-			touch = true
 			// Pause button occupies the full-width bottom strip of the 480x800 game.
 			for _, id := range touchIDs {
 				x, y := ebiten.TouchPosition(id)
@@ -120,7 +117,6 @@ func (i *Controls) Update(w donburi.World) {
 			}
 			if found {
 				if dx, dy, ok := mobileJoystick(touchX, touchY); ok && !in.Disabled {
-					joystickTouch = true
 					velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
 				}
 			} else {
