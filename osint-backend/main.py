@@ -11,9 +11,9 @@ from maigret import search as maigret_search
 from maigret.sites import MaigretDatabase
 from phonenumbers import carrier, geocoder, timezone
 
-from deep_sources import domain_info, ip_info, phone_info, search_links, vin_info
+from deep_sources import domain_info, ip_info, phone_info, phone_public_search, search_links, vin_info
 
-app = FastAPI(title="Glaz Boga OSINT", version="0.3.0")
+app = FastAPI(title="Glaz Boga OSINT", version="0.3.1")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("glaz-boga")
@@ -128,8 +128,6 @@ async def run_deep_job(job_id: str, kind: str, query: str):
     try:
         job["status"] = "running"
         if kind == "username":
-            # Reuse the stable Maigret background engine, while keeping this
-            # generic job format ready for the other deep-search libraries.
             sites = get_sites()
             job["total"] = len(sites)
             items = list(sites.items())
@@ -147,43 +145,46 @@ async def run_deep_job(job_id: str, kind: str, query: str):
                 job["checked_items"] = (job["checked_items"] + list(batch.keys()))[-20:]
                 await asyncio.sleep(0.25)
         elif kind == "phone":
-            job["results"] = [{"source": "Phone metadata", "data": phone_info(query)}] + search_links(query, "phone")
-            job["total"] = len(job["results"])
+            metadata = phone_info(query)
+            public_results = await phone_public_search(query)
+            job["results"] = [{"source": "Phone metadata (phonenumbers)", "data": metadata}] + public_results
+            job["total"] = 1 + len(public_results)
             job["checked"] = job["total"]
-            job["count"] = len(job["results"])
+            job["count"] = len(public_results)
+            job["checked_items"] = ["phonenumbers"] + [f"DuckDuckGo: {x.get('name', 'результат')}" for x in public_results[:20]]
         elif kind == "email":
-            job["results"] = [{"source": "Public-source search", "data": "Поиск публичных упоминаний"}] + search_links(query, "email")
+            job["results"] = [{"source": "Public-source search", "data": "Публичные упоминания"}] + search_links(query, "email")
             job["total"] = len(job["results"])
             job["checked"] = job["total"]
-            job["count"] = len(job["results"])
+            job["count"] = 0
         elif kind == "person":
             job["results"] = search_links(query, "person")
             job["total"] = len(job["results"])
             job["checked"] = job["total"]
-            job["count"] = len(job["results"])
+            job["count"] = 0
         elif kind == "vin":
             info = await vin_info(query)
             job["results"] = [{"source": "NHTSA vPIC", "data": info}] + search_links(query, "vin")
             job["total"] = len(job["results"])
             job["checked"] = job["total"]
-            job["count"] = len(job["results"])
+            job["count"] = 0
         elif kind == "domain":
             info = await domain_info(query)
             job["results"] = [{"source": "DNS/RDAP/certificates", "data": info}] + search_links(query, "domain")
             job["total"] = len(job["results"])
             job["checked"] = job["total"]
-            job["count"] = len(job["results"])
+            job["count"] = 0
         elif kind == "ip":
             info = await ip_info(query)
             job["results"] = [{"source": "RDAP/BGP", "data": info}] + search_links(query, "ip")
             job["total"] = len(job["results"])
             job["checked"] = job["total"]
-            job["count"] = len(job["results"])
+            job["count"] = 0
         elif kind == "image":
             job["results"] = search_links(query, "image")
             job["total"] = len(job["results"])
             job["checked"] = job["total"]
-            job["count"] = len(job["results"])
+            job["count"] = 0
         else:
             raise ValueError("Неизвестный тип глубокого поиска")
         job["status"] = "done"
@@ -208,11 +209,7 @@ async def deep_search(kind: str = Query(pattern="^(username|phone|email|person|v
             return active
         raise HTTPException(status_code=409, detail="Другой глубокий поиск уже выполняется")
     job_id = uuid.uuid4().hex
-    DEEP_JOBS[job_id] = {
-        "type": kind, "kind": kind, "query": query, "job_id": job_id,
-        "status": "queued", "total": 0, "checked": 0, "count": 0,
-        "results": [], "checked_items": [], "error": None, "finished_at": None,
-    }
+    DEEP_JOBS[job_id] = {"type": kind, "kind": kind, "query": query, "job_id": job_id, "status": "queued", "total": 0, "checked": 0, "count": 0, "results": [], "checked_items": [], "error": None, "finished_at": None}
     ACTIVE_DEEP_JOB_ID = job_id
     asyncio.create_task(run_deep_job(job_id, kind, query))
     return DEEP_JOBS[job_id]
