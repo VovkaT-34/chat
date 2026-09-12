@@ -25,12 +25,14 @@ MAX_CONNECTIONS = 4
 REQUEST_TIMEOUT = 3
 JOB_TTL = 1800
 
+
 def get_sites():
     global DB, SITES
     if SITES is None:
         DB = MaigretDatabase().load_from_path(str(MAIGRET_DATA))
         SITES = DB.sites_dict
     return SITES
+
 
 def cleanup_jobs():
     cutoff = time.time() - JOB_TTL
@@ -39,9 +41,11 @@ def cleanup_jobs():
         if job["finished_at"] and job["finished_at"] < cutoff:
             JOBS.pop(job_id, None)
 
+
 @app.get("/health")
 def health():
     return {"ok": True, "engine": "maigret"}
+
 
 async def run_username_job(job_id: str, username: str, sites):
     global ACTIVE_JOB_ID
@@ -59,6 +63,7 @@ async def run_username_job(job_id: str, username: str, sites):
                 if status and status.is_found():
                     found[name] = {"name": name, "url": data.get("url_user"), "http_status": data.get("http_status"), "rank": data.get("rank"), "ids_data": data.get("ids_data", {})}
             job["checked"] = min(offset + len(batch), len(items))
+            job["checked_sites"] = (job["checked_sites"] + list(batch.keys()))[-20:]
             job["results"] = list(found.values())
             await asyncio.sleep(0.25)
         job["status"] = "done"
@@ -71,6 +76,7 @@ async def run_username_job(job_id: str, username: str, sites):
         if ACTIVE_JOB_ID == job_id:
             ACTIVE_JOB_ID = None
 
+
 @app.get("/username")
 async def username(q: str = Query(min_length=1, max_length=64)):
     global ACTIVE_JOB_ID
@@ -78,15 +84,16 @@ async def username(q: str = Query(min_length=1, max_length=64)):
     if ACTIVE_JOB_ID and ACTIVE_JOB_ID in JOBS:
         active = JOBS[ACTIVE_JOB_ID]
         if active["query"].lower() == q.strip().lower():
-            return {"type":"username","query":q,"job_id":ACTIVE_JOB_ID,"status":active["status"],"total":active["total"],"checked":active["checked"],"count":len(active["results"]),"results":active["results"]}
+            return {"type":"username","query":q,"job_id":ACTIVE_JOB_ID,"status":active["status"],"total":active["total"],"checked":active["checked"],"count":len(active["results"]),"results":active["results"],"checked_sites":active["checked_sites"]}
         raise HTTPException(status_code=409, detail="Другой username-поиск уже выполняется")
     sites = get_sites()
     total = len(sites)
     job_id = uuid.uuid4().hex
-    JOBS[job_id] = {"query":q.strip(),"status":"queued","total":total,"checked":0,"results":[],"error":None,"finished_at":None}
+    JOBS[job_id] = {"query":q.strip(),"status":"queued","total":total,"checked":0,"results":[],"checked_sites":[],"error":None,"finished_at":None}
     ACTIVE_JOB_ID = job_id
     asyncio.create_task(run_username_job(job_id, q.strip(), sites))
-    return {"type":"username","query":q.strip(),"job_id":job_id,"status":"queued","total":total,"checked":0,"count":0,"results":[]}
+    return {"type":"username","query":q.strip(),"job_id":job_id,"status":"queued","total":total,"checked":0,"count":0,"results":[],"checked_sites":[]}
+
 
 @app.get("/username/status")
 def username_status(job_id: str = Query(min_length=8, max_length=64)):
@@ -94,7 +101,8 @@ def username_status(job_id: str = Query(min_length=8, max_length=64)):
     job = JOBS.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Задание не найдено или уже удалено")
-    return {"type":"username","query":job["query"],"job_id":job_id,"status":job["status"],"total":job["total"],"checked":job["checked"],"count":len(job["results"]),"results":job["results"],"error":job["error"]}
+    return {"type":"username","query":job["query"],"job_id":job_id,"status":job["status"],"total":job["total"],"checked":job["checked"],"count":len(job["results"]),"results":job["results"],"checked_sites":job["checked_sites"],"error":job["error"]}
+
 
 @app.get("/phone")
 def phone(q: str = Query(min_length=3, max_length=32)):
