@@ -14,9 +14,11 @@ import (
 )
 
 type Controls struct {
-	query          *donburi.Query
-	joystickTouch  ebiten.TouchID
-	joystickActive bool
+	query           *donburi.Query
+	leftTouch       ebiten.TouchID
+	rightTouch      ebiten.TouchID
+	leftActive      bool
+	rightActive     bool
 }
 
 func NewControls() *Controls {
@@ -30,14 +32,14 @@ func NewControls() *Controls {
 				component.PlayerAirplane,
 			),
 		),
-		joystickTouch: -1,
+		leftTouch:  -1,
+		rightTouch: -1,
 	}
 }
 
-// Invisible mobile joystick on the lower-left.
-// The sensor remains active, but no joystick is drawn on screen.
-func mobileJoystick(x, y int) (dx, dy float64, ok bool) {
-	const centerX = 90.0
+// Invisible mobile joystick on either side.
+// The sensors remain active, but no joystick is drawn on screen.
+func mobileJoystick(x, y int, centerX float64) (dx, dy float64, ok bool) {
 	const centerY = 610.0
 	const activationRadius = 120.0
 	const maxRadius = 90.0
@@ -95,33 +97,85 @@ func (i *Controls) Update(w donburi.World) {
 			}
 		}
 
-		if !i.joystickActive {
+		// Keep the existing left-side touch control and add an identical right-side control.
+		// Either hand can control the airplane. If both are touching, the left control has priority.
+		if !i.leftActive {
 			for _, id := range touchIDs {
 				x, y := ebiten.TouchPosition(id)
-				if _, _, ok := mobileJoystick(x, y); ok {
-					i.joystickTouch = id
-					i.joystickActive = true
+				if _, _, ok := mobileJoystick(x, y, 90.0); ok {
+					i.leftTouch = id
+					i.leftActive = true
 					break
 				}
 			}
 		}
 
-		if i.joystickActive {
+		if !i.rightActive {
+			for _, id := range touchIDs {
+				if id == i.leftTouch {
+					continue
+				}
+				x, y := ebiten.TouchPosition(id)
+				if _, _, ok := mobileJoystick(x, y, 390.0); ok {
+					i.rightTouch = id
+					i.rightActive = true
+					break
+				}
+			}
+		}
+
+		if i.leftActive {
 			found := false
 			for _, id := range touchIDs {
-				if id == i.joystickTouch {
+				if id == i.leftTouch {
 					touchX, touchY = ebiten.TouchPosition(id)
 					found = true
 					break
 				}
 			}
-			if found {
-				if dx, dy, ok := mobileJoystick(touchX, touchY); ok && !in.Disabled {
-					velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
+			if !found {
+				i.leftActive = false
+				i.leftTouch = -1
+			}
+		}
+
+		if i.rightActive {
+			found := false
+			for _, id := range touchIDs {
+				if id == i.rightTouch {
+					x, y := ebiten.TouchPosition(id)
+					if !i.leftActive {
+						touchX, touchY = x, y
+					}
+					found = true
+					break
 				}
-			} else {
-				i.joystickActive = false
-				i.joystickTouch = -1
+			}
+			if !found {
+				i.rightActive = false
+				i.rightTouch = -1
+			}
+		}
+
+		if i.leftActive {
+			for _, id := range touchIDs {
+				if id == i.leftTouch {
+					touchX, touchY = ebiten.TouchPosition(id)
+					break
+				}
+			}
+			if dx, dy, ok := mobileJoystick(touchX, touchY, 90.0); ok && !in.Disabled {
+				velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
+			}
+		} else if i.rightActive {
+			for _, id := range touchIDs {
+				if id == i.rightTouch {
+					touchX, touchY = ebiten.TouchPosition(id)
+					break
+				}
+			}
+			if dx, dy, ok := mobileJoystick(touchX, touchY, 390.0); ok && !in.Disabled {
+				velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
 			}
 		}
 
