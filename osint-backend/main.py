@@ -14,6 +14,7 @@ from phonenumbers import carrier, geocoder, timezone
 from deep_sources import domain_info, email_info, image_info, ip_info, phone_info, phone_public_search, public_search, search_links, vin_info
 from extended_search import extended_public_search, SOURCES_RU, SOURCES_FOREIGN
 from plate_sources import image_plate_search, plate_like, plate_public_search, normalize_plate
+from username_engines import sherlock_search, whatsmyname_search
 
 app = FastAPI(title="Glaz Boga OSINT", version="0.5.1")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
@@ -60,7 +61,7 @@ def cleanup_deep_jobs():
 
 @app.get("/health")
 def health():
-    return {"ok": True, "engine": "maigret", "deep_types": ["username", "phone", "email", "person", "vin", "domain", "ip", "image", "email_extended", "phone_extended"]}
+    return {"ok": True, "engine": "maigret", "deep_types": ["username_sherlock", "username", "username_wmn", "phone", "email", "person", "vin", "domain", "ip", "image", "email_extended", "phone_extended"]}
 
 
 async def run_username_job(job_id: str, username: str, sites):
@@ -130,7 +131,20 @@ async def run_deep_job(job_id: str, kind: str, query: str):
     job = DEEP_JOBS[job_id]
     try:
         job["status"] = "running"
-        if kind == "username":
+        if kind == "username_sherlock":
+            def progress(checked, total, current, results):
+                job["checked"] = checked
+                job["total"] = total
+                job["count"] = len(results)
+                job["results"] = list(results)
+                job["checked_items"] = [current]
+            results, total = await sherlock_search(query, progress=progress)
+            job["results"] = results
+            job["total"] = total
+            job["checked"] = total
+            job["count"] = len(results)
+            job["checked_items"] = [f"Sherlock: готово ({total} сайтов)"]
+        elif kind == "username":
             sites = get_sites()
             job["total"] = len(sites)
             items = list(sites.items())
@@ -147,6 +161,19 @@ async def run_deep_job(job_id: str, kind: str, query: str):
                 job["results"] = list(found.values())
                 job["checked_items"] = (job["checked_items"] + list(batch.keys()))[-20:]
                 await asyncio.sleep(0.25)
+        elif kind == "username_wmn":
+            def progress(checked, total, current, results):
+                job["checked"] = checked
+                job["total"] = total
+                job["count"] = len(results)
+                job["results"] = list(results)
+                job["checked_items"] = [current]
+            results, total = await whatsmyname_search(query, progress=progress)
+            job["results"] = results
+            job["total"] = total
+            job["checked"] = total
+            job["count"] = len(results)
+            job["checked_items"] = [f"WhatsMyName: готово ({total} сайтов)"]
         elif kind == "phone":
             info_results = await phone_public_search(query)
             public_results = await public_search(query, "phone", max_results=20)
@@ -269,7 +296,7 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
 
 @app.get("/deep")
-async def deep_search(kind: str = Query(pattern="^(username|phone|email|person|vin|domain|ip|image|email_extended|phone_extended)$"), q: str = Query(min_length=1, max_length=256)):
+async def deep_search(kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended)$"), q: str = Query(min_length=1, max_length=256)):
     global ACTIVE_DEEP_JOB_ID
     cleanup_deep_jobs()
     query = q.strip()
@@ -316,5 +343,5 @@ async def deep_cancel(job_id: str = Query(min_length=8, max_length=64)):
 
 
 @app.get("/deep/sources")
-def deep_sources(kind: str = Query(pattern="^(username|phone|email|person|vin|domain|ip|image|email_extended|phone_extended)$"), q: str = Query(min_length=1, max_length=256)):
-    return {"type": kind, "query": q.strip(), "sources": search_links(q.strip(), kind)}
+def deep_sources(kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended)$"), q: str = Query(min_length=1, max_length=256)):
+    return {"type": kind, "query": q.strip(), "sources": search_links(q.strip(), "username" if kind.startswith("username") else kind)}
