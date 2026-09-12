@@ -24,7 +24,7 @@ def search_links(query: str, kind: str) -> list[dict]:
         "email": [("Google", f'https://www.google.com/search?q=%22{q}%22'), ("Bing", f'https://www.bing.com/search?q=%22{q}%22'), ("GitHub", f'https://github.com/search?q={q}&type=users')],
         "vin": [("Google", f'https://www.google.com/search?q=%22{q}%22'), ("Bing", f'https://www.bing.com/search?q=%22{q}%22'), ("NHTSA vPIC", f'https://vpic.nhtsa.dot.gov/decoder/Decoder?VIN={q}&ModelYear=')],
         "domain": [("Google", f'https://www.google.com/search?q=%22{q}%22'), ("crt.sh", f'https://crt.sh/?q={q}'), ("Wayback", f'https://web.archive.org/web/*/{q}')],
-        "ip": [("Google", f'https://www.google.com/search?q=%22{q}%22'), ("BGP HE", f'https://bgp.he.net/ip/{q}'), ("IPinfo", f'https://ipinfo.io/{q}')],
+        "ip": [("Google", f'https://www.google.com/search?q=%22{q}%22'), ("BGP HE", f'https://bgp.he.net/ip/{q}"), ("IPinfo", f'https://ipinfo.io/{q}')],
         "image": [("Google Lens", 'https://lens.google.com/'), ("Yandex Images", 'https://yandex.ru/images/'), ("TinEye", 'https://tineye.com/')],
     }
     return [{"name": name, "url": url} for name, url in templates.get(kind, [])]
@@ -33,36 +33,84 @@ def search_links(query: str, kind: str) -> list[dict]:
 def phone_info(value: str) -> dict:
     try:
         parsed = phonenumbers.parse(value, None)
+        number_type = phonenumbers.number_type(parsed)
+        type_names = {
+            phonenumbers.PhoneNumberType.FIXED_LINE: "Стационарный",
+            phonenumbers.PhoneNumberType.MOBILE: "Мобильный",
+            phonenumbers.PhoneNumberType.FIXED_LINE_OR_MOBILE: "Стационарный / мобильный",
+            phonenumbers.PhoneNumberType.TOLL_FREE: "Бесплатный",
+            phonenumbers.PhoneNumberType.PREMIUM_RATE: "Платный",
+            phonenumbers.PhoneNumberType.SHARED_COST: "Общая стоимость",
+            phonenumbers.PhoneNumberType.VOIP: "VoIP",
+            phonenumbers.PhoneNumberType.PERSONAL_NUMBER: "Персональный",
+            phonenumbers.PhoneNumberType.PAGER: "Пейджер",
+            phonenumbers.PhoneNumberType.UAN: "UAN",
+            phonenumbers.PhoneNumberType.VOICEMAIL: "Голосовая почта",
+            phonenumbers.PhoneNumberType.UNKNOWN: "Неизвестный",
+        }
+        region_code = phonenumbers.region_code_for_number(parsed)
+        country_name = geocoder.country_name_for_number(parsed, "ru") or geocoder.country_name_for_number(parsed, "en")
+        location = geocoder.description_for_number(parsed, "ru") or geocoder.description_for_number(parsed, "en")
+        carrier_name = carrier.name_for_number(parsed, "ru") or carrier.name_for_number(parsed, "en")
         return {
             "possible": phonenumbers.is_possible_number(parsed),
             "valid": phonenumbers.is_valid_number(parsed),
             "international": phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL),
             "e164": phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164),
             "national": phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.NATIONAL),
-            "country": phonenumbers.region_code_for_number(parsed),
+            "rfc3966": phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.RFC3966),
+            "country": region_code,
+            "country_name": country_name,
             "country_code": parsed.country_code,
-            "location": geocoder.description_for_number(parsed, "ru") or geocoder.description_for_number(parsed, "en"),
-            "carrier": carrier.name_for_number(parsed, "ru") or carrier.name_for_number(parsed, "en"),
+            "region": location,
+            "location": location,
+            "carrier": carrier_name,
             "timezones": list(timezone.time_zones_for_number(parsed)),
-            "type": str(phonenumbers.number_type(parsed)),
+            "type": type_names.get(number_type, str(number_type)),
+            "type_code": number_type,
         }
     except Exception as exc:
         return {"possible": False, "valid": False, "error": str(exc)}
 
 
-async def phone_public_search(value: str) -> list[dict]:
+async def phone_public_search(value: str, max_results: int = 30) -> list[dict]:
+    """Return visible phone metadata plus public indexed mentions."""
     info = phone_info(value)
     if info.get("error"):
-        return [{"source": "Python / phonenumbers", "name": f"Ошибка разбора номера: {info['error']}", "kind": "error"}]
-    labels = [
-        ("E.164", info.get("e164")), ("Международный формат", info.get("international")),
-        ("Национальный формат", info.get("national")), ("Страна", info.get("country")),
-        ("Код страны", info.get("country_code")), ("Регион", info.get("location")),
-        ("Оператор", info.get("carrier")), ("Часовые зоны", ", ".join(info.get("timezones") or [])),
-        ("Тип номера", info.get("type")), ("Возможен", "Да" if info.get("possible") else "Нет"),
-        ("Валиден", "Да" if info.get("valid") else "Нет"),
+        return [{"source": f"Телефон: ошибка разбора — {info['error']}", "name": "Ошибка разбора номера", "kind": "error"}]
+
+    metadata_lines = [
+        f"Номер: {info.get('international') or value}",
+        f"E.164: {info.get('e164') or '—'}",
+        f"Национальный: {info.get('national') or '—'}",
+        f"Страна: {info.get('country_name') or info.get('country') or '—'}",
+        f"Код страны: +{info.get('country_code') or '—'}",
+        f"Регион: {info.get('region') or 'не определён'}",
+        f"Оператор: {info.get('carrier') or 'не определён'}",
+        f"Тип: {info.get('type') or 'не определён'}",
+        f"Часовые зоны: {', '.join(info.get('timezones') or []) or 'не определены'}",
+        f"Возможен: {'Да' if info.get('possible') else 'Нет'}",
+        f"Валиден: {'Да' if info.get('valid') else 'Нет'}",
     ]
-    return [{"source": "Python / phonenumbers", "name": f"{label}: {value}", "kind": "phone_metadata"} for label, value in labels if value not in (None, "", [])]
+    metadata = {
+        "source": "Телефон / phonenumbers — " + " | ".join(metadata_lines),
+        "name": "Полные метаданные номера",
+        "kind": "phone_metadata",
+        "data": info,
+    }
+
+    variants = []
+    for item in (value.strip(), info.get("e164"), info.get("international"), info.get("national")):
+        if item:
+            variants.append(item)
+            variants.append(re.sub(r"[^0-9+]", "", item))
+    variants = list(dict.fromkeys(x for x in variants if x))
+    public_results = await public_search(" ".join(variants[:2]), "phone", max_results=max_results)
+    for result in public_results:
+        title = result.get("name") or "Публичное упоминание"
+        snippet = result.get("snippet") or ""
+        result["source"] = f"Публичное упоминание: {title}" + (f" — {snippet}" if snippet else "")
+    return [metadata] + public_results
 
 
 async def public_search(query: str, kind: str, max_results: int = 20) -> list[dict]:
@@ -110,17 +158,13 @@ async def email_info(value: str) -> dict:
         domain = parsed.domain
     except EmailNotValidError as exc:
         return {"query": email, "valid_syntax": False, "error": str(exc)}
-
     resolver = dns.resolver.Resolver()
     resolver.timeout = 3
     resolver.lifetime = 3
     for record in ("MX", "A", "AAAA", "TXT"):
         try:
             answers = await asyncio.to_thread(resolver.resolve, domain, record)
-            values = []
-            for answer in answers:
-                values.append(str(answer).strip().strip('"'))
-            result[record.lower()] = values[:20]
+            result[record.lower()] = [str(answer).strip().strip('"') for answer in answers][:20]
         except Exception:
             result[record.lower()] = []
     try:
