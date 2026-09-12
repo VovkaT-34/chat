@@ -1,13 +1,19 @@
-"""Safe public-source deep OSINT helpers for Glaz Boga."""
+"""Free public-source deep OSINT helpers for Glaz Boga."""
 
+import asyncio
+import io
 import re
 from urllib.parse import quote
 
+import dns.resolver
 import httpx
 import phonenumbers
+from email_validator import EmailNotValidError, validate_email
+from PIL import Image, UnidentifiedImageError
 from phonenumbers import carrier, geocoder, timezone
 
 TIMEOUT = 8.0
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; GlazBogaOSINT/1.0)"}
 
 
 def search_links(query: str, kind: str) -> list[dict]:
@@ -27,15 +33,12 @@ def search_links(query: str, kind: str) -> list[dict]:
 def phone_info(value: str) -> dict:
     try:
         parsed = phonenumbers.parse(value, None)
-        international = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
-        e164 = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
-        national = phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.NATIONAL)
         return {
             "possible": phonenumbers.is_possible_number(parsed),
             "valid": phonenumbers.is_valid_number(parsed),
-            "international": international,
-            "e164": e164,
-            "national": national,
+            "international": phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.INTERNATIONAL),
+            "e164": phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164),
+            "national": phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.NATIONAL),
             "country": phonenumbers.region_code_for_number(parsed),
             "country_code": parsed.country_code,
             "location": geocoder.description_for_number(parsed, "ru") or geocoder.description_for_number(parsed, "en"),
@@ -48,78 +51,141 @@ def phone_info(value: str) -> dict:
 
 
 async def phone_public_search(value: str) -> list[dict]:
-    """Deep phone analysis through the installed Python phonenumbers library.
-
-    This function intentionally does not redirect the user to a search engine.
-    It returns concrete, locally computed findings from the parsed number.
-    """
     info = phone_info(value)
     if info.get("error"):
         return [{"source": "Python / phonenumbers", "name": f"Ошибка разбора номера: {info['error']}", "kind": "error"}]
-
     labels = [
-        ("Формат E.164", info.get("e164")),
-        ("Международный формат", info.get("international")),
-        ("Национальный формат", info.get("national")),
-        ("Страна", info.get("country")),
-        ("Код страны", info.get("country_code")),
-        ("Регион", info.get("location")),
-        ("Оператор", info.get("carrier")),
-        ("Часовые зоны", ", ".join(info.get("timezones") or [])),
-        ("Тип номера", info.get("type")),
-        ("Номер возможен", "Да" if info.get("possible") else "Нет"),
-        ("Номер валиден", "Да" if info.get("valid") else "Нет"),
+        ("E.164", info.get("e164")), ("Международный формат", info.get("international")),
+        ("Национальный формат", info.get("national")), ("Страна", info.get("country")),
+        ("Код страны", info.get("country_code")), ("Регион", info.get("location")),
+        ("Оператор", info.get("carrier")), ("Часовые зоны", ", ".join(info.get("timezones") or [])),
+        ("Тип номера", info.get("type")), ("Возможен", "Да" if info.get("possible") else "Нет"),
+        ("Валиден", "Да" if info.get("valid") else "Нет"),
     ]
-    return [
-        {"source": "Python / phonenumbers", "name": f"{label}: {value}", "kind": "phone_metadata"}
-        for label, value in labels
-        if value not in (None, "", [])
-    ]
+    return [{"source": "Python / phonenumbers", "name": f"{label}: {value}", "kind": "phone_metadata"} for label, value in labels if value not in (None, "", [])]
 
 
-def validate_vin(value: str) -> bool:
-    return bool(re.fullmatch(r"[A-HJ-NPR-Z0-9]{17}", value.strip().upper()))
+async def public_search(query: str, kind: str, max_results: int = 20) -> list[dict]:
+    """Fetch public indexed pages server-side; browser never redirects to a search engine."""
+    variants = [query.strip()]
+    if kind == "email":
+        variants.append(query.strip().lower())
+    elif kind == "person":
+        variants.append(re.sub(r"\s+", " ", query.strip()))
+    results, seen = [], set()
+    async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, headers=HEADERS) as client:
+        for variant in dict.fromkeys(variants):
+            try:
+                url = "https://html.duckduckgo.com/html/?q=" + quote(f'"{variant}"')
+                response = await client.get(url)
+                response.raise_for_status()
+                html = response.text
+                blocks = re.findall(r'<div class="result results_links[^>]*>(.*?)</div>\s*</div>', html, re.S)
+                for block in blocks:
+                    match = re.search(r'class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', block, re.S)
+                    if not match:
+                        continue
+                    href = match.group(1)
+                    title = re.sub(r"<[^>]+>", " ", match.group(2)).strip()
+                    href = href.replace("&amp;", "&")
+                    if href in seen:
+                        continue
+                    seen.add(href)
+                    snippet_match = re.search(r'class="result__snippet"[^>]*>(.*?)</', block, re.S)
+                    snippet = re.sub(r"<[^>]+>", " ", snippet_match.group(1)).strip() if snippet_match else ""
+                    results.append({"source": "Python / public web", "name": title, "url": href, "snippet": snippet, "kind": f"{kind}_public"})
+                    if len(results) >= max_results:
+                        return results
+            except Exception:
+                continue
+    return results
+
+
+async def email_info(value: str) -> dict:
+    email = value.strip()
+    result = {"query": email}
+    try:
+        parsed = validate_email(email, check_deliverability=False)
+        result.update({"valid_syntax": True, "normalized": parsed.normalized, "domain": parsed.domain, "local_part": parsed.local_part})
+        domain = parsed.domain
+    except EmailNotValidError as exc:
+        return {"query": email, "valid_syntax": False, "error": str(exc)}
+
+    resolver = dns.resolver.Resolver()
+    resolver.timeout = 3
+    resolver.lifetime = 3
+    for record in ("MX", "A", "AAAA", "TXT"):
+        try:
+            answers = await asyncio.to_thread(resolver.resolve, domain, record)
+            values = []
+            for answer in answers:
+                values.append(str(answer).strip().strip('"'))
+            result[record.lower()] = values[:20]
+        except Exception:
+            result[record.lower()] = []
+    try:
+        answers = await asyncio.to_thread(resolver.resolve, f"_dmarc.{domain}", "TXT")
+        result["dmarc"] = [str(a).strip('"') for a in answers][:10]
+    except Exception:
+        result["dmarc"] = []
+    return result
 
 
 async def vin_info(value: str) -> dict:
     vin = value.strip().upper()
-    if not validate_vin(vin):
+    if not re.fullmatch(r"[A-HJ-NPR-Z0-9]{17}", vin):
         return {"valid_format": False, "error": "VIN должен содержать 17 символов без I, O и Q"}
     url = f"https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/{quote(vin)}?format=json"
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
             response = await client.get(url)
             response.raise_for_status()
-            data = response.json()
-        row = (data.get("Results") or [{}])[0]
+            row = (response.json().get("Results") or [{}])[0]
         fields = ["Make", "Model", "ModelYear", "VehicleType", "BodyClass", "EngineCylinders", "FuelTypePrimary"]
-        return {"valid_format": True, "source": "NHTSA vPIC", "data": {k: row.get(k) for k in fields if row.get(k)}}
+        return {"valid_format": True, "source": "Python / NHTSA vPIC", "data": {k: row.get(k) for k in fields if row.get(k)}}
     except Exception as exc:
-        return {"valid_format": True, "source": "NHTSA vPIC", "error": str(exc)}
+        return {"valid_format": True, "source": "Python / NHTSA vPIC", "error": str(exc)}
 
 
 async def domain_info(domain: str) -> dict:
-    result = {"query": domain, "certificates": [], "dns": {}}
-    async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-        cert_task = client.get(f"https://crt.sh/?q={quote(domain)}&output=json")
-        rdap_task = client.get(f"https://rdap.org/domain/{quote(domain)}")
-        cert, rdap = await __import__("asyncio").gather(cert_task, rdap_task, return_exceptions=True)
+    domain = domain.strip().lower().removeprefix("https://").removeprefix("http://").split("/")[0]
+    result = {"query": domain, "dns": {}, "certificates": []}
+    resolver = dns.resolver.Resolver()
+    resolver.timeout = 3
+    resolver.lifetime = 3
+    for record in ("A", "AAAA", "MX", "NS", "TXT", "CNAME"):
+        try:
+            answers = await asyncio.to_thread(resolver.resolve, domain, record)
+            result["dns"][record] = [str(a).strip('"') for a in answers][:20]
+        except Exception:
+            result["dns"][record] = []
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
+            cert, rdap = await asyncio.gather(client.get(f"https://crt.sh/?q={quote(domain)}&output=json"), client.get(f"https://rdap.org/domain/{quote(domain)}"), return_exceptions=True)
         if not isinstance(cert, Exception) and cert.is_success:
             names = set()
             for item in cert.json()[:200]:
-                for name in str(item.get("name_value", "")).splitlines():
-                    if name.strip(): names.add(name.strip().lower())
+                names.update(x.strip().lower() for x in str(item.get("name_value", "")).splitlines() if x.strip())
             result["certificates"] = sorted(names)[:100]
         if not isinstance(rdap, Exception) and rdap.is_success:
             data = rdap.json()
             result["rdap"] = {"name": data.get("ldhName"), "status": data.get("status", [])}
+    except Exception as exc:
+        result["error"] = str(exc)
     return result
 
 
 async def ip_info(ip: str) -> dict:
-    result = {"query": ip}
-    async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-        rdap, bgp = await __import__("asyncio").gather(client.get(f"https://rdap.org/ip/{quote(ip)}"), client.get(f"https://api.bgpview.io/ip/{quote(ip)}"), return_exceptions=True)
+    result = {"query": ip.strip()}
+    try:
+        import ipaddress
+        result["version"] = ipaddress.ip_address(ip.strip()).version
+    except ValueError:
+        result["valid"] = False
+        return result
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
+            rdap, bgp = await asyncio.gather(client.get(f"https://rdap.org/ip/{quote(ip.strip())}"), client.get(f"https://api.bgpview.io/ip/{quote(ip.strip())}"), return_exceptions=True)
         if not isinstance(rdap, Exception) and rdap.is_success:
             data = rdap.json()
             result["rdap"] = {"name": data.get("name"), "country": data.get("country"), "handle": data.get("handle")}
@@ -128,4 +194,30 @@ async def ip_info(ip: str) -> dict:
             prefix = (data.get("prefixes") or [{}])[0]
             asn = prefix.get("asn") or {}
             result["bgp"] = {"prefix": prefix.get("prefix"), "asn": asn.get("asn"), "name": asn.get("name")}
+    except Exception as exc:
+        result["error"] = str(exc)
+    return result
+
+
+async def image_info(value: str) -> dict:
+    url = value.strip()
+    result = {"query": url}
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, headers=HEADERS) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+        result["content_type"] = response.headers.get("content-type", "")
+        result["size_bytes"] = len(response.content)
+        with Image.open(io.BytesIO(response.content)) as image:
+            result["format"] = image.format
+            result["width"] = image.width
+            result["height"] = image.height
+            result["mode"] = image.mode
+            exif = image.getexif()
+            if exif:
+                result["exif"] = {str(k): str(v) for k, v in list(exif.items())[:30]}
+    except (UnidentifiedImageError, OSError) as exc:
+        result["error"] = f"Не удалось распознать изображение: {exc}"
+    except Exception as exc:
+        result["error"] = str(exc)
     return result
