@@ -1,0 +1,61 @@
+name: Fix phone OSINT output
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-phone-osint.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch backend
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('osint-backend/deep_sources.py')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace("(\"BGP HE\", f'https://bgp.he.net/ip/{q}\"),", "(\"BGP HE\", f'https://bgp.he.net/ip/{q}'),")
+          p.write_text(s, encoding='utf-8')
+
+          p = Path('osint-backend/main.py')
+          s = p.read_text(encoding='utf-8')
+          old = '''        elif kind == "phone":
+            info_results = await phone_public_search(query)
+            public_results = await public_search(query, "phone", max_results=20)
+            info = phone_info(query)
+            metadata = {"source": "Python / phonenumbers", "name": "Результаты анализа телефона", "kind": "phone_metadata", "data": info}
+            job["results"] = [metadata] + public_results
+            job["total"] = len(job["results"])
+            job["checked"] = job["total"]
+            job["count"] = len(public_results)
+            job["checked_items"] = ["Python / phonenumbers", "Python / public web"]
+'''
+          new = '''        elif kind == "phone":
+            phone_results = await phone_public_search(query, max_results=30)
+            job["results"] = phone_results
+            job["total"] = len(phone_results)
+            job["checked"] = job["total"]
+            job["count"] = max(0, len(phone_results) - 1)
+            job["checked_items"] = ["phonenumbers / страна / регион / оператор / тип / часовые зоны", "Python / public web"]
+'''
+          if old not in s:
+              raise SystemExit('phone branch not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+          python -m py_compile osint-backend/deep_sources.py osint-backend/main.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add osint-backend/deep_sources.py osint-backend/main.py
+          git commit -m 'Fix phone OSINT results and metadata display'
+          git push
+
+          rm -f .github/workflows/fix-phone-osint.yml
+          git add .github/workflows/fix-phone-osint.yml
+          git commit -m 'Remove one-time phone OSINT workflow'
+          git push
