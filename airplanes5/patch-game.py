@@ -8,9 +8,7 @@ new = old + """
 \tfor _, id := range justPressed {
 \t\tx, y := ebiten.TouchPosition(id)
 \t\t// The pause button is the full-width strip at the very bottom.
-\t\t// Use the lower 10% of the 480x800 game area so the sensor is
-\t\t// aligned with the visible button rather than the middle of the screen.
-\t\tif x >= 0 && x < 480 && y >= 720 && y < 800 {
+\t\tif x >= 0 && x < 480 && y >= 700 && y < 800 {
 \t\t\tgameData.Paused = !gameData.Paused
 \t\t\tbreak
 \t\t}
