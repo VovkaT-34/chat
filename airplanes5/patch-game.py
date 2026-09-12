@@ -7,8 +7,8 @@ new = old + """
 \tjustPressed := inpututil.AppendJustPressedTouchIDs(nil)
 \tfor _, id := range justPressed {
 \t\tx, y := ebiten.TouchPosition(id)
-\t\t// The pause button is the full-width strip at the very bottom.
-\t\tif x >= 0 && x < 480 && y >= 700 && y < 800 {
+\t\t// The pause button is the full-width strip at the bottom of the 480x1040 game.
+\t\tif x >= 0 && x < 480 && y >= 960 && y < 1040 {
 \t\t\tgameData.Paused = !gameData.Paused
 \t\t\tbreak
 \t\t}
