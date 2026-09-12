@@ -116,7 +116,7 @@ func (i *Controls) Update(w donburi.World) {
 					continue
 				}
 				x, y := ebiten.TouchPosition(id)
-				if _, _, ok := mobileJoystick(x, y, 390.0); ok {
+				if _, _, ok := mobileJoystick(x, y, 380.0); ok {
 					i.rightTouch = id
 					i.rightActive = true
 					break
@@ -174,7 +174,7 @@ func (i *Controls) Update(w donburi.World) {
 					break
 				}
 			}
-			if dx, dy, ok := mobileJoystick(touchX, touchY, 390.0); ok && !in.Disabled {
+			if dx, dy, ok := mobileJoystick(touchX, touchY, 380.0); ok && !in.Disabled {
 				velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
 			}
 		}
