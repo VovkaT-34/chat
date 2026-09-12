@@ -11,7 +11,7 @@ from maigret import search as maigret_search
 from maigret.sites import MaigretDatabase
 from phonenumbers import carrier, geocoder, timezone
 
-app = FastAPI(title="Glaz Boga OSINT", version="0.2.1")
+app = FastAPI(title="Glaz Boga OSINT", version="0.2.2")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
 
 logging.basicConfig(level=logging.INFO)
@@ -21,9 +21,8 @@ DB = None
 SITES = None
 JOBS = {}
 ACTIVE_JOB_ID = None
-BATCH_SIZE = 100
-MAX_CONNECTIONS = 10
-REQUEST_TIMEOUT = 5
+MAX_CONNECTIONS = 30
+REQUEST_TIMEOUT = 3
 JOB_TTL = 1800
 
 
@@ -55,33 +54,31 @@ async def run_username_job(job_id: str, username: str, sites):
         items = list(sites.items())
         job["total"] = len(items)
         job["status"] = "running"
-        found = {}
 
-        for offset in range(0, len(items), BATCH_SIZE):
-            batch = dict(items[offset:offset + BATCH_SIZE])
-            results = await maigret_search(
-                username=username,
-                site_dict=batch,
-                logger=logger,
-                timeout=REQUEST_TIMEOUT,
-                is_parsing_enabled=False,
-                max_connections=MAX_CONNECTIONS,
-                no_progressbar=True,
-            )
-            for name, data in results.items():
-                status = data.get("status")
-                if status and status.is_found():
-                    found[name] = {
-                        "name": name,
-                        "url": data.get("url_user"),
-                        "http_status": data.get("http_status"),
-                        "rank": data.get("rank"),
-                        "ids_data": data.get("ids_data", {}),
-                    }
-            job["checked"] = min(offset + len(batch), len(items))
-            job["results"] = list(found.values())
-            await asyncio.sleep(0.01)
+        results = await maigret_search(
+            username=username,
+            site_dict=sites,
+            logger=logger,
+            timeout=REQUEST_TIMEOUT,
+            is_parsing_enabled=False,
+            max_connections=MAX_CONNECTIONS,
+            no_progressbar=True,
+        )
 
+        found = []
+        for name, data in results.items():
+            status = data.get("status")
+            if status and status.is_found():
+                found.append({
+                    "name": name,
+                    "url": data.get("url_user"),
+                    "http_status": data.get("http_status"),
+                    "rank": data.get("rank"),
+                    "ids_data": data.get("ids_data", {}),
+                })
+
+        job["checked"] = len(items)
+        job["results"] = found
         job["status"] = "done"
     except Exception as exc:
         logger.exception("Maigret job failed: %s", exc)
