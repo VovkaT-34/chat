@@ -11,9 +11,9 @@ from maigret import search as maigret_search
 from maigret.sites import MaigretDatabase
 from phonenumbers import carrier, geocoder, timezone
 
-from deep_sources import domain_info, ip_info, phone_info, phone_public_search, search_links, vin_info
+from deep_sources import domain_info, email_info, image_info, ip_info, phone_info, phone_public_search, public_search, search_links, vin_info
 
-app = FastAPI(title="Glaz Boga OSINT", version="0.3.1")
+app = FastAPI(title="Glaz Boga OSINT", version="0.4.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("glaz-boga")
@@ -145,7 +145,6 @@ async def run_deep_job(job_id: str, kind: str, query: str):
                 job["checked_items"] = (job["checked_items"] + list(batch.keys()))[-20:]
                 await asyncio.sleep(0.25)
         elif kind == "phone":
-            metadata = phone_info(query)
             public_results = await phone_public_search(query)
             job["results"] = public_results
             job["total"] = len(public_results)
@@ -153,38 +152,51 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["count"] = len(public_results)
             job["checked_items"] = ["Python / phonenumbers"]
         elif kind == "email":
-            job["results"] = [{"source": "Public-source search", "data": "Публичные упоминания"}] + search_links(query, "email")
+            info = await email_info(query)
+            public_results = await public_search(query, "email")
+            job["results"] = [{"source": "Python / email-validator + DNS", "name": "Email-анализ", "data": info}] + public_results
             job["total"] = len(job["results"])
             job["checked"] = job["total"]
-            job["count"] = 0
+            job["count"] = len(public_results)
+            job["checked_items"] = ["email-validator", "DNS/MX/TXT/DMARC", "Python / public web"]
         elif kind == "person":
-            job["results"] = search_links(query, "person")
-            job["total"] = len(job["results"])
+            public_results = await public_search(query, "person")
+            job["results"] = public_results
+            job["total"] = len(public_results)
             job["checked"] = job["total"]
-            job["count"] = 0
+            job["count"] = len(public_results)
+            job["checked_items"] = ["Python / public web"]
         elif kind == "vin":
             info = await vin_info(query)
-            job["results"] = [{"source": "NHTSA vPIC", "data": info}] + search_links(query, "vin")
+            public_results = await public_search(query, "vin")
+            job["results"] = [{"source": "Python / NHTSA vPIC", "name": "VIN-анализ", "data": info}] + public_results
             job["total"] = len(job["results"])
             job["checked"] = job["total"]
-            job["count"] = 0
+            job["count"] = len(public_results)
+            job["checked_items"] = ["Python / NHTSA vPIC", "Python / public web"]
         elif kind == "domain":
             info = await domain_info(query)
-            job["results"] = [{"source": "DNS/RDAP/certificates", "data": info}] + search_links(query, "domain")
+            public_results = await public_search(query, "domain")
+            job["results"] = [{"source": "Python / dnspython + RDAP + crt.sh", "name": "Доменный анализ", "data": info}] + public_results
             job["total"] = len(job["results"])
             job["checked"] = job["total"]
-            job["count"] = 0
+            job["count"] = len(public_results)
+            job["checked_items"] = ["dnspython / DNS", "RDAP", "crt.sh", "Python / public web"]
         elif kind == "ip":
             info = await ip_info(query)
-            job["results"] = [{"source": "RDAP/BGP", "data": info}] + search_links(query, "ip")
+            public_results = await public_search(query, "ip")
+            job["results"] = [{"source": "Python / ipaddress + RDAP + BGP", "name": "IP-анализ", "data": info}] + public_results
             job["total"] = len(job["results"])
             job["checked"] = job["total"]
-            job["count"] = 0
+            job["count"] = len(public_results)
+            job["checked_items"] = ["Python / ipaddress", "RDAP", "BGPView", "Python / public web"]
         elif kind == "image":
-            job["results"] = search_links(query, "image")
-            job["total"] = len(job["results"])
-            job["checked"] = job["total"]
-            job["count"] = 0
+            info = await image_info(query)
+            job["results"] = [{"source": "Python / Pillow", "name": "Анализ изображения", "data": info}]
+            job["total"] = 1
+            job["checked"] = 1
+            job["count"] = 1 if "error" not in info else 0
+            job["checked_items"] = ["Python / Pillow"]
         else:
             raise ValueError("Неизвестный тип глубокого поиска")
         job["status"] = "done"
