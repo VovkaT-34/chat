@@ -34,10 +34,10 @@ func NewControls() *Controls {
 	}
 }
 
-// Fixed mobile joystick, positioned in the lower-left like common mobile games.
-// The finger may leave the circle after activation; the same touch keeps controlling it.
+// Fixed mobile joystick on the lower-right.
+// The same finger remains captured even after leaving the visible circle.
 func mobileJoystick(x, y int) (dx, dy float64, ok bool) {
-	const centerX = 90.0
+	const centerX = 390.0
 	const centerY = 610.0
 	const activationRadius = 120.0
 	const maxRadius = 90.0
@@ -86,7 +86,6 @@ func (i *Controls) Update(w donburi.World) {
 		var touchX, touchY int
 		touchIDs := ebiten.AppendTouchIDs(nil)
 
-		// Capture the first finger that starts on the fixed joystick.
 		if !i.joystickActive {
 			for _, id := range touchIDs {
 				x, y := ebiten.TouchPosition(id)
@@ -98,7 +97,6 @@ func (i *Controls) Update(w donburi.World) {
 			}
 		}
 
-		// Keep following that exact finger until it is released.
 		if i.joystickActive {
 			found := false
 			for _, id := range touchIDs {
@@ -132,8 +130,9 @@ func (i *Controls) Update(w donburi.World) {
 		player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
 		player.ShootTimer.Update()
 
-		// The movement joystick and pause area must not trigger shooting.
-		if (ebiten.IsKeyPressed(in.ShootKey) || (touch && !joystickTouch && !pauseTouch)) && player.ShootTimer.IsReady() {
+		// On mobile, holding the movement joystick also fires continuously,
+		// matching the original touch-shoot behavior of the game.
+		if (ebiten.IsKeyPressed(in.ShootKey) || (joystickTouch && !pauseTouch) || (touch && !joystickTouch && !pauseTouch)) && player.ShootTimer.IsReady() {
 			position := transform.Transform.Get(entry).LocalPosition
 			archetype.NewPlayerBullet(w, player, position)
 			player.ShootTimer.Reset()
