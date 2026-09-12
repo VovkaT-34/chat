@@ -44,7 +44,6 @@
         white-space: nowrap !important;
     }
     .chat-header-main-actions .leave-chat-button:hover { transform: translate(-50%, -50%) translateY(-1px) !important; }
-    .chat-header-main-actions .leave-chat-button .icon-svg { width: 9px !important; height: 9px !important; }
 }
 
 /* iPhone / iOS — те же прежние параметры, только смещение вправо на 15px */
@@ -63,31 +62,11 @@
     }
 }
 
-/* =========================================
-   КНОПКА «ВЫЙТИ ИЗ ЧАТА» — WINDOWS / DESKTOP
-   Только кнопка выхода: по центру, нормальный читаемый размер.
-   ========================================= */
-@media (min-width: 901px) {
-    .chat-header-main-actions .leave-chat-button {
-        position: absolute !important;
-        left: 50% !important;
-        right: auto !important;
-        top: 20px !important;
-        margin: 0 !important;
-        transform: translate(-50%, -50%) scale(1) !important;
-        transform-origin: center center !important;
-    }
-
-    .chat-header-main-actions .leave-chat-button:hover {
-        transform: translate(-50%, -50%) translateY(-1px) scale(1) !important;
-    }
-}
-
-/* Монета должна свободно выходить за пределы узкой шапки на мобильных. */
+/* Монета должна выходить за пределы отступа body и быть вплотную к левому краю экрана. */
 @media (max-width: 900px) {
     .top-actions { overflow: visible !important; }
     .coin-1c {
-        left: 0 !important;
+        left: -10px !important;
         transform: translate(0, -50%) scale(.32) !important;
     }
 }
