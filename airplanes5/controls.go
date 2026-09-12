@@ -85,10 +85,10 @@ func (i *Controls) Update(w donburi.World) {
 		touchIDs := ebiten.AppendTouchIDs(nil)
 
 		if len(touchIDs) > 0 {
-			// Pause button occupies the full-width bottom strip of the 480x1040 game.
+			// Pause button occupies the full-width bottom strip of the 480x800 game.
 			for _, id := range touchIDs {
 				x, y := ebiten.TouchPosition(id)
-				if x >= 0 && x < 480 && y >= 960 && y < 1040 {
+				if x >= 0 && x < 480 && y >= 720 && y < 800 {
 					pauseTouch = true
 					break
 				}
