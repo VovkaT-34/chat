@@ -7,7 +7,7 @@ import logging
 import phonenumbers
 from phonenumbers import geocoder, carrier, timezone
 
-app = FastAPI(title="Glaz Boga OSINT", version="0.1.5")
+app = FastAPI(title="Glaz Boga OSINT", version="0.1.6")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
 
 logging.basicConfig(level=logging.INFO)
@@ -30,7 +30,15 @@ def health():
 @app.get("/username")
 async def username(q: str = Query(min_length=1, max_length=64)):
     sites = get_sites()
-    results = await maigret_search(username=q, site_dict=sites, logger=logger, timeout=20, is_parsing_enabled=True, max_connections=100, no_progressbar=True)
+    results = await maigret_search(
+        username=q,
+        site_dict=sites,
+        logger=logger,
+        timeout=8,
+        is_parsing_enabled=False,
+        max_connections=50,
+        no_progressbar=True,
+    )
     out = []
     for name, data in results.items():
         status = data.get("status")
