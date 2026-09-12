@@ -20,9 +20,10 @@ replacement = '''func (g *Game) Update() {
 \tif inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 \t\tgameData.Paused = !gameData.Paused
 \t}
-\tif js.Global().Get("__airplanes5PauseRequest").Truthy() {
-\t\tgameData.Paused = !gameData.Paused
-\t\tjs.Global().Set("__airplanes5PauseRequest", false)
+\tpauseRequest := js.Global().Get("__airplanes5PauseRequest")
+\tif !pauseRequest.IsUndefined() && !pauseRequest.IsNull() {
+\t\tgameData.Paused = pauseRequest.Bool()
+\t\tjs.Global().Set("__airplanes5PauseRequest", js.Null())
 \t}
 \tjs.Global().Call("__airplanes5SetPaused", gameData.Paused)
 \tif gameData.Paused {
