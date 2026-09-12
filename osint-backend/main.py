@@ -59,7 +59,7 @@ def cleanup_deep_jobs():
 
 @app.get("/health")
 def health():
-    return {"ok": True, "engine": "maigret", "deep_types": ["username", "phone", "email", "person", "vin", "domain", "ip", "image"]}
+    return {"ok": True, "engine": "maigret", "deep_types": ["username", "phone", "email", "person", "vin", "domain", "ip", "image", "email_extended", "phone_extended"]}
 
 
 async def run_username_job(job_id: str, username: str, sites):
@@ -171,6 +171,20 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["checked"] = job["total"]
             job["count"] = len(public_results)
             job["checked_items"] = ["email-validator", "DNS/MX/TXT/DMARC", "Python / public web"]
+        elif kind == "email_extended":
+            public_results = await public_search(query, "email", max_results=30)
+            job["results"] = public_results
+            job["total"] = len(public_results)
+            job["checked"] = job["total"]
+            job["count"] = len(public_results)
+            job["checked_items"] = ["Расширенный публичный поиск email", "Python / public web", "Индексируемые страницы популярных сайтов"]
+        elif kind == "phone_extended":
+            public_results = await public_search(query, "phone", max_results=30)
+            job["results"] = public_results
+            job["total"] = len(public_results)
+            job["checked"] = job["total"]
+            job["count"] = len(public_results)
+            job["checked_items"] = ["Расширенный публичный поиск телефона", "Python / public web", "Индексируемые страницы популярных сайтов"]
         elif kind == "person":
             public_results = await public_search(query, "person")
             job["results"] = public_results
@@ -237,7 +251,7 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
 
 @app.get("/deep")
-async def deep_search(kind: str = Query(pattern="^(username|phone|email|person|vin|domain|ip|image)$"), q: str = Query(min_length=1, max_length=256)):
+async def deep_search(kind: str = Query(pattern="^(username|phone|email|person|vin|domain|ip|image|email_extended|phone_extended)$"), q: str = Query(min_length=1, max_length=256)):
     global ACTIVE_DEEP_JOB_ID
     cleanup_deep_jobs()
     query = q.strip()
@@ -284,5 +298,5 @@ async def deep_cancel(job_id: str = Query(min_length=8, max_length=64)):
 
 
 @app.get("/deep/sources")
-def deep_sources(kind: str = Query(pattern="^(username|phone|email|person|vin|domain|ip|image)$"), q: str = Query(min_length=1, max_length=256)):
+def deep_sources(kind: str = Query(pattern="^(username|phone|email|person|vin|domain|ip|image|email_extended|phone_extended)$"), q: str = Query(min_length=1, max_length=256)):
     return {"type": kind, "query": q.strip(), "sources": search_links(q.strip(), kind)}
