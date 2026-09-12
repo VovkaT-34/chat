@@ -11,7 +11,7 @@ body{position:relative;display:flex;align-items:center;justify-content:center}
 canvas{display:block!important;width:100vw!important;height:100vh!important;object-fit:contain!important;touch-action:none}
 .mobile-controls{position:fixed;inset:0;z-index:10;pointer-events:none}
 .joystick{display:none}
-.pause{position:absolute;left:0;bottom:max(4px,env(safe-area-inset-bottom));width:100vw;height:clamp(38px,7vh,62px);border:1px solid #ffffff55;border-radius:11px;background:#77777766;color:#fff;font-size:clamp(18px,4vw,30px);font-weight:700;opacity:.9;backdrop-filter:blur(2px);pointer-events:none}
+.pause{position:absolute;left:0;right:0;bottom:max(4px,env(safe-area-inset-bottom));width:100%;height:clamp(38px,7vh,62px);border:1px solid #ffffff55;border-radius:11px;background:#77777766;color:#fff;font-size:clamp(18px,4vw,30px);font-weight:700;opacity:.9;backdrop-filter:blur(2px);pointer-events:auto;touch-action:manipulation}
 @media(min-width:700px){.mobile-controls{display:none}}
 </style>
 </head>
@@ -29,8 +29,8 @@ WebAssembly.instantiateStreaming(fetch('game.wasm'),go.importObject)
   .then(result=>go.run(result.instance))
   .catch(error=>console.error('Airplanes 5 WASM error:',error));
 </script>
-<div class="mobile-controls" aria-hidden="true">
-  <button class="pause">Ⅱ Пауза</button>
+<div class="mobile-controls">
+  <button class="pause" type="button">Ⅱ Пауза</button>
 </div>
 </body>
 </html>
