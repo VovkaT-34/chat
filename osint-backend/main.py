@@ -14,7 +14,7 @@ from phonenumbers import carrier, geocoder, timezone
 from deep_sources import domain_info, email_info, image_info, ip_info, phone_info, phone_public_search, public_search, search_links, vin_info
 from plate_sources import image_plate_search, plate_like, plate_public_search, normalize_plate
 
-app = FastAPI(title="Glaz Boga OSINT", version="0.5.0")
+app = FastAPI(title="Glaz Boga OSINT", version="0.5.1")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("glaz-boga")
@@ -147,12 +147,15 @@ async def run_deep_job(job_id: str, kind: str, query: str):
                 job["checked_items"] = (job["checked_items"] + list(batch.keys()))[-20:]
                 await asyncio.sleep(0.25)
         elif kind == "phone":
-            public_results = await phone_public_search(query)
-            job["results"] = public_results
-            job["total"] = len(public_results)
-            job["checked"] = len(public_results)
+            info_results = await phone_public_search(query)
+            public_results = await public_search(query, "phone", max_results=20)
+            info = phone_info(query)
+            metadata = {"source": "Python / phonenumbers", "name": "Результаты анализа телефона", "kind": "phone_metadata", "data": info}
+            job["results"] = [metadata] + public_results
+            job["total"] = len(job["results"])
+            job["checked"] = job["total"]
             job["count"] = len(public_results)
-            job["checked_items"] = ["Python / phonenumbers"]
+            job["checked_items"] = ["Python / phonenumbers", "Python / public web"]
         elif kind == "email":
             info = await email_info(query)
             public_results = await public_search(query, "email")
