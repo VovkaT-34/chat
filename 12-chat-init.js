@@ -3,6 +3,12 @@
 // Запуск чата
 // ===============================
 
+(function centerAdminButton() {
+    var style = document.createElement("style");
+    style.textContent = "#adminPanelButton{left:50%!important;right:auto!important;transform:translate(-50%,-50%)!important}#adminPanelButton:hover{transform:translate(-50%,-50%) translateY(-1px) scale(1.03)!important}";
+    document.head.appendChild(style);
+})();
+
 async function startChat() {
     await initUser();
     if (!currentUser) {
