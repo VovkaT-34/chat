@@ -14,7 +14,10 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:157.0) Gecko/20100101 Firefox/157.0",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 }
-TIMEOUT = 8
+BATCH_SIZE = 10
+MAX_CONCURRENCY = 4
+BATCH_PAUSE = 0.25
+TIMEOUT = 3
 
 
 class QuietNotify(QueryNotify):
@@ -37,24 +40,43 @@ async def _load_sherlock_sites():
 async def sherlock_search(username: str, progress: Callable | None = None):
     sites = await _load_sherlock_sites()
     site_data = {site.name: site.information for site in sites}
-    total = len(site_data)
+    items = list(site_data.items())
+    total = len(items)
     found = []
+    semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
 
-    def run():
-        return sherlock_scan(username, site_data, QuietNotify(), timeout=TIMEOUT)
+    async def check_one(name, information):
+        async with semaphore:
+            def run():
+                return sherlock_scan(
+                    username,
+                    {name: information},
+                    QuietNotify(),
+                    timeout=TIMEOUT,
+                )
+            try:
+                return await asyncio.to_thread(run)
+            except Exception:
+                return {}
 
-    results = await asyncio.to_thread(run)
-    for name, data in results.items():
-        status = data.get("status")
-        if status and status.status == QueryStatus.CLAIMED:
-            found.append({
-                "name": name,
-                "url": data.get("url_user"),
-                "http_status": data.get("http_status"),
-                "engine": "Sherlock",
-            })
-    if progress:
-        progress(total, total, "Sherlock", found)
+    for start in range(0, total, BATCH_SIZE):
+        batch = items[start:start + BATCH_SIZE]
+        results = await asyncio.gather(*(check_one(name, information) for name, information in batch))
+        for result in results:
+            for name, data in result.items():
+                status = data.get("status")
+                if status and status.status == QueryStatus.CLAIMED:
+                    found.append({
+                        "name": name,
+                        "url": data.get("url_user"),
+                        "http_status": data.get("http_status"),
+                        "engine": "Sherlock",
+                    })
+        if progress:
+            progress(min(start + len(batch), total), total, "Sherlock", found)
+        if start + len(batch) < total:
+            await asyncio.sleep(BATCH_PAUSE)
+
     return found, total
 
 
@@ -83,13 +105,12 @@ def _wmn_url(site, username):
 async def whatsmyname_search(username: str, progress: Callable | None = None):
     data = await _load_wmn()
     sites = data.get("sites", []) if isinstance(data, dict) else []
+    sites = [site for site in sites if site.get("valid") is not False]
     total = len(sites)
     found = []
-    semaphore = asyncio.Semaphore(20)
+    semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
 
     async def check(site):
-        if site.get("valid") is False:
-            return None
         url = _wmn_url(site, username)
         if not url:
             return None
@@ -128,8 +149,13 @@ async def whatsmyname_search(username: str, progress: Callable | None = None):
                 return None
         return None
 
-    results = await asyncio.gather(*(check(site) for site in sites))
-    found = [item for item in results if item]
-    if progress:
-        progress(total, total, "WhatsMyName", found)
+    for start in range(0, total, BATCH_SIZE):
+        batch = sites[start:start + BATCH_SIZE]
+        results = await asyncio.gather(*(check(site) for site in batch))
+        found.extend(item for item in results if item)
+        if progress:
+            progress(min(start + len(batch), total), total, "WhatsMyName", found)
+        if start + len(batch) < total:
+            await asyncio.sleep(BATCH_PAUSE)
+
     return found, total
