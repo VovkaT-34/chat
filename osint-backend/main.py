@@ -7,14 +7,15 @@ import logging
 import phonenumbers
 from phonenumbers import geocoder, carrier, timezone
 
-app = FastAPI(title="Glaz Boga OSINT", version="0.1.2")
+app = FastAPI(title="Glaz Boga OSINT", version="0.1.3")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("glaz-boga")
 MAIGRET_DATA = files("maigret").joinpath("resources", "data.json")
 DB = MaigretDatabase().load_from_path(str(MAIGRET_DATA))
-SITES = DB.sites
+# Maigret's search API expects a dict; use all enabled sites for maximum coverage.
+SITES = DB.ranked_sites_dict()
 
 @app.get("/health")
 def health():
