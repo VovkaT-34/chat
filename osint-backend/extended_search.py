@@ -13,7 +13,7 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; GlazBogaOSINT/1.0)"}
 # Only public/indexed web pages. No private accounts, leaked databases or restricted sources.
 SOURCES_RU = {
     "email": [
-        ("Яндекс", "yandex.ru"), ("Mail.ru", "mail.ru"), ("VK", "vk.com"),
+        ("Яндекс", "yandex.ru"), ("Mail.ru", "mail.ru"), ("VK", "vk.com"), ("VK RU", "vk.ru"),
         ("Одноклассники", "ok.ru"), ("Дзен", "dzen.ru"), ("Пикабу", "pikabu.ru"),
         ("Habr", "habr.com"), ("VC.ru", "vc.ru"), ("ЯПлакалъ", "yaplakal.com"),
         ("Fishki", "fishki.net"), ("LiveJournal", "livejournal.com"), ("4PDA", "4pda.to"),
@@ -39,7 +39,7 @@ SOURCES_RU = {
         ("Российские форумы", "forumavia.ru"), ("RuTracker Forum", "rutracker.org"),
     ],
     "phone": [
-        ("Яндекс", "yandex.ru"), ("Mail.ru", "mail.ru"), ("VK", "vk.com"),
+        ("Яндекс", "yandex.ru"), ("Mail.ru", "mail.ru"), ("VK", "vk.com"), ("VK RU", "vk.ru"),
         ("Одноклассники", "ok.ru"), ("Дзен", "dzen.ru"), ("Пикабу", "pikabu.ru"),
         ("Habr", "habr.com"), ("VC.ru", "vc.ru"), ("ЯПлакалъ", "yaplakal.com"),
         ("Fishki", "fishki.net"), ("LiveJournal", "livejournal.com"), ("4PDA", "4pda.to"),
@@ -101,11 +101,14 @@ def _phone_variants(value: str) -> list[str]:
     return list(dict.fromkeys(x for x in variants if x))
 
 
-def _query_for(kind: str, value: str, domain: str) -> str:
+def _query_for(kind: str, value: str, domain: str | None = None) -> str:
     if kind == "email":
-        return f'"{value.lower()}" site:{domain}'
-    variants = _phone_variants(value)
-    return f'"{variants[0]}" site:{domain}'
+        base = f'"{value.lower()}"'
+    else:
+        # Search several common public representations; exact page verification is done afterwards.
+        variants = _phone_variants(value)
+        base = " OR ".join(f'"{variant}"' for variant in variants[:4])
+    return f'{base} site:{domain}' if domain else base
 
 
 def _relevant(kind: str, query: str, title: str, body: str, href: str) -> bool:
@@ -133,8 +136,16 @@ async def _verify_page(kind: str, query: str, url: str) -> bool:
         return False
 
 
+async def _search_items(search_query: str) -> list[dict]:
+    return await asyncio.to_thread(
+        lambda q=search_query: DDGS(timeout=TIMEOUT).text(
+            q, region="ru-ru", safesearch="off", max_results=5, backend="auto"
+        )
+    )
+
+
 async def extended_public_search(query: str, kind: str, max_results: int = 30, progress=None) -> list[dict]:
-    """Search only public indexed pages: Russian sources first, foreign sources second."""
+    """Search public indexed pages through external search indexes, then verify the actual public page."""
     ru_sources = SOURCES_RU.get(kind, [])
     foreign_sources = SOURCES_FOREIGN.get(kind, [])
     sources = ru_sources + foreign_sources
@@ -142,20 +153,52 @@ async def extended_public_search(query: str, kind: str, max_results: int = 30, p
         return []
 
     results, seen = [], set()
-    total = len(sources)
+    total = len(sources) + 1
     if progress:
-        progress(0, total, "Подготовка: российские источники", results)
+        progress(0, total, "Поисковые индексы: общий поиск", results)
 
-    for index, (name, domain) in enumerate(sources, 1):
-        stage = "Россия" if index <= len(ru_sources) else "Иностранные"
+    # First pass: broad web search. This is not limited to our source catalogue.
+    # The returned domain is taken from the actual result URL.
+    try:
+        for item in await _search_items(_query_for(kind, query)):
+            href = str(item.get("href") or "").strip()
+            title = str(item.get("title") or "").strip()
+            body = str(item.get("body") or "").strip()
+            if not href.startswith(("http://", "https://")):
+                continue
+            if not _relevant(kind, query, title, body, href):
+                continue
+            key = href.rstrip("/")
+            if key in seen:
+                continue
+            if not await _verify_page(kind, query, href):
+                continue
+            seen.add(key)
+            hostname = (urlparse(href).hostname or "").lower()
+            results.append({
+                "source": "Поисковый индекс: точное публичное упоминание",
+                "name": title or href,
+                "url": href,
+                "snippet": body,
+                "domain": hostname,
+                "site": hostname,
+                "kind": f"{kind}_public",
+            })
+            if len(results) >= max_results:
+                return results
+    except Exception:
+        pass
+
+    if progress:
+        progress(1, total, "Поисковые индексы: общий поиск завершён", results)
+
+    # Second pass: targeted site: searches, Russia first, then foreign sources.
+    for index, (name, domain) in enumerate(sources, 2):
+        stage = "Россия" if index <= len(ru_sources) + 1 else "Иностранные"
         current = f"{stage}: {name} ({domain})"
         try:
             search_query = _query_for(kind, query, domain)
-            items = await asyncio.to_thread(
-                lambda q=search_query: DDGS(timeout=TIMEOUT).text(
-                    q, region="ru-ru", safesearch="off", max_results=5, backend="auto"
-                )
-            )
+            items = await _search_items(search_query)
             for item in items:
                 href = str(item.get("href") or "").strip()
                 title = str(item.get("title") or "").strip()
