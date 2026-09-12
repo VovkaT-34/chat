@@ -10,10 +10,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;oversc
 body{position:relative;display:flex;align-items:center;justify-content:center}
 canvas{display:block!important;width:100vw!important;height:100vh!important;object-fit:contain!important;touch-action:none}
 .mobile-controls{position:fixed;inset:0;z-index:10;pointer-events:none}
-.joystick{position:absolute;right:clamp(16px,5vw,42px);left:auto;bottom:clamp(105px,15vh,150px);width:clamp(145px,28vw,180px);height:clamp(145px,28vw,180px);border:2px solid #ffffff33;border-radius:50%;background:#77777718;box-shadow:inset 0 0 0 12px #ffffff08,0 0 12px #0005;opacity:.55;backdrop-filter:blur(1px)}
-.joystick .knob{position:absolute;left:50%;top:50%;width:clamp(58px,11vw,72px);height:clamp(58px,11vw,72px);transform:translate(-50%,-50%);border:2px solid #ffffff44;border-radius:50%;background:#99999938;box-shadow:0 0 8px #0006}
-.joystick .knob::after{content:"✦";position:absolute;left:50%;top:50%;transform:translate(-50%,-53%);color:#ffffff77;font-size:clamp(22px,5vw,32px)}
-.pause{position:absolute;left:0;bottom:max(4px,env(safe-area-inset-bottom));width:100vw;height:clamp(38px,7vh,62px);border:1px solid #ffffff55;border-radius:11px;background:#77777766;color:#fff;font-size:clamp(18px,4vw,30px);font-weight:700;opacity:.9;backdrop-filter:blur(2px)}
+.joystick{display:none}
+.pause{position:absolute;left:0;bottom:max(4px,env(safe-area-inset-bottom));width:100vw;height:clamp(38px,7vh,62px);border:1px solid #ffffff55;border-radius:11px;background:#77777766;color:#fff;font-size:clamp(18px,4vw,30px);font-weight:700;opacity:.9;backdrop-filter:blur(2px);pointer-events:none}
 @media(min-width:700px){.mobile-controls{display:none}}
 </style>
 </head>
@@ -30,41 +28,8 @@ const go=new Go();
 WebAssembly.instantiateStreaming(fetch('game.wasm'),go.importObject)
   .then(result=>go.run(result.instance))
   .catch(error=>console.error('Airplanes 5 WASM error:',error));
-
-const joystick=document.querySelector('.joystick');
-const knob=document.querySelector('.joystick .knob');
-let joystickId=null;
-function updateJoystickVisual(touch){
-  const r=joystick.getBoundingClientRect();
-  const cx=r.left+r.width/2, cy=r.top+r.height/2;
-  let dx=touch.clientX-cx, dy=touch.clientY-cy;
-  const max=r.width*.38, d=Math.hypot(dx,dy);
-  if(d>max){dx*=max/d;dy*=max/d;}
-  knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
-}
-function resetJoystickVisual(){joystickId=null;knob.style.transform='translate(-50%,-50%)';}
-document.addEventListener('touchstart',e=>{
-  if(joystickId!==null)return;
-  const r=joystick.getBoundingClientRect();
-  for(const t of e.changedTouches){
-    if(t.clientX>=r.left-25&&t.clientX<=r.right+25&&t.clientY>=r.top-25&&t.clientY<=r.bottom+25){
-      joystickId=t.identifier;updateJoystickVisual(t);break;
-    }
-  }
-},{passive:true});
-document.addEventListener('touchmove',e=>{
-  if(joystickId===null)return;
-  for(const t of e.changedTouches)if(t.identifier===joystickId){updateJoystickVisual(t);break;}
-},{passive:true});
-document.addEventListener('touchend',e=>{
-  for(const t of e.changedTouches)if(t.identifier===joystickId){resetJoystickVisual();break;}
-},{passive:true});
-document.addEventListener('touchcancel',e=>{
-  for(const t of e.changedTouches)if(t.identifier===joystickId){resetJoystickVisual();break;}
-},{passive:true});
 </script>
 <div class="mobile-controls" aria-hidden="true">
-  <div class="joystick"><div class="knob"></div></div>
   <button class="pause">Ⅱ Пауза</button>
 </div>
 </body>
