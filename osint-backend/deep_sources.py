@@ -24,7 +24,7 @@ def search_links(query: str, kind: str) -> list[dict]:
         "email": [("Google", f'https://www.google.com/search?q=%22{q}%22'), ("Bing", f'https://www.bing.com/search?q=%22{q}%22'), ("GitHub", f'https://github.com/search?q={q}&type=users')],
         "vin": [("Google", f'https://www.google.com/search?q=%22{q}%22'), ("Bing", f'https://www.bing.com/search?q=%22{q}%22'), ("NHTSA vPIC", f'https://vpic.nhtsa.dot.gov/decoder/Decoder?VIN={q}&ModelYear=')],
         "domain": [("Google", f'https://www.google.com/search?q=%22{q}%22'), ("crt.sh", f'https://crt.sh/?q={q}'), ("Wayback", f'https://web.archive.org/web/*/{q}')],
-        "ip": [("Google", f'https://www.google.com/search?q=%22{q}%22'), ("BGP HE", f'https://bgp.he.net/ip/{q}"), ("IPinfo", f'https://ipinfo.io/{q}')],
+        "ip": [("Google", f'https://www.google.com/search?q=%22{q}%22'), ("BGP HE", f'https://bgp.he.net/ip/{q}'), ("IPinfo", f'https://ipinfo.io/{q}')],
         "image": [("Google Lens", 'https://lens.google.com/'), ("Yandex Images", 'https://yandex.ru/images/'), ("TinEye", 'https://tineye.com/')],
     }
     return [{"name": name, "url": url} for name, url in templates.get(kind, [])]
@@ -69,17 +69,16 @@ def phone_info(value: str) -> dict:
             "type": type_names.get(number_type, str(number_type)),
             "type_code": number_type,
         }
+
     except Exception as exc:
         return {"possible": False, "valid": False, "error": str(exc)}
 
 
 async def phone_public_search(value: str, max_results: int = 30) -> list[dict]:
-    """Return visible phone metadata plus public indexed mentions."""
     info = phone_info(value)
     if info.get("error"):
         return [{"source": f"Телефон: ошибка разбора — {info['error']}", "name": "Ошибка разбора номера", "kind": "error"}]
-
-    metadata_lines = [
+    lines = [
         f"Номер: {info.get('international') or value}",
         f"E.164: {info.get('e164') or '—'}",
         f"Национальный: {info.get('national') or '—'}",
@@ -92,24 +91,8 @@ async def phone_public_search(value: str, max_results: int = 30) -> list[dict]:
         f"Возможен: {'Да' if info.get('possible') else 'Нет'}",
         f"Валиден: {'Да' if info.get('valid') else 'Нет'}",
     ]
-    metadata = {
-        "source": "Телефон / phonenumbers — " + " | ".join(metadata_lines),
-        "name": "Полные метаданные номера",
-        "kind": "phone_metadata",
-        "data": info,
-    }
-
-    variants = []
-    for item in (value.strip(), info.get("e164"), info.get("international"), info.get("national")):
-        if item:
-            variants.append(item)
-            variants.append(re.sub(r"[^0-9+]", "", item))
-    variants = list(dict.fromkeys(x for x in variants if x))
-    public_results = await public_search(" ".join(variants[:2]), "phone", max_results=max_results)
-    for result in public_results:
-        title = result.get("name") or "Публичное упоминание"
-        snippet = result.get("snippet") or ""
-        result["source"] = f"Публичное упоминание: {title}" + (f" — {snippet}" if snippet else "")
+    metadata = {"source": "Телефон / phonenumbers — " + " | ".join(lines), "name": "Полные метаданные номера", "kind": "phone_metadata", "data": info}
+    public_results = await public_search(value, "phone", max_results=max_results)
     return [metadata] + public_results
 
 
@@ -120,9 +103,16 @@ async def public_search(query: str, kind: str, max_results: int = 20) -> list[di
         variants.append(query.strip().lower())
     elif kind == "person":
         variants.append(re.sub(r"\s+", " ", query.strip()))
+    elif kind == "phone":
+        info = phone_info(query)
+        for item in (info.get("e164"), info.get("international"), info.get("national")):
+            if item:
+                variants.append(item)
+                variants.append(re.sub(r"[^0-9+]", "", item))
+        variants = list(dict.fromkeys(variants))
     results, seen = [], set()
     async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, headers=HEADERS) as client:
-        for variant in dict.fromkeys(variants):
+        for variant in variants:
             try:
                 url = "https://html.duckduckgo.com/html/?q=" + quote(f'"{variant}"')
                 response = await client.get(url)
@@ -133,15 +123,17 @@ async def public_search(query: str, kind: str, max_results: int = 20) -> list[di
                     match = re.search(r'class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', block, re.S)
                     if not match:
                         continue
-                    href = match.group(1)
+                    href = match.group(1).replace("&amp;", "&")
                     title = re.sub(r"<[^>]+>", " ", match.group(2)).strip()
-                    href = href.replace("&amp;", "&")
                     if href in seen:
                         continue
                     seen.add(href)
                     snippet_match = re.search(r'class="result__snippet"[^>]*>(.*?)</', block, re.S)
                     snippet = re.sub(r"<[^>]+>", " ", snippet_match.group(1)).strip() if snippet_match else ""
-                    results.append({"source": "Python / public web", "name": title, "url": href, "snippet": snippet, "kind": f"{kind}_public"})
+                    source = "Python / public web"
+                    if kind == "phone":
+                        source = f"Публичное упоминание: {title}" + (f" — {snippet}" if snippet else "")
+                    results.append({"source": source, "name": title, "url": href, "snippet": snippet, "kind": f"{kind}_public"})
                     if len(results) >= max_results:
                         return results
             except Exception:
@@ -158,9 +150,7 @@ async def email_info(value: str) -> dict:
         domain = parsed.domain
     except EmailNotValidError as exc:
         return {"query": email, "valid_syntax": False, "error": str(exc)}
-    resolver = dns.resolver.Resolver()
-    resolver.timeout = 3
-    resolver.lifetime = 3
+    resolver = dns.resolver.Resolver(); resolver.timeout = 3; resolver.lifetime = 3
     for record in ("MX", "A", "AAAA", "TXT"):
         try:
             answers = await asyncio.to_thread(resolver.resolve, domain, record)
@@ -182,9 +172,7 @@ async def vin_info(value: str) -> dict:
     url = f"https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/{quote(vin)}?format=json"
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            row = (response.json().get("Results") or [{}])[0]
+            response = await client.get(url); response.raise_for_status(); row = (response.json().get("Results") or [{}])[0]
         fields = ["Make", "Model", "ModelYear", "VehicleType", "BodyClass", "EngineCylinders", "FuelTypePrimary"]
         return {"valid_format": True, "source": "Python / NHTSA vPIC", "data": {k: row.get(k) for k in fields if row.get(k)}}
     except Exception as exc:
@@ -194,74 +182,52 @@ async def vin_info(value: str) -> dict:
 async def domain_info(domain: str) -> dict:
     domain = domain.strip().lower().removeprefix("https://").removeprefix("http://").split("/")[0]
     result = {"query": domain, "dns": {}, "certificates": []}
-    resolver = dns.resolver.Resolver()
-    resolver.timeout = 3
-    resolver.lifetime = 3
+    resolver = dns.resolver.Resolver(); resolver.timeout = 3; resolver.lifetime = 3
     for record in ("A", "AAAA", "MX", "NS", "TXT", "CNAME"):
         try:
-            answers = await asyncio.to_thread(resolver.resolve, domain, record)
-            result["dns"][record] = [str(a).strip('"') for a in answers][:20]
-        except Exception:
-            result["dns"][record] = []
+            answers = await asyncio.to_thread(resolver.resolve, domain, record); result["dns"][record] = [str(a).strip('"') for a in answers][:20]
+        except Exception: result["dns"][record] = []
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
             cert, rdap = await asyncio.gather(client.get(f"https://crt.sh/?q={quote(domain)}&output=json"), client.get(f"https://rdap.org/domain/{quote(domain)}"), return_exceptions=True)
         if not isinstance(cert, Exception) and cert.is_success:
             names = set()
-            for item in cert.json()[:200]:
-                names.update(x.strip().lower() for x in str(item.get("name_value", "")).splitlines() if x.strip())
+            for item in cert.json()[:200]: names.update(x.strip().lower() for x in str(item.get("name_value", "")).splitlines() if x.strip())
             result["certificates"] = sorted(names)[:100]
         if not isinstance(rdap, Exception) and rdap.is_success:
-            data = rdap.json()
-            result["rdap"] = {"name": data.get("ldhName"), "status": data.get("status", [])}
-    except Exception as exc:
-        result["error"] = str(exc)
+            data = rdap.json(); result["rdap"] = {"name": data.get("ldhName"), "status": data.get("status", [])}
+    except Exception as exc: result["error"] = str(exc)
     return result
 
 
 async def ip_info(ip: str) -> dict:
     result = {"query": ip.strip()}
     try:
-        import ipaddress
-        result["version"] = ipaddress.ip_address(ip.strip()).version
+        import ipaddress; result["version"] = ipaddress.ip_address(ip.strip()).version
     except ValueError:
-        result["valid"] = False
-        return result
+        result["valid"] = False; return result
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
             rdap, bgp = await asyncio.gather(client.get(f"https://rdap.org/ip/{quote(ip.strip())}"), client.get(f"https://api.bgpview.io/ip/{quote(ip.strip())}"), return_exceptions=True)
         if not isinstance(rdap, Exception) and rdap.is_success:
-            data = rdap.json()
-            result["rdap"] = {"name": data.get("name"), "country": data.get("country"), "handle": data.get("handle")}
+            data = rdap.json(); result["rdap"] = {"name": data.get("name"), "country": data.get("country"), "handle": data.get("handle")}
         if not isinstance(bgp, Exception) and bgp.is_success:
-            data = bgp.json().get("data", {})
-            prefix = (data.get("prefixes") or [{}])[0]
-            asn = prefix.get("asn") or {}
+            data = bgp.json().get("data", {}); prefix = (data.get("prefixes") or [{}])[0]; asn = prefix.get("asn") or {}
             result["bgp"] = {"prefix": prefix.get("prefix"), "asn": asn.get("asn"), "name": asn.get("name")}
-    except Exception as exc:
-        result["error"] = str(exc)
+    except Exception as exc: result["error"] = str(exc)
     return result
 
 
 async def image_info(value: str) -> dict:
-    url = value.strip()
-    result = {"query": url}
+    url = value.strip(); result = {"query": url}
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, headers=HEADERS) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-        result["content_type"] = response.headers.get("content-type", "")
-        result["size_bytes"] = len(response.content)
+            response = await client.get(url); response.raise_for_status()
+        result["content_type"] = response.headers.get("content-type", ""); result["size_bytes"] = len(response.content)
         with Image.open(io.BytesIO(response.content)) as image:
-            result["format"] = image.format
-            result["width"] = image.width
-            result["height"] = image.height
-            result["mode"] = image.mode
+            result["format"] = image.format; result["width"] = image.width; result["height"] = image.height; result["mode"] = image.mode
             exif = image.getexif()
-            if exif:
-                result["exif"] = {str(k): str(v) for k, v in list(exif.items())[:30]}
-    except (UnidentifiedImageError, OSError) as exc:
-        result["error"] = f"Не удалось распознать изображение: {exc}"
-    except Exception as exc:
-        result["error"] = str(exc)
+            if exif: result["exif"] = {str(k): str(v) for k, v in list(exif.items())[:30]}
+    except (UnidentifiedImageError, OSError) as exc: result["error"] = f"Не удалось распознать изображение: {exc}"
+    except Exception as exc: result["error"] = str(exc)
     return result
