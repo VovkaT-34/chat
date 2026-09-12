@@ -29,6 +29,7 @@ REQUEST_TIMEOUT = 3
 JOB_TTL = 1800
 DEEP_JOB_TTL = 1800
 DEEP_JOBS = {}
+DEEP_TASKS = {}
 ACTIVE_DEEP_JOB_ID = None
 
 
@@ -222,6 +223,7 @@ async def run_deep_job(job_id: str, kind: str, query: str):
         job["finished_at"] = time.time()
         if ACTIVE_DEEP_JOB_ID == job_id:
             ACTIVE_DEEP_JOB_ID = None
+        DEEP_TASKS.pop(job_id, None)
 
 
 @app.get("/deep")
@@ -237,7 +239,7 @@ async def deep_search(kind: str = Query(pattern="^(username|phone|email|person|v
     job_id = uuid.uuid4().hex
     DEEP_JOBS[job_id] = {"type": kind, "kind": kind, "query": query, "job_id": job_id, "status": "queued", "total": 0, "checked": 0, "count": 0, "results": [], "checked_items": [], "error": None, "finished_at": None}
     ACTIVE_DEEP_JOB_ID = job_id
-    asyncio.create_task(run_deep_job(job_id, kind, query))
+    DEEP_TASKS[job_id] = asyncio.create_task(run_deep_job(job_id, kind, query))
     return DEEP_JOBS[job_id]
 
 
@@ -247,6 +249,27 @@ def deep_status(job_id: str = Query(min_length=8, max_length=64)):
     job = DEEP_JOBS.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Глубокое задание не найдено или уже удалено")
+    return job
+
+
+@app.get("/deep/cancel")
+async def deep_cancel(job_id: str = Query(min_length=8, max_length=64)):
+    global ACTIVE_DEEP_JOB_ID
+    cleanup_deep_jobs()
+    job = DEEP_JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Глубокое задание не найдено или уже удалено")
+    if job["status"] in {"done", "error", "cancelled"}:
+        return job
+    job["status"] = "cancelled"
+    job["error"] = None
+    job["finished_at"] = time.time()
+    task = DEEP_TASKS.get(job_id)
+    if task and not task.done():
+        task.cancel()
+    DEEP_TASKS.pop(job_id, None)
+    if ACTIVE_DEEP_JOB_ID == job_id:
+        ACTIVE_DEEP_JOB_ID = None
     return job
 
 
