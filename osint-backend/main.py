@@ -150,11 +150,18 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             info_results = await phone_public_search(query)
             public_results = await public_search(query, "phone", max_results=20)
             info = phone_info(query)
+            phone_results = []
+            for item in info_results:
+                item = dict(item)
+                item["source"] = item.get("name") or item.get("source") or "Python / phonenumbers"
+                phone_results.append(item)
+            for item in public_results:
+                item["source"] = item.get("name") or item.get("url") or "Python / public web"
             metadata = {"source": "Python / phonenumbers", "name": "Результаты анализа телефона", "kind": "phone_metadata", "data": info}
-            job["results"] = [metadata] + public_results
+            job["results"] = [metadata] + phone_results + public_results
             job["total"] = len(job["results"])
             job["checked"] = job["total"]
-            job["count"] = len(public_results)
+            job["count"] = len(job["results"])
             job["checked_items"] = ["Python / phonenumbers", "Python / public web"]
         elif kind == "email":
             info = await email_info(query)
