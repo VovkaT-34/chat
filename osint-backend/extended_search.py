@@ -10,22 +10,80 @@ import httpx
 TIMEOUT = 8
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; GlazBogaOSINT/1.0)"}
 
-SOURCES = {
+# Only public/indexed web pages. No private accounts, leaked databases or restricted sources.
+SOURCES_RU = {
     "email": [
         ("Яндекс", "yandex.ru"), ("Mail.ru", "mail.ru"), ("VK", "vk.com"),
         ("Одноклассники", "ok.ru"), ("Дзен", "dzen.ru"), ("Пикабу", "pikabu.ru"),
-        ("Habr", "habr.com"), ("Avito", "avito.ru"), ("Юла", "youla.ru"),
-        ("HH.ru", "hh.ru"), ("ЦИАН", "cian.ru"), ("2ГИС", "2gis.ru"),
-        ("Telegram", "t.me"), ("GitHub", "github.com"), ("GitLab", "gitlab.com"),
-        ("Reddit", "reddit.com"), ("LinkedIn", "linkedin.com"), ("Stack Overflow", "stackoverflow.com"),
+        ("Habr", "habr.com"), ("VC.ru", "vc.ru"), ("ЯПлакалъ", "yaplakal.com"),
+        ("Fishki", "fishki.net"), ("LiveJournal", "livejournal.com"), ("4PDA", "4pda.to"),
+        ("iXBT", "ixbt.com"), ("ForumHouse", "forumhouse.ru"), ("CyberForum", "cyberforum.ru"),
+        ("Отзовик", "otzovik.com"), ("IRecommend", "irecommend.ru"), ("Drive2", "drive2.ru"),
+        ("Proza.ru", "proza.ru"), ("Стихи.ру", "stihi.ru"), ("Author.Today", "author.today"),
+        ("LiveLib", "livelib.ru"), ("Q&A Mail.ru", "otvet.mail.ru"), ("Q&A Habr", "qna.habr.com"),
+        ("Avito", "avito.ru"), ("Юла", "youla.ru"), ("Из рук в руки", "irr.ru"),
+        ("FarPost", "farpost.ru"), ("Народные страницы", "stranicy.ru"),
+        ("Tiu.ru", "tiu.ru"), ("PulsCen", "pulscen.ru"), ("PromPortal", "promportal.su"),
+        ("Яндекс Недвижимость", "realty.yandex.ru"), ("ЦИАН", "cian.ru"), ("Домклик", "domclick.ru"),
+        ("Домофонд", "domofond.ru"), ("2ГИС", "2gis.ru"), ("Zoon", "zoon.ru"),
+        ("Yell", "yell.ru"), ("Flamp", "flamp.ru"), ("Справочник", "spr.ru"),
+        ("ProDoctorov", "prodoctorov.ru"), ("DocDoc", "docdoc.ru"),
+        ("HeadHunter", "hh.ru"), ("SuperJob", "superjob.ru"), ("Rabota.ru", "rabota.ru"),
+        ("Зарплата.ру", "zarplata.ru"), ("Работа России", "trudvsem.ru"),
+        ("ГородРабот", "gorodrabot.ru"), ("Geekjob", "geekjob.ru"), ("Профи", "profi.ru"),
+        ("YouDo", "youdo.com"), ("Ремонтник", "remontnik.ru"), ("Помогатель", "pomogatel.ru"),
+        ("Auto.ru", "auto.ru"), ("Drom", "drom.ru"), ("AM.ru", "am.ru"),
+        ("Ozon", "ozon.ru"), ("Wildberries", "wildberries.ru"), ("Мегамаркет", "megamarket.ru"),
+        ("Яндекс Маркет", "market.yandex.ru"), ("Яндекс Карты", "yandex.ru"),
+        ("Telegram Public", "t.me"), ("Rutube", "rutube.ru"), ("YouTube RU", "youtube.com"),
+        ("Российские форумы", "forumavia.ru"), ("RuTracker Forum", "rutracker.org"),
     ],
     "phone": [
-        ("Яндекс", "yandex.ru"), ("VK", "vk.com"), ("Одноклассники", "ok.ru"),
-        ("Avito", "avito.ru"), ("Юла", "youla.ru"), ("2ГИС", "2gis.ru"),
-        ("Auto.ru", "auto.ru"), ("Drom", "drom.ru"), ("Пикабу", "pikabu.ru"),
-        ("Дзен", "dzen.ru"), ("HH.ru", "hh.ru"), ("ЦИАН", "cian.ru"),
-        ("Telegram", "t.me"), ("GitHub", "github.com"), ("Reddit", "reddit.com"),
-        ("LinkedIn", "linkedin.com"), ("Facebook", "facebook.com"),
+        ("Яндекс", "yandex.ru"), ("Mail.ru", "mail.ru"), ("VK", "vk.com"),
+        ("Одноклассники", "ok.ru"), ("Дзен", "dzen.ru"), ("Пикабу", "pikabu.ru"),
+        ("Habr", "habr.com"), ("VC.ru", "vc.ru"), ("ЯПлакалъ", "yaplakal.com"),
+        ("Fishki", "fishki.net"), ("LiveJournal", "livejournal.com"), ("4PDA", "4pda.to"),
+        ("iXBT", "ixbt.com"), ("ForumHouse", "forumhouse.ru"), ("CyberForum", "cyberforum.ru"),
+        ("Отзовик", "otzovik.com"), ("IRecommend", "irecommend.ru"), ("Drive2", "drive2.ru"),
+        ("Proza.ru", "proza.ru"), ("Стихи.ру", "stihi.ru"), ("Q&A Mail.ru", "otvet.mail.ru"),
+        ("Avito", "avito.ru"), ("Юла", "youla.ru"), ("Из рук в руки", "irr.ru"),
+        ("FarPost", "farpost.ru"), ("Народные страницы", "stranicy.ru"),
+        ("Tiu.ru", "tiu.ru"), ("PulsCen", "pulscen.ru"), ("PromPortal", "promportal.su"),
+        ("Яндекс Недвижимость", "realty.yandex.ru"), ("ЦИАН", "cian.ru"), ("Домклик", "domclick.ru"),
+        ("Домофонд", "domofond.ru"), ("2ГИС", "2gis.ru"), ("Zoon", "zoon.ru"),
+        ("Yell", "yell.ru"), ("Flamp", "flamp.ru"), ("Справочник", "spr.ru"),
+        ("ProDoctorov", "prodoctorov.ru"), ("DocDoc", "docdoc.ru"),
+        ("HeadHunter", "hh.ru"), ("SuperJob", "superjob.ru"), ("Rabota.ru", "rabota.ru"),
+        ("Зарплата.ру", "zarplata.ru"), ("Работа России", "trudvsem.ru"),
+        ("ГородРабот", "gorodrabot.ru"), ("Geekjob", "geekjob.ru"), ("Профи", "profi.ru"),
+        ("YouDo", "youdo.com"), ("Ремонтник", "remontnik.ru"), ("Помогатель", "pomogatel.ru"),
+        ("Auto.ru", "auto.ru"), ("Drom", "drom.ru"), ("AM.ru", "am.ru"),
+        ("Ozon", "ozon.ru"), ("Wildberries", "wildberries.ru"), ("Мегамаркет", "megamarket.ru"),
+        ("Яндекс Маркет", "market.yandex.ru"), ("Яндекс Карты", "yandex.ru"),
+        ("Telegram Public", "t.me"), ("Rutube", "rutube.ru"), ("YouTube RU", "youtube.com"),
+    ],
+}
+
+# Foreign stage is deliberately separate: Russia first, then international public pages.
+SOURCES_FOREIGN = {
+    "email": [
+        ("GitHub", "github.com"), ("GitLab", "gitlab.com"), ("Reddit", "reddit.com"),
+        ("LinkedIn", "linkedin.com"), ("Stack Overflow", "stackoverflow.com"),
+        ("Stack Exchange", "stackexchange.com"), ("SourceForge", "sourceforge.net"),
+        ("Medium", "medium.com"), ("Dev.to", "dev.to"), ("WordPress", "wordpress.com"),
+        ("Blogger", "blogspot.com"), ("Pastebin", "pastebin.com"), ("Gist", "gist.github.com"),
+        ("GitBook", "gitbook.io"), ("Bitbucket", "bitbucket.org"), ("CodePen", "codepen.io"),
+        ("Discourse", "discourse.org"), ("Quora", "quora.com"), ("Facebook", "facebook.com"),
+        ("X", "x.com"),
+    ],
+    "phone": [
+        ("GitHub", "github.com"), ("GitLab", "gitlab.com"), ("Reddit", "reddit.com"),
+        ("LinkedIn", "linkedin.com"), ("Stack Overflow", "stackoverflow.com"),
+        ("Stack Exchange", "stackexchange.com"), ("SourceForge", "sourceforge.net"),
+        ("Medium", "medium.com"), ("Dev.to", "dev.to"), ("WordPress", "wordpress.com"),
+        ("Blogger", "blogspot.com"), ("Pastebin", "pastebin.com"), ("Gist", "gist.github.com"),
+        ("GitBook", "gitbook.io"), ("Bitbucket", "bitbucket.org"), ("CodePen", "codepen.io"),
+        ("Quora", "quora.com"), ("Facebook", "facebook.com"), ("X", "x.com"),
     ],
 }
 
@@ -36,7 +94,10 @@ def _phone_variants(value: str) -> list[str]:
     if digits:
         variants += [digits, "+" + digits]
         if digits.startswith("7") and len(digits) == 11:
-            variants += ["8" + digits[1:], "+7 " + digits[1:4] + " " + digits[4:7] + "-" + digits[7:9] + "-" + digits[9:]]
+            variants += [
+                "8" + digits[1:],
+                "+7 " + digits[1:4] + " " + digits[4:7] + "-" + digits[7:9] + "-" + digits[9:],
+            ]
     return list(dict.fromkeys(x for x in variants if x))
 
 
@@ -73,15 +134,21 @@ async def _verify_page(kind: str, query: str, url: str) -> bool:
 
 
 async def extended_public_search(query: str, kind: str, max_results: int = 30, progress=None) -> list[dict]:
-    sources = SOURCES.get(kind, [])
+    """Search only public indexed pages: Russian sources first, foreign sources second."""
+    ru_sources = SOURCES_RU.get(kind, [])
+    foreign_sources = SOURCES_FOREIGN.get(kind, [])
+    sources = ru_sources + foreign_sources
     if not sources:
         return []
+
     results, seen = [], set()
     total = len(sources)
     if progress:
-        progress(0, total, "Подготовка", results)
+        progress(0, total, "Подготовка: российские источники", results)
+
     for index, (name, domain) in enumerate(sources, 1):
-        current = f"{name} ({domain})"
+        stage = "Россия" if index <= len(ru_sources) else "Иностранные"
+        current = f"{stage}: {name} ({domain})"
         try:
             search_query = _query_for(kind, query, domain)
             items = await asyncio.to_thread(
@@ -95,7 +162,8 @@ async def extended_public_search(query: str, kind: str, max_results: int = 30, p
                 body = str(item.get("body") or "").strip()
                 if not href.startswith(("http://", "https://")):
                     continue
-                if domain not in (urlparse(href).hostname or "").lower():
+                hostname = (urlparse(href).hostname or "").lower()
+                if not (hostname == domain or hostname.endswith("." + domain)):
                     continue
                 if not _relevant(kind, query, title, body, href):
                     continue
@@ -118,8 +186,10 @@ async def extended_public_search(query: str, kind: str, max_results: int = 30, p
                     break
         except Exception:
             pass
+
         if progress:
             progress(index, total, current, results)
         if len(results) >= max_results:
             break
+
     return results
