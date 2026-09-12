@@ -1,9 +1,10 @@
 """Free public-source deep OSINT helpers for Glaz Boga."""
 
 import asyncio
+import html as html_lib
 import io
 import re
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, unquote, urlparse
 
 import dns.resolver
 import httpx
@@ -118,22 +119,29 @@ async def public_search(query: str, kind: str, max_results: int = 20) -> list[di
                 response = await client.get(url)
                 response.raise_for_status()
                 html = response.text
-                blocks = re.findall(r'<div class="result results_links[^>]*>(.*?)</div>\s*</div>', html, re.S)
-                for block in blocks:
-                    match = re.search(r'class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', block, re.S)
-                    if not match:
+                matches = re.findall(r'<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>(.*?)</a>', html, re.S | re.I)
+                if not matches:
+                    matches = re.findall(r'<a[^>]+href="([^"]+)"[^>]+class="[^"]*result__a[^"]*"[^>]*>(.*?)</a>', html, re.S | re.I)
+                for href, raw_title in matches:
+                    href = html_lib.unescape(href).strip()
+                    if href.startswith("//"):
+                        href = "https:" + href
+                    parsed = urlparse(href)
+                    uddg = parse_qs(parsed.query).get("uddg", [None])[0]
+                    if uddg:
+                        href = unquote(uddg)
+                    if not href.startswith(("http://", "https://")) or href in seen:
                         continue
-                    href = match.group(1).replace("&amp;", "&")
-                    title = re.sub(r"<[^>]+>", " ", match.group(2)).strip()
-                    if href in seen:
+                    title = re.sub(r"\s+", " ", html_lib.unescape(re.sub(r"<[^>]+>", " ", raw_title))).strip()
+                    if not title:
                         continue
                     seen.add(href)
-                    snippet_match = re.search(r'class="result__snippet"[^>]*>(.*?)</', block, re.S)
-                    snippet = re.sub(r"<[^>]+>", " ", snippet_match.group(1)).strip() if snippet_match else ""
                     source = "Python / public web"
-                    if kind == "phone":
-                        source = f"Публичное упоминание: {title}" + (f" — {snippet}" if snippet else "")
-                    results.append({"source": source, "name": title, "url": href, "snippet": snippet, "kind": f"{kind}_public"})
+                    if kind == "email":
+                        source = f"Публичное упоминание email: {title}"
+                    elif kind == "phone":
+                        source = f"Публичное упоминание: {title}"
+                    results.append({"source": source, "name": title, "url": href, "snippet": "", "kind": f"{kind}_public"})
                     if len(results) >= max_results:
                         return results
             except Exception:
@@ -214,7 +222,8 @@ async def ip_info(ip: str) -> dict:
         if not isinstance(bgp, Exception) and bgp.is_success:
             data = bgp.json().get("data", {}); prefix = (data.get("prefixes") or [{}])[0]; asn = prefix.get("asn") or {}
             result["bgp"] = {"prefix": prefix.get("prefix"), "asn": asn.get("asn"), "name": asn.get("name")}
-    except Exception as exc: result["error"] = str(exc)
+    except Exception as exc:
+        result["error"] = str(exc)
     return result
 
 
