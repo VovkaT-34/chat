@@ -84,6 +84,7 @@ body{padding:16px 14px 30px}
 <option value="email_holehe">Email — Holehe</option>
 <option value="email_userscanner">Email — user-scanner</option>
 <option value="email_mailaccess">Email — MailAccess</option>
+<option value="email_h8mail">Email — h8mail</option>
 <option value="vin">Авто / VIN — vPIC + поиск</option>
 <option value="domain">Домен — DNS/RDAP/сертификаты</option>
 <option value="ip">IP — RDAP/BGP</option>
@@ -290,7 +291,7 @@ async function domainLookup(domain){
   const jobs=[publicJson('https://crt.sh/?q='+encodeURIComponent(domain)+'&output=json'),publicJson('https://rdap.org/domain/'+encodeURIComponent(domain)),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=A'),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=AAAA'),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=MX')],r=await Promise.allSettled(jobs);
   if(r[0].status==='fulfilled'){const names=[...new Set((r[0].value||[]).flatMap(x=>String(x.name_value||'').split('\n')).map(x=>x.trim().toLowerCase()).filter(Boolean))].slice(0,20);addResult('🌐 crt.sh: сертификатных имён: <b>'+names.length+'</b>');names.forEach(n=>addResult('<a href="https://'+esc(n.replace(/^\*\./,''))+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>'))}
   if(r[1].status==='fulfilled'){const x=r[1].value;addResult('📜 RDAP: <b>'+esc(x.ldhName||domain)+'</b>');(x.nameservers||[]).slice(0,20).forEach(n=>addResult('NS: <b>'+esc(n.ldhName||'')+'</b>'))}
-  ['A','AAAA','MX'].forEach((t,i)=>{const z=r[i+2];if(z.status==='fulfilled')(z.value.Answer||[]).slice(0,20).forEach(a=>addResult('DNS '+t+': <b>'+esc(a.data||'')+'</b> · TTL '+Number(a.TTL||0)))})
+  ['A','AAAA','MX'].forEach((t,i)=>{const z=r[i+2];if(z.status==='fulfilled')(z.value.Answer||[]).slice(0,20).forEach(a=>addResult('DNS '+t+': <b>'+esc(a.data||'')+'</b> · TTL '+Number(a.TTL||0)))});
 }
 
 async function ipLookup(value){
@@ -321,6 +322,7 @@ function deepLabel(k){
     email_holehe:'Email — Holehe',
     email_userscanner:'Email — user-scanner',
     email_mailaccess:'Email — MailAccess',
+    email_h8mail:'Email — h8mail',
     vin:'Авто / VIN',
     domain:'Домен',
     ip:'IP',
@@ -436,6 +438,7 @@ function updateDeepPlaceholder(){
     email_holehe:'Email для проверки через Holehe…',
     email_userscanner:'Email для проверки через user-scanner…',
     email_mailaccess:'Email для проверки через MailAccess…',
+    email_h8mail:'Email для проверки через h8mail…',
     vin:'VIN из 17 символов…',
     domain:'example.com…',
     ip:'IP-адрес…',
