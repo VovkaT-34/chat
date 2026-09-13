@@ -337,9 +337,108 @@ function deepLabel(k){
   })[k]||k;
 }
 
+const hiddenDeepFields=new Set([
+  'platform',
+  'confidence',
+  'severity',
+  'metadata',
+  'self_link',
+  'subject',
+  'localpart',
+  'source',
+  'profile_url',
+  'mx_hosts',
+  'first_seen',
+  'emailrep_reputation',
+  'emailrep_suspicious',
+  'emailrep_malicious_activity',
+  'emailrep_malicious_activity_recent',
+  'emailrep_credentials_leaked',
+  'emailrep_spam',
+  'emailrep_blacklisted',
+  'emailrep_last_seen',
+  'emailrep_free_provider',
+  'emailrep_disposable',
+  'emailrep_references',
+  'disposable_provider',
+  'domain_age_note',
+  'sources_checked',
+  'source_module'
+]);
+
+const hiddenMetadataFields=new Set([
+  'platform',
+  'confidence',
+  'severity',
+  'self_link',
+  'subject',
+  'localpart',
+  'source',
+  'profile_url',
+  'mx_hosts',
+  'first_seen',
+  'emailrep_reputation',
+  'emailrep_suspicious',
+  'emailrep_malicious_activity',
+  'emailrep_malicious_activity_recent',
+  'emailrep_credentials_leaked',
+  'emailrep_spam',
+  'emailrep_blacklisted',
+  'emailrep_last_seen',
+  'emailrep_free_provider',
+  'emailrep_disposable',
+  'emailrep_references',
+  'disposable_provider',
+  'domain_age_note',
+  'sources_checked',
+  'source_module'
+]);
+
+function formatDeepValue(key,value){
+  const lower=String(key).toLowerCase();
+
+  if(hiddenDeepFields.has(lower))return '';
+
+  if(value===null||value===undefined||value==='')return '';
+  if(Array.isArray(value)&&!value.length)return '';
+
+  if(lower==='metadata'&&value&&typeof value==='object'){
+    return Object.entries(value)
+      .filter(([k,v])=>!hiddenMetadataFields.has(String(k).toLowerCase())&&v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length))
+      .map(([k,v])=>formatDeepValue(k,v))
+      .filter(Boolean)
+      .join('');
+  }
+
+  if(typeof value==='object'){
+    if(Array.isArray(value)){
+      return '<div><b>'+esc(key)+':</b> '+esc(value.join(', '))+'</div>';
+    }
+    return '';
+  }
+
+  return '<div><b>'+esc(key)+':</b> '+esc(value)+'</div>';
+}
+
 function formatDeepData(data){
   if(!data||typeof data!=='object')return '';
-  return Object.entries(data).filter(([k,v])=>v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length)).map(([k,v])=>'<div><b>'+esc(k)+':</b> '+esc(Array.isArray(v)?v.join(', '):typeof v==='object'?JSON.stringify(v):v)+'</div>').join('');
+
+  return Object.entries(data)
+    .filter(([k,v])=>!hiddenDeepFields.has(String(k).toLowerCase())&&v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length))
+    .map(([k,v])=>formatDeepValue(k,v))
+    .filter(Boolean)
+    .join('');
+}
+
+function cleanDeepTitle(x){
+  let title=x.name||x.source||x.title||x.platform||'Результат';
+  title=String(title);
+
+  if(/^mastodon:/i.test(title)){
+    title='Mastodon — '+title.replace(/^mastodon:/i,'');
+  }
+
+  return title;
 }
 
 function renderDeep(d){
@@ -357,15 +456,33 @@ function renderDeep(d){
 
   const foundCount=Number(d.count||0);
   deepFound.innerHTML='Найдено: <span style="color:'+(foundCount>0?'#39e58c':'#ff4b5c')+'">'+foundCount+'</span>';
+
   const sites=Array.isArray(d.checked_items)?d.checked_items:[];
   const data=Array.isArray(d.results)?d.results:[];
-  deepSites.innerHTML=(sites.length?sites.map(x=>'<div class="deep-site">✓ '+esc(x)+'</div>').join(''):'')+(data.length?data.slice(0,50).map(x=>{
-    const url=x.url||x.href;
-    const title=x.name||x.source||url||'Результат';
-    const body=formatDeepData(x.data);
-    return '<div class="deep-result">'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>':esc(title))+(body?'<div class="deep-data">'+body+'</div>':'')+'</div>';
-  }).join(''):'');
-  if(!deepSites.innerHTML)deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
+
+  deepSites.innerHTML=
+    (sites.length
+      ?sites.map(x=>'<div class="deep-site">✓ '+esc(x)+'</div>').join('')
+      :'')+
+    (data.length
+      ?data.slice(0,50).map(x=>{
+        const url=x.url||x.href||x.profile_url;
+        const title=cleanDeepTitle(x);
+        const body=formatDeepData(x.data);
+
+        return '<div class="deep-result">'+
+          (url
+            ?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>'
+            :'<b>'+esc(title)+'</b>'
+          )+
+          (body?'<div class="deep-data">'+body+'</div>':'')+
+          '</div>';
+      }).join('')
+      :'');
+
+  if(!deepSites.innerHTML){
+    deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
+  }
 }
 
 async function pollDeep(){
