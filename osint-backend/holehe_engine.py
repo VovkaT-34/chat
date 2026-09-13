@@ -1,9 +1,7 @@
 import asyncio
-
 import httpx
 import trio
 from holehe.core import get_functions, import_submodules
-
 
 async def _run(email: str, progress=None):
     modules = import_submodules("holehe.modules")
@@ -11,9 +9,9 @@ async def _run(email: str, progress=None):
     total = len(websites)
     checked = 0
     results = []
-    limiter = trio.CapacityLimiter(20)
-
-    async with httpx.AsyncClient(timeout=10) as client:
+    # Снижено с 20 до 4, чтобы соответствовать MAX_CONNECTIONS в main.py
+    limiter = trio.CapacityLimiter(4)
+    async with httpx.AsyncClient(timeout=3) as client:
         async def launch(module):
             nonlocal checked
             name = getattr(module, "__name__", "").split(".")[-1] or "unknown"
@@ -41,14 +39,11 @@ async def _run(email: str, progress=None):
                     checked += 1
                     if progress:
                         progress(checked, total, name, list(results))
-
         async with trio.open_nursery() as nursery:
             for website in websites:
                 nursery.start_soon(launch, website)
-
     results.sort(key=lambda item: str(item.get("name", "")))
     return results, total
-
 
 async def holehe_search(email: str, progress=None):
     return await asyncio.to_thread(trio.run, _run, email, progress)
