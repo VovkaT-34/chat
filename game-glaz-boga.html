@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -336,6 +337,8 @@ function deepLabel(k){
   })[k]||k;
 }
 
+/* Только отображение: служебный мусор скрывается,
+   но полезные поля metadata сохраняются. */
 const hiddenDeepFields=new Set([
   'platform',
   'confidence',
@@ -343,21 +346,8 @@ const hiddenDeepFields=new Set([
   'self_link',
   'subject',
   'localpart',
-  'source',
-  'profile_url',
   'mx_hosts',
   'first_seen',
-  'emailrep_reputation',
-  'emailrep_suspicious',
-  'emailrep_malicious_activity',
-  'emailrep_malicious_activity_recent',
-  'emailrep_credentials_leaked',
-  'emailrep_spam',
-  'emailrep_blacklisted',
-  'emailrep_last_seen',
-  'emailrep_free_provider',
-  'emailrep_disposable',
-  'emailrep_references',
   'disposable_provider',
   'domain_age_note',
   'sources_checked',
@@ -371,55 +361,58 @@ const hiddenMetadataFields=new Set([
   'self_link',
   'subject',
   'localpart',
-  'source',
-  'profile_url',
   'mx_hosts',
   'first_seen',
-  'emailrep_reputation',
-  'emailrep_suspicious',
-  'emailrep_malicious_activity',
-  'emailrep_malicious_activity_recent',
-  'emailrep_credentials_leaked',
-  'emailrep_spam',
-  'emailrep_blacklisted',
-  'emailrep_last_seen',
-  'emailrep_free_provider',
-  'emailrep_disposable',
-  'emailrep_references',
   'disposable_provider',
   'domain_age_note',
   'sources_checked',
   'source_module'
 ]);
 
+function isEmptyDeepValue(v){
+  return v===null||v===undefined||v===''||(Array.isArray(v)&&!v.length);
+}
+
 function formatDeepValue(key,value){
   const lower=String(key).toLowerCase();
 
-  if(value===null||value===undefined||value==='')return '';
-  if(Array.isArray(value)&&!value.length)return '';
+  if(isEmptyDeepValue(value))return '';
+
+  /* source оставляем для реальных источников,
+     но fediverse_webfinger считаем техническим мусором. */
+  if(lower==='source'&&String(value).toLowerCase()==='fediverse_webfinger')return '';
+
+  /* profile_url не дублируем, если сам результат уже является ссылкой. */
+  if(lower==='profile_url')return '';
+
+  if(hiddenDeepFields.has(lower))return '';
+
+  if(lower.startsWith('emailrep_')){
+    if(value===false||value===null||value===undefined||value==='')return '';
+  }
 
   if(lower==='metadata'&&value&&typeof value==='object'){
     return Object.entries(value)
       .filter(([k,v])=>{
         const lk=String(k).toLowerCase();
-        return !hiddenMetadataFields.has(lk)&&
-          v!==null&&
-          v!==undefined&&
-          v!==''&&
-          (!Array.isArray(v)||v.length);
+
+        if(hiddenMetadataFields.has(lk))return false;
+        if(lk==='source'&&String(v).toLowerCase()==='fediverse_webfinger')return false;
+        if(lk==='profile_url')return false;
+
+        if(lk.startsWith('emailrep_')&&(v===false||v===null||v===undefined||v===''))return false;
+
+        return !isEmptyDeepValue(v);
       })
       .map(([k,v])=>formatDeepValue(k,v))
       .filter(Boolean)
       .join('');
   }
 
-  if(hiddenDeepFields.has(lower))return '';
-
   if(typeof value==='object'){
     if(Array.isArray(value)){
       return '<div><b>'+esc(key)+':</b> '+esc(value.join(', '))+'</div>';
     }
-
     return '';
   }
 
@@ -430,7 +423,7 @@ function formatDeepData(data){
   if(!data||typeof data!=='object')return '';
 
   return Object.entries(data)
-    .filter(([k,v])=>v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length))
+    .filter(([k,v])=>!isEmptyDeepValue(v))
     .map(([k,v])=>formatDeepValue(k,v))
     .filter(Boolean)
     .join('');
@@ -530,8 +523,14 @@ async function stopDeepSearch(){
 async function deepSearch(){
   const value=deepQ.value.trim(),kind=deepKind.value;
   if(!value){deepQ.focus();return}
+
   deepRender=kind==='email_mosint'?RENDER_MOSINT:RENDER;
-  if(deepTimer){clearInterval(deepTimer);deepTimer=null}
+
+  if(deepTimer){
+    clearInterval(deepTimer);
+    deepTimer=null;
+  }
+
   deepProgress.style.display='block';
   deepQuery.textContent=deepLabel(kind)+': '+value;
   deepStatus.textContent='Статус: запуск…';
@@ -540,19 +539,28 @@ async function deepSearch(){
   deepSites.innerHTML='';
   stopDeep.classList.remove('active');
   deepRunning.classList.remove('active');
+
   if(kind==='username'&&!validUsername(value)){
     deepStatus.textContent='Статус: username должен содержать латинские буквы, цифры, точку, дефис или подчёркивание.';
     return;
   }
+
   try{
-    const r=await fetch(deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),{cache:'no-store'}),
-    d=await r.json();
+    const r=await fetch(
+      deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),
+      {cache:'no-store'}
+    );
+    const d=await r.json();
+
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
+
     deepJobId=d.job_id;
     renderDeep(d);
+
     if(d.status!=='done'&&d.status!=='error'&&d.status!=='cancelled'){
       stopDeep.classList.add('active');
       deepRunning.classList.add('active');
+
       await pollDeep();
       deepTimer=setInterval(pollDeep,4000);
     }
@@ -589,11 +597,20 @@ function updateDeepPlaceholder(){
 function searchAll(){
   const value=quickQ.value.trim();
   if(!value){quickQ.focus();return}
+
   document.querySelectorAll('.card a[data-url]').forEach(a=>{
     a.href=a.dataset.url.replaceAll('{q}',enc(value));
-    a.target='_blank';a.rel='noopener noreferrer';
+    a.target='_blank';
+    a.rel='noopener noreferrer';
   });
-  document.querySelectorAll('.card').forEach(c=>c.style.display=currentType==='all'||(c.dataset.cats||'').split(' ').includes(currentType)?'block':'none');
+
+  document.querySelectorAll('.card').forEach(c=>
+    c.style.display=currentType==='all'||
+    (c.dataset.cats||'').split(' ').includes(currentType)
+      ?'block'
+      :'none'
+  );
+
   quickLookup(value);
 }
 
@@ -604,8 +621,14 @@ document.querySelectorAll('.type').forEach(b=>b.onclick=()=>{
   if(quickQ.value.trim())searchAll();
 });
 
-quickQ.addEventListener('keydown',e=>{if(e.key==='Enter')searchAll()});
-deepQ.addEventListener('keydown',e=>{if(e.key==='Enter')deepSearch()});
+quickQ.addEventListener('keydown',e=>{
+  if(e.key==='Enter')searchAll();
+});
+
+deepQ.addEventListener('keydown',e=>{
+  if(e.key==='Enter')deepSearch();
+});
+
 deepKind.addEventListener('change',updateDeepPlaceholder);
 updateDeepPlaceholder();
 </script>
