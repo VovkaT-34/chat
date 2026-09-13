@@ -7,22 +7,27 @@ from pathlib import Path
 
 MOSINT_BIN = os.getenv("MOSINT_BIN", "/usr/local/bin/mosint")
 MOSINT_CONFIG = os.getenv("MOSINT_CONFIG", "/app/.mosint.yaml")
-
-TIMEOUT_SECONDS = int(os.getenv("MOSINT_TIMEOUT", "180"))
+MOSINT_TIMEOUT = int(os.getenv("MOSINT_TIMEOUT", "180"))
 
 SENSITIVE_KEYS = {
+    "password",
+    "passwd",
+    "pass",
+    "token",
+    "access_token",
+    "refresh_token",
+    "secret",
     "api_key",
     "apikey",
-    "key",
-    "token",
-    "password",
-    "secret",
     "authorization",
-    "auth",
+    "cookie",
+    "session",
+    "private_key",
 }
 
-# Это именно внутренние проверки Mosint.
-# Mosint v3 выполняет 12 модулей.
+
+# Внутренние проверки Mosint v3.0.0.
+# Это НЕ список всех движков проекта «Глаз Бога».
 MODULES = [
     ("emailrep", "EmailRep"),
     ("breachdirectory", "BreachDirectory"),
@@ -40,17 +45,24 @@ MODULES = [
 
 
 def _clean_sensitive(value):
-    """
-    Удаляет потенциально чувствительные API-ключи/токены
-    из результата перед отправкой на frontend.
-    """
     if isinstance(value, dict):
         cleaned = {}
 
         for key, item in value.items():
             key_lower = str(key).lower()
 
-            if any(secret in key_lower for secret in SENSITIVE_KEYS):
+            if (
+                key_lower in SENSITIVE_KEYS
+                or any(
+                    part in key_lower
+                    for part in (
+                        "password",
+                        "access_token",
+                        "refresh_token",
+                        "private_key",
+                    )
+                )
+            ):
                 continue
 
             cleaned[key] = _clean_sensitive(item)
@@ -63,98 +75,118 @@ def _clean_sensitive(value):
     return value
 
 
-def _nonempty(value):
-    """
-    Проверяет, содержит ли значение реальные данные.
-    """
+def _is_nonempty(value):
     if value is None:
         return False
 
     if isinstance(value, bool):
         return value
 
-    if isinstance(value, (int, float)):
-        return value != 0
-
     if isinstance(value, str):
         return bool(value.strip())
 
-    if isinstance(value, list):
-        return any(_nonempty(item) for item in value)
+    if isinstance(value, (list, tuple, set)):
+        return len(value) > 0
 
     if isinstance(value, dict):
-        return any(_nonempty(item) for item in value.values())
+        return len(value) > 0
 
-    return bool(value)
+    return True
 
 
 def _is_positive_finding(module, value):
     """
-    Определяет, является ли результат реальной находкой.
+    Определяет только реальные OSINT-находки.
 
-    Важно:
-    технические данные вроде DNS/IP не считаются находками.
-    Metadata Email/Email verification тоже не считаются.
+    Технические данные IPApi и DNS не считаются находками.
+    Email и Email verification также не считаются находками.
     """
 
-    if value is None:
+    # ---------------------------------------------------------
+    # Техническая информация — не finding
+    # ---------------------------------------------------------
+
+    if module in {
+        "ipapi",
+        "dns_records",
+    }:
+        return False
+
+    # ---------------------------------------------------------
+    # Социальные сети
+    # ---------------------------------------------------------
+
+    if module in {
+        "instagram_exists",
+        "spotify_exists",
+        "twitter_exists",
+    }:
+        if value is True:
+            return True
+
+        if isinstance(value, dict):
+            return (
+                value.get("exists") is True
+                or value.get("found") is True
+            )
+
         return False
 
     # ---------------------------------------------------------
     # EmailRep
     # ---------------------------------------------------------
+
     if module == "emailrep":
         if not isinstance(value, dict):
             return False
 
-        # suspicious=true — реальный сигнал
+        # Явно подозрительный email
         if value.get("suspicious") is True:
             return True
 
-        # Если есть положительные risk-флаги
         details = value.get("details")
 
-        if isinstance(details, dict):
-            risk_keys = {
-                "blacklisted",
-                "malicious_activity",
-                "malicious_activity_recent",
-                "credentials_leaked",
-                "credentials_leaked_recent",
-                "data_breach",
-                "suspicious_tld",
-                "spam",
-                "free_provider",
-                "disposable",
-                "profiles",
-            }
+        if not isinstance(details, dict):
+            return False
 
-            for key in risk_keys:
-                item = details.get(key)
+        # Реальные risk-флаги
+        risk_flags = {
+            "blacklisted",
+            "malicious_activity",
+            "malicious_activity_recent",
+            "credentials_leaked",
+            "credentials_leaked_recent",
+            "data_breach",
+            "suspicious_tld",
+            "spam",
+        }
 
-                if key == "profiles":
-                    if isinstance(item, list) and len(item) > 0:
-                        return True
-                    if isinstance(item, dict) and len(item) > 0:
-                        return True
-                    continue
+        for flag in risk_flags:
+            if details.get(flag) is True:
+                return True
 
-                if item is True:
-                    return True
+        # Наличие профилей действительно является находкой.
+        profiles = details.get("profiles")
 
-        # Само references=0 не является находкой.
+        if isinstance(profiles, list) and profiles:
+            return True
+
+        if isinstance(profiles, dict) and profiles:
+            return True
+
         return False
 
     # ---------------------------------------------------------
     # BreachDirectory
     # ---------------------------------------------------------
+
     if module == "breachdirectory":
         if not isinstance(value, dict):
             return False
 
         found = value.get("found")
 
-        if isinstance(found, int):
+        if isinstance(found, (int, float)):
             return found > 0
 
         if isinstance(found, str):
@@ -163,7 +195,6 @@ def _is_positive_finding(module, value):
             except ValueError:
                 return False
 
-        # Иногда сервис возвращает список найденных записей
         results = value.get("results")
 
         if isinstance(results, list):
@@ -174,18 +205,36 @@ def _is_positive_finding(module, value):
     # ---------------------------------------------------------
     # HaveIBeenPwned
     # ---------------------------------------------------------
+
     if module == "haveibeenpwned":
         if isinstance(value, list):
             return len(value) > 0
 
         if isinstance(value, dict):
-            for key in ("breaches", "results", "data"):
-                item = value.get(key)
+            found = value.get("found")
 
-                if isinstance(item, list) and len(item) > 0:
+            if isinstance(found, bool):
+                if found:
                     return True
 
-            if value.get("found") is True:
+            if isinstance(found, (int, float)):
+                if found > 0:
+                    return True
+
+            count = value.get("count")
+
+            if isinstance(count, (int, float)):
+                if count > 0:
+                    return True
+
+            breaches = value.get("breaches")
+
+            if isinstance(breaches, list) and breaches:
+                return True
+
+            results = value.get("results")
+
+            if isinstance(results, list) and results:
                 return True
 
         return False
@@ -193,6 +242,7 @@ def _is_positive_finding(module, value):
     # ---------------------------------------------------------
     # Hunter
     # ---------------------------------------------------------
+
     if module == "hunter":
         if not isinstance(value, dict):
             return False
@@ -202,70 +252,32 @@ def _is_positive_finding(module, value):
         if isinstance(meta, dict):
             results = meta.get("results")
 
-            if isinstance(results, int) and results > 0:
-                return True
-
-        # Не считаем технические поля domain/disposable/pattern
-        # находкой сами по себе.
-        return False
-
-    # ---------------------------------------------------------
-    # IPApi
-    # ---------------------------------------------------------
-    # Геолокация/IP-информация — технические данные,
-    # не OSINT-находка.
-    if module == "ipapi":
-        return False
-
-    # ---------------------------------------------------------
-    # DNS
-    # ---------------------------------------------------------
-    # DNS-записи — технические данные,
-    # не OSINT-находка.
-    if module == "dns_records":
-        return False
-
-    # ---------------------------------------------------------
-    # Instagram / Spotify / Twitter
-    # ---------------------------------------------------------
-    if module in {
-        "instagram_exists",
-        "spotify_exists",
-        "twitter_exists",
-    }:
-        if value is True:
-            return True
-
-        if isinstance(value, dict):
-            if value.get("exists") is True:
-                return True
-
-            if value.get("found") is True:
-                return True
+            if isinstance(results, (int, float)):
+                return results > 0
 
         return False
 
     # ---------------------------------------------------------
     # IntelX
     # ---------------------------------------------------------
+
     if module == "intelx":
         if isinstance(value, list):
             return len(value) > 0
 
         if isinstance(value, dict):
-            for key in (
-                "records",
+            for field in (
                 "results",
+                "records",
                 "matches",
                 "selectors",
-                "data",
             ):
-                item = value.get(key)
+                item = value.get(field)
 
-                if isinstance(item, list) and len(item) > 0:
+                if isinstance(item, list) and item:
                     return True
 
-                if isinstance(item, dict) and len(item) > 0:
+                if isinstance(item, dict) and item:
                     return True
 
         return False
@@ -273,23 +285,24 @@ def _is_positive_finding(module, value):
     # ---------------------------------------------------------
     # PsbDmp
     # ---------------------------------------------------------
+
     if module == "psbdmp":
         if isinstance(value, list):
             return len(value) > 0
 
         if isinstance(value, dict):
-            for key in (
+            for field in (
                 "results",
+                "records",
                 "matches",
                 "data",
-                "records",
             ):
-                item = value.get(key)
+                item = value.get(field)
 
-                if isinstance(item, list) and len(item) > 0:
+                if isinstance(item, list) and item:
                     return True
 
-                if isinstance(item, dict) and len(item) > 0:
+                if isinstance(item, dict) and item:
                     return True
 
         return False
@@ -297,20 +310,21 @@ def _is_positive_finding(module, value):
     # ---------------------------------------------------------
     # Google Search
     # ---------------------------------------------------------
+
     if module == "google_search":
         if isinstance(value, list):
             return len(value) > 0
 
         if isinstance(value, dict):
-            for key in (
+            for field in (
                 "results",
                 "links",
                 "items",
                 "matches",
             ):
-                item = value.get(key)
+                item = value.get(field)
 
-                if isinstance(item, list) and len(item) > 0:
+                if isinstance(item, list) and item:
                     return True
 
         return False
@@ -318,91 +332,115 @@ def _is_positive_finding(module, value):
     return False
 
 
-def _normalize_results(raw):
+def _normalize_results(data):
     """
-    Приводит JSON Mosint к единому формату для frontend.
-
-    Возвращает:
-        normalized_results
-        findings
+    Преобразует единый JSON Mosint
+    в отдельные результаты по модулям.
     """
 
-    if not isinstance(raw, dict):
-        return [], []
+    data = _clean_sensitive(data)
+
+    if not isinstance(data, dict):
+        return [], 0
 
     normalized = []
-    findings = []
+    findings = 0
 
-    for module, display_name in MODULES:
-        if module not in raw:
+    # Email — только исходный запрос.
+    if "email" in data:
+        normalized.append(
+            {
+                "source": "Mosint",
+                "name": "Email",
+                "module": "email",
+                "data": data["email"],
+                "finding": False,
+            }
+        )
+
+    # Проверка email — технический статус.
+    if "verified" in data:
+        normalized.append(
+            {
+                "source": "Mosint",
+                "name": "Email verification",
+                "module": "verified",
+                "data": data["verified"],
+                "finding": False,
+            }
+        )
+
+    # Отдельно обрабатываем каждый внутренний модуль.
+    for module, name in MODULES:
+        if module not in data:
             continue
 
-        value = _clean_sensitive(raw.get(module))
+        value = data.get(module)
 
-        finding = _is_positive_finding(module, value)
+        positive = _is_positive_finding(
+            module,
+            value,
+        )
 
-        item = {
-            "source": "Mosint",
-            "name": display_name,
-            "module": module,
-            "data": value,
-            "finding": finding,
-        }
+        normalized.append(
+            {
+                "source": "Mosint",
+                "name": name,
+                "module": module,
+                "data": value,
+                "finding": positive,
+            }
+        )
 
-        normalized.append(item)
-
-        if finding:
-            findings.append(item)
+        if positive:
+            findings += 1
 
     return normalized, findings
 
 
-async def mosint_search(query, progress=None):
-    """
-    Асинхронный запуск Mosint.
-
-    Архитектура сохраняется:
-    - asyncio subprocess
-    - timeout
-    - отмена процесса
-    - временный JSON
-    - progress callback
-    - возврат (results, findings)
-    """
-
+async def mosint_search(query: str, progress=None):
     query = str(query or "").strip()
 
     if not query:
-        raise ValueError("Пустой email")
+        raise ValueError("Email не указан")
 
     binary = Path(MOSINT_BIN)
-
-    if not binary.exists():
-        raise FileNotFoundError(
-            f"Mosint binary not found: {MOSINT_BIN}"
-        )
-
-    if not os.access(binary, os.X_OK):
-        raise PermissionError(
-            f"Mosint binary is not executable: {MOSINT_BIN}"
-        )
-
     config = Path(MOSINT_CONFIG)
 
-    if not config.exists():
-        raise FileNotFoundError(
-            f"Mosint config not found: {MOSINT_CONFIG}"
+    if not binary.exists():
+        raise RuntimeError(
+            f"Mosint не найден: {MOSINT_BIN}"
         )
 
-    with tempfile.TemporaryDirectory(prefix="mosint-") as tmpdir:
-        output_file = Path(tmpdir) / "result.json"
+    if not config.exists():
+        raise RuntimeError(
+            f"Конфигурация Mosint не найдена: {MOSINT_CONFIG}"
+        )
 
-        cmd = [
-            str(binary),
+    total_modules = len(MODULES)
+
+    if progress:
+        progress(
+            0,
+            total_modules,
+            "Mosint: запуск",
+            [],
+        )
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        output_file = os.path.join(
+            tmp_dir,
+            "mosint-output.json",
+        )
+
+        # ВАЖНО:
+        # Это рабочий формат запуска Mosint v3.
+        command = [
+            MOSINT_BIN,
             "-e",
             query,
             "-o",
-            str(output_file),
+            output_file,
             "-f",
             "json",
         ]
@@ -411,7 +449,7 @@ async def mosint_search(query, progress=None):
 
         try:
             process = await asyncio.create_subprocess_exec(
-                *cmd,
+                *command,
                 cwd=str(config.parent),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -420,7 +458,7 @@ async def mosint_search(query, progress=None):
             try:
                 stdout, stderr = await asyncio.wait_for(
                     process.communicate(),
-                    timeout=TIMEOUT_SECONDS,
+                    timeout=MOSINT_TIMEOUT,
                 )
 
             except asyncio.CancelledError:
@@ -461,81 +499,47 @@ async def mosint_search(query, progress=None):
                         except ProcessLookupError:
                             pass
 
-                raise TimeoutError(
-                    f"Mosint timeout after {TIMEOUT_SECONDS} seconds"
+                raise RuntimeError(
+                    f"Mosint превысил лимит "
+                    f"{MOSINT_TIMEOUT} секунд"
                 )
 
             if process.returncode != 0:
-                error_text = (
-                    stderr.decode("utf-8", errors="replace").strip()
-                    if stderr
-                    else ""
-                )
+                error_text = stderr.decode(
+                    "utf-8",
+                    errors="replace",
+                ).strip()
 
-                output_text = (
-                    stdout.decode("utf-8", errors="replace").strip()
-                    if stdout
-                    else ""
-                )
-
-                details = error_text or output_text or "unknown error"
+                if not error_text:
+                    error_text = stdout.decode(
+                        "utf-8",
+                        errors="replace",
+                    ).strip()
 
                 raise RuntimeError(
-                    f"Mosint exited with code "
-                    f"{process.returncode}: {details}"
+                    f"Mosint завершился с кодом "
+                    f"{process.returncode}: "
+                    f"{error_text[:1000]}"
                 )
 
-            # -------------------------------------------------
-            # Читаем JSON
-            # -------------------------------------------------
-
-            if not output_file.exists():
+            if not os.path.exists(output_file):
                 raise RuntimeError(
-                    "Mosint finished successfully, "
-                    "but result.json was not created"
-                )
-
-            raw_text = output_file.read_text(
-                encoding="utf-8",
-                errors="replace",
-            ).strip()
-
-            if not raw_text:
-                raise RuntimeError(
-                    "Mosint returned an empty result"
+                    "Mosint не создал JSON-файл результата"
                 )
 
             try:
-                raw = json.loads(raw_text)
+                with open(
+                    output_file,
+                    "r",
+                    encoding="utf-8",
+                ) as file:
+                    data = json.load(file)
 
-            except json.JSONDecodeError as exc:
+            except (OSError, json.JSONDecodeError) as exc:
                 raise RuntimeError(
-                    f"Invalid Mosint JSON: {exc}"
+                    f"Не удалось прочитать JSON Mosint: "
+                    f"{exc}"
                 ) from exc
-
-            # -------------------------------------------------
-            # Нормализация
-            # -------------------------------------------------
-
-            normalized, findings = _normalize_results(raw)
-
-            # -------------------------------------------------
-            # Progress
-            # -------------------------------------------------
-
-            if progress is not None:
-                try:
-                    progress(
-                        len(MODULES),
-                        len(MODULES),
-                        "Mosint: проверки завершены",
-                        normalized,
-                    )
-                except Exception:
-                    # Callback не должен ломать сам поиск.
-                    pass
-
-            return normalized, findings
 
         finally:
             if process is not None:
@@ -544,3 +548,19 @@ async def mosint_search(query, progress=None):
                         process.terminate()
                 except ProcessLookupError:
                     pass
+
+    normalized, findings = _normalize_results(data)
+
+    if progress:
+        progress(
+            total_modules,
+            total_modules,
+            (
+                f"Mosint: готово "
+                f"({total_modules} проверок, "
+                f"найдено {findings})"
+            ),
+            normalized,
+        )
+
+    return normalized, findings
