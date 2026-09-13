@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 
 <html lang="ru">
@@ -337,39 +338,250 @@ function deepLabel(k){
   })[k]||k;
 }
 
+/* =========================
+   MailAccess — отображение
+   ========================= */
+
+const mailAccessDnsModule=/^(dns_|dns$|mx$|spf$|dmarc$|aaaa?$|ns$)/i;
+const mailAccessHiddenFields=new Set(['platform','confidence','severity','metadata']);
+
+function mailAccessIsDns(x){
+  if(!x||typeof x!=='object')return false;
+  const names=[
+    x.name,
+    x.source,
+    x.module,
+    x.type,
+    x.data&&x.data.module,
+    x.data&&x.data.source,
+    x.data&&x.data.platform
+  ].filter(Boolean).map(String);
+  return names.some(n=>mailAccessDnsModule.test(n)||/^dns_/i.test(n));
+}
+
+function mailAccessCleanName(x){
+  let name=String(x?.name||x?.source||x?.title||x?.platform||'Результат').trim();
+
+  if(/^mastodon:/i.test(name)){
+    name='Mastodon — '+name.replace(/^mastodon:/i,'');
+  }
+
+  return name;
+}
+
+function mailAccessCredibility(x){
+  const data=x&&x.data&&typeof x.data==='object'?x.data:{};
+  const meta=data.metadata&&typeof data.metadata==='object'?data.metadata:{};
+  const out=[];
+
+  const verdict=meta.reputation_verdict||data.reputation_verdict||data.verdict||data.reputation;
+  const flags=Array.isArray(meta.reputation_flags)?meta.reputation_flags:
+    Array.isArray(data.reputation_flags)?data.reputation_flags:
+    Array.isArray(data.flags)?data.flags:[];
+
+  const provider=meta.provider||meta.email_provider||data.provider||data.email_provider;
+  const canonical=meta.canonical_email||data.canonical_email;
+
+  out.push('<div><b>Email Credibility</b></div>');
+
+  if(verdict){
+    out.push('<div>Репутация: <b>'+esc(verdict)+'</b></div>');
+  }
+
+  if(provider){
+    out.push('<div>Провайдер: <b>'+esc(provider)+'</b></div>');
+  }
+
+  if(canonical){
+    out.push('<div>Адрес: <b>'+esc(canonical)+'</b></div>');
+  }
+
+  if(flags.length){
+    out.push('<div>Риски: <b>'+esc(flags.join(', '))+'</b></div>');
+  }
+
+  return out.join('');
+}
+
+function mailAccessData(data){
+  if(!data||typeof data!=='object')return '';
+
+  const rows=[];
+
+  Object.entries(data).forEach(([k,v])=>{
+    if(mailAccessHiddenFields.has(k.toLowerCase()))return;
+    if(v===null||v===undefined||v==='')return;
+    if(Array.isArray(v)&&!v.length)return;
+
+    if(typeof v==='object'){
+      if(k.toLowerCase()==='metadata')return;
+      return;
+    }
+
+    rows.push('<div><b>'+esc(k)+':</b> '+esc(v)+'</div>');
+  });
+
+  return rows.join('');
+}
+
+function renderMailAccessResults(data){
+  const visible=data.filter(x=>!mailAccessIsDns(x));
+
+  if(!visible.length){
+    return '<div class="deep-site muted">Полезных результатов пока нет.</div>';
+  }
+
+  return visible.slice(0,50).map(x=>{
+    const url=x.url||x.href;
+    const rawName=mailAccessCleanName(x);
+
+    const isCredibility=
+      /email.?credibility/i.test(String(x.name||''))||
+      /email.?credibility/i.test(String(x.source||''))||
+      !!(x.data&&(
+        x.data.reputation_verdict||
+        x.data.reputation_flags||
+        (x.data.metadata&&x.data.metadata.reputation_verdict)
+      ));
+
+    let title=rawName;
+    let body='';
+
+    if(isCredibility){
+      title='Email Credibility';
+      body=mailAccessCredibility(x);
+    }else{
+      body=mailAccessData(x.data);
+    }
+
+    return '<div class="deep-result">'+
+      (url
+        ? '<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>'
+        : '<b>'+esc(title)+'</b>'
+      )+
+      (body?'<div class="deep-data">'+body+'</div>':'')+
+      '</div>';
+  }).join('');
+}
+
 function formatDeepData(data){
   if(!data||typeof data!=='object')return '';
-  return Object.entries(data).filter(([k,v])=>v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length)).map(([k,v])=>'<div><b>'+esc(k)+':</b> '+esc(Array.isArray(v)?v.join(', '):typeof v==='object'?JSON.stringify(v):v)+'</div>').join('');
+
+  return Object.entries(data)
+    .filter(([k,v])=>
+      !mailAccessHiddenFields.has(String(k).toLowerCase())&&
+      v!==null&&
+      v!==undefined&&
+      v!==''&&
+      (!Array.isArray(v)||v.length)
+    )
+    .map(([k,v])=>{
+      if(typeof v==='object')return '';
+      return '<div><b>'+esc(k)+':</b> '+esc(v)+'</div>';
+    })
+    .filter(Boolean)
+    .join('');
 }
 
 function renderDeep(d){
-  deepQuery.textContent=deepLabel(d.kind||deepKind.value)+': '+(d.query||'');
-  const statusLabel=d.status==='running'?'выполняется':d.status==='done'?'завершен':d.status==='queued'?'ожидает запуска':d.status==='error'?'ошибка':d.status==='cancelled'?'остановлен':d.status;
-  const statusClass=d.status==='running'?'deep-status-running':d.status==='done'?'deep-status-done':d.status==='cancelled'?'deep-status-done':'';
+  const kind=d.kind||deepKind.value;
+  const isMailAccess=kind==='email_mailaccess';
+
+  deepQuery.textContent=deepLabel(kind)+': '+(d.query||'');
+
+  const statusLabel=
+    d.status==='running'?'выполняется':
+    d.status==='done'?'завершен':
+    d.status==='queued'?'ожидает запуска':
+    d.status==='error'?'ошибка':
+    d.status==='cancelled'?'остановлен':
+    d.status;
+
+  const statusClass=
+    d.status==='running'?'deep-status-running':
+    d.status==='done'?'deep-status-done':
+    d.status==='cancelled'?'deep-status-done':'';
+
   deepStatus.innerHTML='Статус: <span class="'+statusClass+'">'+esc(statusLabel)+'</span>';
-  deepChecked.textContent='Проверено: '+Number(d.checked||0)+' / '+Number(d.total||0);
-  const foundCount=Number(d.count||0);
-  deepFound.innerHTML='Найдено: <span style="color:'+(foundCount>0?'#39e58c':'#ff4b5c')+'">'+foundCount+'</span>';
-  const sites=Array.isArray(d.checked_items)?d.checked_items:[];
+
+  const checked=Number(d.checked||0);
+  const total=Number(d.total||0);
+
+  if(isMailAccess){
+    deepChecked.textContent='Проверено: '+checked+' модулей';
+  }else{
+    deepChecked.textContent='Проверено: '+checked+' / '+total;
+  }
+
   const data=Array.isArray(d.results)?d.results:[];
-  deepSites.innerHTML=(sites.length?sites.map(x=>'<div class="deep-site">✓ '+esc(x)+'</div>').join(''):'')+(data.length?data.slice(0,50).map(x=>{
-    const url=x.url||x.href;
-    const title=x.name||x.source||url||'Результат';
-    const body=formatDeepData(x.data);
-    return '<div class="deep-result">'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>':esc(title))+(body?'<div class="deep-data">'+body+'</div>':'')+'</div>';
-  }).join(''):'');
-  if(!deepSites.innerHTML)deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
+
+  if(isMailAccess){
+    const visible=data.filter(x=>!mailAccessIsDns(x));
+    const foundCount=visible.length;
+
+    deepFound.innerHTML='Найдено: <span style="color:'+
+      (foundCount>0?'#39e58c':'#ff4b5c')+
+      '">'+foundCount+'</span>';
+
+    deepSites.innerHTML=renderMailAccessResults(data);
+    return;
+  }
+
+  const foundCount=Number(d.count||0);
+
+  deepFound.innerHTML='Найдено: <span style="color:'+
+    (foundCount>0?'#39e58c':'#ff4b5c')+
+    '">'+foundCount+'</span>';
+
+  const sites=Array.isArray(d.checked_items)?d.checked_items:[];
+
+  deepSites.innerHTML=
+    (sites.length
+      ?sites.map(x=>'<div class="deep-site">✓ '+esc(x)+'</div>').join('')
+      :''
+    )+
+    (data.length
+      ?data.slice(0,50).map(x=>{
+        const url=x.url||x.href;
+        const title=x.name||x.source||url||'Результат';
+        const body=formatDeepData(x.data);
+
+        return '<div class="deep-result">'+
+          (url
+            ?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>'
+            :esc(title)
+          )+
+          (body
+            ?'<div class="deep-data">'+body+'</div>'
+            :''
+          )+
+          '</div>';
+      }).join('')
+      :''
+    );
+
+  if(!deepSites.innerHTML){
+    deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
+  }
 }
 
 async function pollDeep(){
   if(!deepJobId)return;
+
   try{
-    const r=await fetch(deepRender+'/deep/status?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
+    const r=await fetch(
+      deepRender+'/deep/status?job_id='+encodeURIComponent(deepJobId),
+      {cache:'no-store'}
+    );
+
     if(!r.ok)return;
+
     const d=await r.json();
     renderDeep(d);
+
     if(d.status==='done'||d.status==='error'||d.status==='cancelled'){
-      clearInterval(deepTimer);deepTimer=null;
+      clearInterval(deepTimer);
+      deepTimer=null;
       stopDeep.classList.remove('active');
       deepRunning.classList.remove('active');
     }
@@ -380,14 +592,25 @@ async function pollDeep(){
 
 async function stopDeepSearch(){
   if(!deepJobId)return;
+
   stopDeep.disabled=true;
   deepStatus.textContent='Статус: остановка…';
+
   try{
-    const r=await fetch(deepRender+'/deep/cancel?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
+    const r=await fetch(
+      deepRender+'/deep/cancel?job_id='+encodeURIComponent(deepJobId),
+      {cache:'no-store'}
+    );
+
     const d=await r.json();
+
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
-    clearInterval(deepTimer);deepTimer=null;
+
+    clearInterval(deepTimer);
+    deepTimer=null;
+
     renderDeep(d);
+
     stopDeep.classList.remove('active');
     deepRunning.classList.remove('active');
   }catch(e){
@@ -399,31 +622,60 @@ async function stopDeepSearch(){
 
 async function deepSearch(){
   const value=deepQ.value.trim(),kind=deepKind.value;
-  if(!value){deepQ.focus();return}
+
+  if(!value){
+    deepQ.focus();
+    return;
+  }
+
   deepRender=kind==='email_mosint'?RENDER_MOSINT:RENDER;
-  if(deepTimer){clearInterval(deepTimer);deepTimer=null}
+
+  if(deepTimer){
+    clearInterval(deepTimer);
+    deepTimer=null;
+  }
+
   deepProgress.style.display='block';
   deepQuery.textContent=deepLabel(kind)+': '+value;
   deepStatus.textContent='Статус: запуск…';
-  deepChecked.textContent='Проверено: 0 / …';
+
+  if(kind==='email_mailaccess'){
+    deepChecked.textContent='Проверено: 0 модулей';
+  }else{
+    deepChecked.textContent='Проверено: 0 / …';
+  }
+
   deepFound.innerHTML='Найдено: <span style="color:#ff4b5c">0</span>';
   deepSites.innerHTML='';
+
   stopDeep.classList.remove('active');
   deepRunning.classList.remove('active');
+
   if(kind==='username'&&!validUsername(value)){
     deepStatus.textContent='Статус: username должен содержать латинские буквы, цифры, точку, дефис или подчёркивание.';
     return;
   }
+
   try{
-    const r=await fetch(deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),{cache:'no-store'}),
-    d=await r.json();
+    const r=await fetch(
+      deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),
+      {cache:'no-store'}
+    );
+
+    const d=await r.json();
+
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
+
     deepJobId=d.job_id;
+
     renderDeep(d);
+
     if(d.status!=='done'&&d.status!=='error'&&d.status!=='cancelled'){
       stopDeep.classList.add('active');
       deepRunning.classList.add('active');
+
       await pollDeep();
+
       deepTimer=setInterval(pollDeep,4000);
     }
   }catch(e){
@@ -453,32 +705,23 @@ function updateDeepPlaceholder(){
     email_extended:'Email/Gmail для расширенного поиска…',
     phone_extended:'Номер телефона для расширенного поиска…'
   };
+
   deepQ.placeholder=p[deepKind.value]||'Запрос…';
 }
 
 function searchAll(){
   const value=quickQ.value.trim();
-  if(!value){quickQ.focus();return}
+
+  if(!value){
+    quickQ.focus();
+    return;
+  }
+
   document.querySelectorAll('.card a[data-url]').forEach(a=>{
     a.href=a.dataset.url.replaceAll('{q}',enc(value));
-    a.target='_blank';a.rel='noopener noreferrer';
+    a.target='_blank';
+    a.rel='noopener noreferrer';
   });
-  document.querySelectorAll('.card').forEach(c=>c.style.display=currentType==='all'||(c.dataset.cats||'').split(' ').includes(currentType)?'block':'none');
-  quickLookup(value);
-}
 
-document.querySelectorAll('.type').forEach(b=>b.onclick=()=>{
-  currentType=b.dataset.type;
-  document.querySelectorAll('.type').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');
-  if(quickQ.value.trim())searchAll();
-});
-
-quickQ.addEventListener('keydown',e=>{if(e.key==='Enter')searchAll()});
-deepQ.addEventListener('keydown',e=>{if(e.key==='Enter')deepSearch()});
-deepKind.addEventListener('change',updateDeepPlaceholder);
-updateDeepPlaceholder();
-</script>
-
-</body>
-</html>
+  document.querySelectorAll('
+```
