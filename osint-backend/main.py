@@ -16,7 +16,8 @@ from username_engines import sherlock_search, whatsmyname_search
 from holehe_engine import holehe_search
 from user_scanner_engine import user_scanner_search
 from mailaccess_engine import mailaccess_search
-from h8mail_engine import h8mail_search   # === H8MAIL ===
+from h8mail_engine import h8mail_search
+from blackbird_engine import blackbird_search   # === BLACKBIRD ===
 
 app = FastAPI(title="Glaz Boga OSINT", version="0.5.1")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
@@ -69,7 +70,9 @@ def health():
             "email_holehe",
             "email_userscanner",
             "email_mailaccess",
-            "email_h8mail"          # === H8MAIL ===
+            "email_h8mail",
+            "email_blackbird",          # === BLACKBIRD ===
+            "username_blackbird"
         ]
     }
 
@@ -396,8 +399,6 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["checked"] = total
             job["count"] = len(found)
             job["checked_items"] = [f"MailAccess: готово (найдено {len(found)})"]
-
-        # === H8MAIL ===
         elif kind == "email_h8mail":
             def progress(checked, total, current, results):
                 job["checked"] = checked
@@ -411,7 +412,35 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["checked"] = total
             job["count"] = len(found)
             job["checked_items"] = [f"h8mail: готово (найдено {len(found)})"]
-        # === END H8MAIL ===
+
+        # === BLACKBIRD ===
+        elif kind == "email_blackbird":
+            def progress(checked, total, current, results):
+                job["checked"] = checked
+                job["total"] = total
+                job["count"] = len(results)
+                job["results"] = list(results)
+                job["checked_items"] = [current]
+            found, total = await blackbird_search(query, is_email=True, progress=progress)
+            job["results"] = found
+            job["total"] = total
+            job["checked"] = total
+            job["count"] = len(found)
+            job["checked_items"] = [f"Blackbird (email): готово (найдено {len(found)})"]
+        elif kind == "username_blackbird":
+            def progress(checked, total, current, results):
+                job["checked"] = checked
+                job["total"] = total
+                job["count"] = len(results)
+                job["results"] = list(results)
+                job["checked_items"] = [current]
+            found, total = await blackbird_search(query, is_email=False, progress=progress)
+            job["results"] = found
+            job["total"] = total
+            job["checked"] = total
+            job["count"] = len(found)
+            job["checked_items"] = [f"Blackbird (username): готово (найдено {len(found)})"]
+        # === END BLACKBIRD ===
 
         else:
             raise ValueError("Неизвестный тип глубокого поиска")
@@ -431,7 +460,7 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
 @app.get("/deep")
 async def deep_search(
-    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe|email_userscanner|email_mailaccess|email_h8mail)$"),
+    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe|email_userscanner|email_mailaccess|email_h8mail|email_blackbird|username_blackbird)$"),
     q: str = Query(min_length=1, max_length=256)
 ):
     global ACTIVE_DEEP_JOB_ID
@@ -482,7 +511,7 @@ async def deep_cancel(job_id: str = Query(min_length=8, max_length=64)):
 
 @app.get("/deep/sources")
 def deep_sources(
-    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe|email_userscanner|email_mailaccess|email_h8mail)$"),
+    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe|email_userscanner|email_mailaccess|email_h8mail|email_blackbird|username_blackbird)$"),
     q: str = Query(min_length=1, max_length=256)
 ):
     return {
