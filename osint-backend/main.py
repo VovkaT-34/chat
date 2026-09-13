@@ -15,7 +15,8 @@ from plate_sources import image_plate_search, plate_like, plate_public_search, n
 from username_engines import sherlock_search, whatsmyname_search
 from holehe_engine import holehe_search
 from user_scanner_engine import user_scanner_search
-from mailaccess_engine import mailaccess_search   # === MAILACCESS ===
+from mailaccess_engine import mailaccess_search
+from h8mail_engine import h8mail_search   # === H8MAIL ===
 
 app = FastAPI(title="Glaz Boga OSINT", version="0.5.1")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
@@ -67,7 +68,8 @@ def health():
             "email_extended", "phone_extended",
             "email_holehe",
             "email_userscanner",
-            "email_mailaccess"          # === MAILACCESS ===
+            "email_mailaccess",
+            "email_h8mail"          # === H8MAIL ===
         ]
     }
 
@@ -381,8 +383,6 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["checked"] = total
             job["count"] = len(found)
             job["checked_items"] = [f"user-scanner: готово ({total} модулей, найдено {len(found)})"]
-
-        # === MAILACCESS ===
         elif kind == "email_mailaccess":
             def progress(checked, total, current, results):
                 job["checked"] = checked
@@ -396,7 +396,22 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["checked"] = total
             job["count"] = len(found)
             job["checked_items"] = [f"MailAccess: готово (найдено {len(found)})"]
-        # === END MAILACCESS ===
+
+        # === H8MAIL ===
+        elif kind == "email_h8mail":
+            def progress(checked, total, current, results):
+                job["checked"] = checked
+                job["total"] = total
+                job["count"] = len(results)
+                job["results"] = list(results)
+                job["checked_items"] = [current]
+            found, total = await h8mail_search(query, progress=progress)
+            job["results"] = found
+            job["total"] = total
+            job["checked"] = total
+            job["count"] = len(found)
+            job["checked_items"] = [f"h8mail: готово (найдено {len(found)})"]
+        # === END H8MAIL ===
 
         else:
             raise ValueError("Неизвестный тип глубокого поиска")
@@ -416,7 +431,7 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
 @app.get("/deep")
 async def deep_search(
-    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe|email_userscanner|email_mailaccess)$"),
+    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe|email_userscanner|email_mailaccess|email_h8mail)$"),
     q: str = Query(min_length=1, max_length=256)
 ):
     global ACTIVE_DEEP_JOB_ID
@@ -467,7 +482,7 @@ async def deep_cancel(job_id: str = Query(min_length=8, max_length=64)):
 
 @app.get("/deep/sources")
 def deep_sources(
-    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe|email_userscanner|email_mailaccess)$"),
+    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe|email_userscanner|email_mailaccess|email_h8mail)$"),
     q: str = Query(min_length=1, max_length=256)
 ):
     return {
