@@ -13,7 +13,8 @@ from deep_sources import domain_info, email_info, image_info, ip_info, phone_inf
 from extended_search import extended_public_search, SOURCES_RU, SOURCES_FOREIGN
 from plate_sources import image_plate_search, plate_like, plate_public_search, normalize_plate
 from username_engines import sherlock_search, whatsmyname_search
-from holehe_engine import holehe_search   # === HOLEHE ===
+from holehe_engine import holehe_search
+from user_scanner_engine import user_scanner_search   # === USER-SCANNER ===
 
 app = FastAPI(title="Glaz Boga OSINT", version="0.5.1")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
@@ -63,7 +64,8 @@ def health():
             "username_sherlock", "username", "username_wmn",
             "phone", "email", "person", "vin", "domain", "ip", "image",
             "email_extended", "phone_extended",
-            "email_holehe"          # === HOLEHE ===
+            "email_holehe",
+            "email_userscanner"          # === USER-SCANNER ===
         ]
     }
 
@@ -325,14 +327,11 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["checked"] = job["total"]
             job["count"] = len(plate_results) + (1 if "error" not in info else 0)
             job["checked_items"] = ["Python / Pillow", "RapidOCR / ONNX Runtime", "Поиск по распознанному номеру"]
-
-        # === HOLEHE ===
         elif kind == "email_holehe":
             def progress(checked, total, current, results):
                 job["checked"] = checked
                 job["total"] = total
                 job["count"] = len([r for r in results if r.get("exists")])
-                # Показываем только найденные аккаунты
                 found_only = [
                     {
                         "name": r.get("name") or r.get("domain"),
@@ -367,7 +366,22 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["checked"] = total
             job["count"] = len(found_only)
             job["checked_items"] = [f"Holehe: готово ({total} модулей, найдено {len(found_only)})"]
-        # === END HOLEHE ===
+
+        # === USER-SCANNER ===
+        elif kind == "email_userscanner":
+            def progress(checked, total, current, results):
+                job["checked"] = checked
+                job["total"] = total
+                job["count"] = len(results)
+                job["results"] = list(results)
+                job["checked_items"] = [current]
+            found, total = await user_scanner_search(query, progress=progress)
+            job["results"] = found
+            job["total"] = total
+            job["checked"] = total
+            job["count"] = len(found)
+            job["checked_items"] = [f"user-scanner: готово ({total} модулей, найдено {len(found)})"]
+        # === END USER-SCANNER ===
 
         else:
             raise ValueError("Неизвестный тип глубокого поиска")
@@ -387,7 +401,7 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
 @app.get("/deep")
 async def deep_search(
-    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe)$"),
+    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe|email_userscanner)$"),
     q: str = Query(min_length=1, max_length=256)
 ):
     global ACTIVE_DEEP_JOB_ID
@@ -438,7 +452,7 @@ async def deep_cancel(job_id: str = Query(min_length=8, max_length=64)):
 
 @app.get("/deep/sources")
 def deep_sources(
-    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe)$"),
+    kind: str = Query(pattern="^(username_sherlock|username|username_wmn|phone|email|person|vin|domain|ip|image|email_extended|phone_extended|email_holehe|email_userscanner)$"),
     q: str = Query(min_length=1, max_length=256)
 ):
     return {
