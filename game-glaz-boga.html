@@ -1,5 +1,5 @@
-<!DOCTYPE html>
 
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -14,8 +14,6 @@ body{padding:16px 14px 30px}
 .top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
 .back,.type,.deep-kind{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;padding:10px 14px;cursor:pointer}
 .title{margin:0;font-size:26px}
-.info-link{margin-left:auto;color:#55a7ff;text-decoration:none;font-size:13px;font-weight:700;white-space:nowrap}
-.info-link:hover{text-decoration:underline}
 .subtitle{margin:0 0 16px;color:#d7cdd3;font-size:14px}
 .search-block{margin:0 0 14px;padding:14px;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(255,255,255,.055)}
 .search-title{font-size:19px;margin:0 0 7px}
@@ -37,7 +35,7 @@ body{padding:16px 14px 30px}
 .deep-status-running{color:#39e58c;font-weight:800}
 .deep-status-done{color:#ff4b5c;font-weight:800}
 .deep-status-waiting{color:#ff9800;font-weight:800}
-.deep-sites{margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08);max-height:260px;overflow:auto}
+.deep-sites{margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08);max-height:700px;overflow:auto}
 .deep-site{font-size:12px;line-height:1.55}
 .deep-result{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07)}
 .deep-result a{color:#39e58c;text-decoration:none}
@@ -46,23 +44,8 @@ body{padding:16px 14px 30px}
 .deep-data b{color:#fff}
 .deep-data a{color:#f0a5bd;text-decoration:none;word-break:break-all}
 .deep-data a:hover{text-decoration:underline}
-.resultbox{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.055)}
-.resultrow{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px;line-height:1.4}
-.resultrow:last-child{border-bottom:0}
-.resultrow a{color:#f0a5bd;text-decoration:none}
-.muted{color:#aaa0a6}
-.types{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
-.type{border-radius:20px;padding:8px 11px}
-.type.active{background:#8b3657;border-color:#c66b8b}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.card{border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;background:rgba(255,255,255,.065)}
-.card h2{font-size:17px;margin:0 0 5px}
-.card p{font-size:13px;color:#cfc5cb;margin:0 0 10px;line-height:1.35}
-.links{display:flex;flex-wrap:wrap;gap:7px}
-.links a{display:inline-block;text-decoration:none;color:#fff;background:rgba(180,75,112,.72);border-radius:9px;padding:8px 10px;font-size:13px}
-.note{margin-top:16px;padding:12px;border-radius:12px;background:rgba(255,255,255,.05);color:#bfb5bb;font-size:12px;line-height:1.45}
 
-/* 🕵️ Структурированное досье MailAccess */
+/* ===== MailAccess — структурированное досье ===== */
 .osint-dossier{display:grid;gap:10px;margin-top:8px}
 .dossier-head{padding:13px 14px;border:1px solid rgba(180,75,112,.35);border-radius:14px;background:linear-gradient(135deg,rgba(180,75,112,.16),rgba(255,255,255,.045))}
 .dossier-title{font-size:19px;font-weight:800;margin-bottom:5px}
@@ -90,24 +73,35 @@ body{padding:16px 14px 30px}
 .dossier-dns-label{display:inline-block;min-width:45px;color:#f0a5bd;font-weight:800}
 .dossier-empty{color:#aaa0a6;font-size:12px}
 
+.resultbox{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.055)}
+.resultrow{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px;line-height:1.4}
+.resultrow:last-child{border-bottom:0}
+.resultrow a{color:#f0a5bd;text-decoration:none}
+.muted{color:#aaa0a6}
+.types{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.type{border-radius:20px;padding:8px 11px}
+.type.active{background:#8b3657;border-color:#c66b8b}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.card{border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;background:rgba(255,255,255,.065)}
+.card h2{font-size:17px;margin:0 0 5px}
+.card p{font-size:13px;color:#cfc5cb;margin:0 0 10px;line-height:1.35}
+.links{display:flex;flex-wrap:wrap;gap:7px}
+.links a{display:inline-block;text-decoration:none;color:#fff;background:rgba(180,75,112,.72);border-radius:9px;padding:8px 10px;font-size:13px}
+.note{margin-top:16px;padding:12px;border-radius:12px;background:rgba(255,255,255,.05);color:#bfb5bb;font-size:12px;line-height:1.45}
 @media(max-width:650px){
-.grid{grid-template-columns:1fr}
-.search{flex-direction:column}
-.search button,.deep-kind{min-height:44px}
-.title{font-size:23px}
-.info-link{font-size:12px}
-} </style>
-
+  .grid{grid-template-columns:1fr}
+  .search{flex-direction:column}
+  .search button,.deep-kind{min-height:44px}
+  .title{font-size:23px}
+}
+</style>
 </head>
 <body>
 <div class="page">
-
 <div class="top">
 <button class="back" onclick="location.href='games.html'">← Игры</button>
 <h1 class="title">👁️ Глаз Бога</h1>
-<a class="info-link" href="game-glaz-boga-info.html">Как пользоваться поиском →</a>
 </div>
-
 <p class="subtitle">Публичный OSINT-поиск: несколько независимых движков и источников в одном интерфейсе.</p>
 
 <section class="search-block">
@@ -117,18 +111,17 @@ body{padding:16px 14px 30px}
 </div>
 <div id="deepRunning" class="deep-running">● Поиск выполняется — его можно остановить кнопкой «Стоп».</div>
 <p class="search-subtitle"><b>Формат ввода:</b> Username — латиница, цифры, <code>_ . -</code> (например <code>vovka_34</code>). ФИО — полностью, например <code>Иванов Иван Иванович</code>. Телефон — только международный формат <code>+7 900 123-45-67</code> (без 8 в начале). Email — обычный адрес, например <code>user@example.com</code>. Авто / VIN — VIN ровно 17 символов или госномер, например <code>А123ВС163</code>. Домен — <code>example.com</code>, без <code>https://</code>. IP — IPv4, например <code>8.8.8.8</code>. Фото — прямая ссылка на изображение <code>https://...</code>.</p>
-
 <div class="search">
 <select id="deepKind" class="deep-kind">
-<option value="email_mailaccess">Email — MailAccess</option>
-<option value="email_userscanner">Email — user-scanner</option>
-<option value="username">Username — Maigret (глубокий)</option>
 <option value="username_sherlock">Username — Sherlock (быстрый)</option>
 <option value="username_wmn">Username — WhatsMyName</option>
+<option value="username">Username — Maigret (глубокий)</option>
 <option value="person">ФИО — публичные упоминания</option>
 <option value="phone">Телефон — метаданные + поиск</option>
 <option value="email">Email — публичные источники</option>
 <option value="email_holehe">Email — Holehe</option>
+<option value="email_userscanner">Email — user-scanner</option>
+<option value="email_mailaccess">Email — MailAccess</option>
 <option value="email_h8mail">Email — h8mail</option>
 <option value="email_mosint">Email — Mosint</option>
 <option value="vin">Авто / VIN — vPIC + поиск</option>
@@ -138,10 +131,9 @@ body{padding:16px 14px 30px}
 <option value="email_extended">Email/Gmail — расширенный поиск сайтов</option>
 <option value="phone_extended">Телефон — расширенный поиск сайтов</option>
 </select>
-<input id="deepQ" autocomplete="off" placeholder="Email для проверки через MailAccess…">
+<input id="deepQ" autocomplete="off" placeholder="Username для быстрого поиска Sherlock…">
 <button class="deep-button" onclick="deepSearch()">Поиск</button>
 </div>
-
 <section class="deep-progress" id="deepProgress">
 <h3>🔎 Глубокая обработка</h3>
 <div class="deep-line" id="deepQuery"></div>
@@ -179,7 +171,6 @@ body{padding:16px 14px 30px}
 </div>
 
 <div class="grid">
-
 <section class="card" data-cats="username person">
 <h2>🕵️ Sherlock / Maigret</h2>
 <p>Поиск username по множеству публичных сайтов.</p>
@@ -296,7 +287,6 @@ body{padding:16px 14px 30px}
 <a href="https://github.com/alpkeskin/mosint" target="_blank" rel="noopener noreferrer">Mosint</a>
 </div>
 </section>
-
 </div>
 
 <div class="note">Только открытые источники. Закрытые аккаунты, украденные базы, пароли и обход ограничений не используются.</div>
@@ -323,54 +313,316 @@ deepRunning=document.getElementById('deepRunning');
 
 let currentType='all',deepTimer=null,deepJobId=null,deepRender=RENDER;
 
-const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({
+  '&':'&amp;',
+  '<':'&lt;',
+  '>':'&gt;',
+  '"':'&quot;',
+  "'":'&#39;'
+}[m]));
+
 const enc=v=>encodeURIComponent(v.trim());
 
-function addResult(html){const row=document.createElement('div');row.className='resultrow';row.innerHTML=html;resultBox.appendChild(row)}
-function validIp(v){const p=v.split('.');return p.length===4&&p.every(x=>/^\d+$/.test(x)&&+x>=0&&+x<=255)}
-function validDomain(v){return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(v)}
-function validUsername(v){return /^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$/.test(v)}
-function validEmail(v){return /^[^\s@]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}$/.test(v)}
+function addResult(html){
+  const row=document.createElement('div');
+  row.className='resultrow';
+  row.innerHTML=html;
+  resultBox.appendChild(row);
+}
 
-async function api(type,value){const r=await fetch(API+'?type='+encodeURIComponent(type)+'&q='+encodeURIComponent(value));const d=await r.json();if(!r.ok)throw Error(d.error||'HTTP '+r.status);return d}
+function validIp(v){
+  const p=v.split('.');
+  return p.length===4&&p.every(x=>/^\d+$/.test(x)&&+x>=0&&+x<=255);
+}
+
+function validDomain(v){
+  return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(v);
+}
+
+function validUsername(v){
+  return /^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$/.test(v);
+}
+
+function validEmail(v){
+  return /^[^\s@]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}$/.test(v);
+}
+
+async function api(type,value){
+  const r=await fetch(
+    API+'?type='+encodeURIComponent(type)+'&q='+encodeURIComponent(value)
+  );
+  const d=await r.json();
+  if(!r.ok)throw Error(d.error||'HTTP '+r.status);
+  return d;
+}
 
 async function usernameLookup(value){
-  const d=await api('username',value),list=Array.isArray(d.results)?d.results:[],found=list.filter(x=>x&&x.reachable);
-  addResult('🕵️ Username: проверено <b>'+Number(d.total||list.length)+'</b> · доступны: <b>'+found.length+'</b>');
-  found.forEach(x=>addResult('✅ <a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+esc(x.name||x.url)+'</a> <span class="muted">HTTP '+Number(x.status||0)+'</span>'));
-  if(!found.length)addResult('<span class="muted">Совпадений не обнаружено.</span>');
+  const d=await api('username',value),
+  list=Array.isArray(d.results)?d.results:[],
+  found=list.filter(x=>x&&x.reachable);
+
+  addResult(
+    '🕵️ Username: проверено <b>'+
+    Number(d.total||list.length)+
+    '</b> · доступны: <b>'+
+    found.length+
+    '</b>'
+  );
+
+  found.forEach(x=>
+    addResult(
+      '✅ <a href="'+esc(x.url)+
+      '" target="_blank" rel="noopener noreferrer">'+
+      esc(x.name||x.url)+
+      '</a> <span class="muted">HTTP '+
+      Number(x.status||0)+
+      '</span>'
+    )
+  );
+
+  if(!found.length){
+    addResult('<span class="muted">Совпадений не обнаружено.</span>');
+  }
 }
 
 async function githubEmail(value){
-  const d=await publicJson('https://api.github.com/search/users?q='+encodeURIComponent(value+' in:email')+'&per_page=10'),count=Number(d.total_count||0);
-  addResult('🐙 GitHub: найдено совпадений: <b>'+count+'</b>');
-  (d.items||[]).slice(0,10).forEach(x=>addResult('<a href="'+esc(x.html_url)+'" target="_blank" rel="noopener noreferrer">@'+esc(x.login)+'</a>'));
+  const d=await publicJson(
+    'https://api.github.com/search/users?q='+
+    encodeURIComponent(value+' in:email')+
+    '&per_page=10'
+  );
+
+  const count=Number(d.total_count||0);
+
+  addResult(
+    '🐙 GitHub: найдено совпадений: <b>'+
+    count+
+    '</b>'
+  );
+
+  (d.items||[]).slice(0,10).forEach(x=>
+    addResult(
+      '<a href="'+esc(x.html_url)+
+      '" target="_blank" rel="noopener noreferrer">@'+
+      esc(x.login)+
+      '</a>'
+    )
+  );
 }
 
-async function publicJson(url){const r=await fetch(url);if(!r.ok)throw Error('HTTP '+r.status);return r.json()}
+async function publicJson(url){
+  const r=await fetch(url);
+  if(!r.ok)throw Error('HTTP '+r.status);
+  return r.json();
+}
 
 async function domainLookup(domain){
-  const jobs=[publicJson('https://crt.sh/?q='+encodeURIComponent(domain)+'&output=json'),publicJson('https://rdap.org/domain/'+encodeURIComponent(domain)),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=A'),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=AAAA'),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=MX')],r=await Promise.allSettled(jobs);
-  if(r[0].status==='fulfilled'){const names=[...new Set((r[0].value||[]).flatMap(x=>String(x.name_value||'').split('\n')).map(x=>x.trim().toLowerCase()).filter(Boolean))].slice(0,20);addResult('🌐 crt.sh: сертификатных имён: <b>'+names.length+'</b>');names.forEach(n=>addResult('<a href="https://'+esc(n.replace(/^\*\.\s*/,''))+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>'))}
-  if(r[1].status==='fulfilled'){const x=r[1].value;addResult('📜 RDAP: <b>'+esc(x.ldhName||domain)+'</b>');(x.nameservers||[]).slice(0,20).forEach(n=>addResult('NS: <b>'+esc(n.ldhName||'')+'</b>'))}
-  ['A','AAAA','MX'].forEach((t,i)=>{const z=r[i+2];if(z.status==='fulfilled')(z.value.Answer||[]).slice(0,20).forEach(a=>addResult('DNS '+t+': <b>'+esc(a.data||'')+'</b> · TTL '+Number(a.TTL||0)))});
+  const jobs=[
+    publicJson(
+      'https://crt.sh/?q='+
+      encodeURIComponent(domain)+
+      '&output=json'
+    ),
+    publicJson(
+      'https://rdap.org/domain/'+
+      encodeURIComponent(domain)
+    ),
+    publicJson(
+      'https://dns.google/resolve?name='+
+      encodeURIComponent(domain)+
+      '&type=A'
+    ),
+    publicJson(
+      'https://dns.google/resolve?name='+
+      encodeURIComponent(domain)+
+      '&type=AAAA'
+    ),
+    publicJson(
+      'https://dns.google/resolve?name='+
+      encodeURIComponent(domain)+
+      '&type=MX'
+    )
+  ];
+
+  const r=await Promise.allSettled(jobs);
+
+  if(r[0].status==='fulfilled'){
+    const names=[
+      ...new Set(
+        (r[0].value||[])
+          .flatMap(x=>String(x.name_value||'').split('\n'))
+          .map(x=>x.trim().toLowerCase())
+          .filter(Boolean)
+      )
+    ].slice(0,20);
+
+    addResult(
+      '🌐 crt.sh: сертификатных имён: <b>'+
+      names.length+
+      '</b>'
+    );
+
+    names.forEach(n=>
+      addResult(
+        '<a href="https://'+
+        esc(n.replace(/^\*\./,''))+
+        '" target="_blank" rel="noopener noreferrer">'+
+        esc(n)+
+        '</a>'
+      )
+    );
+  }
+
+  if(r[1].status==='fulfilled'){
+    const x=r[1].value;
+
+    addResult(
+      '📜 RDAP: <b>'+
+      esc(x.ldhName||domain)+
+      '</b>'
+    );
+
+    (x.nameservers||[]).slice(0,20).forEach(n=>
+      addResult(
+        'NS: <b>'+
+        esc(n.ldhName||'')+
+        '</b>'
+      )
+    );
+  }
+
+  ['A','AAAA','MX'].forEach((t,i)=>{
+    const z=r[i+2];
+
+    if(z.status==='fulfilled'){
+      (z.value.Answer||[]).slice(0,20).forEach(a=>
+        addResult(
+          'DNS '+t+': <b>'+
+          esc(a.data||'')+
+          '</b> · TTL '+
+          Number(a.TTL||0)
+        )
+      );
+    }
+  });
 }
 
 async function ipLookup(value){
-  const r=await Promise.allSettled([publicJson('https://rdap.org/ip/'+encodeURIComponent(value)),publicJson('https://api.bgpview.io/ip/'+encodeURIComponent(value))]);
-  if(r[0].status==='fulfilled'){const x=r[0].value;addResult('📡 RDAP: <b>'+esc(x.name||x.handle||'данные получены')+'</b>');if(x.country)addResult('Страна: <b>'+esc(x.country)+'</b>')}
-  if(r[1].status==='fulfilled'){const d=r[1].value?.data||{},p=d.prefixes?.[0];if(p)addResult('BGPView: <b>'+esc(p.prefix||'')+'</b> · '+esc(p.asn?.name||p.asn?.description||''))}
+  const r=await Promise.allSettled([
+    publicJson(
+      'https://rdap.org/ip/'+
+      encodeURIComponent(value)
+    ),
+    publicJson(
+      'https://api.bgpview.io/ip/'+
+      encodeURIComponent(value)
+    )
+  ]);
+
+  if(r[0].status==='fulfilled'){
+    const x=r[0].value;
+
+    addResult(
+      '📡 RDAP: <b>'+
+      esc(x.name||x.handle||'данные получены')+
+      '</b>'
+    );
+
+    if(x.country){
+      addResult(
+        'Страна: <b>'+
+        esc(x.country)+
+        '</b>'
+      );
+    }
+  }
+
+  if(r[1].status==='fulfilled'){
+    const d=r[1].value?.data||{},
+    p=d.prefixes?.[0];
+
+    if(p){
+      addResult(
+        'BGPView: <b>'+
+        esc(p.prefix||'')+
+        '</b> · '+
+        esc(p.asn?.name||p.asn?.description||'')
+      );
+    }
+  }
 }
 
 async function quickLookup(value){
-  results.style.display='block';resultBox.innerHTML='';statusBox.style.display='block';statusBox.textContent='Проверяю быстрые источники…';
-  const jobs=[],domain=value.replace(/^https?:\/\//,'').split('/')[0];
-  if(validDomain(domain))jobs.push(domainLookup(domain).catch(e=>addResult('<span class="muted">Домен: '+esc(e.message)+'</span>')));
-  if(validIp(value))jobs.push(ipLookup(value).catch(e=>addResult('<span class="muted">IP: '+esc(e.message)+'</span>')));
-  if(validUsername(value)&&!value.includes('.')&&!value.includes('@'))jobs.push(usernameLookup(value).catch(e=>addResult('<span class="muted">Username: '+esc(e.message)+'</span>')));
-  if(validEmail(value))jobs.push(githubEmail(value).catch(e=>addResult('<span class="muted">Email: '+esc(e.message)+'</span>')));
-  if(!jobs.length)addResult('<span class="muted">Автоматическая API-проверка для этого типа не применяется. Используйте источники ниже.</span>');
-  await Promise.all(jobs);statusBox.textContent='Готово.';
+  results.style.display='block';
+  resultBox.innerHTML='';
+  statusBox.style.display='block';
+  statusBox.textContent='Проверяю быстрые источники…';
+
+  const jobs=[],
+  domain=value
+    .replace(/^https?:\/\//,'')
+    .split('/')[0];
+
+  if(validDomain(domain)){
+    jobs.push(
+      domainLookup(domain).catch(e=>
+        addResult(
+          '<span class="muted">Домен: '+
+          esc(e.message)+
+          '</span>'
+        )
+      )
+    );
+  }
+
+  if(validIp(value)){
+    jobs.push(
+      ipLookup(value).catch(e=>
+        addResult(
+          '<span class="muted">IP: '+
+          esc(e.message)+
+          '</span>'
+        )
+      )
+    );
+  }
+
+  if(
+    validUsername(value)&&
+    !value.includes('.')&&
+    !value.includes('@')
+  ){
+    jobs.push(
+      usernameLookup(value).catch(e=>
+        addResult(
+          '<span class="muted">Username: '+
+          esc(e.message)+
+          '</span>'
+        )
+      )
+    );
+  }
+
+  if(validEmail(value)){
+    jobs.push(
+      githubEmail(value).catch(e=>
+        addResult(
+          '<span class="muted">Email: '+
+          esc(e.message)+
+          '</span>'
+        )
+      )
+    );
+  }
+
+  if(!jobs.length){
+    addResult(
+      '<span class="muted">Автоматическая API-проверка для этого типа не применяется. Используйте источники ниже.</span>'
+    );
+  }
+
+  await Promise.all(jobs);
+  statusBox.textContent='Готово.';
 }
 
 function deepLabel(k){
@@ -397,11 +649,34 @@ function deepLabel(k){
 
 function formatDeepData(data){
   if(!data||typeof data!=='object')return '';
-  return Object.entries(data).filter(([k,v])=>v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length)).map(([k,v])=>'<div><b>'+esc(k)+':</b> '+esc(Array.isArray(v)?v.join(', '):typeof v==='object'?JSON.stringify(v):v)+'</div>').join('');
+
+  return Object.entries(data)
+    .filter(
+      ([k,v])=>
+        v!==null&&
+        v!==undefined&&
+        v!==''&&
+        (!Array.isArray(v)||v.length)
+    )
+    .map(
+      ([k,v])=>
+        '<div><b>'+
+        esc(k)+
+        ':</b> '+
+        esc(
+          Array.isArray(v)
+            ?v.join(', ')
+            :typeof v==='object'
+              ?JSON.stringify(v)
+              :v
+        )+
+        '</div>'
+    )
+    .join('');
 }
 
-function formatMailAccessDossier(data,resultUrl=''){
-  if(!data||typeof data!=='object')return '';
+function formatMailAccessDossier(results){
+  const items=Array.isArray(results)?results:[];
 
   const hiddenKeys=new Set([
     'platform',
@@ -412,6 +687,17 @@ function formatMailAccessDossier(data,resultUrl=''){
     'self_link',
     'subject',
     'localpart'
+  ]);
+
+  const hiddenFalseEmailRep=new Set([
+    'emailrep_suspicious',
+    'emailrep_malicious_activity',
+    'emailrep_malicious_activity_recent',
+    'emailrep_credentials_leaked',
+    'emailrep_spam',
+    'emailrep_blacklisted',
+    'emailrep_free_provider',
+    'emailrep_disposable'
   ]);
 
   const sections={
@@ -426,157 +712,519 @@ function formatMailAccessDossier(data,resultUrl=''){
   };
 
   const seen=new Set();
+  const linksSeen=new Set();
 
-  const profileKeys=/^(profile|username|login|account|social|github|telegram|twitter|x_|facebook|instagram|linkedin|reddit|discord)/i;
-  const breachKeys=/(breach|leak|comprom|pwn|password|expos|dump)/i;
-  const dnsKeys=/(dns|spf|dmarc|dkim|mx|ns|txt|a_record|aaaa|cname)/i;
-  const infraKeys=/(domain|host|hostname|ip|asn|provider|registrar|whois|certificate|cert|infrastructure|mailserver|nameserver)/i;
-  const reputationKeys=/(malicious|spam|spamhaus|reputation|risk|disposable|blacklist|suspicious|valid|deliverable|free_provider|fraud|score)/i;
-  const relationKeys=/(related|relation|associated|alias|linked|connection|same|company|organization)/i;
-
-  function normalize(value){
-    if(value===null||value===undefined)return '';
-    if(typeof value==='object'){
-      try{return JSON.stringify(value)}
-      catch(e){return String(value)}
-    }
-    return String(value).trim();
-  }
-
-  function linkify(value){
-    const text=String(value);
-    return esc(text).replace(/https?:\/\/[^\s<>"']+/gi,match=>{
-      let url=match,suffix='';
-      while(/[),.;!?]+$/.test(url)){
-        suffix=url.slice(-1)+suffix;
-        url=url.slice(0,-1);
-      }
-      return '<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+url+'</a>'+suffix;
-    });
-  }
-
-  function renderValue(value){
-    if(value===null||value===undefined||value==='')return '';
-    if(Array.isArray(value))return value.map(renderValue).filter(Boolean).join(', ');
-    if(typeof value==='object'){
-      return Object.entries(value)
-        .filter(([k,v])=>v!==null&&v!==undefined&&v!=='')
-        .map(([k,v])=>{
-          const r=renderValue(v);
-          return r?esc(k)+': '+r:'';
-        }).filter(Boolean).join('; ');
-    }
-    return linkify(value);
-  }
-
-  function add(section,key,value,options={}){
-    if(hiddenKeys.has(key))return;
-    if(value===null||value===undefined||value==='')return;
-    if(Array.isArray(value)&&!value.length)return;
-    if(key==='source'&&String(value)==='fediverse_webfinger')return;
-    if(key==='profile_url'&&resultUrl&&String(value).trim()===String(resultUrl).trim())return;
-
-    const sig=section+'|'+key+'|'+normalize(value);
-    if(seen.has(sig))return;
-    seen.add(sig);
-
-    const rendered=renderValue(value);
-    if(!rendered)return;
-
-    sections[section].push(
-      '<div class="dossier-item">'+
-      '<b>'+esc(key)+':</b> '+
-      rendered+
-      '</div>'
+  function isEmpty(value){
+    return(
+      value===null||
+      value===undefined||
+      value===''||
+      (Array.isArray(value)&&!value.length)
     );
   }
 
-  Object.entries(data).forEach(([key,value])=>{
-    if(hiddenKeys.has(key))return;
+  function linkify(value){
+    if(isEmpty(value))return '';
 
-    let section='other';
-
-    if(reputationKeys.test(key))section='reputation';
-    else if(dnsKeys.test(key))section='dns';
-    else if(breachKeys.test(key))section='breaches';
-    else if(infraKeys.test(key))section='infrastructure';
-    else if(relationKeys.test(key))section='relations';
-    else if(profileKeys.test(key))section='accounts';
-    else if(/^(email|address|name|display_name|first_name|last_name|full_name|domain_name)$/i.test(key))section='identity';
-
-    if(key==='metadata'&&value&&typeof value==='object'&&!Array.isArray(value)){
-      Object.entries(value).forEach(([metaKey,metaValue])=>{
-        let metaSection='other';
-
-        if(reputationKeys.test(metaKey))metaSection='reputation';
-        else if(dnsKeys.test(metaKey))metaSection='dns';
-        else if(breachKeys.test(metaKey))metaSection='breaches';
-        else if(infraKeys.test(metaKey))metaSection='infrastructure';
-        else if(relationKeys.test(metaKey))metaSection='relations';
-        else if(profileKeys.test(metaKey))metaSection='accounts';
-        else if(/^(email|address|name|display_name|first_name|last_name|full_name|domain_name)$/i.test(metaKey))metaSection='identity';
-
-        add(metaSection,metaKey,metaValue);
-      });
-    }else{
-      add(section,key,value);
+    if(Array.isArray(value)){
+      return value.map(linkify).filter(Boolean).join(', ');
     }
+
+    if(typeof value==='object'){
+      return Object.entries(value)
+        .filter(([k,v])=>!isEmpty(v))
+        .map(([k,v])=>{
+          const rendered=linkify(v);
+          return rendered
+            ?esc(k)+': '+rendered
+            :'';
+        })
+        .filter(Boolean)
+        .join('; ');
+    }
+
+    const text=esc(value);
+
+    return text.replace(
+      /https?:\/\/[^\s<>"']+/gi,
+      match=>{
+        let url=match;
+        let suffix='';
+
+        while(/[),.;!?]+$/.test(url)){
+          suffix=url.slice(-1)+suffix;
+          url=url.slice(0,-1);
+        }
+
+        if(linksSeen.has(url)){
+          return suffix;
+        }
+
+        linksSeen.add(url);
+
+        return(
+          '<a href="'+url+
+          '" target="_blank" rel="noopener noreferrer">'+
+          url+
+          '</a>'+
+          suffix
+        );
+      }
+    );
+  }
+
+  function normalize(value){
+    if(typeof value==='object'){
+      try{
+        return JSON.stringify(value);
+      }catch(e){
+        return String(value);
+      }
+    }
+
+    return String(value??'')
+      .trim()
+      .toLowerCase();
+  }
+
+  function add(section,key,value,source='',extraClass=''){
+    if(hiddenKeys.has(key))return;
+    if(isEmpty(value))return;
+
+    if(
+      hiddenFalseEmailRep.has(key)&&
+      String(value).toLowerCase()==='false'
+    ){
+      return;
+    }
+
+    if(
+      key==='source'&&
+      String(value)==='fediverse_webfinger'
+    ){
+      return;
+    }
+
+    const signature=
+      section+
+      '|'+
+      key+
+      '|'+
+      normalize(value);
+
+    if(seen.has(signature))return;
+    seen.add(signature);
+
+    const rendered=linkify(value);
+
+    if(!rendered)return;
+
+    sections[section].push({
+      key,
+      value:rendered,
+      source,
+      extraClass
+    });
+  }
+
+  function classify(key,value,source){
+    const k=String(key).toLowerCase();
+    const s=String(source).toLowerCase();
+
+    if(
+      /breach|leak|credential|pwn|compromis/.test(k)||
+      /breach|leak/.test(s)
+    ){
+      return 'breaches';
+    }
+
+    if(
+      /malicious|reputation|spamhaus|blacklist|suspicious|disposable|spam|fraud|abuse|risk|verdict|listed/.test(k)
+    ){
+      return 'reputation';
+    }
+
+    if(
+      /mx_|spf|dmarc|nameserver|name_server|dns|ip_address|a_record|aaaa|mailserver|exchange/.test(k)
+    ){
+      return 'dns';
+    }
+
+    if(
+      /username|profile|instance|member_since|first_seen|karma|bio|description|display_name|nickname|alias|aliases|account|handle|social/.test(k)
+    ){
+      return 'accounts';
+    }
+
+    if(
+      /provider|hosting|google_hosted|hosting_kind|email_domain|domain_age|domain|as_name|asn|country|city|region|org|organization/.test(k)
+    ){
+      return 'infrastructure';
+    }
+
+    if(
+      /related|relation|signal|identifier|id$|source|connection|linked|association/.test(k)
+    ){
+      return 'relations';
+    }
+
+    if(
+      /email|canonical|name|fio|person|phone/.test(k)
+    ){
+      return 'identity';
+    }
+
+    return 'other';
+  }
+
+  items.forEach(item=>{
+    if(
+      !item||
+      typeof item!=='object'||
+      !item.data||
+      typeof item.data!=='object'
+    ){
+      return;
+    }
+
+    const data=item.data;
+    const sourceTitle=
+      item.name||
+      item.source||
+      item.url||
+      item.href||
+      'Источник';
+
+    Object.entries(data).forEach(([key,value])=>{
+      if(
+        key==='metadata'&&
+        value&&
+        typeof value==='object'&&
+        !Array.isArray(value)
+      ){
+        Object.entries(value).forEach(([metaKey,metaValue])=>{
+          if(!isEmpty(metaValue)){
+            add(
+              classify(metaKey,metaValue,sourceTitle),
+              metaKey,
+              metaValue,
+              sourceTitle
+            );
+          }
+        });
+
+        return;
+      }
+
+      add(
+        classify(key,value,sourceTitle),
+        key,
+        value,
+        sourceTitle
+      );
+    });
   });
 
-  const allText=JSON.stringify(data).toLowerCase();
+  const profiles=[];
+  const profileSeen=new Set();
 
-  const badges=[];
+  items.forEach(item=>{
+    if(
+      !item||
+      typeof item!=='object'||
+      !item.data||
+      typeof item.data!=='object'
+    ){
+      return;
+    }
 
-  if(/malicious["']?\s*:\s*(true|1|"true")/.test(allText)||/malicious/.test(allText)&&/true/.test(allText)){
-    badges.push('<span class="dossier-badge danger">🚨 malicious</span>');
+    const d=item.data;
+    const url=item.url||item.href||d.profile_url;
+    const username=d.username||d.handle||d.login||d.nickname;
+
+    if(!url&&!username)return;
+
+    const signature=String(url||username);
+
+    if(profileSeen.has(signature))return;
+    profileSeen.add(signature);
+
+    profiles.push({
+      title:item.name||item.source||'Публичный профиль',
+      url,
+      username,
+      instance:d.instance,
+      member_since:d.member_since,
+      first_seen:d.first_seen,
+      karma:d.karma,
+      description:d.description||d.bio
+    });
+  });
+
+  if(profiles.length){
+    sections.accounts=[];
+
+    profiles.forEach(p=>{
+      let html='<div class="dossier-profile">';
+
+      html+=
+        '<div class="dossier-source">'+
+        esc(p.title)+
+        '</div>';
+
+      if(p.url){
+        html+=
+          '<div><a href="'+
+          esc(p.url)+
+          '" target="_blank" rel="noopener noreferrer">'+
+          esc(p.username||p.url)+
+          '</a></div>';
+      }else if(p.username){
+        html+=
+          '<div><b>Username:</b> '+
+          linkify(p.username)+
+          '</div>';
+      }
+
+      if(p.instance){
+        html+=
+          '<div><b>Instance:</b> '+
+          linkify(p.instance)+
+          '</div>';
+      }
+
+      if(p.member_since){
+        html+=
+          '<div><b>Регистрация:</b> '+
+          linkify(p.member_since)+
+          '</div>';
+      }
+
+      if(p.first_seen){
+        html+=
+          '<div><b>Первое обнаружение:</b> '+
+          linkify(p.first_seen)+
+          '</div>';
+      }
+
+      if(
+        p.karma!==undefined&&
+        p.karma!==null&&
+        p.karma!==''
+      ){
+        html+=
+          '<div><b>Karma:</b> '+
+          linkify(p.karma)+
+          '</div>';
+      }
+
+      if(p.description){
+        html+=
+          '<div><b>Описание:</b> '+
+          linkify(p.description)+
+          '</div>';
+      }
+
+      html+='</div>';
+
+      sections.accounts.push({
+        rawHtml:html
+      });
+    });
   }
 
-  if(/spamhaus/.test(allText)){
-    badges.push('<span class="dossier-badge danger">🔴 Spamhaus</span>');
+  function badges(){
+    const all=items.flatMap(x=>{
+      const d=
+        x&&
+        x.data&&
+        typeof x.data==='object'
+          ?x.data
+          :{};
+
+      return Object.entries(d);
+    });
+
+    const out=[];
+
+    const malicious=all.some(
+      ([k,v])=>
+        /is_malicious|malicious|reputation_verdict/i.test(k)&&
+        String(v).toLowerCase().includes('malicious')
+    );
+
+    const spamhaus=all.some(
+      ([k,v])=>
+        /spamhaus/i.test(k)&&
+        String(v).toLowerCase().includes('listed')
+    );
+
+    const spf=all.some(
+      ([k,v])=>
+        /has_spf/i.test(k)&&
+        String(v).toLowerCase()==='true'
+    );
+
+    const dmarc=all.some(
+      ([k,v])=>
+        /has_dmarc/i.test(k)&&
+        String(v).toLowerCase()==='true'
+    );
+
+    const google=all.some(
+      ([k,v])=>
+        /google_hosted/i.test(k)&&
+        String(v).toLowerCase()==='true'
+    );
+
+    if(malicious){
+      out.push(
+        '<span class="dossier-badge danger">🚨 malicious</span>'
+      );
+    }
+
+    if(spamhaus){
+      out.push(
+        '<span class="dossier-badge danger">🔴 Spamhaus</span>'
+      );
+    }
+
+    if(spf){
+      out.push(
+        '<span class="dossier-badge good">✓ SPF</span>'
+      );
+    }
+
+    if(dmarc){
+      out.push(
+        '<span class="dossier-badge good">✓ DMARC</span>'
+      );
+    }
+
+    if(google){
+      out.push(
+        '<span class="dossier-badge good">Google</span>'
+      );
+    }
+
+    return out.join('');
   }
 
-  if(/spf/.test(allText)){
-    badges.push('<span class="dossier-badge good">✓ SPF</span>');
-  }
+  function renderSection(title,icon,list){
+    if(!list.length)return '';
 
-  if(/dmarc/.test(allText)){
-    badges.push('<span class="dossier-badge good">✓ DMARC</span>');
-  }
+    let body='';
 
-  if(/google/.test(allText)){
-    badges.push('<span class="dossier-badge">Google</span>');
-  }
+    list.forEach(x=>{
+      if(x.rawHtml){
+        body+=x.rawHtml;
+        return;
+      }
 
-  const title=data.email||data.address||data.query||resultUrl||'Email';
-  const source=data.source||data.provider||'MailAccess';
+      body+=
+        '<div class="dossier-item">';
 
-  function section(title,body,cls=''){
-    if(!body.length)return '';
-    return '<section class="dossier-section '+cls+'">'+
-      '<div class="dossier-section-title">'+title+'</div>'+
-      '<div class="dossier-section-body">'+body.join('')+'</div>'+
-      '</section>';
+      if(x.source){
+        body+=
+          '<div class="dossier-source">'+
+          esc(x.source)+
+          '</div>';
+      }
+
+      body+=
+        '<b>'+
+        esc(x.key)+
+        ':</b> '+
+        x.value;
+
+      body+='</div>';
+    });
+
+    return(
+      '<section class="dossier-section">'+
+        '<div class="dossier-section-title">'+
+          icon+' '+title+
+        '</div>'+
+        '<div class="dossier-section-body">'+
+          body+
+        '</div>'+
+      '</section>'
+    );
   }
 
   let html='<div class="osint-dossier">';
 
-  html+='<div class="dossier-head">'+
-    '<div class="dossier-title">🕵️ Структурированное досье</div>'+
-    '<div class="dossier-subtitle">MailAccess · полезные сведения собраны по категориям</div>'+
-    (badges.length?'<div class="dossier-badges">'+badges.join('')+'</div>':'')+
+  html+=
+    '<div class="dossier-head">'+
+      '<div class="dossier-title">🕵️ Структурированное досье</div>'+
+      '<div class="dossier-subtitle">MailAccess · полезные сведения собраны по категориям</div>'+
+      '<div class="dossier-badges">'+
+        badges()+
+      '</div>'+
     '</div>';
 
-  html+=section('🚨 Репутация и риски',sections.reputation);
-  html+=section('📧 Идентификация',sections.identity);
-  html+=section('🌐 DNS и сетевая инфраструктура',sections.dns);
-  html+=section('👤 Публичные аккаунты и профили',sections.accounts);
-  html+=section('🔴 Утечки и компрометации',sections.breaches);
-  html+=section('🏗️ Домены и инфраструктура',sections.infrastructure);
-  html+=section('🔗 Связи и дополнительные идентификаторы',sections.relations);
-  html+=section('🔎 Дополнительные сведения',sections.other);
+  html+=renderSection(
+    'Репутация и риски',
+    '🚨',
+    sections.reputation
+  );
 
-  if(!sections.reputation.length&&!sections.identity.length&&!sections.dns.length&&!sections.accounts.length&&!sections.breaches.length&&!sections.infrastructure.length&&!sections.relations.length&&!sections.other.length){
-    html+='<div class="dossier-section"><div class="dossier-section-body"><div class="dossier-empty">Структурированных дополнительных сведений не обнаружено.</div></div></div>';
+  html+=renderSection(
+    'Идентификация',
+    '📧',
+    sections.identity
+  );
+
+  html+=renderSection(
+    'DNS и сетевая инфраструктура',
+    '🌐',
+    sections.dns
+  );
+
+  html+=renderSection(
+    'Публичные аккаунты и профили',
+    '👤',
+    sections.accounts
+  );
+
+  html+=renderSection(
+    'Утечки и компрометации',
+    '🔴',
+    sections.breaches
+  );
+
+  html+=renderSection(
+    'Домены и инфраструктура',
+    '🏗️',
+    sections.infrastructure
+  );
+
+  html+=renderSection(
+    'Связи и дополнительные идентификаторы',
+    '🔗',
+    sections.relations
+  );
+
+  html+=renderSection(
+    'Дополнительные сведения',
+    '🔎',
+    sections.other
+  );
+
+  if(
+    !sections.reputation.length&&
+    !sections.identity.length&&
+    !sections.dns.length&&
+    !sections.accounts.length&&
+    !sections.breaches.length&&
+    !sections.infrastructure.length&&
+    !sections.relations.length&&
+    !sections.other.length
+  ){
+    html+=
+      '<div class="dossier-empty">'+
+      'Полезных сведений для отображения пока не найдено.'+
+      '</div>';
   }
 
   html+='</div>';
@@ -587,115 +1235,321 @@ function formatMailAccessDossier(data,resultUrl=''){
 function renderDeep(d){
   const kind=d.kind||deepKind.value;
 
-  deepQuery.textContent=deepLabel(kind)+': '+(d.query||'');
-  const statusLabel=d.status==='running'?'выполняется':d.status==='done'?'завершен':d.status==='queued'?'ожидает запуска':d.status==='error'?'ошибка':d.status==='cancelled'?'остановлен':d.status;
-  const statusClass=d.status==='running'?'deep-status-running':d.status==='done'?'deep-status-done':d.status==='cancelled'?'deep-status-done':'';
-  deepStatus.innerHTML='Статус: <span class="'+statusClass+'">'+esc(statusLabel)+'</span>';
+  deepQuery.textContent=
+    deepLabel(kind)+': '+(d.query||'');
+
+  const statusLabel=
+    d.status==='running'
+      ?'выполняется'
+      :d.status==='done'
+        ?'завершен'
+        :d.status==='queued'
+          ?'ожидает запуска'
+          :d.status==='error'
+            ?'ошибка'
+            :d.status==='cancelled'
+              ?'остановлен'
+              :d.status;
+
+  const statusClass=
+    d.status==='running'
+      ?'deep-status-running'
+      :d.status==='done'
+        ?'deep-status-done'
+        :d.status==='cancelled'
+          ?'deep-status-done'
+          :'';
+
+  deepStatus.innerHTML=
+    'Статус: <span class="'+
+    statusClass+
+    '">'+
+    esc(statusLabel)+
+    '</span>';
 
   const checked=Number(d.checked||0);
   const total=Number(d.total||0);
 
-  deepChecked.textContent='Проверено: '+checked+' / '+total;
+  deepChecked.textContent=
+    'Проверено: '+
+    checked+
+    ' / '+
+    total;
 
   const foundCount=Number(d.count||0);
-  deepFound.innerHTML='Найдено: <span style="color:'+(foundCount>0?'#39e58c':'#ff4b5c')+'">'+foundCount+'</span>';
-  const sites=Array.isArray(d.checked_items)?d.checked_items:[];
-  const data=Array.isArray(d.results)?d.results:[];
-  const isMailAccess=kind==='email_mailaccess';
 
-  deepSites.innerHTML=(sites.length?sites.map(x=>'<div class="deep-site">✓ '+esc(x)+'</div>').join(''):'')+(data.length?data.slice(0,50).map(x=>{
-    const url=x.url||x.href;
-    const title=x.name||x.source||url||'Результат';
+  deepFound.innerHTML=
+    'Найдено: <span style="color:'+
+    (foundCount>0?'#39e58c':'#ff4b5c')+
+    '">'+
+    foundCount+
+    '</span>';
 
-    const body=isMailAccess
-      ?formatMailAccessDossier(x.data,url)
-      :formatDeepData(x.data);
+  const sites=
+    Array.isArray(d.checked_items)
+      ?d.checked_items
+      :[];
 
-    return '<div class="deep-result">'+
-      (url
-        ?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>'
-        :esc(title)
-      )+
-      (body?'<div class="deep-data">'+body+'</div>':'')+
+  const data=
+    Array.isArray(d.results)
+      ?d.results
+      :[];
+
+  /*
+   * MailAccess:
+   * одно общее досье на весь результат.
+   * Отдельные модули больше не получают
+   * собственный заголовок "Структурированное досье".
+   */
+  if(kind==='email_mailaccess'){
+
+    let html='';
+
+    if(sites.length){
+      html+=sites.map(x=>
+        '<div class="deep-site">✓ '+
+        esc(x)+
+        '</div>'
+      ).join('');
+    }
+
+    if(data.length){
+      html+=formatMailAccessDossier(data);
+    }
+
+    deepSites.innerHTML=html;
+
+    if(!deepSites.innerHTML){
+      deepSites.innerHTML=
+        '<div class="deep-site muted">'+
+        'Результаты ещё не появились.'+
+        '</div>';
+    }
+
+    return;
+  }
+
+  /*
+   * Остальные поисковики:
+   * старая схема вывода без изменений.
+   */
+  deepSites.innerHTML=
+    (
+      sites.length
+        ?sites.map(x=>
+          '<div class="deep-site">✓ '+
+          esc(x)+
+          '</div>'
+        ).join('')
+        :''
+    )+
+    (
+      data.length
+        ?data.slice(0,50).map(x=>{
+          const url=x.url||x.href;
+          const title=
+            x.name||
+            x.source||
+            url||
+            'Результат';
+
+          const body=formatDeepData(x.data);
+
+          return(
+            '<div class="deep-result">'+
+              (
+                url
+                  ?'<a href="'+
+                   esc(url)+
+                   '" target="_blank" rel="noopener noreferrer">'+
+                   esc(title)+
+                   '</a>'
+                  :esc(title)
+              )+
+              (
+                body
+                  ?'<div class="deep-data">'+
+                   body+
+                   '</div>'
+                  :''
+              )+
+            '</div>'
+          );
+        }).join('')
+        :''
+    );
+
+  if(!deepSites.innerHTML){
+    deepSites.innerHTML=
+      '<div class="deep-site muted">'+
+      'Результаты ещё не появились.'+
       '</div>';
-  }).join(''):'');
-  if(!deepSites.innerHTML)deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
+  }
 }
 
 async function pollDeep(){
   if(!deepJobId)return;
+
   try{
-    const r=await fetch(deepRender+'/deep/status?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
+    const r=await fetch(
+      deepRender+
+      '/deep/status?job_id='+
+      encodeURIComponent(deepJobId),
+      {cache:'no-store'}
+    );
+
     if(!r.ok)return;
+
     const d=await r.json();
+
     renderDeep(d);
-    if(d.status==='done'||d.status==='error'||d.status==='cancelled'){
-      clearInterval(deepTimer);deepTimer=null;
+
+    if(
+      d.status==='done'||
+      d.status==='error'||
+      d.status==='cancelled'
+    ){
+      clearInterval(deepTimer);
+      deepTimer=null;
       stopDeep.classList.remove('active');
       deepRunning.classList.remove('active');
     }
   }catch(e){
-    deepStatus.innerHTML='Статус: <span class="deep-status-waiting">ожидание связи с Render…</span>';
+    deepStatus.innerHTML=
+      'Статус: <span class="deep-status-waiting">'+
+      'ожидание связи с Render…'+
+      '</span>';
   }
 }
 
 async function stopDeepSearch(){
   if(!deepJobId)return;
+
   stopDeep.disabled=true;
   deepStatus.textContent='Статус: остановка…';
+
   try{
-    const r=await fetch(deepRender+'/deep/cancel?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
+    const r=await fetch(
+      deepRender+
+      '/deep/cancel?job_id='+
+      encodeURIComponent(deepJobId),
+      {cache:'no-store'}
+    );
+
     const d=await r.json();
-    if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
-    clearInterval(deepTimer);deepTimer=null;
+
+    if(!r.ok){
+      throw Error(d.detail||'HTTP '+r.status);
+    }
+
+    clearInterval(deepTimer);
+    deepTimer=null;
+
     renderDeep(d);
+
     stopDeep.classList.remove('active');
     deepRunning.classList.remove('active');
+
   }catch(e){
-    deepStatus.textContent='Статус: ошибка остановки — '+e.message;
+    deepStatus.textContent=
+      'Статус: ошибка остановки — '+
+      e.message;
+
   }finally{
     stopDeep.disabled=false;
   }
 }
 
 async function deepSearch(){
-  const value=deepQ.value.trim(),kind=deepKind.value;
-  if(!value){deepQ.focus();return}
-  deepRender=kind==='email_mosint'?RENDER_MOSINT:RENDER;
-  if(deepTimer){clearInterval(deepTimer);deepTimer=null}
+  const value=deepQ.value.trim(),
+  kind=deepKind.value;
+
+  if(!value){
+    deepQ.focus();
+    return;
+  }
+
+  deepRender=
+    kind==='email_mosint'
+      ?RENDER_MOSINT
+      :RENDER;
+
+  if(deepTimer){
+    clearInterval(deepTimer);
+    deepTimer=null;
+  }
+
   deepProgress.style.display='block';
-  deepQuery.textContent=deepLabel(kind)+': '+value;
+
+  deepQuery.textContent=
+    deepLabel(kind)+': '+
+    value;
+
   deepStatus.textContent='Статус: запуск…';
-  deepChecked.textContent='Проверено: 0 / …';
-  deepFound.innerHTML='Найдено: <span style="color:#ff4b5c">0</span>';
+
+  deepChecked.textContent=
+    'Проверено: 0 / …';
+
+  deepFound.innerHTML=
+    'Найдено: <span style="color:#ff4b5c">0</span>';
+
   deepSites.innerHTML='';
+
   stopDeep.classList.remove('active');
   deepRunning.classList.remove('active');
 
-  if(kind==='username'&&!validUsername(value)){
-    deepStatus.textContent='Статус: username должен содержать латинские буквы, цифры, точку, дефис или подчёркивание.';
+  if(
+    kind==='username'&&
+    !validUsername(value)
+  ){
+    deepStatus.textContent=
+      'Статус: username должен содержать латинские буквы, цифры, точку, дефис или подчёркивание.';
     return;
   }
 
   try{
-    const r=await fetch(deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),{cache:'no-store'}),
-    d=await r.json();
+    const r=await fetch(
+      deepRender+
+      '/deep?kind='+
+      encodeURIComponent(kind)+
+      '&q='+
+      encodeURIComponent(value),
+      {cache:'no-store'}
+    );
 
-    if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
+    const d=await r.json();
+
+    if(!r.ok){
+      throw Error(d.detail||'HTTP '+r.status);
+    }
 
     deepJobId=d.job_id;
+
     renderDeep(d);
 
-    if(d.status!=='done'&&d.status!=='error'&&d.status!=='cancelled'){
+    if(
+      d.status!=='done'&&
+      d.status!=='error'&&
+      d.status!=='cancelled'
+    ){
       stopDeep.classList.add('active');
       deepRunning.classList.add('active');
+
       await pollDeep();
-      deepTimer=setInterval(pollDeep,4000);
+
+      deepTimer=setInterval(
+        pollDeep,
+        4000
+      );
     }
+
   }catch(e){
     stopDeep.classList.remove('active');
     deepRunning.classList.remove('active');
-    deepStatus.textContent='Статус: ошибка запуска — '+e.message;
+
+    deepStatus.textContent=
+      'Статус: ошибка запуска — '+
+      e.message;
   }
 }
 
@@ -720,36 +1574,84 @@ function updateDeepPlaceholder(){
     phone_extended:'Номер телефона для расширенного поиска…'
   };
 
-  deepQ.placeholder=p[deepKind.value]||'Запрос…';
+  deepQ.placeholder=
+    p[deepKind.value]||
+    'Запрос…';
 }
 
 function searchAll(){
   const value=quickQ.value.trim();
-  if(!value){quickQ.focus();return}
 
-  document.querySelectorAll('.card a[data-url]').forEach(a=>{
-    a.href=a.dataset.url.replaceAll('{q}',enc(value));
+  if(!value){
+    quickQ.focus();
+    return;
+  }
+
+  document.querySelectorAll(
+    '.card a[data-url]'
+  ).forEach(a=>{
+    a.href=
+      a.dataset.url.replaceAll(
+        '{q}',
+        enc(value)
+      );
+
     a.target='_blank';
     a.rel='noopener noreferrer';
   });
 
-  document.querySelectorAll('.card').forEach(c=>c.style.display=currentType==='all'||(c.dataset.cats||'').split(' ').includes(currentType)?'block':'none');
+  document.querySelectorAll('.card').forEach(c=>{
+    c.style.display=
+      currentType==='all'||
+      (c.dataset.cats||'')
+        .split(' ')
+        .includes(currentType)
+        ?'block'
+        :'none';
+  });
 
   quickLookup(value);
 }
 
-document.querySelectorAll('.type').forEach(b=>b.onclick=()=>{
-  currentType=b.dataset.type;
-  document.querySelectorAll('.type').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');
-  if(quickQ.value.trim())searchAll();
-});
+document.querySelectorAll('.type').forEach(
+  b=>b.onclick=()=>{
+    currentType=b.dataset.type;
 
-quickQ.addEventListener('keydown',e=>{if(e.key==='Enter')searchAll()});
-deepQ.addEventListener('keydown',e=>{if(e.key==='Enter')deepSearch()});
-deepKind.addEventListener('change',updateDeepPlaceholder);
+    document.querySelectorAll('.type')
+      .forEach(x=>
+        x.classList.remove('active')
+      );
+
+    b.classList.add('active');
+
+    if(quickQ.value.trim()){
+      searchAll();
+    }
+  }
+);
+
+quickQ.addEventListener(
+  'keydown',
+  e=>{
+    if(e.key==='Enter')searchAll();
+  }
+);
+
+deepQ.addEventListener(
+  'keydown',
+  e=>{
+    if(e.key==='Enter')deepSearch();
+  }
+);
+
+deepKind.addEventListener(
+  'change',
+  updateDeepPlaceholder
+);
+
 updateDeepPlaceholder();
 </script>
 
 </body>
 </html>
+
