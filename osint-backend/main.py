@@ -228,12 +228,18 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["count"] = len(public_results)
             job["checked_items"] = [f"Готово: Россия + иностранные публичные сайты ({total_sources})"]
         elif kind == "person":
-            public_results = await public_search(query, "person")
+            def progress(checked, total, current, results):
+                job["checked"] = checked
+                job["total"] = total
+                job["count"] = len(results)
+                job["results"] = list(results)
+                job["checked_items"] = [current]
+            public_results = await extended_public_search(query, "person", max_results=20, progress=progress)
             job["results"] = public_results
-            job["total"] = len(public_results)
-            job["checked"] = job["total"]
             job["count"] = len(public_results)
-            job["checked_items"] = ["Python / public web"]
+            if job["total"] == 0:
+                job["total"] = len(extended_search_sources := SOURCES_RU["person"]) + len(SOURCES_FOREIGN["person"]) + 5
+            job["checked_items"] = [f"Готово: ФИО — проверка источников завершена ({job['checked']}/{job['total']})"]
         elif kind == "vin":
             if plate_like(query) and not len(normalize_plate(query)) == 17:
                 public_results = await plate_public_search(query)
