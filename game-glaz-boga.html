@@ -342,6 +342,53 @@ function formatDeepData(data){
   return Object.entries(data).filter(([k,v])=>v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length)).map(([k,v])=>'<div><b>'+esc(k)+':</b> '+esc(Array.isArray(v)?v.join(', '):typeof v==='object'?JSON.stringify(v):v)+'</div>').join('');
 }
 
+function formatMailAccessData(data){
+  if(!data||typeof data!=='object')return '';
+
+  const hidden=new Set([
+    'platform','confidence','severity','metadata',
+    'source','source_module','sources_checked',
+    'self_link','subject','localpart',
+    'first_seen','mx_hosts',
+    'disposable_provider','domain_age_note',
+    'emailrep_reputation','emailrep_suspicious',
+    'emailrep_malicious_activity','emailrep_malicious_activity_recent',
+    'emailrep_credentials_leaked','emailrep_spam',
+    'emailrep_blacklisted','emailrep_last_seen',
+    'emailrep_free_provider','emailrep_disposable'
+  ]);
+
+  const falseTechnical=new Set([
+    'is_alias','is_disposable','google_hosted'
+  ]);
+
+  const out=[];
+  const add=(k,v)=>{
+    if(hidden.has(k))return;
+    if(v===null||v===undefined||v==='')return;
+    if(Array.isArray(v)&&!v.length)return;
+    if(falseTechnical.has(k)&&v===false)return;
+
+    const value=Array.isArray(v)
+      ? v.join(', ')
+      : typeof v==='object'
+        ? JSON.stringify(v)
+        : v;
+
+    out.push('<div><b>'+esc(k)+':</b> '+esc(value)+'</div>');
+  };
+
+  Object.entries(data).forEach(([k,v])=>{
+    if(k==='metadata'&&v&&typeof v==='object'&&!Array.isArray(v)){
+      Object.entries(v).forEach(([mk,mv])=>add(mk,mv));
+    }else{
+      add(k,v);
+    }
+  });
+
+  return out.join('');
+}
+
 function renderDeep(d){
   const kind=d.kind||deepKind.value;
 
@@ -359,10 +406,12 @@ function renderDeep(d){
   deepFound.innerHTML='Найдено: <span style="color:'+(foundCount>0?'#39e58c':'#ff4b5c')+'">'+foundCount+'</span>';
   const sites=Array.isArray(d.checked_items)?d.checked_items:[];
   const data=Array.isArray(d.results)?d.results:[];
+  const isMailAccess=kind==='email_mailaccess';
+
   deepSites.innerHTML=(sites.length?sites.map(x=>'<div class="deep-site">✓ '+esc(x)+'</div>').join(''):'')+(data.length?data.slice(0,50).map(x=>{
     const url=x.url||x.href;
     const title=x.name||x.source||url||'Результат';
-    const body=formatDeepData(x.data);
+    const body=isMailAccess?formatMailAccessData(x.data):formatDeepData(x.data);
     return '<div class="deep-result">'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>':esc(title))+(body?'<div class="deep-data">'+body+'</div>':'')+'</div>';
   }).join(''):'');
   if(!deepSites.innerHTML)deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
