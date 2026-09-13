@@ -3,6 +3,7 @@ uvicorn[standard]==0.35.0
 maigret==0.6.5
 sherlock-project==0.16.2
 holehe==1.61
+user-scanner
 httpx==0.28.1
 phonenumbers==9.0.13
 dnspython==2.8.0
