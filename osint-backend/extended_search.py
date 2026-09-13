@@ -1,3 +1,4 @@
+```python
 """Russian-first public indexed search for extended Glaz Boga modules."""
 
 import asyncio
@@ -118,6 +119,12 @@ SEARCH_ENGINES = [
     ("Mail.ru", "https://go.mail.ru/search?q={query}"),
 ]
 
+# FIO-only throttling for weak Render resources.
+PERSON_BATCH_SIZE = 10
+PERSON_CONCURRENCY = 4
+PERSON_BATCH_PAUSE = 0.25
+PERSON_TIMEOUT = 3
+
 
 def _phone_variants(value: str) -> list[str]:
     digits = re.sub(r"\D", "", value)
@@ -220,6 +227,52 @@ async def _multi_engine_search(kind: str, value: str) -> list[dict]:
     return results
 
 
+async def _direct_engine_search_person(
+    engine_name: str,
+    template: str,
+    query: str,
+    semaphore: asyncio.Semaphore,
+) -> list[dict]:
+    url = template.format(query=quote_plus(query))
+    async with semaphore:
+        try:
+            async with httpx.AsyncClient(
+                timeout=PERSON_TIMEOUT,
+                follow_redirects=True,
+                headers=HEADERS,
+            ) as client:
+                response = await client.get(url)
+            if not response.is_success:
+                return []
+            return [
+                {"engine": engine_name, "url": href, "title": title}
+                for href, title in _result_urls(response.text)[:10]
+            ]
+        except Exception:
+            return []
+
+
+async def _multi_engine_search_person(value: str) -> list[dict]:
+    semaphore = asyncio.Semaphore(PERSON_CONCURRENCY)
+    tasks = [
+        _direct_engine_search_person(engine_name, template, query, semaphore)
+        for engine_name, template in SEARCH_ENGINES
+        for query in _engine_queries("person", value)
+    ]
+    groups = await asyncio.gather(*tasks, return_exceptions=True)
+    results, seen = [], set()
+    for group in groups:
+        if isinstance(group, Exception):
+            continue
+        for item in group:
+            key = item["url"].rstrip("/")
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(item)
+    return results
+
+
 def _relevant(kind: str, query: str, title: str, body: str, href: str) -> bool:
     haystack = " ".join((title, body, href)).lower()
     if kind in {"email", "person"}:
@@ -259,6 +312,67 @@ async def _search_items(search_query: str) -> list[dict]:
     )
 
 
+async def _search_person_items(search_query: str) -> list[dict]:
+    return await asyncio.to_thread(
+        lambda q=search_query: DDGS(timeout=PERSON_TIMEOUT).text(
+            q, region="ru-ru", safesearch="off", max_results=5, backend="auto"
+        )
+    )
+
+
+async def _search_person_catalogue_batch(
+    sources: list[tuple[str, str]],
+    query: str,
+    seen: set,
+) -> list[dict]:
+    semaphore = asyncio.Semaphore(PERSON_CONCURRENCY)
+
+    async def search_source(name: str, domain: str) -> list[dict]:
+        async with semaphore:
+            try:
+                items = await _search_person_items(_query_for("person", query, domain))
+                found = []
+                for item in items:
+                    href = str(item.get("href") or "").strip()
+                    title = str(item.get("title") or "").strip()
+                    body = str(item.get("body") or "").strip()
+                    hostname = (urlparse(href).hostname or "").lower()
+
+                    if not href.startswith(("http://", "https://")):
+                        continue
+                    if not (hostname == domain or hostname.endswith("." + domain)):
+                        continue
+                    if not _relevant("person", query, title, body, href):
+                        continue
+
+                    key = href.rstrip("/")
+                    if key in seen:
+                        continue
+
+                    found.append({
+                        "source": f"{name}: точное публичное упоминание",
+                        "name": title or href,
+                        "url": href,
+                        "snippet": body,
+                        "domain": domain,
+                        "site": name,
+                        "kind": "person_public",
+                    })
+                return found
+            except Exception:
+                return []
+
+    tasks = [search_source(name, domain) for name, domain in sources]
+    groups = await asyncio.gather(*tasks, return_exceptions=True)
+
+    results = []
+    for group in groups:
+        if isinstance(group, Exception):
+            continue
+        results.extend(group)
+    return results
+
+
 async def extended_public_search(query: str, kind: str, max_results: int = 30, progress=None) -> list[dict]:
     """Search public pages: direct engines first, then Russian catalogue, then foreign catalogue."""
     ru_sources = SOURCES_RU.get(kind, [])
@@ -275,23 +389,35 @@ async def extended_public_search(query: str, kind: str, max_results: int = 30, p
         progress(0, total, "Поисковики: подготовка", results)
 
     # 1) Google, Yandex, Bing, DuckDuckGo and Mail.ru, independently.
-    engine_items = await _multi_engine_search(kind, query)
+    if kind == "person":
+        engine_items = await _multi_engine_search_person(query)
+    else:
+        engine_items = await _multi_engine_search(kind, query)
+
     for item in engine_items:
         href = item["url"]
         if not href.startswith(("http://", "https://")):
             continue
-        if not await _verify_page(kind, query, href):
+
+        # FIO: use the indexed search-engine result directly.
+        # Do not download the target page again for verification.
+        if kind != "person" and not await _verify_page(kind, query, href):
             continue
+
         hostname = (urlparse(href).hostname or "").lower()
         key = href.rstrip("/")
         if key in seen:
             continue
         seen.add(key)
+
         results.append({
             "source": f"{item['engine']}: точное публичное упоминание",
             "name": item["title"] or href,
             "url": href,
-            "snippet": f"Найдено поисковиком {item['engine']}; страница доступна для проверки.",
+            "snippet": (
+                f"Найдено поисковиком {item['engine']}; "
+                f"страница доступна для проверки."
+            ),
             "domain": hostname,
             "site": hostname,
             "engine": item["engine"],
@@ -302,6 +428,35 @@ async def extended_public_search(query: str, kind: str, max_results: int = 30, p
 
     if progress:
         progress(engine_count, total, "Поисковики: Google → Яндекс → Bing → DuckDuckGo → Mail.ru завершены", results)
+
+    # FIO uses separate lightweight catalogue processing.
+    if kind == "person":
+        for batch_start in range(0, len(sources), PERSON_BATCH_SIZE):
+            batch = sources[batch_start:batch_start + PERSON_BATCH_SIZE]
+            batch_results = await _search_person_catalogue_batch(batch, query, seen)
+
+            for item in batch_results:
+                key = item["url"].rstrip("/")
+                if key in seen:
+                    continue
+                seen.add(key)
+                results.append(item)
+                if len(results) >= max_results:
+                    return results
+
+            completed = min(batch_start + PERSON_BATCH_SIZE, len(sources))
+            if progress:
+                progress(
+                    engine_count + completed,
+                    total,
+                    f"ФИО: обработано {completed}/{len(sources)} сайтов",
+                    results,
+                )
+
+            if completed < len(sources):
+                await asyncio.sleep(PERSON_BATCH_PAUSE)
+
+        return results
 
     # 2) Russian catalogue.
     for index, (name, domain) in enumerate(ru_sources, engine_count + 1):
@@ -364,3 +519,4 @@ async def extended_public_search(query: str, kind: str, max_results: int = 30, p
             break
 
     return results
+```
