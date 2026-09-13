@@ -1,117 +1,67 @@
 ```python
 import asyncio
-import contextlib
 import json
 import os
-import socket
+import re
 from typing import List, Tuple
-
-import httpx
-import websockets
 
 
 MAILACCESS_TIMEOUT = 180
 MAX_FOUND = 50
+
+# Нагрузка на Render.
 MAX_CONCURRENT_MODULES = 3
-MAILACCESS_HOST = "127.0.0.1"
 
-
-async def _free_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind((MAILACCESS_HOST, 0))
-        return int(sock.getsockname()[1])
-
-
-async def _wait_health(base_url: str, timeout: float = 15.0) -> bool:
-    deadline = asyncio.get_running_loop().time() + timeout
-
-    async with httpx.AsyncClient(
-        base_url=base_url,
-        timeout=3.0,
-    ) as client:
-
-        while asyncio.get_running_loop().time() < deadline:
-            try:
-                response = await client.get("/health")
-
-                if response.status_code == 200:
-                    return True
-
-            except Exception:
-                pass
-
-            await asyncio.sleep(0.5)
-
-    return False
-
-
-async def _start_mailaccess_server(env: dict, port: int):
-    return await asyncio.create_subprocess_exec(
-        "mailaccess",
-        "serve",
-        "--host",
-        MAILACCESS_HOST,
-        "--port",
-        str(port),
-        "--no-banner",
-        stdout=asyncio.subprocess.DEVNULL,
-        stderr=asyncio.subprocess.PIPE,
-        env=env,
-    )
-
-
-async def _stop_process(proc) -> None:
-    if proc is None or proc.returncode is not None:
-        return
-
-    with contextlib.suppress(ProcessLookupError):
-        proc.terminate()
-
-    try:
-        await asyncio.wait_for(
-            proc.wait(),
-            timeout=5,
-        )
-
-    except asyncio.TimeoutError:
-
-        with contextlib.suppress(ProcessLookupError):
-            proc.kill()
-
-        with contextlib.suppress(Exception):
-            await proc.wait()
+# Текущий MailAccess содержит около 64 основных модулей.
+# Это используется как отображаемое общее количество,
+# пока сам CLI не отдаёт отдельный счётчик.
+MAILACCESS_MODULES_TOTAL = 64
 
 
 async def mailaccess_search(
     email: str,
-    progress=None,
+    progress=None
 ) -> Tuple[List[dict], int]:
-
     """
-    MailAccess с ограничением в 3 параллельных модуля
-    и настоящим онлайн-прогрессом через WebSocket.
+    Запускает MailAccess через CLI.
+
+    Ограничения:
+    - максимум 3 параллельных модуля;
+    - общий таймаут 180 секунд;
+    - максимум 50 найденных результатов;
+    - потоковый JSONL;
+    - онлайн-передача найденных результатов.
     """
 
-    found: List[dict] = []
+    found = []
 
-    checked_modules = 0
-    total_modules = 0
+    # Количество реально полученных результатов.
+    checked = 0
 
-    server = None
+    # Количество модулей, по которым уже пришли данные.
+    completed_modules = 0
 
+    # Общее отображаемое количество модулей.
+    total = MAILACCESS_MODULES_TOTAL
+
+    # Последнее имя проверяемого объекта.
+    last_module = "запуск MailAccess"
+
+    # Настройки MailAccess для Render.
     env = os.environ.copy()
 
     env.update(
         {
-            # Главная настройка нагрузки.
+            # ВАЖНО: было 6.
+            # Снижаем нагрузку до 3.
             "MAX_CONCURRENT_MODULES": str(
                 MAX_CONCURRENT_MODULES
             ),
 
-            # Базовый таймаут модуля.
+            # Базовый таймаут одного модуля.
             "MODULE_TIMEOUT_SECONDS": "30",
 
-            # Более медленные модули.
+            # Таймауты отдельных медленных модулей.
             "MODULE_TIMEOUT_OVERRIDES": json.dumps(
                 {
                     "whatsmyname": 120,
@@ -121,13 +71,13 @@ async def mailaccess_search(
                 }
             ),
 
-            # Maigret Wave 1.
+            # Maigret Wave 1 включён.
             "ENABLE_MAIGRET_PLATFORMS": "true",
 
             # Тяжёлая Wave 2 выключена.
             "ENABLE_MAIGRET_WAVE2": "false",
 
-            # Глубокий breach отключён.
+            # Глубокая проверка утечек выключена.
             "ENABLE_BREACH_DEEP": "false",
 
             # Без SERPAPI.
@@ -136,100 +86,107 @@ async def mailaccess_search(
             # Ограничение нагрузки.
             "RATE_LIMIT_ENABLED": "true",
             "REQUEST_DELAY_MS": "1000",
-
-            # Не нужен Defender's Brief.
-            "SHOW_DEFENDERS_BRIEF": "false",
         }
     )
 
     try:
-
-        # Получаем свободный локальный порт.
-        port = await _free_port()
-
-        base_url = (
-            f"http://{MAILACCESS_HOST}:{port}"
+        proc = await asyncio.create_subprocess_exec(
+            "mailaccess",
+            "investigate",
+            email,
+            "--format",
+            "jsonl",
+            "--no-brief",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
         )
 
-        ws_base = (
-            f"ws://{MAILACCESS_HOST}:{port}"
+        # Общий таймаут всего MailAccess.
+        deadline = (
+            asyncio.get_running_loop().time()
+            + MAILACCESS_TIMEOUT
         )
 
-        # Запускаем отдельный локальный MailAccess.
-        server = await _start_mailaccess_server(
-            env,
-            port,
-        )
-
-        # Ждём реального запуска.
-        if not await _wait_health(base_url):
-
-            if progress:
-                progress(
-                    0,
-                    0,
-                    "MailAccess: сервер не запустился",
-                    found,
-                )
-
-            return [], 0
-
-        async with httpx.AsyncClient(
-            base_url=base_url,
-            timeout=10.0,
-        ) as client:
-
-            # Получаем фактическое количество
-            # зарегистрированных модулей.
-            modules_response = await client.get(
-                "/api/modules/"
+        # Сообщаем интерфейсу, что MailAccess действительно стартовал.
+        if progress:
+            progress(
+                0,
+                total,
+                (
+                    "MailAccess запущен • "
+                    f"модулей всего: {total} • "
+                    f"потоков: {MAX_CONCURRENT_MODULES}"
+                ),
+                found,
             )
 
-            if modules_response.status_code == 200:
+        # stderr читаем отдельно.
+        # Некоторые версии MailAccess пишут туда
+        # названия текущих модулей/платформ.
+        stderr_lines = []
 
-                modules = modules_response.json()
+        async def read_stderr():
+            nonlocal last_module
 
-                if isinstance(modules, list):
-                    total_modules = len(modules)
-
-            if progress:
-                progress(
-                    0,
-                    total_modules,
-                    (
-                        "MailAccess: запущен • "
-                        f"модулей всего {total_modules}"
-                    ),
-                    found,
-                )
-
-            # Запускаем расследование.
-            response = await client.post(
-                "/api/investigate",
-                json={
-                    "email": email,
-                    "force": True,
-                },
-            )
-
-            response.raise_for_status()
-
-            investigation_id = response.json()["id"]
-
-        # Подключаемся к реальному WebSocket.
-        async with websockets.connect(
-            f"{ws_base}/ws/investigate/{investigation_id}",
-            open_timeout=10,
-            close_timeout=5,
-            max_size=1024 * 1024,
-        ) as websocket:
-
-            deadline = (
-                asyncio.get_running_loop().time()
-                + MAILACCESS_TIMEOUT
-            )
+            if proc.stderr is None:
+                return
 
             while True:
+                line = await proc.stderr.readline()
+
+                if not line:
+                    break
+
+                text = line.decode(
+                    "utf-8",
+                    errors="ignore",
+                ).strip()
+
+                if not text:
+                    continue
+
+                stderr_lines.append(text)
+
+                # Пытаемся извлечь понятное название модуля.
+                patterns = (
+                    r"(?:module|модуль)\s*[:=]\s*([A-Za-z0-9_.-]+)",
+                    r"(?:checking|проверя(?:ется|ем))\s+([A-Za-z0-9_.-]+)",
+                    r"(?:running|запуск)\s+([A-Za-z0-9_.-]+)",
+                )
+
+                for pattern in patterns:
+                    match = re.search(
+                        pattern,
+                        text,
+                        flags=re.IGNORECASE,
+                    )
+
+                    if match:
+                        last_module = match.group(1)
+
+                        if progress:
+                            progress(
+                                completed_modules,
+                                total,
+                                (
+                                    "Проверяется: "
+                                    f"{last_module} • "
+                                    f"модули "
+                                    f"{completed_modules}/"
+                                    f"{total}"
+                                ),
+                                found,
+                            )
+
+                        break
+
+        stderr_task = asyncio.create_task(
+            read_stderr()
+        )
+
+        try:
+            while proc.stdout is not None:
 
                 remaining = (
                     deadline
@@ -239,246 +196,218 @@ async def mailaccess_search(
                 if remaining <= 0:
                     raise asyncio.TimeoutError
 
-                raw = await asyncio.wait_for(
-                    websocket.recv(),
+                raw_line = await asyncio.wait_for(
+                    proc.stdout.readline(),
                     timeout=remaining,
                 )
 
-                if isinstance(raw, bytes):
-                    raw = raw.decode(
-                        "utf-8",
-                        errors="ignore",
-                    )
+                if not raw_line:
+                    break
+
+                line = raw_line.decode(
+                    "utf-8",
+                    errors="ignore",
+                ).strip()
+
+                if not line:
+                    continue
 
                 try:
-                    event = json.loads(raw)
+                    data = json.loads(line)
 
                 except json.JSONDecodeError:
+                    # Не JSON — пропускаем.
                     continue
 
-                if not isinstance(event, dict):
+                if not isinstance(data, dict):
                     continue
 
-                event_type = event.get("type")
+                # Иногда JSONL может содержать техническое
+                # сообщение с именем модуля.
+                module_name = (
+                    data.get("module")
+                    or data.get("module_name")
+                    or data.get("engine")
+                )
 
-                module = str(
-                    event.get("module")
+                if module_name:
+                    last_module = str(
+                        module_name
+                    )
+
+                # Возможный служебный счётчик.
+                reported_total = (
+                    data.get("total_modules")
+                    or data.get("modules_total")
+                )
+
+                if isinstance(
+                    reported_total,
+                    int,
+                ) and reported_total > 0:
+                    total = reported_total
+
+                reported_checked = (
+                    data.get("completed_modules")
+                    or data.get("modules_checked")
+                )
+
+                if isinstance(
+                    reported_checked,
+                    int,
+                ) and reported_checked >= 0:
+                    completed_modules = max(
+                        completed_modules,
+                        reported_checked,
+                    )
+
+                # Пытаемся получить платформу.
+                platform = (
+                    data.get("platform")
+                    or data.get("name")
+                    or data.get("module")
+                    or data.get("site")
+                    or last_module
                     or "MailAccess"
                 )
 
-                # ─────────────────────────────
-                # МОДУЛЬ НАЧАЛ РАБОТУ
-                # ─────────────────────────────
+                url = (
+                    data.get("profile_url")
+                    or data.get("url")
+                    or data.get("link")
+                )
 
-                if event_type == "module_start":
+                # Реальный результат.
+                if url or data.get("finding") is True:
 
+                    checked += 1
+
+                    item = {
+                        "name": str(platform),
+                        "source": "MailAccess",
+                        "exists": True,
+                        "url": url,
+                        "severity": (
+                            data.get("severity")
+                            or data.get("status")
+                            or ""
+                        ),
+                        "data": data,
+                    }
+
+                    found.append(item)
+
+                    # Не допускаем больше 50 результатов.
+                    if len(found) > MAX_FOUND:
+                        found = found[:MAX_FOUND]
+
+                    # Результат показываем сразу.
                     if progress:
                         progress(
-                            checked_modules,
-                            total_modules,
+                            completed_modules,
+                            total,
                             (
-                                "Проверяется модуль: "
-                                f"{module} • "
-                                f"{checked_modules}/"
-                                f"{total_modules}"
-                            ),
-                            found,
-                        )
-
-                # ─────────────────────────────
-                # МОДУЛЬ ЗАВЕРШИЛСЯ
-                # ─────────────────────────────
-
-                elif event_type in {
-                    "module_result",
-                    "module_error",
-                }:
-
-                    checked_modules += 1
-
-                    # Получаем результаты.
-                    if event_type == "module_result":
-
-                        findings = (
-                            event.get("findings")
-                            or []
-                        )
-
-                        if isinstance(
-                            findings,
-                            list,
-                        ):
-
-                            for data in findings:
-
-                                if not isinstance(
-                                    data,
-                                    dict,
-                                ):
-                                    continue
-
-                                platform = (
-                                    data.get("platform")
-                                    or data.get("name")
-                                    or data.get("module")
-                                    or "MailAccess"
-                                )
-
-                                url = (
-                                    data.get("profile_url")
-                                    or data.get("url")
-                                    or data.get("link")
-                                )
-
-                                metadata = (
-                                    data.get("metadata")
-                                    or {}
-                                )
-
-                                item = {
-                                    "name": str(
-                                        platform
-                                    ),
-                                    "source": "MailAccess",
-                                    "exists": True,
-                                    "url": url,
-                                    "severity": (
-                                        data.get(
-                                            "severity"
-                                        )
-                                        or metadata.get(
-                                            "severity"
-                                        )
-                                        or data.get(
-                                            "status"
-                                        )
-                                        or ""
-                                    ),
-                                    "data": data,
-                                }
-
-                                found.append(item)
-
-                                if len(found) >= MAX_FOUND:
-                                    found = found[
-                                        :MAX_FOUND
-                                    ]
-                                    break
-
-                    # Статус модуля.
-                    if event_type == "module_error":
-
-                        status_text = (
-                            f"Модуль: {module} • "
-                            f"ошибка • проверено "
-                            f"{checked_modules}/"
-                            f"{total_modules}"
-                        )
-
-                    else:
-
-                        status_text = (
-                            f"Модуль завершён: "
-                            f"{module} • "
-                            f"проверено "
-                            f"{checked_modules}/"
-                            f"{total_modules} • "
-                            f"найдено {len(found)}"
-                        )
-
-                    if progress:
-                        progress(
-                            checked_modules,
-                            total_modules,
-                            status_text,
-                            found,
-                        )
-
-                # ─────────────────────────────
-                # ВСЁ ЗАВЕРШЕНО
-                # ─────────────────────────────
-
-                elif (
-                    event_type
-                    == "investigation_complete"
-                ):
-
-                    if progress:
-                        progress(
-                            checked_modules,
-                            total_modules,
-                            (
-                                "MailAccess: готово • "
-                                f"модулей "
-                                f"{checked_modules}/"
-                                f"{total_modules} • "
+                                "Проверяется: "
+                                f"{platform} • "
+                                f"модули "
+                                f"{completed_modules}/"
+                                f"{total} • "
                                 f"найдено {len(found)}"
                             ),
                             found,
                         )
 
-                    break
+                    if len(found) >= MAX_FOUND:
+                        if progress:
+                            progress(
+                                completed_modules,
+                                total,
+                                (
+                                    "Достигнут лимит "
+                                    f"{MAX_FOUND} результатов"
+                                ),
+                                found,
+                            )
 
-                # ─────────────────────────────
-                # ОШИБКА
-                # ─────────────────────────────
+                        break
 
-                elif (
-                    event_type
-                    == "investigation_failed"
-                ):
+                # Если пришёл явный статус модуля.
+                status = str(
+                    data.get("status")
+                    or ""
+                ).lower()
+
+                if status in {
+                    "success",
+                    "completed",
+                    "failed",
+                    "error",
+                } and module_name:
+
+                    completed_modules = min(
+                        total,
+                        completed_modules + 1,
+                    )
 
                     if progress:
                         progress(
-                            checked_modules,
-                            total_modules,
+                            completed_modules,
+                            total,
                             (
-                                "MailAccess: ошибка • "
-                                f"модулей "
-                                f"{checked_modules}/"
-                                f"{total_modules} • "
-                                f"{event.get('error', '')}"
+                                "Модуль завершён: "
+                                f"{module_name} • "
+                                f"{completed_modules}/"
+                                f"{total} • "
+                                f"найдено {len(found)}"
                             ),
                             found,
                         )
 
-                    break
+            # Ждём завершения stderr.
+            try:
+                await asyncio.wait_for(
+                    stderr_task,
+                    timeout=2,
+                )
+            except asyncio.TimeoutError:
+                stderr_task.cancel()
 
-                elif event_type == "error":
+            # Даём MailAccess нормально завершиться.
+            try:
+                await asyncio.wait_for(
+                    proc.wait(),
+                    timeout=5,
+                )
 
-                    if progress:
-                        progress(
-                            checked_modules,
-                            total_modules,
-                            (
-                                "MailAccess: WebSocket "
-                                f"ошибка • "
-                                f"{event.get('error', '')}"
-                            ),
-                            found,
-                        )
+            except asyncio.TimeoutError:
 
-                    break
+                proc.kill()
+                await proc.wait()
 
-        return found, checked_modules
+        except asyncio.TimeoutError:
 
-    except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
 
-        if progress:
-            progress(
-                checked_modules,
-                total_modules,
-                (
-                    f"MailAccess: таймаут "
-                    f"{MAILACCESS_TIMEOUT} сек • "
-                    f"проверено "
-                    f"{checked_modules}/"
-                    f"{total_modules}"
-                ),
-                found,
-            )
+            if not stderr_task.done():
+                stderr_task.cancel()
 
-        return found, checked_modules
+            if progress:
+                progress(
+                    completed_modules,
+                    total,
+                    (
+                        f"MailAccess: таймаут "
+                        f"{MAILACCESS_TIMEOUT} сек • "
+                        f"модули "
+                        f"{completed_modules}/"
+                        f"{total} • "
+                        f"найдено {len(found)}"
+                    ),
+                    found,
+                )
+
+            return found, completed_modules
 
     except FileNotFoundError:
 
@@ -496,8 +425,8 @@ async def mailaccess_search(
 
         if progress:
             progress(
-                checked_modules,
-                total_modules,
+                completed_modules,
+                total,
                 (
                     "Ошибка MailAccess: "
                     f"{str(exc)[:120]}"
@@ -505,11 +434,22 @@ async def mailaccess_search(
                 found,
             )
 
-        return found, checked_modules
+        return found, completed_modules
 
-    finally:
+    # Финальный статус.
+    if progress:
+        progress(
+            completed_modules,
+            total,
+            (
+                "MailAccess: готово • "
+                f"модули "
+                f"{completed_modules}/"
+                f"{total} • "
+                f"найдено {len(found)}"
+            ),
+            found,
+        )
 
-        # Обязательно выключаем локальный
-        # дочерний MailAccess после расследования.
-        await _stop_process(server)
+    return found, completed_modules
 ```
