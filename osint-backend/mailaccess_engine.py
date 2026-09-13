@@ -1,18 +1,16 @@
 import asyncio
 import json
-import subprocess
 from typing import List, Tuple
 
 async def mailaccess_search(email: str, progress=None) -> Tuple[List[dict], int]:
     """
-    Запускает MailAccess через CLI и парсит JSONL-вывод.
-    Возвращает (found_results, total_estimate).
+    Запускает MailAccess через CLI с жёсткими ограничениями.
     """
     found = []
     total = 0
 
     try:
-        # Запускаем CLI в отдельном процессе
+        # Жёсткий таймаут 90 секунд на весь процесс
         proc = await asyncio.create_subprocess_exec(
             "mailaccess", "investigate", email,
             "--format", "jsonl",
@@ -20,26 +18,38 @@ async def mailaccess_search(email: str, progress=None) -> Tuple[List[dict], int]
             stderr=asyncio.subprocess.PIPE,
         )
 
-        checked = 0
-        while True:
-            line = await proc.stdout.readline()
-            if not line:
-                break
+        try:
+            # Ждём максимум 90 секунд
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=90)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            if progress:
+                progress(0, 0, "MailAccess: таймаут 90 сек", [])
+            return [], 0
 
-            line = line.decode("utf-8", errors="ignore").strip()
+        lines = stdout.decode("utf-8", errors="ignore").splitlines()
+        checked = 0
+
+        for line in lines:
+            line = line.strip()
             if not line:
                 continue
-
             try:
                 data = json.loads(line)
             except Exception:
                 continue
 
             checked += 1
-            total = max(total, checked + 5)  # приблизительная оценка
+            total = max(total, checked)
 
-            # Фильтруем только полезные находки
-            platform = data.get("platform") or data.get("name") or data.get("module") or "unknown"
+            platform = (
+                data.get("platform")
+                or data.get("name")
+                or data.get("module")
+                or data.get("site")
+                or "unknown"
+            )
             url = data.get("url")
             severity = data.get("severity") or data.get("status") or ""
 
@@ -56,16 +66,17 @@ async def mailaccess_search(email: str, progress=None) -> Tuple[List[dict], int]
             if progress:
                 progress(checked, total, platform, found)
 
-        await proc.wait()
+            # Ограничиваем количество результатов
+            if len(found) >= 40:
+                break
 
     except FileNotFoundError:
-        # mailaccess не установлен
         if progress:
-            progress(0, 0, "MailAccess не найден", [])
+            progress(0, 0, "MailAccess не установлен", [])
         return [], 0
     except Exception as exc:
         if progress:
-            progress(0, 0, f"Ошибка: {exc}", [])
+            progress(0, 0, f"Ошибка: {str(exc)[:80]}", [])
         return [], 0
 
     return found, max(total, len(found))
