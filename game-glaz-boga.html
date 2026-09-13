@@ -61,14 +61,43 @@ body{padding:16px 14px 30px}
 .links{display:flex;flex-wrap:wrap;gap:7px}
 .links a{display:inline-block;text-decoration:none;color:#fff;background:rgba(180,75,112,.72);border-radius:9px;padding:8px 10px;font-size:13px}
 .note{margin-top:16px;padding:12px;border-radius:12px;background:rgba(255,255,255,.05);color:#bfb5bb;font-size:12px;line-height:1.45}
+
+/* 🕵️ Структурированное досье MailAccess */
+.osint-dossier{display:grid;gap:10px;margin-top:8px}
+.dossier-head{padding:13px 14px;border:1px solid rgba(180,75,112,.35);border-radius:14px;background:linear-gradient(135deg,rgba(180,75,112,.16),rgba(255,255,255,.045))}
+.dossier-title{font-size:19px;font-weight:800;margin-bottom:5px}
+.dossier-subtitle{font-size:12px;color:#bfb5bb}
+.dossier-badges{margin-top:9px}
+.dossier-badge{display:inline-block;margin:2px 4px 2px 0;padding:3px 7px;border-radius:20px;background:rgba(255,255,255,.08);font-size:11px}
+.dossier-badge.danger{background:rgba(255,75,92,.15);color:#ff7180}
+.dossier-badge.good{background:rgba(57,229,140,.12);color:#39e58c}
+.dossier-badge.warn{background:rgba(255,152,0,.13);color:#ffb347}
+.dossier-section{border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(0,0,0,.13);overflow:hidden}
+.dossier-section-title{padding:9px 11px;font-size:13px;font-weight:800;background:rgba(255,255,255,.055);border-bottom:1px solid rgba(255,255,255,.07)}
+.dossier-section-body{padding:9px 11px;display:grid;gap:6px}
+.dossier-item{font-size:12px;line-height:1.45}
+.dossier-item b{color:#fff}
+.dossier-source{font-size:11px;color:#a99da4;margin-bottom:5px}
+.dossier-profile{padding:7px 8px;border-radius:9px;background:rgba(255,255,255,.035)}
+.dossier-profile a{color:#39e58c;font-weight:700}
+.dossier-breach{padding:8px;border-radius:9px;background:rgba(255,75,92,.07);border-left:3px solid #ff4b5c}
+.dossier-breach strong{color:#ff8792}
+.dossier-danger{color:#ff6675;font-weight:800}
+.dossier-good{color:#39e58c;font-weight:800}
+.dossier-warn{color:#ffb347;font-weight:800}
+.dossier-dns{display:grid;gap:5px}
+.dossier-dns-row{padding:6px 7px;border-radius:8px;background:rgba(255,255,255,.035)}
+.dossier-dns-label{display:inline-block;min-width:45px;color:#f0a5bd;font-weight:800}
+.dossier-empty{color:#aaa0a6;font-size:12px}
+
 @media(max-width:650px){
-  .grid{grid-template-columns:1fr}
-  .search{flex-direction:column}
-  .search button,.deep-kind{min-height:44px}
-  .title{font-size:23px}
-  .info-link{font-size:12px}
-}
-</style>
+.grid{grid-template-columns:1fr}
+.search{flex-direction:column}
+.search button,.deep-kind{min-height:44px}
+.title{font-size:23px}
+.info-link{font-size:12px}
+} </style>
+
 </head>
 <body>
 <div class="page">
@@ -91,11 +120,9 @@ body{padding:16px 14px 30px}
 
 <div class="search">
 <select id="deepKind" class="deep-kind">
-
 <option value="email_mailaccess">Email — MailAccess</option>
 <option value="email_userscanner">Email — user-scanner</option>
 <option value="username">Username — Maigret (глубокий)</option>
-
 <option value="username_sherlock">Username — Sherlock (быстрый)</option>
 <option value="username_wmn">Username — WhatsMyName</option>
 <option value="person">ФИО — публичные упоминания</option>
@@ -110,7 +137,6 @@ body{padding:16px 14px 30px}
 <option value="image">Фото — обратный поиск</option>
 <option value="email_extended">Email/Gmail — расширенный поиск сайтов</option>
 <option value="phone_extended">Телефон — расширенный поиск сайтов</option>
-
 </select>
 <input id="deepQ" autocomplete="off" placeholder="Email для проверки через MailAccess…">
 <button class="deep-button" onclick="deepSearch()">Поиск</button>
@@ -374,7 +400,7 @@ function formatDeepData(data){
   return Object.entries(data).filter(([k,v])=>v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length)).map(([k,v])=>'<div><b>'+esc(k)+':</b> '+esc(Array.isArray(v)?v.join(', '):typeof v==='object'?JSON.stringify(v):v)+'</div>').join('');
 }
 
-function formatMailAccessData(data,resultUrl=''){
+function formatMailAccessDossier(data,resultUrl=''){
   if(!data||typeof data!=='object')return '';
 
   const hiddenKeys=new Set([
@@ -388,53 +414,27 @@ function formatMailAccessData(data,resultUrl=''){
     'localpart'
   ]);
 
-  const out=[];
+  const sections={
+    reputation:[],
+    identity:[],
+    dns:[],
+    accounts:[],
+    breaches:[],
+    infrastructure:[],
+    relations:[],
+    other:[]
+  };
+
   const seen=new Set();
 
-  function linkify(value){
-    if(value===null||value===undefined)return '';
+  const profileKeys=/^(profile|username|login|account|social|github|telegram|twitter|x_|facebook|instagram|linkedin|reddit|discord)/i;
+  const breachKeys=/(breach|leak|comprom|pwn|password|expos|dump)/i;
+  const dnsKeys=/(dns|spf|dmarc|dkim|mx|ns|txt|a_record|aaaa|cname)/i;
+  const infraKeys=/(domain|host|hostname|ip|asn|provider|registrar|whois|certificate|cert|infrastructure|mailserver|nameserver)/i;
+  const reputationKeys=/(malicious|spam|spamhaus|reputation|risk|disposable|blacklist|suspicious|valid|deliverable|free_provider|fraud|score)/i;
+  const relationKeys=/(related|relation|associated|alias|linked|connection|same|company|organization)/i;
 
-    let text=String(value);
-    const escaped=esc(text);
-
-    return escaped.replace(
-      /https?:\/\/[^\s<>"']+/gi,
-      match=>{
-        let url=match;
-        let suffix='';
-
-        while(/[),.;!?]+$/.test(url)){
-          suffix=url.slice(-1)+suffix;
-          url=url.slice(0,-1);
-        }
-
-        return '<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+url+'</a>'+suffix;
-      }
-    );
-  }
-
-  function valueToText(value){
-    if(value===null||value===undefined||value==='')return '';
-
-    if(Array.isArray(value)){
-      return value.map(item=>valueToText(item)).filter(Boolean).join(', ');
-    }
-
-    if(typeof value==='object'){
-      return Object.entries(value)
-        .filter(([k,v])=>v!==null&&v!==undefined&&v!=='')
-        .map(([k,v])=>{
-          const rendered=valueToText(v);
-          return rendered?esc(k)+': '+rendered:'';
-        })
-        .filter(Boolean)
-        .join('; ');
-    }
-
-    return linkify(value);
-  }
-
-  function normalizeForDuplicate(value){
+  function normalize(value){
     if(value===null||value===undefined)return '';
     if(typeof value==='object'){
       try{return JSON.stringify(value)}
@@ -443,36 +443,145 @@ function formatMailAccessData(data,resultUrl=''){
     return String(value).trim();
   }
 
-  function add(key,value){
+  function linkify(value){
+    const text=String(value);
+    return esc(text).replace(/https?:\/\/[^\s<>"']+/gi,match=>{
+      let url=match,suffix='';
+      while(/[),.;!?]+$/.test(url)){
+        suffix=url.slice(-1)+suffix;
+        url=url.slice(0,-1);
+      }
+      return '<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+url+'</a>'+suffix;
+    });
+  }
+
+  function renderValue(value){
+    if(value===null||value===undefined||value==='')return '';
+    if(Array.isArray(value))return value.map(renderValue).filter(Boolean).join(', ');
+    if(typeof value==='object'){
+      return Object.entries(value)
+        .filter(([k,v])=>v!==null&&v!==undefined&&v!=='')
+        .map(([k,v])=>{
+          const r=renderValue(v);
+          return r?esc(k)+': '+r:'';
+        }).filter(Boolean).join('; ');
+    }
+    return linkify(value);
+  }
+
+  function add(section,key,value,options={}){
     if(hiddenKeys.has(key))return;
     if(value===null||value===undefined||value==='')return;
-    if(Array.isArray(value)&&value.length===0)return;
-
+    if(Array.isArray(value)&&!value.length)return;
     if(key==='source'&&String(value)==='fediverse_webfinger')return;
-
     if(key==='profile_url'&&resultUrl&&String(value).trim()===String(resultUrl).trim())return;
 
-    const signature=key+'|'+normalizeForDuplicate(value);
-    if(seen.has(signature))return;
-    seen.add(signature);
+    const sig=section+'|'+key+'|'+normalize(value);
+    if(seen.has(sig))return;
+    seen.add(sig);
 
-    const rendered=valueToText(value);
+    const rendered=renderValue(value);
     if(!rendered)return;
 
-    out.push('<div><b>'+esc(key)+':</b> '+rendered+'</div>');
+    sections[section].push(
+      '<div class="dossier-item">'+
+      '<b>'+esc(key)+':</b> '+
+      rendered+
+      '</div>'
+    );
   }
 
   Object.entries(data).forEach(([key,value])=>{
+    if(hiddenKeys.has(key))return;
+
+    let section='other';
+
+    if(reputationKeys.test(key))section='reputation';
+    else if(dnsKeys.test(key))section='dns';
+    else if(breachKeys.test(key))section='breaches';
+    else if(infraKeys.test(key))section='infrastructure';
+    else if(relationKeys.test(key))section='relations';
+    else if(profileKeys.test(key))section='accounts';
+    else if(/^(email|address|name|display_name|first_name|last_name|full_name|domain_name)$/i.test(key))section='identity';
+
     if(key==='metadata'&&value&&typeof value==='object'&&!Array.isArray(value)){
       Object.entries(value).forEach(([metaKey,metaValue])=>{
-        add(metaKey,metaValue);
+        let metaSection='other';
+
+        if(reputationKeys.test(metaKey))metaSection='reputation';
+        else if(dnsKeys.test(metaKey))metaSection='dns';
+        else if(breachKeys.test(metaKey))metaSection='breaches';
+        else if(infraKeys.test(metaKey))metaSection='infrastructure';
+        else if(relationKeys.test(metaKey))metaSection='relations';
+        else if(profileKeys.test(metaKey))metaSection='accounts';
+        else if(/^(email|address|name|display_name|first_name|last_name|full_name|domain_name)$/i.test(metaKey))metaSection='identity';
+
+        add(metaSection,metaKey,metaValue);
       });
     }else{
-      add(key,value);
+      add(section,key,value);
     }
   });
 
-  return out.join('');
+  const allText=JSON.stringify(data).toLowerCase();
+
+  const badges=[];
+
+  if(/malicious["']?\s*:\s*(true|1|"true")/.test(allText)||/malicious/.test(allText)&&/true/.test(allText)){
+    badges.push('<span class="dossier-badge danger">🚨 malicious</span>');
+  }
+
+  if(/spamhaus/.test(allText)){
+    badges.push('<span class="dossier-badge danger">🔴 Spamhaus</span>');
+  }
+
+  if(/spf/.test(allText)){
+    badges.push('<span class="dossier-badge good">✓ SPF</span>');
+  }
+
+  if(/dmarc/.test(allText)){
+    badges.push('<span class="dossier-badge good">✓ DMARC</span>');
+  }
+
+  if(/google/.test(allText)){
+    badges.push('<span class="dossier-badge">Google</span>');
+  }
+
+  const title=data.email||data.address||data.query||resultUrl||'Email';
+  const source=data.source||data.provider||'MailAccess';
+
+  function section(title,body,cls=''){
+    if(!body.length)return '';
+    return '<section class="dossier-section '+cls+'">'+
+      '<div class="dossier-section-title">'+title+'</div>'+
+      '<div class="dossier-section-body">'+body.join('')+'</div>'+
+      '</section>';
+  }
+
+  let html='<div class="osint-dossier">';
+
+  html+='<div class="dossier-head">'+
+    '<div class="dossier-title">🕵️ Структурированное досье</div>'+
+    '<div class="dossier-subtitle">MailAccess · полезные сведения собраны по категориям</div>'+
+    (badges.length?'<div class="dossier-badges">'+badges.join('')+'</div>':'')+
+    '</div>';
+
+  html+=section('🚨 Репутация и риски',sections.reputation);
+  html+=section('📧 Идентификация',sections.identity);
+  html+=section('🌐 DNS и сетевая инфраструктура',sections.dns);
+  html+=section('👤 Публичные аккаунты и профили',sections.accounts);
+  html+=section('🔴 Утечки и компрометации',sections.breaches);
+  html+=section('🏗️ Домены и инфраструктура',sections.infrastructure);
+  html+=section('🔗 Связи и дополнительные идентификаторы',sections.relations);
+  html+=section('🔎 Дополнительные сведения',sections.other);
+
+  if(!sections.reputation.length&&!sections.identity.length&&!sections.dns.length&&!sections.accounts.length&&!sections.breaches.length&&!sections.infrastructure.length&&!sections.relations.length&&!sections.other.length){
+    html+='<div class="dossier-section"><div class="dossier-section-body"><div class="dossier-empty">Структурированных дополнительных сведений не обнаружено.</div></div></div>';
+  }
+
+  html+='</div>';
+
+  return html;
 }
 
 function renderDeep(d){
@@ -499,7 +608,7 @@ function renderDeep(d){
     const title=x.name||x.source||url||'Результат';
 
     const body=isMailAccess
-      ?formatMailAccessData(x.data,url)
+      ?formatMailAccessDossier(x.data,url)
       :formatDeepData(x.data);
 
     return '<div class="deep-result">'+
