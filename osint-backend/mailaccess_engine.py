@@ -1,3 +1,4 @@
+
 import asyncio
 import contextlib
 import json
@@ -13,6 +14,16 @@ MAILACCESS_TIMEOUT = 180
 MAX_FOUND = 50
 MAX_CONCURRENT_MODULES = 3
 MAILACCESS_HOST = "127.0.0.1"
+
+HIDDEN_MODULES = {
+    "dns_mx",
+    "dns_spf",
+    "dns_dmarc",
+    "dns_a",
+    "dns_ns",
+    "dns_txt",
+    "dns_cname",
+}
 
 
 async def _free_port() -> int:
@@ -86,6 +97,17 @@ async def _stop_process(proc) -> None:
             await proc.wait()
 
 
+def _is_hidden_module(data: dict) -> bool:
+    platform = str(
+        data.get("platform")
+        or data.get("module")
+        or data.get("name")
+        or ""
+    ).strip().lower()
+
+    return platform in HIDDEN_MODULES
+
+
 def _make_finding(data: dict) -> dict:
     platform = (
         data.get("platform")
@@ -142,9 +164,7 @@ async def mailaccess_search(
             "MAX_CONCURRENT_MODULES": str(
                 MAX_CONCURRENT_MODULES
             ),
-
             "MODULE_TIMEOUT_SECONDS": "30",
-
             "MODULE_TIMEOUT_OVERRIDES": json.dumps(
                 {
                     "whatsmyname": 120,
@@ -153,16 +173,12 @@ async def mailaccess_search(
                     "user_scanner": 180,
                 }
             ),
-
             "ENABLE_MAIGRET_PLATFORMS": "true",
             "ENABLE_MAIGRET_WAVE2": "false",
-
             "ENABLE_BREACH_DEEP": "false",
             "ENABLE_EMAIL_DISCOVERY": "false",
-
             "RATE_LIMIT_ENABLED": "true",
             "REQUEST_DELAY_MS": "1000",
-
             "SHOW_DEFENDERS_BRIEF": "false",
         }
     )
@@ -182,10 +198,6 @@ async def mailaccess_search(
 
     try:
 
-        # -------------------------------------------------
-        # 1. Свободный локальный порт
-        # -------------------------------------------------
-
         port = await _free_port()
 
         base_url = (
@@ -202,18 +214,10 @@ async def mailaccess_search(
             "MailAccess: запуск сервера...",
         )
 
-        # -------------------------------------------------
-        # 2. Запускаем MailAccess API
-        # -------------------------------------------------
-
         server = await _start_mailaccess_server(
             env,
             port,
         )
-
-        # -------------------------------------------------
-        # 3. Ждём готовности API
-        # -------------------------------------------------
 
         healthy = await _wait_health(
             base_url,
@@ -235,10 +239,6 @@ async def mailaccess_search(
             0,
             "MailAccess: API-сервер запущен",
         )
-
-        # -------------------------------------------------
-        # 4. Запускаем расследование
-        # -------------------------------------------------
 
         async with httpx.AsyncClient(
             base_url=base_url,
@@ -291,10 +291,6 @@ async def mailaccess_search(
             ),
         )
 
-        # -------------------------------------------------
-        # 5. Сразу подключаем WebSocket
-        # -------------------------------------------------
-
         websocket_url = (
             f"{ws_url_base}/ws/investigate/"
             f"{investigation_id}"
@@ -336,8 +332,6 @@ async def mailaccess_search(
                     )
 
                 except websockets.exceptions.ConnectionClosedOK:
-
-                    # Нормальное закрытие соединения.
                     break
 
                 except websockets.exceptions.ConnectionClosed:
@@ -364,11 +358,9 @@ async def mailaccess_search(
                     event = json.loads(raw)
 
                 except json.JSONDecodeError:
-
                     continue
 
                 if not isinstance(event, dict):
-
                     continue
 
                 event_type = event.get("type")
@@ -378,10 +370,6 @@ async def mailaccess_search(
                     or event.get("name")
                     or "MailAccess"
                 )
-
-                # -------------------------------------------------
-                # Модуль начал работу
-                # -------------------------------------------------
 
                 if event_type == "module_start":
 
@@ -407,10 +395,6 @@ async def mailaccess_search(
 
                     continue
 
-                # -------------------------------------------------
-                # Модуль завершился
-                # -------------------------------------------------
-
                 if event_type in {
                     "module_result",
                     "module_error",
@@ -420,15 +404,8 @@ async def mailaccess_search(
 
                     checked_modules += 1
 
-                    # Увеличиваем общий счётчик,
-                    # если MailAccess не сообщил его заранее.
                     if total_modules < checked_modules:
-
                         total_modules = checked_modules
-
-                    # ---------------------------------------------
-                    # Результаты модуля
-                    # ---------------------------------------------
 
                     if event_type == "module_result":
 
@@ -450,26 +427,56 @@ async def mailaccess_search(
                                 ):
                                     continue
 
-                                item = _make_finding(
-                                    data
+                                if _is_hidden_module(data):
+                                    continue
+
+                                item = _make_finding(data)
+
+                                platform_name = str(
+                                    data.get("platform")
+                                    or data.get("module")
+                                    or data.get("name")
+                                    or ""
+                                ).strip().lower()
+
+                                is_credibility = (
+                                    platform_name
+                                    == "email_credibility"
                                 )
+
+                                has_profile_url = bool(
+                                    item.get("url")
+                                )
+
+                                if (
+                                    not is_credibility
+                                    and not has_profile_url
+                                ):
+                                    continue
+
+                                duplicate = False
+
+                                if has_profile_url:
+
+                                    for existing in found:
+
+                                        if (
+                                            existing.get("url")
+                                            == item.get("url")
+                                        ):
+                                            duplicate = True
+                                            break
+
+                                if duplicate:
+                                    continue
 
                                 found.append(item)
 
-                                if (
-                                    len(found)
-                                    >= MAX_FOUND
-                                ):
+                                if len(found) >= MAX_FOUND:
 
-                                    found = found[
-                                        :MAX_FOUND
-                                    ]
+                                    found = found[:MAX_FOUND]
 
                                     break
-
-                    # ---------------------------------------------
-                    # Ошибка модуля
-                    # ---------------------------------------------
 
                     if event_type == "module_error":
 
@@ -508,14 +515,8 @@ async def mailaccess_search(
 
                     continue
 
-                # -------------------------------------------------
-                # Расследование завершено
-                # -------------------------------------------------
-
                 if event_type == "investigation_complete":
 
-                    # Если API передал итоговое количество
-                    # модулей — используем его.
                     reported_total = (
                         event.get("total_modules")
                         or event.get("modules_total")
@@ -532,7 +533,6 @@ async def mailaccess_search(
                         )
 
                     if checked_modules > total_modules:
-
                         total_modules = checked_modules
 
                     send_progress(
@@ -549,10 +549,6 @@ async def mailaccess_search(
                     )
 
                     break
-
-                # -------------------------------------------------
-                # Расследование завершилось ошибкой
-                # -------------------------------------------------
 
                 if event_type == "investigation_failed":
 
@@ -573,10 +569,6 @@ async def mailaccess_search(
 
                     break
 
-                # -------------------------------------------------
-                # Общая ошибка WebSocket
-                # -------------------------------------------------
-
                 if event_type == "error":
 
                     error_text = str(
@@ -596,14 +588,10 @@ async def mailaccess_search(
 
                     break
 
-        # -------------------------------------------------
-        # 6. Финальный результат
-        # -------------------------------------------------
-
         if checked_modules > total_modules:
             total_modules = checked_modules
 
-        return found, checked_modules
+        return found[:MAX_FOUND], checked_modules
 
     except asyncio.TimeoutError:
 
@@ -621,7 +609,7 @@ async def mailaccess_search(
             ),
         )
 
-        return found, checked_modules
+        return found[:MAX_FOUND], checked_modules
 
     except FileNotFoundError:
 
@@ -651,10 +639,8 @@ async def mailaccess_search(
             ),
         )
 
-        return found, checked_modules
+        return found[:MAX_FOUND], checked_modules
 
     finally:
 
-        # Всегда останавливаем локальный
-        # дочерний MailAccess-сервер.
         await _stop_process(server)
