@@ -26,6 +26,24 @@ SENSITIVE_KEYS = {
 }
 
 
+# Это внутренние проверки именно Mosint v3.0.0.
+# Это НЕ список всех движков проекта «Глаз Бога».
+MODULES = [
+    ("emailrep", "EmailRep"),
+    ("breachdirectory", "BreachDirectory"),
+    ("haveibeenpwned", "HaveIBeenPwned"),
+    ("hunter", "Hunter"),
+    ("ipapi", "IPApi"),
+    ("intelx", "IntelX"),
+    ("psbdmp", "PsbDmp"),
+    ("instagram_exists", "Instagram"),
+    ("spotify_exists", "Spotify"),
+    ("twitter_exists", "Twitter"),
+    ("google_search", "Google Search"),
+    ("dns_records", "DNS"),
+]
+
+
 def _clean_sensitive(value):
     if isinstance(value, dict):
         cleaned = {}
@@ -57,34 +75,178 @@ def _clean_sensitive(value):
     return value
 
 
+def _has_value(value):
+    if value is None:
+        return False
+
+    if value is False:
+        return False
+
+    if isinstance(value, str):
+        return bool(value.strip())
+
+    if isinstance(value, (list, tuple, set)):
+        return len(value) > 0
+
+    if isinstance(value, dict):
+        return any(
+            _has_value(item)
+            for item in value.values()
+        )
+
+    return True
+
+
+def _is_positive_finding(key, value):
+    """
+    Определяет именно найденную информацию.
+
+    IPApi и DNS являются информационными результатами,
+    но сами по себе не считаются найденными аккаунтами,
+    утечками или совпадениями.
+    """
+
+    if key in {
+        "ipapi",
+        "dns_records",
+    }:
+        return False
+
+    if key in {
+        "instagram_exists",
+        "spotify_exists",
+        "twitter_exists",
+    }:
+        return value is True
+
+    if key == "breachdirectory":
+        if isinstance(value, dict):
+            found = value.get("found")
+
+            if isinstance(found, (int, float)):
+                return found > 0
+
+        return _has_value(value)
+
+    if key == "haveibeenpwned":
+        if isinstance(value, dict):
+            for field in (
+                "found",
+                "count",
+                "breaches",
+            ):
+                found = value.get(field)
+
+                if isinstance(found, (int, float)):
+                    if found > 0:
+                        return True
+
+                if isinstance(found, list):
+                    if len(found) > 0:
+                        return True
+
+        return _has_value(value)
+
+    return _has_value(value)
+
+
 def _normalize_results(data):
+    """
+    Mosint возвращает один большой JSON-объект.
+
+    Старый код воспринимал этот объект как один результат,
+    поэтому интерфейс показывал 1 / 1.
+
+    Здесь каждый внутренний модуль Mosint превращается
+    в отдельный результат.
+    """
+
     data = _clean_sensitive(data)
 
-    if isinstance(data, list):
-        return data
+    if not isinstance(data, dict):
+        if isinstance(data, list):
+            results = []
 
-    if isinstance(data, dict):
-        for key in (
-            "results",
-            "result",
-            "findings",
-            "data",
-            "services",
-            "accounts",
-            "social_accounts",
-        ):
-            value = data.get(key)
+            for item in data:
+                results.append(
+                    {
+                        "source": "Mosint",
+                        "name": "Mosint",
+                        "data": item,
+                        "finding": _has_value(item),
+                    }
+                )
 
-            if isinstance(value, list):
-                return value
+            findings = sum(
+                1
+                for item in results
+                if item.get("finding")
+            )
 
-        return [data]
+            return results, findings
 
-    return [
-        {
-            "value": str(data),
+        result = {
+            "source": "Mosint",
+            "name": "Mosint",
+            "data": data,
+            "finding": _has_value(data),
         }
-    ]
+
+        return [result], 1 if result["finding"] else 0
+
+    normalized = []
+    findings = 0
+
+    # Email — метаданные, не находка.
+    if "email" in data:
+        normalized.append(
+            {
+                "source": "Mosint",
+                "name": "Email",
+                "module": "email",
+                "data": data["email"],
+                "finding": False,
+            }
+        )
+
+    # Проверка валидности email — тоже метаданные.
+    if "verified" in data:
+        normalized.append(
+            {
+                "source": "Mosint",
+                "name": "Email verification",
+                "module": "verified",
+                "data": data["verified"],
+                "finding": False,
+            }
+        )
+
+    # Каждый внутренний модуль Mosint — отдельный результат.
+    for key, name in MODULES:
+        if key not in data:
+            continue
+
+        value = data.get(key)
+
+        positive = _is_positive_finding(
+            key,
+            value,
+        )
+
+        normalized.append(
+            {
+                "source": "Mosint",
+                "name": name,
+                "module": key,
+                "data": value,
+                "finding": positive,
+            }
+        )
+
+        if positive:
+            findings += 1
+
+    return normalized, findings
 
 
 async def mosint_search(query: str, progress=None):
@@ -100,13 +262,16 @@ async def mosint_search(query: str, progress=None):
 
     if not Path(MOSINT_CONFIG).exists():
         raise RuntimeError(
-            f"Конфигурация Mosint не найдена: {MOSINT_CONFIG}"
+            f"Конфигурация Mosint не найдена: "
+            f"{MOSINT_CONFIG}"
         )
+
+    total_modules = len(MODULES)
 
     if progress:
         progress(
             0,
-            1,
+            total_modules,
             "Mosint: запуск",
             [],
         )
@@ -160,7 +325,8 @@ async def mosint_search(query: str, progress=None):
                 await process.wait()
 
             raise RuntimeError(
-                f"Mosint превысил лимит {MOSINT_TIMEOUT} секунд"
+                f"Mosint превысил лимит "
+                f"{MOSINT_TIMEOUT} секунд"
             )
 
         if process.returncode != 0:
@@ -177,7 +343,8 @@ async def mosint_search(query: str, progress=None):
 
             raise RuntimeError(
                 f"Mosint завершился с кодом "
-                f"{process.returncode}: {error_text[:1000]}"
+                f"{process.returncode}: "
+                f"{error_text[:1000]}"
             )
 
         if not os.path.exists(output_file):
@@ -195,42 +362,22 @@ async def mosint_search(query: str, progress=None):
 
         except (OSError, json.JSONDecodeError) as exc:
             raise RuntimeError(
-                f"Не удалось прочитать JSON Mosint: {exc}"
+                f"Не удалось прочитать JSON Mosint: "
+                f"{exc}"
             ) from exc
 
-    results = _normalize_results(data)
-
-    normalized = []
-
-    for item in results:
-        if isinstance(item, dict):
-            normalized.append(
-                {
-                    "source": "Mosint",
-                    "name": (
-                        item.get("name")
-                        or item.get("service")
-                        or item.get("source")
-                        or "Mosint"
-                    ),
-                    "data": item,
-                }
-            )
-        else:
-            normalized.append(
-                {
-                    "source": "Mosint",
-                    "name": "Mosint",
-                    "data": item,
-                }
-            )
+    normalized, findings = _normalize_results(data)
 
     if progress:
         progress(
-            1,
-            1,
-            f"Mosint: готово ({len(normalized)} результатов)",
+            total_modules,
+            total_modules,
+            (
+                f"Mosint: готово "
+                f"({total_modules} проверок, "
+                f"найдено {findings})"
+            ),
             normalized,
         )
 
-    return normalized, 1
+    return normalized, findings
