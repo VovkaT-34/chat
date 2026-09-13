@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -341,7 +340,6 @@ const hiddenDeepFields=new Set([
   'platform',
   'confidence',
   'severity',
-  'metadata',
   'self_link',
   'subject',
   'localpart',
@@ -397,23 +395,31 @@ const hiddenMetadataFields=new Set([
 function formatDeepValue(key,value){
   const lower=String(key).toLowerCase();
 
-  if(hiddenDeepFields.has(lower))return '';
-
   if(value===null||value===undefined||value==='')return '';
   if(Array.isArray(value)&&!value.length)return '';
 
   if(lower==='metadata'&&value&&typeof value==='object'){
     return Object.entries(value)
-      .filter(([k,v])=>!hiddenMetadataFields.has(String(k).toLowerCase())&&v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length))
+      .filter(([k,v])=>{
+        const lk=String(k).toLowerCase();
+        return !hiddenMetadataFields.has(lk)&&
+          v!==null&&
+          v!==undefined&&
+          v!==''&&
+          (!Array.isArray(v)||v.length);
+      })
       .map(([k,v])=>formatDeepValue(k,v))
       .filter(Boolean)
       .join('');
   }
 
+  if(hiddenDeepFields.has(lower))return '';
+
   if(typeof value==='object'){
     if(Array.isArray(value)){
       return '<div><b>'+esc(key)+':</b> '+esc(value.join(', '))+'</div>';
     }
+
     return '';
   }
 
@@ -424,7 +430,7 @@ function formatDeepData(data){
   if(!data||typeof data!=='object')return '';
 
   return Object.entries(data)
-    .filter(([k,v])=>!hiddenDeepFields.has(String(k).toLowerCase())&&v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length))
+    .filter(([k,v])=>v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length))
     .map(([k,v])=>formatDeepValue(k,v))
     .filter(Boolean)
     .join('');
