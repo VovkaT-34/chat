@@ -39,8 +39,11 @@ body{padding:16px 14px 30px}
 .deep-site{font-size:12px;line-height:1.55}
 .deep-result{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.07)}
 .deep-result a{color:#39e58c;text-decoration:none}
+.deep-result a:hover{text-decoration:underline}
 .deep-data{display:grid;gap:3px;margin-top:4px;color:#e5dde1}
 .deep-data b{color:#fff}
+.deep-data a{color:#f0a5bd;text-decoration:none;word-break:break-all}
+.deep-data a:hover{text-decoration:underline}
 .resultbox{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.055)}
 .resultrow{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px;line-height:1.4}
 .resultrow:last-child{border-bottom:0}
@@ -343,12 +346,13 @@ function formatDeepData(data){
 }
 
 /*
- * MailAccess:
- * показываем всё содержательно полезное.
- * Скрываем только техническую оболочку движка,
- * служебные поля и поля, которые уже представлены ссылкой результата.
+ * MailAccess — режим "сыщик":
+ * показываем максимум полезной информации;
+ * автоматически делаем найденные URL кликабельными;
+ * раскрываем вложенные объекты и массивы;
+ * убираем только технический мусор и точные дубли.
  */
-function formatMailAccessData(data){
+function formatMailAccessData(data,resultUrl=''){
   if(!data||typeof data!=='object')return '';
 
   const hiddenKeys=new Set([
@@ -358,67 +362,134 @@ function formatMailAccessData(data){
     'source_module',
     'sources_checked',
 
-    // Техническая оболочка WebFinger.
+    // Технические поля WebFinger.
     'self_link',
     'subject',
-    'localpart',
-
-    // Дублирующая ссылка: сама ссылка уже находится в заголовке результата.
-    'profile_url'
+    'localpart'
   ]);
 
   const out=[];
   const seen=new Set();
 
-  function normalize(v){
-    if(v===null||v===undefined)return '';
-    if(typeof v==='string')return v.trim();
-    if(typeof v==='number'||typeof v==='boolean')return String(v);
-    return JSON.stringify(v);
+  function isUrl(value){
+    return /^https?:\/\/[^\s<>"']+$/i.test(String(value).trim());
+  }
+
+  function linkify(value){
+    if(value===null||value===undefined)return '';
+
+    let text=String(value);
+
+    /*
+     * Сначала экранируем HTML.
+     * Затем превращаем только http/https URL в ссылки.
+     */
+    const escaped=esc(text);
+
+    return escaped.replace(
+      /https?:\/\/[^\s<>"']+/gi,
+      match=>{
+        let url=match;
+        let suffix='';
+
+        /*
+         * Не включаем в URL обычную пунктуацию,
+         * которая часто приходит из JSON/текста.
+         */
+        while(/[),.;!?]+$/.test(url)){
+          suffix=url.slice(-1)+suffix;
+          url=url.slice(0,-1);
+        }
+
+        return '<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+url+'</a>'+suffix;
+      }
+    );
+  }
+
+  function valueToText(value){
+    if(value===null||value===undefined||value==='')return '';
+
+    if(Array.isArray(value)){
+      return value
+        .map(item=>valueToText(item))
+        .filter(Boolean)
+        .join(', ');
+    }
+
+    if(typeof value==='object'){
+      return Object.entries(value)
+        .filter(([k,v])=>v!==null&&v!==undefined&&v!=='')
+        .map(([k,v])=>{
+          const rendered=valueToText(v);
+          return rendered?esc(k)+': '+rendered:'';
+        })
+        .filter(Boolean)
+        .join('; ');
+    }
+
+    return linkify(value);
+  }
+
+  function normalizeForDuplicate(value){
+    if(value===null||value===undefined)return '';
+    if(typeof value==='object'){
+      try{return JSON.stringify(value)}
+      catch(e){return String(value)}
+    }
+    return String(value).trim();
   }
 
   function add(key,value){
     if(hiddenKeys.has(key))return;
+
     if(value===null||value===undefined||value==='')return;
     if(Array.isArray(value)&&value.length===0)return;
 
-    const normalized=normalize(value);
-    if(!normalized)return;
+    /*
+     * source: fediverse_webfinger — техническое указание
+     * внутреннего способа проверки, а не полезная находка.
+     *
+     * Остальные source оставляем: например источник утечки
+     * или название базы может быть полезным для расследования.
+     */
+    if(key==='source'&&String(value)==='fediverse_webfinger')return;
 
-    // Убираем только точные повторы одного и того же поля/значения.
-    const signature=key+'|'+normalized;
+    /*
+     * Если profile_url совпадает с основной ссылкой результата,
+     * второй раз её не показываем.
+     */
+    if(
+      key==='profile_url' &&
+      resultUrl &&
+      String(value).trim()===String(resultUrl).trim()
+    )return;
+
+    const signature=key+'|'+normalizeForDuplicate(value);
     if(seen.has(signature))return;
     seen.add(signature);
 
-    let htmlValue='';
+    const rendered=valueToText(value);
+    if(!rendered)return;
 
-    if(Array.isArray(value)){
-      htmlValue=value.map(item=>{
-        if(item&&typeof item==='object'){
-          return Object.entries(item)
-            .filter(([k,v])=>v!==null&&v!==undefined&&v!=='')
-            .map(([k,v])=>k+'='+normalize(v))
-            .join(' · ');
-        }
-        return normalize(item);
-      }).filter(Boolean).join(', ');
-    }else if(typeof value==='object'){
-      htmlValue=Object.entries(value)
-        .filter(([k,v])=>v!==null&&v!==undefined&&v!=='')
-        .map(([k,v])=>k+'='+normalize(v))
-        .join(' · ');
-    }else{
-      htmlValue=String(value);
-    }
-
-    if(!htmlValue)return;
-
-    out.push('<div><b>'+esc(key)+':</b> '+esc(htmlValue)+'</div>');
+    out.push(
+      '<div><b>'+esc(key)+':</b> '+rendered+'</div>'
+    );
   }
 
   Object.entries(data).forEach(([key,value])=>{
-    if(key==='metadata'&&value&&typeof value==='object'&&!Array.isArray(value)){
-      Object.entries(value).forEach(([metaKey,metaValue])=>add(metaKey,metaValue));
+    /*
+     * metadata — только техническая оболочка.
+     * Всё содержимое metadata раскрываем и показываем.
+     */
+    if(
+      key==='metadata' &&
+      value &&
+      typeof value==='object' &&
+      !Array.isArray(value)
+    ){
+      Object.entries(value).forEach(([metaKey,metaValue])=>{
+        add(metaKey,metaValue);
+      });
     }else{
       add(key,value);
     }
@@ -449,8 +520,22 @@ function renderDeep(d){
   deepSites.innerHTML=(sites.length?sites.map(x=>'<div class="deep-site">✓ '+esc(x)+'</div>').join(''):'')+(data.length?data.slice(0,50).map(x=>{
     const url=x.url||x.href;
     const title=x.name||x.source||url||'Результат';
-    const body=isMailAccess?formatMailAccessData(x.data):formatDeepData(x.data);
-    return '<div class="deep-result">'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>':esc(title))+(body?'<div class="deep-data">'+body+'</div>':'')+'</div>';
+
+    /*
+     * Передаём основную ссылку результата,
+     * чтобы profile_url не дублировал её.
+     */
+    const body=isMailAccess
+      ?formatMailAccessData(x.data,url)
+      :formatDeepData(x.data);
+
+    return '<div class="deep-result">'+
+      (url
+        ?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>'
+        :esc(title)
+      )+
+      (body?'<div class="deep-data">'+body+'</div>':'')+
+      '</div>';
   }).join(''):'');
   if(!deepSites.innerHTML)deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
 }
