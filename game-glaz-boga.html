@@ -247,6 +247,7 @@ body{padding:16px 14px 30px}
 <script>
 const API='https://sxkukrqjtgkxmzuzondm.supabase.co/functions/v1/osint-public',
 RENDER='https://glaz-boga-osint.onrender.com',
+RENDER_MOSINT='https://glaz-boga-osint-docker-test.onrender.com',
 quickQ=document.getElementById('quickQ'),
 deepQ=document.getElementById('deepQ'),
 deepKind=document.getElementById('deepKind'),
@@ -262,7 +263,7 @@ deepSites=document.getElementById('deepSites'),
 stopDeep=document.getElementById('stopDeep'),
 deepRunning=document.getElementById('deepRunning');
 
-let currentType='all',deepTimer=null,deepJobId=null;
+let currentType='all',deepTimer=null,deepJobId=null,deepRender=RENDER;
 
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const enc=v=>encodeURIComponent(v.trim());
@@ -363,7 +364,7 @@ function renderDeep(d){
 async function pollDeep(){
   if(!deepJobId)return;
   try{
-    const r=await fetch(RENDER+'/deep/status?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
+    const r=await fetch(deepRender+'/deep/status?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
     renderDeep(d);
@@ -382,7 +383,7 @@ async function stopDeepSearch(){
   stopDeep.disabled=true;
   deepStatus.textContent='Статус: остановка…';
   try{
-    const r=await fetch(RENDER+'/deep/cancel?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
+    const r=await fetch(deepRender+'/deep/cancel?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
     const d=await r.json();
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
     clearInterval(deepTimer);deepTimer=null;
@@ -399,6 +400,7 @@ async function stopDeepSearch(){
 async function deepSearch(){
   const value=deepQ.value.trim(),kind=deepKind.value;
   if(!value){deepQ.focus();return}
+  deepRender=kind==='email_mosint'?RENDER_MOSINT:RENDER;
   if(deepTimer){clearInterval(deepTimer);deepTimer=null}
   deepProgress.style.display='block';
   deepQuery.textContent=deepLabel(kind)+': '+value;
@@ -413,7 +415,7 @@ async function deepSearch(){
     return;
   }
   try{
-    const r=await fetch(RENDER+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),{cache:'no-store'}),
+    const r=await fetch(deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),{cache:'no-store'}),
     d=await r.json();
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
     deepJobId=d.job_id;
