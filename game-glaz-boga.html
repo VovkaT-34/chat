@@ -337,107 +337,9 @@ function deepLabel(k){
   })[k]||k;
 }
 
-/* Только отображение: служебный мусор скрывается,
-   но полезные поля metadata сохраняются. */
-const hiddenDeepFields=new Set([
-  'platform',
-  'confidence',
-  'severity',
-  'self_link',
-  'subject',
-  'localpart',
-  'mx_hosts',
-  'first_seen',
-  'disposable_provider',
-  'domain_age_note',
-  'sources_checked',
-  'source_module'
-]);
-
-const hiddenMetadataFields=new Set([
-  'platform',
-  'confidence',
-  'severity',
-  'self_link',
-  'subject',
-  'localpart',
-  'mx_hosts',
-  'first_seen',
-  'disposable_provider',
-  'domain_age_note',
-  'sources_checked',
-  'source_module'
-]);
-
-function isEmptyDeepValue(v){
-  return v===null||v===undefined||v===''||(Array.isArray(v)&&!v.length);
-}
-
-function formatDeepValue(key,value){
-  const lower=String(key).toLowerCase();
-
-  if(isEmptyDeepValue(value))return '';
-
-  /* source оставляем для реальных источников,
-     но fediverse_webfinger считаем техническим мусором. */
-  if(lower==='source'&&String(value).toLowerCase()==='fediverse_webfinger')return '';
-
-  /* profile_url не дублируем, если сам результат уже является ссылкой. */
-  if(lower==='profile_url')return '';
-
-  if(hiddenDeepFields.has(lower))return '';
-
-  if(lower.startsWith('emailrep_')){
-    if(value===false||value===null||value===undefined||value==='')return '';
-  }
-
-  if(lower==='metadata'&&value&&typeof value==='object'){
-    return Object.entries(value)
-      .filter(([k,v])=>{
-        const lk=String(k).toLowerCase();
-
-        if(hiddenMetadataFields.has(lk))return false;
-        if(lk==='source'&&String(v).toLowerCase()==='fediverse_webfinger')return false;
-        if(lk==='profile_url')return false;
-
-        if(lk.startsWith('emailrep_')&&(v===false||v===null||v===undefined||v===''))return false;
-
-        return !isEmptyDeepValue(v);
-      })
-      .map(([k,v])=>formatDeepValue(k,v))
-      .filter(Boolean)
-      .join('');
-  }
-
-  if(typeof value==='object'){
-    if(Array.isArray(value)){
-      return '<div><b>'+esc(key)+':</b> '+esc(value.join(', '))+'</div>';
-    }
-    return '';
-  }
-
-  return '<div><b>'+esc(key)+':</b> '+esc(value)+'</div>';
-}
-
 function formatDeepData(data){
   if(!data||typeof data!=='object')return '';
-
-  return Object.entries(data)
-    .filter(([k,v])=>!isEmptyDeepValue(v))
-    .map(([k,v])=>formatDeepValue(k,v))
-    .filter(Boolean)
-    .join('');
-}
-
-function cleanDeepTitle(x){
-  let title=x.name||x.source||x.title||x.platform||'Результат';
-  title=String(title);
-
-  if(/^mastodon:/i.test(title)){
-    title='Mastodon — '+title.replace(/^mastodon:/i,'');
-  }
-
-  return title;
+  return Object.entries(data).filter(([k,v])=>v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length)).map(([k,v])=>'<div><b>'+esc(k)+':</b> '+esc(Array.isArray(v)?v.join(', '):typeof v==='object'?JSON.stringify(v):v)+'</div>').join('');
 }
 
 function renderDeep(d){
@@ -455,33 +357,15 @@ function renderDeep(d){
 
   const foundCount=Number(d.count||0);
   deepFound.innerHTML='Найдено: <span style="color:'+(foundCount>0?'#39e58c':'#ff4b5c')+'">'+foundCount+'</span>';
-
   const sites=Array.isArray(d.checked_items)?d.checked_items:[];
   const data=Array.isArray(d.results)?d.results:[];
-
-  deepSites.innerHTML=
-    (sites.length
-      ?sites.map(x=>'<div class="deep-site">✓ '+esc(x)+'</div>').join('')
-      :'')+
-    (data.length
-      ?data.slice(0,50).map(x=>{
-        const url=x.url||x.href||x.profile_url;
-        const title=cleanDeepTitle(x);
-        const body=formatDeepData(x.data);
-
-        return '<div class="deep-result">'+
-          (url
-            ?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>'
-            :'<b>'+esc(title)+'</b>'
-          )+
-          (body?'<div class="deep-data">'+body+'</div>':'')+
-          '</div>';
-      }).join('')
-      :'');
-
-  if(!deepSites.innerHTML){
-    deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
-  }
+  deepSites.innerHTML=(sites.length?sites.map(x=>'<div class="deep-site">✓ '+esc(x)+'</div>').join(''):'')+(data.length?data.slice(0,50).map(x=>{
+    const url=x.url||x.href;
+    const title=x.name||x.source||url||'Результат';
+    const body=formatDeepData(x.data);
+    return '<div class="deep-result">'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>':esc(title))+(body?'<div class="deep-data">'+body+'</div>':'')+'</div>';
+  }).join(''):'');
+  if(!deepSites.innerHTML)deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
 }
 
 async function pollDeep(){
@@ -523,14 +407,8 @@ async function stopDeepSearch(){
 async function deepSearch(){
   const value=deepQ.value.trim(),kind=deepKind.value;
   if(!value){deepQ.focus();return}
-
   deepRender=kind==='email_mosint'?RENDER_MOSINT:RENDER;
-
-  if(deepTimer){
-    clearInterval(deepTimer);
-    deepTimer=null;
-  }
-
+  if(deepTimer){clearInterval(deepTimer);deepTimer=null}
   deepProgress.style.display='block';
   deepQuery.textContent=deepLabel(kind)+': '+value;
   deepStatus.textContent='Статус: запуск…';
@@ -539,28 +417,19 @@ async function deepSearch(){
   deepSites.innerHTML='';
   stopDeep.classList.remove('active');
   deepRunning.classList.remove('active');
-
   if(kind==='username'&&!validUsername(value)){
     deepStatus.textContent='Статус: username должен содержать латинские буквы, цифры, точку, дефис или подчёркивание.';
     return;
   }
-
   try{
-    const r=await fetch(
-      deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),
-      {cache:'no-store'}
-    );
-    const d=await r.json();
-
+    const r=await fetch(deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),{cache:'no-store'}),
+    d=await r.json();
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
-
     deepJobId=d.job_id;
     renderDeep(d);
-
     if(d.status!=='done'&&d.status!=='error'&&d.status!=='cancelled'){
       stopDeep.classList.add('active');
       deepRunning.classList.add('active');
-
       await pollDeep();
       deepTimer=setInterval(pollDeep,4000);
     }
@@ -597,20 +466,11 @@ function updateDeepPlaceholder(){
 function searchAll(){
   const value=quickQ.value.trim();
   if(!value){quickQ.focus();return}
-
   document.querySelectorAll('.card a[data-url]').forEach(a=>{
     a.href=a.dataset.url.replaceAll('{q}',enc(value));
-    a.target='_blank';
-    a.rel='noopener noreferrer';
+    a.target='_blank';a.rel='noopener noreferrer';
   });
-
-  document.querySelectorAll('.card').forEach(c=>
-    c.style.display=currentType==='all'||
-    (c.dataset.cats||'').split(' ').includes(currentType)
-      ?'block'
-      :'none'
-  );
-
+  document.querySelectorAll('.card').forEach(c=>c.style.display=currentType==='all'||(c.dataset.cats||'').split(' ').includes(currentType)?'block':'none');
   quickLookup(value);
 }
 
@@ -621,14 +481,8 @@ document.querySelectorAll('.type').forEach(b=>b.onclick=()=>{
   if(quickQ.value.trim())searchAll();
 });
 
-quickQ.addEventListener('keydown',e=>{
-  if(e.key==='Enter')searchAll();
-});
-
-deepQ.addEventListener('keydown',e=>{
-  if(e.key==='Enter')deepSearch();
-});
-
+quickQ.addEventListener('keydown',e=>{if(e.key==='Enter')searchAll()});
+deepQ.addEventListener('keydown',e=>{if(e.key==='Enter')deepSearch()});
 deepKind.addEventListener('change',updateDeepPlaceholder);
 updateDeepPlaceholder();
 </script>
