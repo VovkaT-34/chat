@@ -342,47 +342,85 @@ function formatDeepData(data){
   return Object.entries(data).filter(([k,v])=>v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length)).map(([k,v])=>'<div><b>'+esc(k)+':</b> '+esc(Array.isArray(v)?v.join(', '):typeof v==='object'?JSON.stringify(v):v)+'</div>').join('');
 }
 
+/*
+ * MailAccess:
+ * показываем всё содержательно полезное.
+ * Скрываем только техническую оболочку движка,
+ * служебные поля и поля, которые уже представлены ссылкой результата.
+ */
 function formatMailAccessData(data){
   if(!data||typeof data!=='object')return '';
 
-  const hidden=new Set([
-    'platform','confidence','severity','metadata',
-    'source','source_module','sources_checked',
-    'self_link','subject','localpart',
-    'first_seen','mx_hosts',
-    'disposable_provider','domain_age_note',
-    'emailrep_reputation','emailrep_suspicious',
-    'emailrep_malicious_activity','emailrep_malicious_activity_recent',
-    'emailrep_credentials_leaked','emailrep_spam',
-    'emailrep_blacklisted','emailrep_last_seen',
-    'emailrep_free_provider','emailrep_disposable'
-  ]);
+  const hiddenKeys=new Set([
+    'platform',
+    'confidence',
+    'severity',
+    'source_module',
+    'sources_checked',
 
-  const falseTechnical=new Set([
-    'is_alias','is_disposable','google_hosted'
+    // Техническая оболочка WebFinger.
+    'self_link',
+    'subject',
+    'localpart',
+
+    // Дублирующая ссылка: сама ссылка уже находится в заголовке результата.
+    'profile_url'
   ]);
 
   const out=[];
-  const add=(k,v)=>{
-    if(hidden.has(k))return;
-    if(v===null||v===undefined||v==='')return;
-    if(Array.isArray(v)&&!v.length)return;
-    if(falseTechnical.has(k)&&v===false)return;
+  const seen=new Set();
 
-    const value=Array.isArray(v)
-      ? v.join(', ')
-      : typeof v==='object'
-        ? JSON.stringify(v)
-        : v;
+  function normalize(v){
+    if(v===null||v===undefined)return '';
+    if(typeof v==='string')return v.trim();
+    if(typeof v==='number'||typeof v==='boolean')return String(v);
+    return JSON.stringify(v);
+  }
 
-    out.push('<div><b>'+esc(k)+':</b> '+esc(value)+'</div>');
-  };
+  function add(key,value){
+    if(hiddenKeys.has(key))return;
+    if(value===null||value===undefined||value==='')return;
+    if(Array.isArray(value)&&value.length===0)return;
 
-  Object.entries(data).forEach(([k,v])=>{
-    if(k==='metadata'&&v&&typeof v==='object'&&!Array.isArray(v)){
-      Object.entries(v).forEach(([mk,mv])=>add(mk,mv));
+    const normalized=normalize(value);
+    if(!normalized)return;
+
+    // Убираем только точные повторы одного и того же поля/значения.
+    const signature=key+'|'+normalized;
+    if(seen.has(signature))return;
+    seen.add(signature);
+
+    let htmlValue='';
+
+    if(Array.isArray(value)){
+      htmlValue=value.map(item=>{
+        if(item&&typeof item==='object'){
+          return Object.entries(item)
+            .filter(([k,v])=>v!==null&&v!==undefined&&v!=='')
+            .map(([k,v])=>k+'='+normalize(v))
+            .join(' · ');
+        }
+        return normalize(item);
+      }).filter(Boolean).join(', ');
+    }else if(typeof value==='object'){
+      htmlValue=Object.entries(value)
+        .filter(([k,v])=>v!==null&&v!==undefined&&v!=='')
+        .map(([k,v])=>k+'='+normalize(v))
+        .join(' · ');
     }else{
-      add(k,v);
+      htmlValue=String(value);
+    }
+
+    if(!htmlValue)return;
+
+    out.push('<div><b>'+esc(key)+':</b> '+esc(htmlValue)+'</div>');
+  }
+
+  Object.entries(data).forEach(([key,value])=>{
+    if(key==='metadata'&&value&&typeof value==='object'&&!Array.isArray(value)){
+      Object.entries(value).forEach(([metaKey,metaValue])=>add(metaKey,metaValue));
+    }else{
+      add(key,value);
     }
   });
 
