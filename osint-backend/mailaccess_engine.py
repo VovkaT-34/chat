@@ -1,4 +1,4 @@
-```python
+
 import asyncio
 import contextlib
 import json
@@ -566,4 +566,4 @@ async def mailaccess_search(
         # В любом случае выключаем
         # дочерний MailAccess.
         await _stop_process(server)
-```
+
