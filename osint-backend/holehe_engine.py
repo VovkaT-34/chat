@@ -9,9 +9,9 @@ async def _run(email: str, progress=None):
     total = len(websites)
     checked = 0
     results = []
-    # Снижено с 20 до 4, чтобы соответствовать MAX_CONNECTIONS в main.py
-    limiter = trio.CapacityLimiter(4)
-    async with httpx.AsyncClient(timeout=3) as client:
+    # Жёстко ограничиваем до 3 одновременных соединений
+    limiter = trio.CapacityLimiter(3)
+    async with httpx.AsyncClient(timeout=2.5) as client:
         async def launch(module):
             nonlocal checked
             name = getattr(module, "__name__", "").split(".")[-1] or "unknown"
@@ -23,25 +23,16 @@ async def _run(email: str, progress=None):
                         item = dict(item)
                         item.setdefault("name", name)
                         results.append(item)
-                except Exception as exc:
-                    results.append({
-                        "name": name,
-                        "domain": name,
-                        "rateLimit": False,
-                        "error": True,
-                        "errorMessage": str(exc),
-                        "exists": False,
-                        "emailrecovery": None,
-                        "phoneNumber": None,
-                        "others": None,
-                    })
+                except Exception:
+                    pass
                 finally:
                     checked += 1
                     if progress:
-                        progress(checked, total, name, list(results))
+                        progress(checked, total, name, [r for r in results if r.get("exists")])
         async with trio.open_nursery() as nursery:
             for website in websites:
                 nursery.start_soon(launch, website)
+    results = [r for r in results if r.get("exists")]
     results.sort(key=lambda item: str(item.get("name", "")))
     return results, total
 
