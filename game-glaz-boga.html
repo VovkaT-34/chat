@@ -147,6 +147,7 @@ body{padding:16px 14px 30px}
 <a data-url="https://www.google.com/search?q=%22{q}%22">Google</a>
 <a data-url="https://yandex.ru/search/?text=%22{q}%22">Яндекс</a>
 <a data-url="https://www.bing.com/search?q=%22{q}%22">Bing</a>
+<a href="https://epieos.com/" target="_blank" rel="noopener noreferrer">Epieos</a>
 </div>
 </section>
 <section class="card" data-cats="email">
@@ -155,6 +156,7 @@ body{padding:16px 14px 30px}
 <div class="links">
 <a data-url="https://www.google.com/search?q=%22{q}%22+site%3Agithub.com">GitHub</a>
 <a href="https://haveibeenpwned.com/" target="_blank" rel="noopener noreferrer">HIBP</a>
+<a href="https://epieos.com/" target="_blank" rel="noopener noreferrer">Epieos</a>
 </div>
 </section>
 <section class="card" data-cats="person">
@@ -288,7 +290,7 @@ async function domainLookup(domain){
   const jobs=[publicJson('https://crt.sh/?q='+encodeURIComponent(domain)+'&output=json'),publicJson('https://rdap.org/domain/'+encodeURIComponent(domain)),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=A'),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=AAAA'),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=MX')],r=await Promise.allSettled(jobs);
   if(r[0].status==='fulfilled'){const names=[...new Set((r[0].value||[]).flatMap(x=>String(x.name_value||'').split('\n')).map(x=>x.trim().toLowerCase()).filter(Boolean))].slice(0,20);addResult('🌐 crt.sh: сертификатных имён: <b>'+names.length+'</b>');names.forEach(n=>addResult('<a href="https://'+esc(n.replace(/^\*\./,''))+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>'))}
   if(r[1].status==='fulfilled'){const x=r[1].value;addResult('📜 RDAP: <b>'+esc(x.ldhName||domain)+'</b>');(x.nameservers||[]).slice(0,20).forEach(n=>addResult('NS: <b>'+esc(n.ldhName||'')+'</b>'))}
-  ['A','AAAA','MX'].forEach((t,i)=>{const z=r[i+2];if(z.status==='fulfilled')(z.value.Answer||[]).slice(0,20).forEach(a=>addResult('DNS '+t+': <b>'+esc(a.data||'')+'</b> · TTL '+Number(a.TTL||0)))});
+  ['A','AAAA','MX'].forEach((t,i)=>{const z=r[i+2];if(z.status==='fulfilled')(z.value.Answer||[]).slice(0,20).forEach(a=>addResult('DNS '+t+': <b>'+esc(a.data||'')+'</b> · TTL '+Number(a.TTL||0)))})
 }
 
 async function ipLookup(value){
