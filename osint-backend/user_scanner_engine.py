@@ -4,9 +4,9 @@ import json
 from user_scanner.core import engine
 from user_scanner.core.helpers import load_categories, load_modules
 
-BATCH_SIZE = 10
-MAX_CONCURRENCY = 3
-BATCH_PAUSE = 0.20
+BATCH_SIZE = 20
+MAX_CONCURRENCY = 6
+BATCH_PAUSE = 0.10
 MAX_FOUND = 50
 
 
@@ -67,7 +67,6 @@ async def user_scanner_search(email: str, progress=None):
             batch = modules[batch_start:batch_start + BATCH_SIZE]
             batch_number = batch_start // BATCH_SIZE + 1
 
-            # Маленький пакет и только 3 одновременные проверки.
             pending = set()
             batch_index = 0
 
