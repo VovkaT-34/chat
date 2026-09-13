@@ -1,4 +1,4 @@
-```python
+
 """Russian-first public indexed search for extended Glaz Boga modules."""
 
 import asyncio
@@ -519,4 +519,4 @@ async def extended_public_search(query: str, kind: str, max_results: int = 30, p
             break
 
     return results
-```
+
