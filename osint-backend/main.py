@@ -850,24 +850,38 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
         elif kind == "email_mosint":
 
+            MOSINT_MODULES = 12
+
             def progress(checked, total, current, results):
-                job["checked"] = checked
-                job["total"] = total
-                job["count"] = len(results)
+                job["checked"] = MOSINT_MODULES
+                job["total"] = MOSINT_MODULES
+                job["count"] = sum(
+                    1
+                    for item in results
+                    if isinstance(item, dict)
+                    and item.get("finding") is True
+                )
                 job["results"] = list(results)
                 job["checked_items"] = [current]
 
-            found, total = await mosint_search(
+            found, _ = await mosint_search(
                 query,
                 progress=progress,
             )
 
+            findings = sum(
+                1
+                for item in found
+                if isinstance(item, dict)
+                and item.get("finding") is True
+            )
+
             job["results"] = found
-            job["total"] = total
-            job["checked"] = total
-            job["count"] = len(found)
+            job["total"] = MOSINT_MODULES
+            job["checked"] = MOSINT_MODULES
+            job["count"] = findings
             job["checked_items"] = [
-                f"Mosint: готово ({total} результатов)"
+                f"Mosint: готово ({MOSINT_MODULES} проверок, найдено {findings})"
             ]
 
         else:
