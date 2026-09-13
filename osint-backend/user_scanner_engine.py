@@ -39,11 +39,7 @@ def _make_found_item(data):
         "name": data.get("site_name") or data.get("name") or "unknown",
         "source": "user-scanner",
         "exists": True,
-        "status": data.get("status"),
         "url": data.get("url"),
-        "category": data.get("category"),
-        "extra": data.get("extra") or data.get("reason"),
-        "data": data,
     }
 
 
