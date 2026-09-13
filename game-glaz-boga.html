@@ -116,15 +116,15 @@ body{padding:16px 14px 30px}
 <p class="search-subtitle"><b>Формат ввода:</b> Username — латиница, цифры, <code>_ . -</code> (например <code>vovka_34</code>). ФИО — полностью, например <code>Иванов Иван Иванович</code>. Телефон — только международный формат <code>+7 900 123-45-67</code> (без 8 в начале). Email — обычный адрес, например <code>user@example.com</code>. Авто / VIN — VIN ровно 17 символов или госномер, например <code>А123ВС163</code>. Домен — <code>example.com</code>, без <code>https://</code>. IP — IPv4, например <code>8.8.8.8</code>. Фото — прямая ссылка на изображение <code>https://...</code>.</p>
 <div class="search">
 <select id="deepKind" class="deep-kind">
+<option value="email_mailaccess">Email — MailAccess</option>
+<option value="email_userscanner">Email — user-scanner</option>
+<option value="username">Username — Maigret (глубокий)</option>
 <option value="username_sherlock">Username — Sherlock (быстрый)</option>
 <option value="username_wmn">Username — WhatsMyName</option>
-<option value="username">Username — Maigret (глубокий)</option>
 <option value="person">ФИО — публичные упоминания</option>
 <option value="phone">Телефон — метаданные + поиск</option>
 <option value="email">Email — публичные источники</option>
 <option value="email_holehe">Email — Holehe</option>
-<option value="email_userscanner">Email — user-scanner</option>
-<option value="email_mailaccess">Email — MailAccess</option>
 <option value="email_h8mail">Email — h8mail</option>
 <option value="email_mosint">Email — Mosint</option>
 <option value="vin">Авто / VIN — vPIC + поиск</option>
