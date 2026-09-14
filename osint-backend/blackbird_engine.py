@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 from typing import List, Tuple
 
@@ -11,21 +10,26 @@ async def blackbird_search(query: str, is_email: bool = True, progress=None) -> 
     found = []
     total = 0
 
-    # Команда: --email или --username + --json для удобного парсинга
+    # Путь к папке blackbird (рядом с этим engine-файлом)
+    blackbird_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "blackbird"
+    )
+
     cmd = ["python", "blackbird.py"]
     if is_email:
         cmd += ["--email", query]
     else:
         cmd += ["--username", query]
-    
-    cmd += ["--json"]   # пытаемся получить JSON
+
+    cmd += ["--json"]
 
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            cwd=os.path.dirname(os.path.abspath(__file__))  # или путь, где лежит blackbird.py
+            cwd=blackbird_dir,
         )
 
         try:
@@ -40,7 +44,6 @@ async def blackbird_search(query: str, is_email: bool = True, progress=None) -> 
         output = stdout.decode("utf-8", errors="ignore")
         err = stderr.decode("utf-8", errors="ignore")
 
-        # Пытаемся найти JSON в выводе
         lines = output.splitlines() + err.splitlines()
         checked = 0
 
@@ -49,15 +52,13 @@ async def blackbird_search(query: str, is_email: bool = True, progress=None) -> 
             if not line:
                 continue
 
-            # Простой парсинг (Blackbird пишет красиво)
             lower = line.lower()
             if any(x in lower for x in ["found", "exists", "account", "profile", "http"]):
                 checked += 1
-                # Вытаскиваем название сайта и ссылку, если есть
+
                 name = "Blackbird result"
                 url = None
 
-                # Пытаемся вытащить URL
                 if "http" in line:
                     parts = line.split()
                     for p in parts:
@@ -70,7 +71,7 @@ async def blackbird_search(query: str, is_email: bool = True, progress=None) -> 
                     "source": "Blackbird",
                     "exists": True,
                     "url": url,
-                    "data": {"raw": line[:350]}
+                    "data": {"raw": line[:350]},
                 }
                 found.append(item)
 
@@ -84,7 +85,7 @@ async def blackbird_search(query: str, is_email: bool = True, progress=None) -> 
 
     except FileNotFoundError:
         if progress:
-            progress(0, 0, "Blackbird не найден (нужен blackbird.py)", [])
+            progress(0, 0, "Blackbird не найден (проверь папку blackbird/)", [])
         return [], 0
     except Exception as exc:
         if progress:
