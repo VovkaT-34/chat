@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -48,7 +47,6 @@ body{padding:16px 14px 30px}
 .deep-data b{color:#fff}
 .deep-data a{color:#f0a5bd;text-decoration:none;word-break:break-all}
 .deep-data a:hover{text-decoration:underline}
-
 /* ===== MailAccess — структурированное досье ===== */
 .osint-dossier{display:grid;gap:10px;margin-top:8px}
 .dossier-head{padding:13px 14px;border:1px solid rgba(180,75,112,.35);border-radius:14px;background:linear-gradient(135deg,rgba(180,75,112,.16),rgba(255,255,255,.045))}
@@ -75,7 +73,6 @@ body{padding:16px 14px 30px}
 .dossier-dns-row{padding:6px 7px;border-radius:8px;background:rgba(255,255,255,.035)}
 .dossier-dns-label{display:inline-block;min-width:45px;color:#f0a5bd;font-weight:800}
 .dossier-empty{color:#aaa0a6;font-size:12px}
-
 .resultbox{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.055)}
 .resultrow{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px;line-height:1.4}
 .resultrow:last-child
@@ -97,7 +94,8 @@ body{padding:16px 14px 30px}
 .search button,.deep-kind{min-height:44px}
 .title{font-size:23px}
 .info-link{font-size:12px}
-} </style>
+}
+</style>
 </head>
 <body>
 <div class="page">
@@ -122,6 +120,8 @@ body{padding:16px 14px 30px}
 <option value="username">Username — Maigret (глубокий)</option>
 <option value="email_holehe">Email — Holehe</option>
 <option value="email_mosint">Email — Mosint</option>
+<option value="email_blackbird">Email — Blackbird</option>
+<option value="username_blackbird">Username — Blackbird</option>
 <option value="username_sherlock">Username — Sherlock (быстрый)</option>
 <option value="username_wmn">Username — WhatsMyName</option>
 <option value="person">ФИО — публичные упоминания</option>
@@ -279,6 +279,7 @@ body{padding:16px 14px 30px}
 <a href="https://github.com/KatrielMoses/MailAccess" target="_blank" rel="noopener noreferrer">MailAccess</a>
 <a href="https://github.com/khast3x/h8mail" target="_blank" rel="noopener noreferrer">h8mail</a>
 <a href="https://github.com/alpkeskin/mosint" target="_blank" rel="noopener noreferrer">Mosint</a>
+<a href="https://github.com/p1ngul1n0/blackbird" target="_blank" rel="noopener noreferrer">Blackbird</a>
 </div>
 </section>
 </div>
@@ -303,48 +304,38 @@ deepFound=document.getElementById('deepFound'),
 deepSites=document.getElementById('deepSites'),
 stopDeep=document.getElementById('stopDeep'),
 deepRunning=document.getElementById('deepRunning');
-
 let currentType='all',deepTimer=null,deepJobId=null,deepRender=RENDER;
-
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const enc=v=>encodeURIComponent(v.trim());
-
 function addResult(html){const row=document.createElement('div');row.className='resultrow';row.innerHTML=html;resultBox.appendChild(row)}
 function validIp(v){const p=v.split('.');return p.length===4&&p.every(x=>/^\d+$/.test(x)&&+x>=0&&+x<=255)}
 function validDomain(v){return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(v)}
 function validUsername(v){return /^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$/.test(v)}
 function validEmail(v){return /^[^\s@]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}$/.test(v)}
-
 async function api(type,value){const r=await fetch(API+'?type='+encodeURIComponent(type)+'&q='+encodeURIComponent(value));const d=await r.json();if(!r.ok)throw Error(d.error||'HTTP '+r.status);return d}
-
 async function usernameLookup(value){
   const d=await api('username',value),list=Array.isArray(d.results)?d.results:[],found=list.filter(x=>x&&x.reachable);
   addResult('🕵️ Username: проверено <b>'+Number(d.total||list.length)+'</b> · доступны: <b>'+found.length+'</b>');
   found.forEach(x=>addResult('✅ <a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+esc(x.name||x.url)+'</a> <span class="muted">HTTP '+Number(x.status||0)+'</span>'));
   if(!found.length)addResult('<span class="muted">Совпадений не обнаружено.</span>');
 }
-
 async function githubEmail(value){
   const d=await publicJson('https://api.github.com/search/users?q='+encodeURIComponent(value+' in:email')+'&per_page=10'),count=Number(d.total_count||0);
   addResult('🐙 GitHub: найдено совпадений: <b>'+count+'</b>');
   (d.items||[]).slice(0,10).forEach(x=>addResult('<a href="'+esc(x.html_url)+'" target="_blank" rel="noopener noreferrer">@'+esc(x.login)+'</a>'));
 }
-
 async function publicJson(url){const r=await fetch(url);if(!r.ok)throw Error('HTTP '+r.status);return r.json()}
-
 async function domainLookup(domain){
   const jobs=[publicJson('https://crt.sh/?q='+encodeURIComponent(domain)+'&output=json'),publicJson('https://rdap.org/domain/'+encodeURIComponent(domain)),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=A'),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=AAAA'),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=MX')],r=await Promise.allSettled(jobs);
   if(r[0].status==='fulfilled'){const names=[...new Set((r[0].value||[]).flatMap(x=>String(x.name_value||'').split('\n')).map(x=>x.trim().toLowerCase()).filter(Boolean))].slice(0,20);addResult('🌐 crt.sh: сертификатных имён: <b>'+names.length+'</b>');names.forEach(n=>addResult('<a href="https://'+esc(n.replace(/^\*\./,''))+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>'))}
   if(r[1].status==='fulfilled'){const x=r[1].value;addResult('📜 RDAP: <b>'+esc(x.ldhName||domain)+'</b>');(x.nameservers||[]).slice(0,20).forEach(n=>addResult('NS: <b>'+esc(n.ldhName||'')+'</b>'))}
   ['A','AAAA','MX'].forEach((t,i)=>{const z=r[i+2];if(z.status==='fulfilled')(z.value.Answer||[]).slice(0,20).forEach(a=>addResult('DNS '+t+': <b>'+esc(a.data||'')+'</b> · TTL '+Number(a.TTL||0)))});
 }
-
 async function ipLookup(value){
   const r=await Promise.allSettled([publicJson('https://rdap.org/ip/'+encodeURIComponent(value)),publicJson('https://api.bgpview.io/ip/'+encodeURIComponent(value))]);
   if(r[0].status==='fulfilled'){const x=r[0].value;addResult('📡 RDAP: <b>'+esc(x.name||x.handle||'данные получены')+'</b>');if(x.country)addResult('Страна: <b>'+esc(x.country)+'</b>')}
   if(r[1].status==='fulfilled'){const d=r[1].value?.data||{},p=d.prefixes?.[0];if(p)addResult('BGPView: <b>'+esc(p.prefix||'')+'</b> · '+esc(p.asn?.name||p.asn?.description||''))}
 }
-
 async function quickLookup(value){
   results.style.display='block';resultBox.innerHTML='';statusBox.style.display='block';statusBox.textContent='Проверяю быстрые источники…';
   const jobs=[],domain=value.replace(/^https?:\/\//,'').split('/')[0];
@@ -355,7 +346,6 @@ async function quickLookup(value){
   if(!jobs.length)addResult('<span class="muted">Автоматическая API-проверка для этого типа не применяется. Используйте источники ниже.</span>');
   await Promise.all(jobs);statusBox.textContent='Готово.';
 }
-
 function deepLabel(k){
   return ({
     username_sherlock:'Username — Sherlock',
@@ -369,6 +359,8 @@ function deepLabel(k){
     email_mailaccess:'Email — MailAccess',
     email_h8mail:'Email — h8mail',
     email_mosint:'Email — Mosint',
+    email_blackbird:'Email — Blackbird',
+    username_blackbird:'Username — Blackbird',
     vin:'Авто / VIN',
     domain:'Домен',
     ip:'IP',
@@ -377,15 +369,12 @@ function deepLabel(k){
     phone_extended:'Телефон — расширенный'
   })[k]||k;
 }
-
 function formatDeepData(data){
   if(!data||typeof data!=='object')return '';
   return Object.entries(data).filter(([k,v])=>v!==null&&v!==undefined&&v!==''&&(!Array.isArray(v)||v.length)).map(([k,v])=>'<div><b>'+esc(k)+':</b> '+esc(Array.isArray(v)?v.join(', '):typeof v==='object'?JSON.stringify(v):v)+'</div>').join('');
 }
-
 function formatMailAccessDossier(results){
   const items=Array.isArray(results)?results:[];
-
   const hiddenKeys=new Set([
     'platform',
     'confidence',
@@ -396,7 +385,6 @@ function formatMailAccessDossier(results){
     'subject',
     'localpart'
   ]);
-
   const hiddenFalseEmailRep=new Set([
     'emailrep_suspicious',
     'emailrep_malicious_activity',
@@ -407,7 +395,6 @@ function formatMailAccessDossier(results){
     'emailrep_free_provider',
     'emailrep_disposable'
   ]);
-
   const sections={
     reputation:[],
     identity:[],
@@ -418,25 +405,19 @@ function formatMailAccessDossier(results){
     relations:[],
     other:[]
   };
-
   const seen=new Set();
   const linksSeen=new Set();
-
   function cleanText(value){
     return String(value??'').trim();
   }
-
   function isEmpty(value){
     return value===null||value===undefined||value===''||(Array.isArray(value)&&!value.length);
   }
-
   function linkify(value){
     if(isEmpty(value))return '';
-
     if(Array.isArray(value)){
       return value.map(linkify).filter(Boolean).join(', ');
     }
-
     if(typeof value==='object'){
       return Object.entries(value)
         .filter(([k,v])=>!isEmpty(v))
@@ -447,31 +428,24 @@ function formatMailAccessDossier(results){
         .filter(Boolean)
         .join('; ');
     }
-
     const text=esc(value);
-
     return text.replace(
       /https?:\/\/[^\s<>"']+/gi,
       match=>{
         let url=match;
         let suffix='';
-
         while(/[),.;!?]+$/.test(url)){
           suffix=url.slice(-1)+suffix;
           url=url.slice(0,-1);
         }
-
         if(linksSeen.has(url)){
           return suffix;
         }
-
         linksSeen.add(url);
-
         return '<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+url+'</a>'+suffix;
       }
     );
   }
-
   function normalize(value){
     if(typeof value==='object'){
       try{return JSON.stringify(value)}
@@ -479,21 +453,16 @@ function formatMailAccessDossier(results){
     }
     return String(value??'').trim().toLowerCase();
   }
-
   function add(section,key,value,source='',extraClass=''){
     if(hiddenKeys.has(key))return;
     if(isEmpty(value))return;
     if(hiddenFalseEmailRep.has(key)&&String(value).toLowerCase()==='false')return;
     if(key==='source'&&String(value)==='fediverse_webfinger')return;
-
     const signature=section+'|'+key+'|'+normalize(value);
-
     if(seen.has(signature))return;
     seen.add(signature);
-
     const rendered=linkify(value);
     if(!rendered)return;
-
     sections[section].push({
       key,
       value:rendered,
@@ -501,52 +470,38 @@ function formatMailAccessDossier(results){
       extraClass
     });
   }
-
   function classify(key,value,source){
     const k=String(key).toLowerCase();
     const s=String(source).toLowerCase();
-
     if(
       /breach|leak|credential|pwn|compromis/.test(k) ||
       /breach|leak/.test(s)
     )return 'breaches';
-
     if(
       /malicious|reputation|spamhaus|blacklist|suspicious|disposable|spam|fraud|abuse|risk|verdict|listed/.test(k)
     )return 'reputation';
-
     if(
       /mx_|spf|dmarc|nameserver|name_server|dns|ip_address|a_record|aaaa|mailserver|exchange/.test(k)
     )return 'dns';
-
     if(
       /username|profile|instance|member_since|first_seen|karma|bio|description|display_name|nickname|alias|aliases|account|handle|social/.test(k)
     )return 'accounts';
-
     if(
       /provider|hosting|google_hosted|hosting_kind|email_domain|domain_age|domain|as_name|asn|country|city|region|org|organization/.test(k)
     )return 'infrastructure';
-
     if(
       /related|relation|signal|identifier|id$|source|connection|linked|association/.test(k)
     )return 'relations';
-
     if(
       /email|canonical|name|fio|person|phone/.test(k)
     )return 'identity';
-
     return 'other';
   }
-
   items.forEach(item=>{
     if(!item||typeof item!=='object')return;
-
     const data=item.data;
-
     if(!data||typeof data!=='object')return;
-
     const sourceTitle=item.name||item.source||item.url||item.href||'Источник';
-
     Object.entries(data).forEach(([key,value])=>{
       if(key==='metadata'&&value&&typeof value==='object'&&!Array.isArray(value)){
         Object.entries(value).forEach(([metaKey,metaValue])=>{
@@ -556,29 +511,21 @@ function formatMailAccessDossier(results){
         });
         return;
       }
-
       add(classify(key,value,sourceTitle),key,value,sourceTitle);
     });
   });
-
   /* ===== Отдельно строим компактные карточки профилей ===== */
   const profiles=[];
   const profileSeen=new Set();
-
   items.forEach(item=>{
     if(!item||typeof item!=='object'||!item.data||typeof item.data!=='object')return;
-
     const d=item.data;
     const url=item.url||item.href||d.profile_url;
     const username=d.username||d.handle||d.login||d.nickname;
-
     if(!url&&!username)return;
-
     const signature=String(url||username);
-
     if(profileSeen.has(signature))return;
     profileSeen.add(signature);
-
     profiles.push({
       title:item.name||item.source||'Публичный профиль',
       url,
@@ -590,92 +537,71 @@ function formatMailAccessDossier(results){
       description:d.description||d.bio
     });
   });
-
   if(profiles.length){
     sections.accounts=[];
     profiles.forEach(p=>{
       let html='<div class="dossier-profile">';
-
       html+='<div class="dossier-source">'+esc(p.title)+'</div>';
-
       if(p.url){
         html+='<div><a href="'+esc(p.url)+'" target="_blank" rel="noopener noreferrer">'+esc(p.username||p.url)+'</a></div>';
       }else if(p.username){
         html+='<div><b>Username:</b> '+linkify(p.username)+'</div>';
       }
-
       if(p.instance)html+='<div><b>Instance:</b> '+linkify(p.instance)+'</div>';
       if(p.member_since)html+='<div><b>Регистрация:</b> '+linkify(p.member_since)+'</div>';
       if(p.first_seen)html+='<div><b>Первое обнаружение:</b> '+linkify(p.first_seen)+'</div>';
       if(p.karma!==undefined&&p.karma!==null&&p.karma!=='')html+='<div><b>Karma:</b> '+linkify(p.karma)+'</div>';
       if(p.description)html+='<div><b>Описание:</b> '+linkify(p.description)+'</div>';
-
       html+='</div>';
-
       sections.accounts.push({
         rawHtml:html
       });
     });
   }
-
   function badges(){
     const all=items.flatMap(x=>{
       const d=x&&x.data&&typeof x.data==='object'?x.data:{};
       return Object.entries(d);
     });
-
     const out=[];
-
     const malicious=all.some(([k,v])=>/is_malicious|malicious|reputation_verdict/i.test(k)&&String(v).toLowerCase().includes('malicious'));
     const spamhaus=all.some(([k,v])=>/spamhaus/i.test(k)&&String(v).toLowerCase().includes('listed'));
     const spf=all.some(([k,v])=>/has_spf/i.test(k)&&String(v).toLowerCase()==='true');
     const dmarc=all.some(([k,v])=>/has_dmarc/i.test(k)&&String(v).toLowerCase()==='true');
     const google=all.some(([k,v])=>/google_hosted/i.test(k)&&String(v).toLowerCase()==='true');
-
     if(malicious)out.push('<span class="dossier-badge danger">🚨 malicious</span>');
     if(spamhaus)out.push('<span class="dossier-badge danger">🔴 Spamhaus</span>');
     if(spf)out.push('<span class="dossier-badge good">✓ SPF</span>');
     if(dmarc)out.push('<span class="dossier-badge good">✓ DMARC</span>');
     if(google)out.push('<span class="dossier-badge good">Google</span>');
-
     return out.join('');
   }
-
   function renderSection(title,icon,list){
     if(!list.length)return '';
-
     let body='';
-
     list.forEach(x=>{
       if(x.rawHtml){
         body+=x.rawHtml;
         return;
       }
-
       body+='<div class="dossier-item">';
-
       if(x.source){
         body+='<div class="dossier-source">'+esc(x.source)+'</div>';
       }
-
       body+='<b>'+esc(x.key)+':</b> '+x.value;
       body+='</div>';
     });
-
     return '<section class="dossier-section">'+
       '<div class="dossier-section-title">'+icon+' '+title+'</div>'+
       '<div class="dossier-section-body">'+body+'</div>'+
       '</section>';
   }
-
   let html='<div class="osint-dossier">';
-
   html+='<div class="dossier-head">'+
     '<div class="dossier-title">🕵️ Структурированное досье</div>'+
     '<div class="dossier-subtitle">MailAccess · полезные сведения собраны по категориям</div>'+
     '<div style="margin-top:7px">'+badges()+'</div>'+
     '</div>';
-
   html+=renderSection('Репутация и риски','🚨',sections.reputation);
   html+=renderSection('Идентификация','📧',sections.identity);
   html+=renderSection('DNS и сетевая инфраструктура','🌐',sections.dns);
@@ -684,7 +610,6 @@ function formatMailAccessDossier(results){
   html+=renderSection('Домены и инфраструктура','🏗️',sections.infrastructure);
   html+=renderSection('Связи и дополнительные идентификаторы','🔗',sections.relations);
   html+=renderSection('Дополнительные сведения','🔎',sections.other);
-
   if(
     !sections.reputation.length &&
     !sections.identity.length &&
@@ -697,53 +622,38 @@ function formatMailAccessDossier(results){
   ){
     html+='<div class="dossier-empty">Полезных сведений для отображения пока не найдено.</div>';
   }
-
   html+='</div>';
-
   return html;
 }
-
 function renderDeep(d){
   const kind=d.kind||deepKind.value;
-
   deepQuery.textContent=deepLabel(kind)+': '+(d.query||'');
   const statusLabel=d.status==='running'?'выполняется':d.status==='done'?'завершен':d.status==='queued'?'ожидает запуска':d.status==='error'?'ошибка':d.status==='cancelled'?'остановлен':d.status;
   const statusClass=d.status==='running'?'deep-status-running':d.status==='done'?'deep-status-done':d.status==='cancelled'?'deep-status-done':'';
   deepStatus.innerHTML='Статус: <span class="'+statusClass+'">'+esc(statusLabel)+'</span>';
-
   const checked=Number(d.checked||0);
   const total=Number(d.total||0);
-
   deepChecked.textContent='Проверено: '+checked+' / '+total;
-
   const foundCount=Number(d.count||0);
   deepFound.innerHTML='Найдено: <span style="color:'+(foundCount>0?'#39e58c':'#ff4b5c')+'">'+foundCount+'</span>';
-
   const sites=Array.isArray(d.checked_items)?d.checked_items:[];
   const data=Array.isArray(d.results)?d.results:[];
   const isMailAccess=kind==='email_mailaccess';
-
   if(isMailAccess){
     const sourceLinks=data.slice(0,50).map(x=>{
       const url=x&&typeof x==='object'?(x.url||x.href):'';
       const title=x&&typeof x==='object'?(x.name||x.source||url||'Результат'):'Результат';
-
       if(!url)return '';
-
       return '<div class="deep-site">✓ <a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a></div>';
     }).join('');
-
     deepSites.innerHTML=
       sourceLinks+
       formatMailAccessDossier(data);
-
     if(!deepSites.innerHTML){
       deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
     }
-
     return;
   }
-
   deepSites.innerHTML=
     (sites.length
       ?sites.map(x=>'<div class="deep-site">✓ '+esc(x)+'</div>').join('')
@@ -754,7 +664,6 @@ function renderDeep(d){
         const url=x.url||x.href;
         const title=x.name||x.source||url||'Результат';
         const body=formatDeepData(x.data);
-
         return '<div class="deep-result">'+
           (url
             ?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>'
@@ -765,12 +674,10 @@ function renderDeep(d){
       }).join('')
       :''
     );
-
   if(!deepSites.innerHTML){
     deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
   }
 }
-
 async function pollDeep(){
   if(!deepJobId)return;
   try{
@@ -778,7 +685,6 @@ async function pollDeep(){
     if(!r.ok)return;
     const d=await r.json();
     renderDeep(d);
-
     if(d.status==='done'||d.status==='error'||d.status==='cancelled'){
       clearInterval(deepTimer);deepTimer=null;
       stopDeep.classList.remove('active');
@@ -788,18 +694,14 @@ async function pollDeep(){
     deepStatus.innerHTML='Статус: <span class="deep-status-waiting">ожидание связи с Render…</span>';
   }
 }
-
 async function stopDeepSearch(){
   if(!deepJobId)return;
   stopDeep.disabled=true;
   deepStatus.textContent='Статус: остановка…';
-
   try{
     const r=await fetch(deepRender+'/deep/cancel?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
     const d=await r.json();
-
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
-
     clearInterval(deepTimer);deepTimer=null;
     renderDeep(d);
     stopDeep.classList.remove('active');
@@ -810,22 +712,17 @@ async function stopDeepSearch(){
     stopDeep.disabled=false;
   }
 }
-
 async function deepSearch(){
   const value=deepQ.value.trim(),kind=deepKind.value;
-
   if(!value){
     deepQ.focus();
     return;
   }
-
   deepRender=kind==='email_mosint'?RENDER_MOSINT:RENDER;
-
   if(deepTimer){
     clearInterval(deepTimer);
     deepTimer=null;
   }
-
   deepProgress.style.display='block';
   deepQuery.textContent=deepLabel(kind)+': '+value;
   deepStatus.textContent='Статус: запуск…';
@@ -834,29 +731,22 @@ async function deepSearch(){
   deepSites.innerHTML='';
   stopDeep.classList.remove('active');
   deepRunning.classList.remove('active');
-
   if(kind==='username'&&!validUsername(value)){
     deepStatus.textContent='Статус: username должен содержать латинские буквы, цифры, точку, дефис или подчёркивание.';
     return;
   }
-
   try{
     const r=await fetch(
       deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),
       {cache:'no-store'}
     );
-
     const d=await r.json();
-
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
-
     deepJobId=d.job_id;
     renderDeep(d);
-
     if(d.status!=='done'&&d.status!=='error'&&d.status!=='cancelled'){
       stopDeep.classList.add('active');
       deepRunning.classList.add('active');
-
       await pollDeep();
       deepTimer=setInterval(pollDeep,4000);
     }
@@ -866,7 +756,6 @@ async function deepSearch(){
     deepStatus.textContent='Статус: ошибка запуска — '+e.message;
   }
 }
-
 function updateDeepPlaceholder(){
   const p={
     username_sherlock:'Username для быстрого поиска Sherlock…',
@@ -880,6 +769,8 @@ function updateDeepPlaceholder(){
     email_mailaccess:'Email для проверки через MailAccess…',
     email_h8mail:'Email для проверки через h8mail…',
     email_mosint:'Email для проверки через Mosint…',
+    email_blackbird:'Email для проверки через Blackbird…',
+    username_blackbird:'Username для проверки через Blackbird…',
     vin:'VIN из 17 символов…',
     domain:'example.com…',
     ip:'IP-адрес…',
@@ -887,24 +778,19 @@ function updateDeepPlaceholder(){
     email_extended:'Email/Gmail для расширенного поиска…',
     phone_extended:'Номер телефона для расширенного поиска…'
   };
-
   deepQ.placeholder=p[deepKind.value]||'Запрос…';
 }
-
 function searchAll(){
   const value=quickQ.value.trim();
-
   if(!value){
     quickQ.focus();
     return;
   }
-
   document.querySelectorAll('.card a[data-url]').forEach(a=>{
     a.href=a.dataset.url.replaceAll('{q}',enc(value));
     a.target='_blank';
     a.rel='noopener noreferrer';
   });
-
   document.querySelectorAll('.card').forEach(c=>{
     c.style.display=
       currentType==='all'||
@@ -912,30 +798,22 @@ function searchAll(){
         ?'block'
         :'none';
   });
-
   quickLookup(value);
 }
-
 document.querySelectorAll('.type').forEach(b=>b.onclick=()=>{
   currentType=b.dataset.type;
-
   document.querySelectorAll('.type').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');
-
   if(quickQ.value.trim())searchAll();
 });
-
 quickQ.addEventListener('keydown',e=>{
   if(e.key==='Enter')searchAll();
 });
-
 deepQ.addEventListener('keydown',e=>{
   if(e.key==='Enter')deepSearch();
 });
-
 deepKind.addEventListener('change',updateDeepPlaceholder);
 updateDeepPlaceholder();
 </script>
-
 </body>
 </html>
