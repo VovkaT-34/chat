@@ -30,24 +30,22 @@ async function getStoredLoginSession() {
 }
 
 async function checkAuth() {
+    const loginPath = window.location.pathname.includes("/airplanes5/")
+        ? "../login.html"
+        : "./login.html";
+
     try {
         if (!window.supabaseClient) {
-            window.location.replace("./login.html");
+            window.location.replace(loginPath);
             return;
         }
 
-        // auth.js сохраняет готовую сессию в стандартный Supabase localStorage.
-        // На старом Safari нельзя здесь повторно вызывать setSession():
-        // 02-chat-user.js делает это сразу после загрузки страницы. Два
-        // одновременных setSession() могут конкурировать за refresh token.
         const storedSession = await getStoredLoginSession();
 
         if (storedSession && storedSession.access_token) {
             return;
         }
 
-        // Обычный путь для современных браузеров, где Supabase сам восстановил
-        // локальную сессию.
         try {
             const result = await supabaseClient.auth.getSession();
             const session = result && result.data
@@ -61,12 +59,10 @@ async function checkAuth() {
             console.warn("Не удалось получить Supabase-сессию:", error);
         }
 
-        window.location.replace("./login.html");
+        window.location.replace(loginPath);
     } catch (error) {
         console.error("Ошибка проверки авторизации:", error);
 
-        // Последняя проверка localStorage: если REST-вход уже сохранил
-        // полноценную сессию, не выбрасываем пользователя на login.html.
         try {
             const storedSession = await getStoredLoginSession();
             if (storedSession && storedSession.access_token) {
@@ -79,7 +75,7 @@ async function checkAuth() {
             );
         }
 
-        window.location.replace("./login.html");
+        window.location.replace(loginPath);
     }
 }
 
