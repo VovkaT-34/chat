@@ -1,5 +1,5 @@
 // =========================================
-// Проверка авторизации через Supabase
+// Проверка авторизации и одобрения администратора через Supabase
 // Совместимо со старыми Safari / Android WebView.
 // =========================================
 
@@ -50,26 +50,38 @@ async function checkAuth() {
             return;
         }
 
-        const storedSession = await getStoredLoginSession();
-        if (storedSession && storedSession.access_token) return;
-
+        let session = null;
         try {
             const result = await supabaseClient.auth.getSession();
-            const session = result && result.data ? result.data.session : null;
-            if (session && session.access_token) return;
+            session = result && result.data ? result.data.session : null;
         } catch (error) {
             console.warn("Не удалось получить Supabase-сессию:", error);
         }
 
-        window.location.replace(loginPath);
+        if (!session || !session.user) {
+            const storedSession = await getStoredLoginSession();
+            if (storedSession && storedSession.access_token && storedSession.user) {
+                session = storedSession;
+            }
+        }
+
+        if (!session || !session.user || !session.user.id) {
+            window.location.replace(loginPath);
+            return;
+        }
+
+        const { data: profile, error: profileError } = await supabaseClient
+            .from("profiles")
+            .select("approved")
+            .eq("id", session.user.id)
+            .single();
+
+        if (profileError || !profile || profile.approved !== true) {
+            window.location.replace(loginPath);
+            return;
+        }
     } catch (error) {
         console.error("Ошибка проверки авторизации:", error);
-        try {
-            const storedSession = await getStoredLoginSession();
-            if (storedSession && storedSession.access_token) return;
-        } catch (restoreError) {
-            console.warn("Последняя проверка сохранённой сессии не удалась:", restoreError);
-        }
         window.location.replace(loginPath);
     }
 }
