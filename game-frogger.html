@@ -1,1 +1,35 @@
-<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="robots" content="noindex,nofollow,noarchive"><title>🐸 Frogger</title><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="game-frogger.css"><script src="auth-check.js"></script></head><body><div class="page"><div class="top"><button class="back" onclick="location.href='games.html'">← Игры</button><h1 class="title">🐸 Frogger</h1><span id="froggerScore" class="score">0</span></div><canvas id="froggerCanvas" class="frogger-canvas" width="600" height="600"></canvas><div class="game-controls-wide"><div class="wide-grid"><button class="mobile-pause pause-btn" onclick="toggleFroggerPause()">Пауза</button><button class="game-btn" data-frog="left">◀</button><button class="game-btn" data-frog="up">▲</button><button class="game-btn" data-frog="right">▶</button><button class="game-btn" data-frog="down">▼</button></div></div><p class="hint desktop-hint">Компьютер: стрелки — движение · Пробел — пауза</p></div><script>var activeGame='frogger';</script><script src="game-frogger.js"></script><script>startFrogger();</script></body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>🐸 Frogger</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="game-frogger.css">
+  <script src="auth-check.js"></script>
+</head>
+<body>
+  <div class="page">
+    <div class="top">
+      <button class="back" onclick="location.href='games.html'">← Игры</button>
+      <h1 class="title">🐸 Frogger</h1>
+      <span id="froggerScore" class="score">0</span>
+    </div>
+    <canvas id="froggerCanvas" class="frogger-canvas" width="600" height="600"></canvas>
+    <div class="game-controls-wide">
+      <div class="wide-grid">
+        <button class="mobile-pause pause-btn" onclick="toggleFroggerPause()">Пауза</button>
+        <button class="game-btn" data-frog="left">◀</button>
+        <button class="game-btn" data-frog="up">▲</button>
+        <button class="game-btn" data-frog="right">▶</button>
+        <button class="game-btn" data-frog="down">▼</button>
+      </div>
+    </div>
+    <p class="hint desktop-hint">Компьютер: стрелки — движение · Пробел — пауза</p>
+  </div>
+  <script>var activeGame='frogger';</script>
+  <script src="game-frogger.js"></script>
+  <script>startFrogger();</script>
+</body>
+</html>
