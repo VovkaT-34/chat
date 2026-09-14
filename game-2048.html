@@ -1,26 +1,26 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="robots" content="noindex,nofollow,noarchive">
-<title>🔢 2048</title>
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="game-2048.css">
-<script src="auth-check.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>🔢 2048</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="game-2048.css">
+  <script src="auth-check.js"></script>
 </head>
 <body>
-<div class="page">
-  <div class="top">
-    <button class="back" onclick="location.href='games.html'">← Игры</button>
-    <h1 class="title">🔢 2048</h1>
-    <span id="score2048" class="score">0</span>
+  <div class="page">
+    <div class="top">
+      <button class="back" onclick="location.href='games.html'">← Игры</button>
+      <h1 class="title">🔢 2048</h1>
+      <span id="score2048" class="score">0</span>
+    </div>
+    <div id="grid2048" class="grid2048"></div>
+    <p class="hint">Стрелки или свайпы</p>
+    <div class="small-controls"><button class="play" onclick="start2048()">Заново</button></div>
   </div>
-  <div id="grid2048" class="grid2048"></div>
-  <p class="hint">Стрелки или свайпы</p>
-  <div class="small-controls"><button class="play" onclick="start2048()">Заново</button></div>
-</div>
-<script>var activeGame='2048';</script>
-<script src="game-2048.js"></script>
+  <script>var activeGame='2048';</script>
+  <script src="game-2048.js"></script>
 </body>
 </html>
