@@ -1,1 +1,33 @@
-<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="robots" content="noindex,nofollow,noarchive"><title>🐍 Змейка</title><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="game-змейка.css"><script src="auth-check.js"></script></head><body><div class="page"><div class="top"><button class="back" onclick="location.href='games.html'">← Игры</button><h1 class="title">🐍 Змейка</h1><span id="snakeScore" class="score">0</span></div><div class="canvas-wrap"><canvas id="snakeCanvas" class="game-canvas" width="360" height="360"></canvas></div><div class="controls"><button class="mobile-pause pause-btn" onclick="toggleSnakePause()">Пауза</button><button class="ctrl up" data-dir="up">▲</button><button class="ctrl left" data-dir="left">◀</button><button class="ctrl down" data-dir="down">▼</button><button class="ctrl right" data-dir="right">▶</button></div><p class="hint desktop-hint">Компьютер: стрелки ↑ ↓ ← → · Пробел — пауза</p></div><script src="game-змейка.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>🐍 Змейка</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="game-змейка.css">
+  <script src="auth-check.js"></script>
+</head>
+<body>
+  <div class="page">
+    <div class="top">
+      <button class="back" onclick="location.href='games.html'">← Игры</button>
+      <h1 class="title">🐍 Змейка</h1>
+      <span id="snakeScore" class="score">0</span>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="snakeCanvas" class="game-canvas" width="360" height="360"></canvas>
+    </div>
+    <div class="controls">
+      <button class="mobile-pause pause-btn" onclick="toggleSnakePause()">Пауза</button>
+      <button class="ctrl up" data-dir="up">▲</button>
+      <button class="ctrl left" data-dir="left">◀</button>
+      <button class="ctrl down" data-dir="down">▼</button>
+      <button class="ctrl right" data-dir="right">▶</button>
+    </div>
+    <p class="hint desktop-hint">Компьютер: стрелки ↑ ↓ ← → · Пробел — пауза</p>
+  </div>
+  <script src="game-змейка.js"></script>
+</body>
+</html>
