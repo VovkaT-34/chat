@@ -173,9 +173,13 @@ async def mailaccess_search(
         status: str,
     ) -> None:
         if progress:
+            # Для MailAccess намеренно показываем только фактически
+            # проверенное количество: 10/10, 20/20, 30/30 и т.д.
+            # Реальное число модулей MailAccess не используется как
+            # конечная точка прогресса и не выводится пользователю.
             progress(
                 checked,
-                total,
+                checked,
                 status,
                 found,
             )
