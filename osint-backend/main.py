@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import resource
 import time
 import uuid
 from importlib.resources import files
@@ -124,6 +125,16 @@ def health():
             "username_blackbird",
             "email_mosint",
         ],
+    }
+
+
+@app.get("/memory")
+def memory():
+    """Return the current process RSS in megabytes for the lightweight UI indicator."""
+    rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return {
+        "ram_mb": round(rss_kb / 1024, 1),
+        "unit": "MB RAM",
     }
 
 
