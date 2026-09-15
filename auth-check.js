@@ -136,7 +136,7 @@ function installOsintUiIndicators() {
     }, 250);
 
     updateRam();
-    setInterval(updateRam, 3000);
+    setInterval(updateRam, 2500);
 }
 
 async function checkAuth() {
