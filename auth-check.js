@@ -71,13 +71,20 @@ function installOsintUiIndicators() {
     const style = document.createElement("style");
     style.textContent = `
         .osint-ram-indicator {
-            display:inline-block;
-            margin-left:10px;
-            color:#bfb5bb;
-            font-size:12px;
-            font-weight:700;
-            white-space:nowrap;
-            vertical-align:middle;
+            display:inline-block !important;
+            margin-left:10px !important;
+            padding:2px 7px !important;
+            border:1px solid rgba(255,255,255,.18) !important;
+            border-radius:7px !important;
+            background:rgba(0,0,0,.28) !important;
+            color:#ffffff !important;
+            font-size:12px !important;
+            font-weight:700 !important;
+            line-height:1.35 !important;
+            white-space:nowrap !important;
+            vertical-align:middle !important;
+            opacity:1 !important;
+            visibility:visible !important;
         }
     `;
     document.head.appendChild(style);
@@ -90,12 +97,14 @@ function installOsintUiIndicators() {
     const installRam = () => {
         const title = findSearchTitle();
         if (!title) return false;
-        if (document.getElementById("osintRamIndicator")) return true;
-        const indicator = document.createElement("span");
-        indicator.id = "osintRamIndicator";
-        indicator.className = "osint-ram-indicator";
-        indicator.textContent = "ОЗУ: — MB";
-        title.appendChild(indicator);
+        let indicator = document.getElementById("osintRamIndicator");
+        if (!indicator) {
+            indicator = document.createElement("span");
+            indicator.id = "osintRamIndicator";
+            indicator.className = "osint-ram-indicator";
+            indicator.textContent = "ОЗУ: — MB";
+            title.appendChild(indicator);
+        }
         return true;
     };
 
@@ -134,6 +143,12 @@ function installOsintUiIndicators() {
             clearInterval(timer);
         }
     }, 250);
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", installRam, { once: true });
+    } else {
+        installRam();
+    }
 
     updateRam();
     setInterval(updateRam, 2500);
