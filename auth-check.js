@@ -47,9 +47,7 @@ function installOsintAuthFetch() {
                     const result = await window.supabaseClient.auth.getSession();
                     accessToken = result && result.data && result.data.session ? result.data.session.access_token || "" : "";
                 }
-            } catch (error) {
-                console.warn("Не удалось получить токен для OSINT-запроса:", error);
-            }
+            } catch (error) {}
             if (!accessToken) {
                 const stored = await getStoredLoginSession();
                 accessToken = stored && stored.access_token ? stored.access_token : "";
@@ -83,24 +81,22 @@ function installOsintUiIndicators() {
             font-weight:800 !important;
             line-height:1.35 !important;
             white-space:nowrap !important;
-            vertical-align:middle !important;
-            opacity:1 !important;
             visibility:visible !important;
+            opacity:1 !important;
             position:relative !important;
-            z-index:20 !important;
+            z-index:9999 !important;
         }
         .search-title-row .osint-ram-indicator { flex:0 0 auto !important; }
     `;
     document.head.appendChild(style);
 
-    const findSearchTitleRow = () => {
-        const titles = Array.from(document.querySelectorAll(".search-title"));
-        const title = titles.find(el => (el.textContent || "").trim().includes("Глубокий поиск"));
+    const findRow = () => {
+        const title = Array.from(document.querySelectorAll(".search-title")).find(el => (el.textContent || "").includes("Глубокий поиск"));
         return title ? title.closest(".search-title-row") : null;
     };
 
     const installRam = () => {
-        const row = findSearchTitleRow();
+        const row = findRow();
         if (!row) return false;
         let indicator = document.getElementById("osintRamIndicator");
         if (!indicator) {
@@ -108,10 +104,8 @@ function installOsintUiIndicators() {
             indicator.id = "osintRamIndicator";
             indicator.className = "osint-ram-indicator";
             indicator.textContent = "ОЗУ: — MB";
-            row.appendChild(indicator);
-        } else if (indicator.parentElement !== row) {
-            row.appendChild(indicator);
         }
+        if (indicator.parentElement !== row) row.appendChild(indicator);
         return true;
     };
 
@@ -129,48 +123,24 @@ function installOsintUiIndicators() {
         } catch (error) {}
     };
 
-    const patchMailAccessProgress = () => {
-        if (typeof window.renderDeep !== "function" || window.__osintRenderDeepPatched) return;
-        const originalRenderDeep = window.renderDeep;
-        window.renderDeep = function(data) {
-            originalRenderDeep(data);
-            if (data && data.kind === "email_mailaccess" && data.total) {
-                const element = document.getElementById("deepChecked");
-                if (element) element.textContent = "Проверено: " + Number(data.checked || 0) + " / " + Number(data.total || 0);
-            }
-        };
-        window.__osintRenderDeepPatched = true;
-    };
-
-    const timer = setInterval(() => {
-        const ready = installRam();
-        patchMailAccessProgress();
-        if (ready && window.__osintRenderDeepPatched) {
-            window.__osintUiIndicatorsInstalled = true;
-            clearInterval(timer);
-        }
-    }, 250);
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", installRam, { once: true });
-    } else {
-        installRam();
-    }
-
+    const observer = new MutationObserver(() => installRam());
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    installRam();
     updateRam();
     setInterval(updateRam, 2500);
+    window.__osintUiIndicatorsInstalled = true;
 }
 
 async function checkAuth() {
     const loginPath = window.location.pathname.includes("/airplanes5/") ? "../login.html" : "./login.html";
     try {
-        try { await loadSupabaseIfNeeded(); } catch (error) { console.warn("Не удалось загрузить Supabase:", error); }
+        try { await loadSupabaseIfNeeded(); } catch (error) {}
         if (!window.supabaseClient) { window.location.replace(loginPath); return; }
         let session = null;
         try {
             const result = await supabaseClient.auth.getSession();
             session = result && result.data ? result.data.session : null;
-        } catch (error) { console.warn("Не удалось получить Supabase-сессию:", error); }
+        } catch (error) {}
         if (!session || !session.user) {
             const storedSession = await getStoredLoginSession();
             if (storedSession && storedSession.access_token && storedSession.user) session = storedSession;
