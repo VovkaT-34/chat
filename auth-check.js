@@ -71,39 +71,46 @@ function installOsintUiIndicators() {
     const style = document.createElement("style");
     style.textContent = `
         .osint-ram-indicator {
-            display:inline-block !important;
-            margin-left:10px !important;
-            padding:2px 7px !important;
-            border:1px solid rgba(255,255,255,.18) !important;
-            border-radius:7px !important;
-            background:rgba(0,0,0,.28) !important;
-            color:#ffffff !important;
+            display:inline-flex !important;
+            align-items:center !important;
+            margin-left:auto !important;
+            padding:3px 8px !important;
+            border:1px solid rgba(57,229,140,.45) !important;
+            border-radius:8px !important;
+            background:rgba(57,229,140,.10) !important;
+            color:#39e58c !important;
             font-size:12px !important;
-            font-weight:700 !important;
+            font-weight:800 !important;
             line-height:1.35 !important;
             white-space:nowrap !important;
             vertical-align:middle !important;
             opacity:1 !important;
             visibility:visible !important;
+            position:relative !important;
+            z-index:20 !important;
         }
+        .search-title-row .osint-ram-indicator { flex:0 0 auto !important; }
     `;
     document.head.appendChild(style);
 
-    const findSearchTitle = () => {
+    const findSearchTitleRow = () => {
         const titles = Array.from(document.querySelectorAll(".search-title"));
-        return titles.find(el => (el.textContent || "").trim().includes("Глубокий поиск")) || null;
+        const title = titles.find(el => (el.textContent || "").trim().includes("Глубокий поиск"));
+        return title ? title.closest(".search-title-row") : null;
     };
 
     const installRam = () => {
-        const title = findSearchTitle();
-        if (!title) return false;
+        const row = findSearchTitleRow();
+        if (!row) return false;
         let indicator = document.getElementById("osintRamIndicator");
         if (!indicator) {
             indicator = document.createElement("span");
             indicator.id = "osintRamIndicator";
             indicator.className = "osint-ram-indicator";
             indicator.textContent = "ОЗУ: — MB";
-            title.appendChild(indicator);
+            row.appendChild(indicator);
+        } else if (indicator.parentElement !== row) {
+            row.appendChild(indicator);
         }
         return true;
     };
