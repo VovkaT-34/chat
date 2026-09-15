@@ -98,6 +98,88 @@ function installOsintAuthFetch() {
     };
 }
 
+function installOsintUiIndicators() {
+    if (window.__osintUiIndicatorsInstalled) return;
+    if (!window.location.pathname.endsWith("game-glaz-boga.html")) return;
+    window.__osintUiIndicatorsInstalled = true;
+
+    const style = document.createElement("style");
+    style.textContent = `
+        .osint-ram-indicator {
+            display:inline-block;
+            margin-left:8px;
+            color:#bfb5bb;
+            font-size:12px;
+            font-weight:700;
+            white-space:nowrap;
+        }
+    `;
+    document.head.appendChild(style);
+
+    const findSearchTitle = () => {
+        const titles = Array.from(document.querySelectorAll(".search-title"));
+        return titles.find(el => {
+            const text = (el.textContent || "").trim();
+            return text.includes("Глобальный поиск") || text.includes("Глубокий поиск");
+        }) || titles[0] || null;
+    };
+
+    const installRam = () => {
+        const title = findSearchTitle();
+        if (!title || document.getElementById("osintRamIndicator")) return !!title;
+
+        const indicator = document.createElement("span");
+        indicator.id = "osintRamIndicator";
+        indicator.className = "osint-ram-indicator";
+        indicator.textContent = "ОЗУ: — MB";
+
+        title.insertAdjacentElement("afterend", indicator);
+        return true;
+    };
+
+    const updateRam = async () => {
+        if (!installRam()) return;
+        try {
+            const response = await fetch("https://glaz-boga-osint.onrender.com/memory", {
+                cache: "no-store"
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            const value = Number(data.ram_mb);
+            if (Number.isFinite(value)) {
+                const indicator = document.getElementById("osintRamIndicator");
+                if (indicator) indicator.textContent = "ОЗУ: " + value.toFixed(1) + " MB";
+            }
+        } catch (error) {
+            // RAM indicator is informational and must never affect the search.
+        }
+    };
+
+    const patchMailAccessProgress = () => {
+        if (typeof window.renderDeep !== "function" || window.__osintRenderDeepPatched) return;
+        const originalRenderDeep = window.renderDeep;
+        window.renderDeep = function(data) {
+            originalRenderDeep(data);
+            if (data && data.kind === "email_mailaccess" && data.total) {
+                const checked = Number(data.checked || 0);
+                const total = Number(data.total || 0);
+                const element = document.getElementById("deepChecked");
+                if (element) element.textContent = "Проверено: " + checked + " / " + total;
+            }
+        };
+        window.__osintRenderDeepPatched = true;
+    };
+
+    const timer = setInterval(() => {
+        const ready = installRam();
+        patchMailAccessProgress();
+        if (ready && window.__osintRenderDeepPatched) clearInterval(timer);
+    }, 250);
+
+    updateRam();
+    setInterval(updateRam, 3000);
+}
+
 async function checkAuth() {
     const loginPath = window.location.pathname.includes("/airplanes5/")
         ? "../login.html"
@@ -147,6 +229,7 @@ async function checkAuth() {
         }
 
         installOsintAuthFetch();
+        installOsintUiIndicators();
     } catch (error) {
         console.error("Ошибка проверки авторизации:", error);
         window.location.replace(loginPath);
