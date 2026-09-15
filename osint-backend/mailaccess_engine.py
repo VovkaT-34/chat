@@ -10,8 +10,7 @@ import websockets
 
 
 MAILACCESS_TIMEOUT = 240
-MAX_FOUND = 50
-MAX_CONCURRENT_MODULES = 3
+MAX_CONCURRENT_MODULES = 1
 MAILACCESS_HOST = "127.0.0.1"
 
 
@@ -173,13 +172,9 @@ async def mailaccess_search(
         status: str,
     ) -> None:
         if progress:
-            # Для MailAccess намеренно показываем только фактически
-            # проверенное количество: 10/10, 20/20, 30/30 и т.д.
-            # Реальное число модулей MailAccess не используется как
-            # конечная точка прогресса и не выводится пользователю.
             progress(
                 checked,
-                checked,
+                total,
                 status,
                 found,
             )
@@ -455,17 +450,6 @@ async def mailaccess_search(
                                 )
 
                                 found.append(item)
-
-                                if (
-                                    len(found)
-                                    >= MAX_FOUND
-                                ):
-
-                                    found = found[
-                                        :MAX_FOUND
-                                    ]
-
-                                    break
 
                     if event_type == "module_error":
 
