@@ -107,11 +107,12 @@ function installOsintUiIndicators() {
     style.textContent = `
         .osint-ram-indicator {
             display:inline-block;
-            margin-left:8px;
+            margin-left:10px;
             color:#bfb5bb;
             font-size:12px;
             font-weight:700;
             white-space:nowrap;
+            vertical-align:middle;
         }
     `;
     document.head.appendChild(style);
@@ -133,7 +134,7 @@ function installOsintUiIndicators() {
         indicator.className = "osint-ram-indicator";
         indicator.textContent = "ОЗУ: — MB";
 
-        title.insertAdjacentElement("afterend", indicator);
+        title.appendChild(indicator);
         return true;
     };
 
