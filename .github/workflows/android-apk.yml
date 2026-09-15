@@ -40,4 +40,4 @@ jobs:
           name: chat-android-apk
           path: android/app/build/outputs/apk/debug/chat.apk
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 1
