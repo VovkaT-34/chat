@@ -5,9 +5,7 @@
 
 async function getStoredLoginSession() {
     try {
-        const raw = localStorage.getItem(
-            "sb-sxkukrqjtgkxmzuzondm-auth-token"
-        );
+        const raw = localStorage.getItem("sb-sxkukrqjtgkxmzuzondm-auth-token");
         if (!raw) return null;
         const stored = JSON.parse(raw);
         if (!stored || !stored.access_token || !stored.refresh_token || !stored.user) return null;
@@ -20,9 +18,7 @@ async function getStoredLoginSession() {
 
 async function loadSupabaseIfNeeded() {
     if (window.supabaseClient) return true;
-    const src = window.location.pathname.includes("/airplanes5/")
-        ? "../supabase.js"
-        : "./supabase.js";
+    const src = window.location.pathname.includes("/airplanes5/") ? "../supabase.js" : "./supabase.js";
     await new Promise((resolve, reject) => {
         const script = document.createElement("script");
         script.src = src;
@@ -36,62 +32,32 @@ async function loadSupabaseIfNeeded() {
 function installOsintAuthFetch() {
     if (window.__osintAuthFetchInstalled) return;
     window.__osintAuthFetchInstalled = true;
-
     const nativeFetch = window.fetch.bind(window);
-    const protectedHosts = new Set([
-        "sxkukrqjtgkxmzuzondm.supabase.co",
-        "glaz-boga-osint.onrender.com",
-        "glaz-boga-osint-docker-test.onrender.com"
-    ]);
-
+    const protectedHosts = new Set(["sxkukrqjtgkxmzuzondm.supabase.co", "glaz-boga-osint.onrender.com", "glaz-boga-osint-docker-test.onrender.com"]);
     window.fetch = async function(input, init) {
         let url = "";
         try {
             url = typeof input === "string" ? input : (input && input.url) || "";
             const parsed = new URL(url, window.location.href);
-            const protectedRequest =
-                protectedHosts.has(parsed.hostname) &&
-                (
-                    parsed.hostname === "glaz-boga-osint.onrender.com" ||
-                    parsed.hostname === "glaz-boga-osint-docker-test.onrender.com" ||
-                    parsed.pathname.startsWith("/functions/v1/osint-public")
-                );
-
-            if (!protectedRequest) {
-                return nativeFetch(input, init);
-            }
-
+            const protectedRequest = protectedHosts.has(parsed.hostname) && (parsed.hostname === "glaz-boga-osint.onrender.com" || parsed.hostname === "glaz-boga-osint-docker-test.onrender.com" || parsed.pathname.startsWith("/functions/v1/osint-public"));
+            if (!protectedRequest) return nativeFetch(input, init);
             let accessToken = "";
             try {
                 if (window.supabaseClient) {
                     const result = await window.supabaseClient.auth.getSession();
-                    accessToken = result && result.data && result.data.session
-                        ? result.data.session.access_token || ""
-                        : "";
+                    accessToken = result && result.data && result.data.session ? result.data.session.access_token || "" : "";
                 }
             } catch (error) {
                 console.warn("Не удалось получить токен для OSINT-запроса:", error);
             }
-
             if (!accessToken) {
                 const stored = await getStoredLoginSession();
                 accessToken = stored && stored.access_token ? stored.access_token : "";
             }
-
-            const headers = new Headers(
-                input instanceof Request ? input.headers : undefined
-            );
-            if (init && init.headers) {
-                new Headers(init.headers).forEach((value, key) => headers.set(key, value));
-            }
-            if (accessToken) {
-                headers.set("Authorization", "Bearer " + accessToken);
-            }
-
-            return nativeFetch(input, {
-                ...(init || {}),
-                headers
-            });
+            const headers = new Headers(input instanceof Request ? input.headers : undefined);
+            if (init && init.headers) new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+            if (accessToken) headers.set("Authorization", "Bearer " + accessToken);
+            return nativeFetch(input, { ...(init || {}), headers });
         } catch (error) {
             return nativeFetch(input, init);
         }
@@ -101,7 +67,6 @@ function installOsintAuthFetch() {
 function installOsintUiIndicators() {
     if (window.__osintUiIndicatorsInstalled) return;
     if (!window.location.pathname.endsWith("game-glaz-boga.html")) return;
-    window.__osintUiIndicatorsInstalled = true;
 
     const style = document.createElement("style");
     style.textContent = `
@@ -119,21 +84,17 @@ function installOsintUiIndicators() {
 
     const findSearchTitle = () => {
         const titles = Array.from(document.querySelectorAll(".search-title"));
-        return titles.find(el => {
-            const text = (el.textContent || "").trim();
-            return text.includes("Глобальный поиск") || text.includes("Глубокий поиск");
-        }) || titles[0] || null;
+        return titles.find(el => (el.textContent || "").trim().includes("Глубокий поиск")) || null;
     };
 
     const installRam = () => {
         const title = findSearchTitle();
-        if (!title || document.getElementById("osintRamIndicator")) return !!title;
-
+        if (!title) return false;
+        if (document.getElementById("osintRamIndicator")) return true;
         const indicator = document.createElement("span");
         indicator.id = "osintRamIndicator";
         indicator.className = "osint-ram-indicator";
         indicator.textContent = "ОЗУ: — MB";
-
         title.appendChild(indicator);
         return true;
     };
@@ -141,9 +102,7 @@ function installOsintUiIndicators() {
     const updateRam = async () => {
         if (!installRam()) return;
         try {
-            const response = await fetch("https://glaz-boga-osint.onrender.com/memory", {
-                cache: "no-store"
-            });
+            const response = await fetch("https://glaz-boga-osint.onrender.com/memory", { cache: "no-store" });
             if (!response.ok) return;
             const data = await response.json();
             const value = Number(data.ram_mb);
@@ -151,9 +110,7 @@ function installOsintUiIndicators() {
                 const indicator = document.getElementById("osintRamIndicator");
                 if (indicator) indicator.textContent = "ОЗУ: " + value.toFixed(1) + " MB";
             }
-        } catch (error) {
-            // RAM indicator is informational and must never affect the search.
-        }
+        } catch (error) {}
     };
 
     const patchMailAccessProgress = () => {
@@ -162,10 +119,8 @@ function installOsintUiIndicators() {
         window.renderDeep = function(data) {
             originalRenderDeep(data);
             if (data && data.kind === "email_mailaccess" && data.total) {
-                const checked = Number(data.checked || 0);
-                const total = Number(data.total || 0);
                 const element = document.getElementById("deepChecked");
-                if (element) element.textContent = "Проверено: " + checked + " / " + total;
+                if (element) element.textContent = "Проверено: " + Number(data.checked || 0) + " / " + Number(data.total || 0);
             }
         };
         window.__osintRenderDeepPatched = true;
@@ -174,7 +129,10 @@ function installOsintUiIndicators() {
     const timer = setInterval(() => {
         const ready = installRam();
         patchMailAccessProgress();
-        if (ready && window.__osintRenderDeepPatched) clearInterval(timer);
+        if (ready && window.__osintRenderDeepPatched) {
+            window.__osintUiIndicatorsInstalled = true;
+            clearInterval(timer);
+        }
     }, 250);
 
     updateRam();
@@ -182,53 +140,22 @@ function installOsintUiIndicators() {
 }
 
 async function checkAuth() {
-    const loginPath = window.location.pathname.includes("/airplanes5/")
-        ? "../login.html"
-        : "./login.html";
-
+    const loginPath = window.location.pathname.includes("/airplanes5/") ? "../login.html" : "./login.html";
     try {
-        try {
-            await loadSupabaseIfNeeded();
-        } catch (error) {
-            console.warn("Не удалось загрузить Supabase:", error);
-        }
-
-        if (!window.supabaseClient) {
-            window.location.replace(loginPath);
-            return;
-        }
-
+        try { await loadSupabaseIfNeeded(); } catch (error) { console.warn("Не удалось загрузить Supabase:", error); }
+        if (!window.supabaseClient) { window.location.replace(loginPath); return; }
         let session = null;
         try {
             const result = await supabaseClient.auth.getSession();
             session = result && result.data ? result.data.session : null;
-        } catch (error) {
-            console.warn("Не удалось получить Supabase-сессию:", error);
-        }
-
+        } catch (error) { console.warn("Не удалось получить Supabase-сессию:", error); }
         if (!session || !session.user) {
             const storedSession = await getStoredLoginSession();
-            if (storedSession && storedSession.access_token && storedSession.user) {
-                session = storedSession;
-            }
+            if (storedSession && storedSession.access_token && storedSession.user) session = storedSession;
         }
-
-        if (!session || !session.user || !session.user.id) {
-            window.location.replace(loginPath);
-            return;
-        }
-
-        const { data: profile, error: profileError } = await supabaseClient
-            .from("profiles")
-            .select("approved")
-            .eq("id", session.user.id)
-            .single();
-
-        if (profileError || !profile || profile.approved !== true) {
-            window.location.replace(loginPath);
-            return;
-        }
-
+        if (!session || !session.user || !session.user.id) { window.location.replace(loginPath); return; }
+        const { data: profile, error: profileError } = await supabaseClient.from("profiles").select("approved").eq("id", session.user.id).single();
+        if (profileError || !profile || profile.approved !== true) { window.location.replace(loginPath); return; }
         installOsintAuthFetch();
         installOsintUiIndicators();
     } catch (error) {
