@@ -592,15 +592,15 @@ function formatMailAccessDossier(results){
       body+='</div>';
     });
     return '<section class="dossier-section">'+
-      '<div class="dossier-section-title">'+icon+' '+title+'</div>'+
-      '<div class="dossier-section-body">'+body+'</div>'+
+      '<div class="dossier-section-title">'+icon+' '+title+'</div>'+ 
+      '<div class="dossier-section-body">'+body+'</div>'+ 
       '</section>';
   }
   let html='<div class="osint-dossier">';
   html+='<div class="dossier-head">'+
-    '<div class="dossier-title">🕵️ Структурированное досье</div>'+
-    '<div class="dossier-subtitle">MailAccess · полезные сведения собраны по категориям</div>'+
-    '<div style="margin-top:7px">'+badges()+'</div>'+
+    '<div class="dossier-title">🕵️ Структурированное досье</div>'+ 
+    '<div class="dossier-subtitle">MailAccess · полезные сведения собраны по категориям</div>'+ 
+    '<div style="margin-top:7px">'+badges()+'</div>'+ 
     '</div>';
   html+=renderSection('Репутация и риски','🚨',sections.reputation);
   html+=renderSection('Идентификация','📧',sections.identity);
@@ -627,18 +627,18 @@ function formatMailAccessDossier(results){
 }
 function renderDeep(d){
   const kind=d.kind||deepKind.value;
+  const isMailAccess=kind==='email_mailaccess';
   deepQuery.textContent=deepLabel(kind)+': '+(d.query||'');
   const statusLabel=d.status==='running'?'выполняется':d.status==='done'?'завершен':d.status==='queued'?'ожидает запуска':d.status==='error'?'ошибка':d.status==='cancelled'?'остановлен':d.status;
   const statusClass=d.status==='running'?'deep-status-running':d.status==='done'?'deep-status-done':d.status==='cancelled'?'deep-status-done':'';
   deepStatus.innerHTML='Статус: <span class="'+statusClass+'">'+esc(statusLabel)+'</span>';
   const checked=Number(d.checked||0);
   const total=Number(d.total||0);
-  deepChecked.textContent='Проверено: '+checked+' / '+total;
+  deepChecked.textContent='Проверено: '+checked+' / '+(isMailAccess?checked:total);
   const foundCount=Number(d.count||0);
   deepFound.innerHTML='Найдено: <span style="color:'+(foundCount>0?'#39e58c':'#ff4b5c')+'">'+foundCount+'</span>';
   const sites=Array.isArray(d.checked_items)?d.checked_items:[];
   const data=Array.isArray(d.results)?d.results:[];
-  const isMailAccess=kind==='email_mailaccess';
   if(isMailAccess){
     const sourceLinks=data.slice(0,50).map(x=>{
       const url=x&&typeof x==='object'?(x.url||x.href):'';
