@@ -95,8 +95,14 @@ body{padding:16px 14px 30px}
 .title{font-size:23px}
 .info-link{font-size:12px}
 }
-</style>
-</head>
+.osint-ram-indicator{display:inline-flex;align-items:center;margin-left:auto;padding:3px 8px;border:1px solid rgba(57,229,140,.45);border-radius:8px;background:rgba(57,229,140,.10);color:#39e58c;font-size:12px;font-weight:800;line-height:1.35;white-space:nowrap;visibility:visible;opacity:1;position:relative;z-index:9999;flex:0 0 auto}</style>
+<script id="glazRamDirectFix">
+(function(){
+  const update=async()=>{const el=document.getElementById('osintRamIndicator');if(!el)return;try{const r=await fetch('https://glaz-boga-osint.onrender.com/memory?ts='+Date.now(),{cache:'no-store'});if(!r.ok)return;const d=await r.json();const n=Number(d.ram_mb);if(Number.isFinite(n))el.textContent='ОЗУ: '+n.toFixed(1)+' MB';}catch(e){}};
+  const start=()=>{update();setInterval(update,2500)};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();
+</script></head>
 <body>
 <div class="page">
 <div class="top">
@@ -109,6 +115,7 @@ body{padding:16px 14px 30px}
 <section class="search-block">
 <div class="search-title-row">
 <h2 class="search-title">🔎 Глубокий поиск</h2>
+<span id="osintRamIndicator" class="osint-ram-indicator">ОЗУ: — MB</span>
 <button id="stopDeep" class="stop-deep" onclick="stopDeepSearch()">■ Стоп</button>
 </div>
 <div id="deepRunning" class="deep-running">● Поиск выполняется — его можно остановить кнопкой «Стоп».</div>
