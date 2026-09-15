@@ -95,13 +95,15 @@ jobs:
           h = html.read_text(encoding='utf-8')
           h = h.replace("const start=()=>{update();setInterval(update,2500)};", "const start=()=>{let timer=null;const tick=async()=>{await update();timer=setTimeout(tick,2500)};tick();};", 1)
           html.write_text(h, encoding='utf-8')
+          Path('.github/workflows/.stabilize-trigger').write_text('2\n', encoding='utf-8')
       - name: Commit and remove workflow
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add osint-backend/main.py game-glaz-boga.html .github/workflows/stabilize-glaz-search.yml
+          git add osint-backend/main.py game-glaz-boga.html .github/workflows/stabilize-glaz-search.yml .github/workflows/.stabilize-trigger
           git commit -m "Stabilize RAM refresh and deep Maigret search"
-          git rm .github/workflows/stabilize-glaz-search.yml
+          git rm .github/workflows/stabilize-glaz-search.yml .github/workflows/.stabilize-trigger
           git commit -m "Remove one-shot Glaz Boga stabilization workflow"
           git push
+# trigger
