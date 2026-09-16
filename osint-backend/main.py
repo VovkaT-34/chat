@@ -58,9 +58,9 @@ SITES = None
 JOBS = {}
 ACTIVE_JOB_ID = None
 
-BATCH_SIZE = 10
-MAX_CONNECTIONS = 4
-REQUEST_TIMEOUT = 3
+BATCH_SIZE = 5
+MAX_CONNECTIONS = 2
+REQUEST_TIMEOUT = 2
 JOB_TTL = 1800
 
 DEEP_JOB_TTL = 1800
@@ -131,9 +131,16 @@ def health():
 @app.get("/memory")
 def memory():
     """Return the current process RSS in megabytes for the lightweight UI indicator."""
-    rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    try:
+        with open("/proc/self/statm", "r", encoding="utf-8") as fh:
+            pages = int(fh.read().split()[1])
+        rss_mb = pages * resource.getpagesize() / (1024 * 1024)
+    except Exception:
+        rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        rss_mb = rss_kb / 1024
+
     return {
-        "ram_mb": round(rss_kb / 1024, 1),
+        "ram_mb": round(rss_mb, 1),
         "unit": "MB RAM",
     }
 
@@ -154,15 +161,27 @@ async def run_username_job(job_id: str, username: str, sites):
         for offset in range(0, len(items), BATCH_SIZE):
             batch = dict(items[offset:offset + BATCH_SIZE])
 
-            results = await maigret_search(
-                username=username,
-                site_dict=batch,
-                logger=logger,
-                timeout=REQUEST_TIMEOUT,
-                is_parsing_enabled=False,
-                max_connections=MAX_CONNECTIONS,
-                no_progressbar=True,
-            )
+            try:
+                results = await asyncio.wait_for(
+                    maigret_search(
+                        username=username,
+                        site_dict=batch,
+                        logger=logger,
+                        timeout=REQUEST_TIMEOUT,
+                        is_parsing_enabled=False,
+                        max_connections=MAX_CONNECTIONS,
+                        no_progressbar=True,
+                    ),
+                    timeout=18,
+                )
+            except asyncio.TimeoutError:
+                job["checked"] = min(offset + len(batch), len(items))
+                job["checked_sites"] = (
+                    job["checked_sites"]
+                    + [f"Пакет {offset + 1}–{offset + len(batch)}: таймаут, продолжаем"]
+                )[-20:]
+                await asyncio.sleep(0)
+                continue
 
             for name, data in results.items():
                 status = data.get("status")
@@ -336,15 +355,30 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             for offset in range(0, len(items), BATCH_SIZE):
                 batch = dict(items[offset:offset + BATCH_SIZE])
 
-                results = await maigret_search(
-                    username=query,
-                    site_dict=batch,
-                    logger=logger,
-                    timeout=REQUEST_TIMEOUT,
-                    is_parsing_enabled=False,
-                    max_connections=MAX_CONNECTIONS,
-                    no_progressbar=True,
-                )
+                try:
+                    results = await asyncio.wait_for(
+                        maigret_search(
+                            username=query,
+                            site_dict=batch,
+                            logger=logger,
+                            timeout=REQUEST_TIMEOUT,
+                            is_parsing_enabled=False,
+                            max_connections=MAX_CONNECTIONS,
+                            no_progressbar=True,
+                        ),
+                        timeout=18,
+                    )
+                except asyncio.TimeoutError:
+                    job["checked"] = min(
+                        offset + len(batch),
+                        len(items),
+                    )
+                    job["checked_items"] = (
+                        job["checked_items"]
+                        + [f"Пакет {offset + 1}–{offset + len(batch)}: таймаут, продолжаем"]
+                    )[-20:]
+                    await asyncio.sleep(0)
+                    continue
 
                 for name, data in results.items():
                     status = data.get("status")
