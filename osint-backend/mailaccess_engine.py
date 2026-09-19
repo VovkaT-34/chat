@@ -376,6 +376,29 @@ async def mailaccess_search(
                         ),
                     )
 
+                    # Give the child process a moment to publish its exit
+                    # status. This is diagnostic only; it does not change
+                    # search limits or the handling of other search engines.
+                    with contextlib.suppress(Exception):
+                        await asyncio.wait_for(
+                            server.wait(),
+                            timeout=1.0,
+                        )
+
+                    if server is not None and server.returncode is not None:
+                        detail = (
+                            "MailAccess: дочерний сервер завершился "
+                            f"(exit code {server.returncode}) на "
+                            f"{checked_modules}/{total_modules}"
+                        )
+                        errors += 1
+                        error_details.append(detail)
+                        send_progress(
+                            checked_modules,
+                            total_modules,
+                            detail,
+                        )
+
                     break
 
                 if isinstance(raw, bytes):
