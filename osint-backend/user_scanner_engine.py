@@ -1,3 +1,4 @@
+
 import asyncio
 import json
 import re
@@ -693,6 +694,148 @@ async def _validate_netflix_compat(email: str) -> Result:
         return Result.error(f"Netflix validation failed: {exc}", url=show_url)
 
 
+async def _validate_threadless_compat(email: str) -> Result:
+    """Diagnose Threadless signup-form access without exposing tokens or response data."""
+    show_url = "https://www.threadless.com"
+    signup_url = "https://profile.threadless.com/artist/shops/"
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Encoding": "identity",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    try:
+        page = await impersonate_request_async(
+            signup_url, headers=headers, allow_redirects=True
+        )
+
+        body = page.text
+        body_lower = body.lower()
+
+        token_match = re.search(
+            r"""name=['"]csrfmiddlewaretoken['"]\s+value=['"]([^'"]+)""",
+            body,
+            re.IGNORECASE,
+        )
+
+        challenge_markers = [
+            marker
+            for marker in (
+                "cloudflare",
+                "captcha",
+                "challenge",
+                "verify you are human",
+                "access denied",
+                "attention required",
+                "just a moment",
+                "perimeterx",
+                "datadome",
+                "incapsula",
+                "waf",
+            )
+            if marker in body_lower
+        ]
+
+        if page.status_code in (401, 403, 429):
+            return Result.error(
+                "Threadless signup form blocked "
+                f"(HTTP {page.status_code}, final URL: {page.url}, "
+                f"CSRF token: {'found' if token_match else 'not found'}, "
+                f"challenge markers: {','.join(challenge_markers) or 'none'}, "
+                f"body length: {len(body)})",
+                url=show_url,
+            )
+
+        if page.status_code != 200:
+            return Result.error(
+                "Threadless signup form returned "
+                f"HTTP {page.status_code} (final URL: {page.url}, "
+                f"CSRF token: {'found' if token_match else 'not found'}, "
+                f"body length: {len(body)})",
+                url=show_url,
+            )
+
+        if not token_match:
+            return Result.error(
+                "Threadless signup form loaded without required CSRF token "
+                f"(HTTP 200, final URL: {page.url}, "
+                f"challenge markers: {','.join(challenge_markers) or 'none'}, "
+                f"body length: {len(body)})",
+                url=show_url,
+            )
+
+        response = await impersonate_request_async(
+            signup_url,
+            "POST",
+            headers={
+                **headers,
+                "x-requested-with": "XMLHttpRequest",
+            },
+            data={
+                "validate": "true",
+                "email": email,
+                "csrfmiddlewaretoken": token_match.group(1),
+            },
+        )
+
+        if response.status_code in (401, 403, 429):
+            return Result.error(
+                "Threadless validation request blocked "
+                f"(HTTP {response.status_code})",
+                url=show_url,
+            )
+
+        if response.status_code != 200:
+            return Result.error(
+                f"Unexpected Threadless response: HTTP {response.status_code}",
+                url=show_url,
+            )
+
+        try:
+            data = response.json()
+        except ValueError:
+            return Result.error(
+                f"Invalid Threadless JSON response "
+                f"(HTTP {response.status_code}, body length: {len(response.text)})",
+                url=show_url,
+            )
+
+        if not isinstance(data, dict):
+            return Result.error(
+                f"Unexpected Threadless response structure "
+                f"(HTTP {response.status_code}: {type(data).__name__})",
+                url=show_url,
+            )
+
+        if data.get("is_valid") is False:
+            return Result.taken(url=show_url)
+
+        if data.get("is_valid") is True:
+            return Result.available(url=show_url)
+
+        return Result.error(
+            "Unexpected Threadless response structure "
+            f"(HTTP 200, keys: "
+            f"{','.join(sorted(str(k) for k in data.keys())[:12]) or 'none'})",
+            url=show_url,
+        )
+
+    except httpx.TimeoutException:
+        return Result.error(
+            "Threadless signup request timed out",
+            url=show_url,
+        )
+    except Exception as exc:
+        return Result.error(
+            f"Threadless validation failed: {type(exc).__name__}",
+            url=show_url,
+        )
+
+
 async def _validate_emirates_compat(email: str) -> Result:
     """Diagnose Emirates validation transport failures without exposing response data."""
     show_url = "https://emirates.com"
@@ -805,6 +948,8 @@ def _prepare_module(module):
         setattr(module, "validate_atlassian", _validate_atlassian_compat)
     elif module_name == "netflix":
         setattr(module, "validate_netflix", _validate_netflix_compat)
+    elif module_name == "threadless":
+        setattr(module, "validate_threadless", _validate_threadless_compat)
     elif module_name == "emirates":
         setattr(module, "validate_emirates", _validate_emirates_compat)
     return module
@@ -903,3 +1048,4 @@ async def user_scanner_search(email: str, progress=None):
         if progress:
             progress(0, 0, "error", [])
         return [], 0, 1, ["User Scanner: внутренняя ошибка запуска"]
+
