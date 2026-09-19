@@ -1,8 +1,11 @@
 import asyncio
 import json
+import re
 
+import httpx
 from user_scanner.core import engine
 from user_scanner.core.helpers import load_categories, load_modules
+from user_scanner.core.result import Result
 
 BATCH_SIZE = 20
 MAX_CONCURRENCY = 2
@@ -60,6 +63,107 @@ def _make_found_item(data):
     }
 
 
+async def _validate_stackoverflow_compat(email: str) -> Result:
+    """Compatibility validator for Stack Overflow's changed login response."""
+    url = "https://stackoverflow.com/users/login"
+    show_url = "https://stackoverflow.com"
+
+    payload = {
+        "ssrc": "login",
+        "email": email,
+        "password": "Password109-grt",
+        "oauth_version": "",
+        "oauth_server": "",
+    }
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+        ),
+        "Accept": (
+            "text/html,application/xhtml+xml,application/xml;q=0.9,"
+            "image/avif,image/webp,image/apng,*/*;q=0.8,"
+            "application/signed-exchange;v=b3;q=0.7"
+        ),
+        "Accept-Encoding": "identity",
+        "sec-ch-ua-platform": '"Linux"',
+        "origin": "https://stackoverflow.com",
+        "referer": "https://stackoverflow.com/users/login",
+    }
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=15.0, http2=False, follow_redirects=True
+        ) as client:
+            response = await client.post(
+                url, data=payload, headers=headers
+            )
+            body = response.text
+            body_lower = body.lower()
+
+            if response.status_code == 429:
+                return Result.error("Rate limited by Stack Overflow", url=show_url)
+
+            if response.status_code in (401, 403):
+                return Result.error(
+                    f"Stack Overflow blocked the validation request (HTTP {response.status_code})",
+                    url=show_url,
+                )
+
+            if "no user found with matching email" in body_lower:
+                return Result.available(url=show_url)
+
+            if "the email or password is incorrect" in body_lower:
+                return Result.taken(url=show_url)
+
+            # Stack Overflow has changed the wording/HTML of its login
+            # response over time. Accept only explicit negative/positive
+            # account-state markers; never infer existence from a generic
+            # successful HTTP response.
+            unavailable_markers = (
+                "no account found",
+                "account doesn't exist",
+                "account does not exist",
+                "email isn't associated",
+                "email is not associated",
+                "email isn't registered",
+                "email is not registered",
+                "no user exists",
+            )
+            registered_markers = (
+                "email or password is incorrect",
+                "password is incorrect",
+                "incorrect email or password",
+                "invalid email or password",
+                "email address is already registered",
+                "email is already registered",
+            )
+
+            if any(marker in body_lower for marker in unavailable_markers):
+                return Result.available(url=show_url)
+
+            if any(marker in body_lower for marker in registered_markers):
+                return Result.taken(url=show_url)
+
+            content_type = response.headers.get("content-type", "").lower()
+            if "text/html" not in content_type and response.status_code == 200:
+                return Result.error(
+                    f"Unexpected Stack Overflow response format (HTTP {response.status_code})",
+                    url=show_url,
+                )
+
+            return Result.error(
+                f"Unexpected Stack Overflow response body (HTTP {response.status_code})",
+                url=show_url,
+            )
+    except httpx.TimeoutException:
+        return Result.error("Stack Overflow request timed out", url=show_url)
+    except Exception as exc:
+        return Result.error(
+            f"Stack Overflow validation failed: {exc}", url=show_url
+        )
+
+
 def _prepare_module(module):
     """Apply only known compatibility aliases before calling user-scanner."""
     module_name = getattr(module, "__name__", "").split(".")[-1].lower()
@@ -67,6 +171,8 @@ def _prepare_module(module):
         validator = getattr(module, "validate_okcats", None)
         if validator is not None:
             setattr(module, "validate_besoccer", validator)
+    elif module_name == "stackoverflow":
+        setattr(module, "validate_stackoverflow", _validate_stackoverflow_compat)
     return module
 
 
