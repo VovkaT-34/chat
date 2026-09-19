@@ -164,6 +164,22 @@ async def _validate_stackoverflow_compat(email: str) -> Result:
         )
 
 
+async def _validate_hackerone_compat(email: str, original_validator=None) -> Result:
+    """Keep HackerOne JSON parsing failures as structured diagnostics."""
+    validator = original_validator
+    if validator is None:
+        return Result.error("HackerOne validator is unavailable")
+
+    try:
+        return await validator(email)
+    except ValueError:
+        return Result.error("HackerOne returned a non-JSON validation response")
+    except httpx.TimeoutException:
+        return Result.error("HackerOne request timed out")
+    except Exception as exc:
+        return Result.error(f"HackerOne validation failed: {exc}")
+
+
 def _prepare_module(module):
     """Apply only known compatibility aliases before calling user-scanner."""
     module_name = getattr(module, "__name__", "").split(".")[-1].lower()
@@ -173,6 +189,12 @@ def _prepare_module(module):
             setattr(module, "validate_besoccer", validator)
     elif module_name == "stackoverflow":
         setattr(module, "validate_stackoverflow", _validate_stackoverflow_compat)
+    elif module_name == "hackerone":
+        original_validator = getattr(module, "validate_hackerone", None)
+        if original_validator is not None:
+            async def _wrapped_hackerone(email, _validator=original_validator):
+                return await _validate_hackerone_compat(email, _validator)
+            setattr(module, "validate_hackerone", _wrapped_hackerone)
     return module
 
 
