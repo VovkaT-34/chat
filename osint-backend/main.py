@@ -5,8 +5,10 @@ import time
 import uuid
 from importlib.resources import files
 
+import httpx
+
 import phonenumbers
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from maigret import search as maigret_search
 from maigret.sites import MaigretDatabase
@@ -43,7 +45,7 @@ app = FastAPI(title="Glaz Boga OSINT", version="0.5.2")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -128,6 +130,38 @@ def health():
     }
 
 
+async def require_authenticated_user(request: Request):
+    """Validate the caller's Supabase access token without exposing service secrets."""
+    authorization = request.headers.get("authorization", "")
+    if not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Требуется авторизация")
+    token = authorization[7:].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Требуется авторизация")
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            response = await client.get("https://sxkukrqjtgkxmzuzondm.supabase.co/auth/v1/user", headers={"Authorization": "Bearer " + token})
+        if response.status_code != 200:
+            raise HTTPException(status_code=401, detail="Недействительная сессия")
+        user = response.json()
+        if not user.get("id"):
+            raise HTTPException(status_code=401, detail="Недействительная сессия")
+        return user
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=401, detail="Не удалось проверить сессию")
+
+
+@app.get("/scan/state")
+def scan_state():
+    cleanup_jobs()
+    cleanup_deep_jobs()
+    quick_running = bool(ACTIVE_JOB_ID and ACTIVE_JOB_ID in JOBS and JOBS[ACTIVE_JOB_ID].get("status") not in {"done", "error", "cancelled"})
+    deep_running = bool(ACTIVE_DEEP_JOB_ID and ACTIVE_DEEP_JOB_ID in DEEP_JOBS and DEEP_JOBS[ACTIVE_DEEP_JOB_ID].get("status") not in {"done", "error", "cancelled"})
+    return {"scanning": quick_running or deep_running, "quick": quick_running, "deep": deep_running}
+
+
 @app.get("/memory")
 def memory():
     """Return the current process RSS in megabytes for the lightweight UI indicator."""
@@ -143,6 +177,23 @@ def memory():
         "ram_mb": round(rss_mb, 1),
         "unit": "MB RAM",
     }
+
+
+@app.post("/memory/reset")
+async def reset_memory(request: Request):
+    """Release reclaimable Python/Linux heap pages; never reset while a scan is active."""
+    await require_authenticated_user(request)
+    state = scan_state()
+    if state["scanning"]:
+        raise HTTPException(status_code=409, detail="Нельзя очищать ОЗУ во время сканирования")
+    import gc
+    gc.collect()
+    try:
+        import ctypes
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except Exception:
+        pass
+    return memory()
 
 
 async def run_username_job(job_id: str, username: str, sites):
