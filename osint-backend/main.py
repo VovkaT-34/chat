@@ -140,7 +140,7 @@ async def require_authenticated_user(request: Request):
         raise HTTPException(status_code=401, detail="Требуется авторизация")
     try:
         async with httpx.AsyncClient(timeout=5) as client:
-            response = await client.get("https://sxkukrqjtgkxmzuzondm.supabase.co/auth/v1/user", headers={"Authorization": "Bearer " + token})
+            response = await client.get("https://sxkukrqjtgkxmzuzondm.supabase.co/auth/v1/user", headers={"Authorization": "Bearer " + token, "apikey": "sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3N"})
         if response.status_code != 200:
             raise HTTPException(status_code=401, detail="Недействительная сессия")
         user = response.json()
