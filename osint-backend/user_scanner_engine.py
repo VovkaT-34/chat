@@ -693,6 +693,97 @@ async def _validate_netflix_compat(email: str) -> Result:
         return Result.error(f"Netflix validation failed: {exc}", url=show_url)
 
 
+async def _validate_emirates_compat(email: str) -> Result:
+    """Diagnose Emirates validation transport failures without exposing response data."""
+    show_url = "https://emirates.com"
+    url = "https://www.emirates.com/service/ekl/validate-email"
+    params = {"data": "null"}
+    payload = {"emailAddress": email}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Encoding": "identity",
+        "Content-Type": "application/json",
+        "Origin": "https://www.emirates.com",
+        "Referer": "https://www.emirates.com/",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            response = await client.post(
+                url, params=params, json=payload, headers=headers
+            )
+            status = response.status_code
+            if status == 403:
+                return Result.error(
+                    "Emirates validation blocked by WAF/IP protection (HTTP 403)",
+                    url=show_url,
+                )
+            if status == 429:
+                return Result.error(
+                    "Emirates validation rate limited (HTTP 429)",
+                    url=show_url,
+                )
+            if status != 200:
+                return Result.error(
+                    f"Emirates validation returned HTTP {status} "
+                    f"(content-type: {response.headers.get('content-type', 'unknown')}, "
+                    f"body length: {len(response.text)})",
+                    url=show_url,
+                )
+
+            try:
+                data = response.json()
+            except ValueError:
+                return Result.error(
+                    "Emirates validation returned invalid JSON (HTTP 200)",
+                    url=show_url,
+                )
+
+            if not isinstance(data, dict):
+                return Result.error(
+                    f"Emirates validation returned unexpected JSON type: "
+                    f"{type(data).__name__}",
+                    url=show_url,
+                )
+
+            body = data.get("body")
+            errors = body.get("errors", []) if isinstance(body, dict) else []
+            if isinstance(errors, list) and any(
+                isinstance(err, dict)
+                and err.get("code") == "program.member.EmailExistsForAnotherMember"
+                for err in errors
+            ):
+                return Result.taken(url=show_url)
+
+            if data.get("status") is True:
+                return Result.available(url=show_url)
+
+            return Result.available(url=show_url)
+    except httpx.ConnectTimeout:
+        return Result.error(
+            "Emirates connection timed out (possible network or regional block)",
+            url=show_url,
+        )
+    except httpx.ReadTimeout:
+        return Result.error(
+            "Emirates response timed out (server/network did not complete the request)",
+            url=show_url,
+        )
+    except httpx.TimeoutException:
+        return Result.error(
+            "Emirates request timed out",
+            url=show_url,
+        )
+    except Exception as exc:
+        return Result.error(
+            f"Emirates validation failed: {type(exc).__name__}",
+            url=show_url,
+        )
+
+
 def _prepare_module(module):
     """Apply only known compatibility aliases before calling user-scanner."""
     module_name = getattr(module, "__name__", "").split(".")[-1].lower()
@@ -714,6 +805,8 @@ def _prepare_module(module):
         setattr(module, "validate_atlassian", _validate_atlassian_compat)
     elif module_name == "netflix":
         setattr(module, "validate_netflix", _validate_netflix_compat)
+    elif module_name == "emirates":
+        setattr(module, "validate_emirates", _validate_emirates_compat)
     return module
 
 
