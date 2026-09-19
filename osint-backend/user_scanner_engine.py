@@ -231,7 +231,7 @@ async def _validate_hackerone_compat(email: str) -> Result:
 
 
 async def _validate_letterboxd_compat(email: str) -> Result:
-    """Use the cached impersonation session when Letterboxd's CSRF cookie is reused."""
+    """Diagnose Letterboxd CSRF delivery without exposing cookie values."""
     show_url = "https://letterboxd.com"
     home_url = "https://letterboxd.com/sign-in/"
     register_url = "https://letterboxd.com/user/standalone/register.do"
@@ -243,16 +243,42 @@ async def _validate_letterboxd_compat(email: str) -> Result:
         "Origin": "https://letterboxd.com",
         "Referer": "https://letterboxd.com/register/standalone/",
     }
+
     try:
         init = await impersonate_request_async(
             home_url, headers={"User-Agent": user_agent}, allow_redirects=True
         )
+
         csrf_token = init.cookies.get("com.xk72.webparts.csrf")
         if not csrf_token:
             session = await asyncio.to_thread(get_warm_session)
             csrf_token = session.cookies.get("com.xk72.webparts.csrf")
+
         if not csrf_token:
-            return Result.error("Could not extract Letterboxd CSRF token")
+            set_cookie_headers = []
+            get_list = getattr(init.headers, "get_list", None)
+            if callable(get_list):
+                set_cookie_headers = get_list("set-cookie") or []
+
+            csrf_cookie_headers = [
+                header for header in set_cookie_headers
+                if "com.xk72.webparts.csrf=" in str(header).lower()
+            ]
+
+            body_lower = init.text.lower()
+            has_csrf_markup = (
+                "com.xk72.webparts.csrf" in body_lower
+                or 'name="__csrf"' in body_lower
+                or "csrf" in body_lower
+            )
+
+            return Result.error(
+                "Could not extract Letterboxd CSRF token "
+                f"(HTTP {init.status_code}, final URL {init.url}, "
+                f"Set-Cookie CSRF headers: {len(csrf_cookie_headers)}, "
+                f"CSRF markers in body: {'yes' if has_csrf_markup else 'no'})",
+                url=show_url,
+            )
 
         response = await impersonate_request_async(
             register_url,
@@ -273,7 +299,8 @@ async def _validate_letterboxd_compat(email: str) -> Result:
             data = response.json()
         except ValueError:
             return Result.error(
-                f"Non-JSON response (HTTP {response.status_code}), likely a bot challenge"
+                f"Non-JSON response (HTTP {response.status_code}), likely a bot challenge",
+                url=show_url,
             )
 
         messages = data.get("messages", [])
@@ -284,7 +311,7 @@ async def _validate_letterboxd_compat(email: str) -> Result:
             return Result.taken(url=show_url)
         if "result" in data:
             return Result.available(url=show_url)
-        return Result.error("Unexpected response structure")
+        return Result.error("Unexpected response structure", url=show_url)
     except Exception as exc:
         return Result.error(exc, url=show_url)
 
