@@ -645,7 +645,7 @@ function renderDeep(d){
     const diagnostics=d.diagnostics&&typeof d.diagnostics==='object'?d.diagnostics:{};
     const errorCount=Number(diagnostics.errors||0);
     const details=Array.isArray(diagnostics.details)?diagnostics.details:[];
-    if(kind==='email_userscanner'){
+    if(kind==='email_userscanner'||kind==='email_mailaccess'){
       deepDiagnostics.innerHTML=
         '<div class="deep-diagnostics-title">Диагностика внешних проверок: <b>'+errorCount+'</b></div>'+
         (details.length
