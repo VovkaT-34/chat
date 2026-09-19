@@ -17,12 +17,30 @@ async function updateRam(){
   const el=ramEl();if(!el)return;
   try{const r=await fetch(RENDER+'/memory?ts='+Date.now(),{cache:'no-store'});if(!r.ok)return;const d=await r.json(),n=Number(d.ram_mb);if(Number.isFinite(n)){el.textContent='ОЗУ: '+n.toFixed(1)+' MB';el.classList.toggle('osint-ram-high',n>=500);}}catch(e){}
 }
+async function getOsintAuthHeaders(){
+  const headers=new Headers();
+  try{
+    if(window.supabaseClient){
+      const result=await window.supabaseClient.auth.getSession();
+      const token=result&&result.data&&result.data.session?result.data.session.access_token||'':'';
+      if(token)headers.set('Authorization','Bearer '+token);
+    }
+  }catch(e){}
+  if(!headers.has('Authorization')){
+    try{
+      const raw=localStorage.getItem('sb-sxkukrqjtgkxmzuzondm-auth-token');
+      const stored=raw?JSON.parse(raw):null;
+      if(stored&&stored.access_token)headers.set('Authorization','Bearer '+stored.access_token);
+    }catch(e){}
+  }
+  return headers;
+}
 async function updateMailaccessRam(){
   if(!mailaccessSelected()){setMailaccessVisibility();return;}
   setMailaccessVisibility();
   const el=mailRamEl();if(!el)return;
   try{
-    const r=await fetch(RENDER+'/mailaccess/memory?ts='+Date.now(),{cache:'no-store'});
+    const headers=await getOsintAuthHeaders();\n    const r=await fetch(RENDER+'/mailaccess/memory?ts='+Date.now(),{cache:'no-store',headers});
     if(!r.ok)return;
     const d=await r.json(),n=Number(d.ram_mb);
     if(Number.isFinite(n)){el.textContent='ОЗУ: '+n.toFixed(1)+' MB';el.classList.toggle('osint-ram-high',n>=500);}
@@ -45,7 +63,7 @@ async function resetRam(){
 async function resetMailaccessRam(){
   const b=mailResetEl();if(!b||b.disabled)return;b.disabled=true;
   try{
-    const r=await fetch(RENDER+'/mailaccess/memory/reset',{method:'POST'});
+    const headers=await getOsintAuthHeaders();\n    const r=await fetch(RENDER+'/mailaccess/memory/reset',{method:'POST',headers});
     const d=await r.json().catch(()=>({}));
     if(!r.ok){alert(d.detail||'Очистка ОЗУ MailAccess сейчас недоступна.');return;}
     if(mailRamEl())mailRamEl().textContent='ОЗУ: перезапуск…';
