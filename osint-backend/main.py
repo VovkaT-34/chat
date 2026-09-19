@@ -842,7 +842,7 @@ async def run_deep_job(job_id: str, kind: str, query: str):
                 job["results"] = list(results)
                 job["checked_items"] = [current]
 
-            found, total = await user_scanner_search(
+            found, total, errors, error_details = await user_scanner_search(
                 query,
                 progress=progress,
             )
@@ -851,9 +851,15 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["total"] = total
             job["checked"] = total
             job["count"] = len(found)
-            job["checked_items"] = [
-                f"user-scanner: готово ({total} модулей, найдено {len(found)})"
-            ]
+
+            summary = (
+                f"user-scanner: готово ({total} модулей, найдено {len(found)}, "
+                f"ошибок внешних проверок: {errors})"
+            )
+            if error_details:
+                summary += " • " + " | ".join(error_details[:5])
+
+            job["checked_items"] = [summary]
 
             release_process_memory()
 
