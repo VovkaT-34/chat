@@ -279,9 +279,11 @@ async def mailaccess_memory(request: Request):
     await require_authenticated_user(request)
     end = time.time()
     start = end - 180
+    end_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(end))
+    start_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(start))
     payload = await _render_api_request(
         f"/metrics/memory?resource={MAILACCESS_RENDER_SERVICE_ID}"
-        f"&startTime={start}&endTime={end}&resolutionSeconds=30"
+        f"&startTime={start_iso}&endTime={end_iso}&resolutionSeconds=30"
     )
     points = payload.get("metrics", payload.get("data", [])) if isinstance(payload, dict) else payload
     if not isinstance(points, list) or not points:
