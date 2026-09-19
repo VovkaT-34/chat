@@ -6,23 +6,7 @@ from user_scanner.core.helpers import load_categories, load_modules
 
 BATCH_SIZE = 20
 MAX_CONCURRENCY = 4
-BATCH_PAUSE = 0.20
-CHECK_RETRIES = 2
-CHECK_RETRY_DELAY = 0.75
-
-
-async def _check_module(module, email):
-    last_error = None
-
-    for attempt in range(CHECK_RETRIES + 1):
-        try:
-            return await engine.check(module, email)
-        except Exception as exc:
-            last_error = exc
-            if attempt < CHECK_RETRIES:
-                await asyncio.sleep(CHECK_RETRY_DELAY * (attempt + 1))
-
-    raise last_error
+BATCH_PAUSE = 0.10
 
 
 def _serialize_result(res):
@@ -79,11 +63,15 @@ async def user_scanner_search(email: str, progress=None):
             batch_number = batch_start // BATCH_SIZE + 1
 
             pending = set()
+            task_modules = {}
             batch_index = 0
 
             while batch_index < len(batch) or pending:
                 while batch_index < len(batch) and len(pending) < MAX_CONCURRENCY:
-                    pending.add(asyncio.create_task(_check_module(batch[batch_index], email)))
+                    module = batch[batch_index]
+                    task = asyncio.create_task(engine.check(module, email))
+                    pending.add(task)
+                    task_modules[task] = module
                     batch_index += 1
 
                 done, pending = await asyncio.wait(
@@ -92,6 +80,7 @@ async def user_scanner_search(email: str, progress=None):
                 )
 
                 for task in done:
+                    module = task_modules.pop(task, None)
                     try:
                         res = task.result()
                         data = _serialize_result(res)
