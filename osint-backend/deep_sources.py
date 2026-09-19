@@ -75,7 +75,7 @@ def phone_info(value: str) -> dict:
         return {"possible": False, "valid": False, "error": str(exc)}
 
 
-async def phone_public_search(value: str, max_results: int = 30) -> list[dict]:
+async def phone_public_search(value: str) -> list[dict]:
     info = phone_info(value)
     if info.get("error"):
         return [{"source": f"Телефон: ошибка разбора — {info['error']}", "name": "Ошибка разбора номера", "kind": "error"}]
@@ -93,11 +93,11 @@ async def phone_public_search(value: str, max_results: int = 30) -> list[dict]:
         f"Валиден: {'Да' if info.get('valid') else 'Нет'}",
     ]
     metadata = {"source": "Телефон / phonenumbers — " + " | ".join(lines), "name": "Полные метаданные номера", "kind": "phone_metadata", "data": info}
-    public_results = await public_search(value, "phone", max_results=max_results)
+    public_results = await public_search(value, "phone")
     return [metadata] + public_results
 
 
-async def _email_extended_search(query: str, max_results: int = 30) -> list[dict]:
+async def _email_extended_search(query: str) -> list[dict]:
     """Search exact email in public indexed pages and return real URLs."""
     value = query.strip().lower()
     if not value:
@@ -107,7 +107,6 @@ async def _email_extended_search(query: str, max_results: int = 30) -> list[dict
             f'"{value}"',
             region="ru-ru",
             safesearch="off",
-            max_results=max_results,
             backend="auto",
         )
     )
@@ -131,18 +130,16 @@ async def _email_extended_search(query: str, max_results: int = 30) -> list[dict
             "domain": domain,
             "kind": "email_public",
         })
-        if len(output) >= max_results:
-            break
     return output
 
 
-async def public_search(query: str, kind: str, max_results: int = 20) -> list[dict]:
+async def public_search(query: str, kind: str) -> list[dict]:
     """Fetch public indexed pages server-side; browser never redirects to a search engine."""
     if kind == "person":
         from extended_search import extended_public_search
-        return await extended_public_search(query, "person", max_results=max_results)
-    if kind == "email" and max_results == 30:
-        return await _email_extended_search(query, max_results=max_results)
+        return await extended_public_search(query, "person")
+    if kind == "email":
+        return await _email_extended_search(query)
     variants = [query.strip()]
     if kind == "email":
         variants.append(query.strip().lower())
@@ -186,8 +183,6 @@ async def public_search(query: str, kind: str, max_results: int = 20) -> list[di
                     elif kind == "phone":
                         source = f"Публичное упоминание: {title}"
                     results.append({"source": source, "name": title, "url": href, "snippet": "", "kind": f"{kind}_public"})
-                    if len(results) >= max_results:
-                        return results
             except Exception:
                 continue
     return results
