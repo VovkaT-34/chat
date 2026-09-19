@@ -60,6 +60,16 @@ def _make_found_item(data):
     }
 
 
+def _prepare_module(module):
+    """Apply only known compatibility aliases before calling user-scanner."""
+    module_name = getattr(module, "__name__", "").split(".")[-1].lower()
+    if module_name == "besoccer" and not hasattr(module, "validate_besoccer"):
+        validator = getattr(module, "validate_okcats", None)
+        if validator is not None:
+            setattr(module, "validate_besoccer", validator)
+    return module
+
+
 async def user_scanner_search(email: str, progress=None):
     try:
         categories = load_categories(is_email=True)
@@ -68,6 +78,7 @@ async def user_scanner_search(email: str, progress=None):
         for cat_path in categories.values():
             modules.extend(load_modules(cat_path))
 
+        modules = [_prepare_module(module) for module in modules]
         total = len(modules)
         found = []
         checked = 0
