@@ -29,6 +29,24 @@ def _serialize_result(res):
     }
 
 
+def _diagnostic_issue(data):
+    """Return a diagnostic message only for an error-like scanner response."""
+    status = str(data.get("status", "")).strip()
+    reason = str(data.get("reason", "")).strip()
+    error = str(data.get("error", "")).strip()
+    marker = " ".join(part for part in (status, reason, error) if part).lower()
+    error_markers = (
+        "error", "exception", "timeout", "timed out", "rate limit",
+        "ratelimit", "too many", "blocked", "captcha", "failed",
+        "failure", "unavailable", "connection", "network",
+    )
+    if any(marker_text in marker for marker_text in error_markers):
+        name = data.get("site_name") or data.get("name") or "unknown"
+        detail = error or reason or status or "неизвестная ошибка"
+        return f"{name}: {detail[:160]}"
+    return None
+
+
 def _make_found_item(data):
     status = str(data.get("status", "")).lower()
     if status not in ("registered", "taken", "exists", "found"):
@@ -87,9 +105,13 @@ async def user_scanner_search(email: str, progress=None):
                         res = task.result()
                         data = _serialize_result(res)
                         item = _make_found_item(data)
+                        diagnostic_issue = _diagnostic_issue(data)
 
                         if item is not None:
                             found.append(item)
+                        if diagnostic_issue:
+                            errors += 1
+                            error_details.append(diagnostic_issue)
 
                         checked += 1
                         site_name = data.get("site_name") or data.get("name") or "unknown"
