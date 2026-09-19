@@ -12,6 +12,8 @@ import websockets
 MAILACCESS_TIMEOUT = 900
 MAX_CONCURRENT_MODULES = 1
 MAILACCESS_HOST = "127.0.0.1"
+MAILACCESS_URL = os.getenv("MAILACCESS_URL", "").strip().rstrip("/")
+MAILACCESS_API_KEY = os.getenv("MAILACCESS_API_KEY", "").strip()
 
 
 async def _free_port() -> int:
@@ -183,26 +185,36 @@ async def mailaccess_search(
 
     try:
 
-        port = await _free_port()
+        if MAILACCESS_URL:
+            base_url = MAILACCESS_URL
+            ws_url_base = base_url.replace("https://", "wss://", 1).replace("http://", "ws://", 1)
 
-        base_url = (
-            f"http://{MAILACCESS_HOST}:{port}"
-        )
+            send_progress(
+                0,
+                0,
+                "MailAccess: подключение к удалённому серверу...",
+            )
+        else:
+            port = await _free_port()
 
-        ws_url_base = (
-            f"ws://{MAILACCESS_HOST}:{port}"
-        )
+            base_url = (
+                f"http://{MAILACCESS_HOST}:{port}"
+            )
 
-        send_progress(
-            0,
-            0,
-            "MailAccess: запуск сервера...",
-        )
+            ws_url_base = (
+                f"ws://{MAILACCESS_HOST}:{port}"
+            )
 
-        server = await _start_mailaccess_server(
-            env,
-            port,
-        )
+            send_progress(
+                0,
+                0,
+                "MailAccess: запуск сервера...",
+            )
+
+            server = await _start_mailaccess_server(
+                env,
+                port,
+            )
 
         healthy = await _wait_health(
             base_url,
@@ -226,9 +238,16 @@ async def mailaccess_search(
         )
 
         # Получаем реальное количество модулей.
+        api_headers = (
+            {"X-API-Key": MAILACCESS_API_KEY}
+            if MAILACCESS_API_KEY
+            else {}
+        )
+
         async with httpx.AsyncClient(
             base_url=base_url,
             timeout=10.0,
+            headers=api_headers,
         ) as client:
 
             modules_response = await client.get(
@@ -274,6 +293,7 @@ async def mailaccess_search(
         async with httpx.AsyncClient(
             base_url=base_url,
             timeout=15.0,
+            headers=api_headers,
         ) as client:
 
             response = await client.post(
