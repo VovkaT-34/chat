@@ -705,9 +705,14 @@ async function pollDeep(){
     if(!r.ok){
       if(r.status===404){
         deepStatus.innerHTML='Статус: <span class="deep-status-done">задание Render потеряно или перезапущено (HTTP 404)</span>';
+        deepDiagnostics.innerHTML='<div class="deep-diagnostics-title">Диагностика внешних проверок: <b>1</b></div><div class="deep-diagnostic-error">⚠️ Render потерял текущее задание после перезапуска сервера (HTTP 404). Проверка прервана.</div>';
+        deepDiagnostics.style.display='block';
         clearInterval(deepTimer);deepTimer=null;
+        deepJobId=null;
         stopDeep.classList.remove('active');
         deepRunning.classList.remove('active');
+        deepSearchButton.disabled=false;
+        deepSearchButton.textContent='Поиск';
       }else{
         deepStatus.innerHTML='Статус: <span class="deep-status-waiting">Render вернул HTTP '+r.status+' — ждём восстановления связи…</span>';
       }
