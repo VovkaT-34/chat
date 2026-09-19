@@ -876,7 +876,7 @@ async def run_deep_job(job_id: str, kind: str, query: str):
                 job["results"] = list(results)
                 job["checked_items"] = [current]
 
-            found, total = await mailaccess_search(
+            found, total, errors, error_details = await mailaccess_search(
                 query,
                 progress=progress,
             )
@@ -885,9 +885,19 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["total"] = total
             job["checked"] = total
             job["count"] = len(found)
-            job["checked_items"] = [
-                f"MailAccess: готово (найдено {len(found)})"
-            ]
+            job["diagnostics"] = {
+                "errors": errors,
+                "details": error_details,
+            }
+
+            summary = (
+                f"MailAccess: готово ({total} модулей, найдено {len(found)}, "
+                f"ошибок внешних проверок: {errors})"
+            )
+            if error_details:
+                summary += " • " + " | ".join(error_details[:5])
+
+            job["checked_items"] = [summary]
 
         elif kind == "email_h8mail":
 
