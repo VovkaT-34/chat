@@ -80,7 +80,7 @@ function start(){
   if(kind&&!kind.dataset.ramBound){kind.dataset.ramBound='1';kind.addEventListener('change',()=>{setMailaccessVisibility();updateMailaccessRam();});}
   setMailaccessVisibility();updateRam();updateMailaccessRam();updateScanState();
   let busy=false;
-  const tick=async()=>{if(busy){setTimeout(tick,500);return;}busy=true;await Promise.allSettled([updateRam(),updateMailaccessRam(),updateScanState()]);busy=false;setTimeout(tick,2500);};tick();
+  const tick=async()=>{if(busy){setTimeout(tick,500);return;}busy=true;await Promise.allSettled([updateRam(),updateScanState()]);if(mailaccessSelected())await updateMailaccessRam();busy=false;setTimeout(tick,2500);};tick();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
