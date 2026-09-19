@@ -1053,6 +1053,138 @@ async def _validate_emirates_compat(email: str) -> Result:
         )
 
 
+async def _validate_gumroad_compat(email: str) -> Result:
+    """Diagnose Gumroad signup responses without exposing response bodies."""
+    show_url = "https://gumroad.com"
+    signup_url = "https://gumroad.com/signup"
+
+    try:
+        page = await impersonate_request_async(
+            signup_url, allow_redirects=True
+        )
+
+        if page.status_code in (401, 403, 429):
+            return Result.error(
+                "Gumroad signup page blocked/rate-limited "
+                f"(HTTP {page.status_code}, final URL: {page.url}, "
+                f"body length: {len(page.text)})",
+                url=show_url,
+            )
+
+        if page.status_code != 200:
+            return Result.error(
+                "Gumroad signup page returned "
+                f"HTTP {page.status_code} (final URL: {page.url}, "
+                f"body length: {len(page.text)})",
+                url=show_url,
+            )
+
+        token = re.search(
+            r'<meta name="csrf-token" content="([^"]+)"',
+            page.text,
+        )
+        if not token or "Signup/New" not in page.text:
+            return Result.error(
+                "Could not read Gumroad signup form "
+                f"(HTTP 200, final URL: {page.url}, "
+                f"CSRF token: {'found' if token else 'not found'}, "
+                f"signup marker: {'found' if 'Signup/New' in page.text else 'not found'}, "
+                f"body length: {len(page.text)})",
+                url=show_url,
+            )
+
+        response = await impersonate_request_async(
+            signup_url,
+            "POST",
+            json={
+                "user": {
+                    "email": email,
+                    "password": "Q7~",
+                },
+            },
+            headers={
+                "accept": "text/html, application/xhtml+xml",
+                "origin": "https://gumroad.com",
+                "referer": signup_url,
+                "x-csrf-token": token.group(1),
+                "x-inertia": "true",
+                "x-requested-with": "XMLHttpRequest",
+            },
+            allow_redirects=True,
+        )
+
+        if response.status_code in (401, 403, 429):
+            if response.status_code == 429:
+                message = "Gumroad rate limited the signup validation"
+            else:
+                message = "Gumroad blocked the signup validation"
+            return Result.error(
+                f"{message} (HTTP {response.status_code}, "
+                f"final URL: {response.url}, body length: {len(response.text)})",
+                url=show_url,
+            )
+
+        if response.status_code != 200:
+            return Result.error(
+                f"Unexpected Gumroad signup response: {response.status_code} "
+                f"(final URL: {response.url}, body length: {len(response.text)})",
+                url=show_url,
+            )
+
+        try:
+            data = response.json()
+        except ValueError:
+            return Result.error(
+                "Gumroad returned an unexpected non-JSON signup response "
+                f"(HTTP 200, body length: {len(response.text)})",
+                url=show_url,
+            )
+
+        if not isinstance(data, dict):
+            return Result.error(
+                "Gumroad returned an unexpected signup response structure "
+                f"(HTTP 200, type: {type(data).__name__})",
+                url=show_url,
+            )
+
+        if data.get("component") != "Signup/New":
+            return Result.error(
+                "Unexpected Gumroad signup page "
+                f"(HTTP 200, component: {data.get('component')!r})",
+                url=show_url,
+            )
+
+        flash = data.get("props", {}).get("flash") or {}
+        if not isinstance(flash, dict):
+            return Result.error(
+                "Unexpected Gumroad flash response structure (HTTP 200)",
+                url=show_url,
+            )
+
+        message = flash.get("message")
+        if message == "An account already exists with this email.":
+            return Result.taken(url=show_url)
+        if message == "Password is too short (minimum is 4 characters)":
+            return Result.available(url=show_url)
+
+        return Result.error(
+            "Unexpected Gumroad signup result "
+            f"(HTTP 200, flash keys: "
+            f"{','.join(sorted(str(k) for k in flash.keys())[:12]) or 'none'})",
+            url=show_url,
+        )
+    except httpx.TimeoutException:
+        return Result.error(
+            "Gumroad signup validation timed out",
+            url=show_url,
+        )
+    except Exception as exc:
+        return Result.error(
+            f"Gumroad validation failed: {type(exc).__name__}",
+            url=show_url,
+        )
+
+
 def _prepare_module(module):
     """Apply only known compatibility aliases before calling user-scanner."""
     module_name = getattr(module, "__name__", "").split(".")[-1].lower()
@@ -1080,6 +1212,8 @@ def _prepare_module(module):
         setattr(module, "validate_payhip", _validate_payhip_compat)
     elif module_name == "emirates":
         setattr(module, "validate_emirates", _validate_emirates_compat)
+    elif module_name == "gumroad":
+        setattr(module, "validate_gumroad", _validate_gumroad_compat)
     return module
 
 
