@@ -174,76 +174,6 @@ async def _validate_deviantart_compat(email: str) -> Result:
         return Result.error(f"DeviantArt CSRF diagnostic failed: {exc}", url=show_url)
 
 
-async def _validate_dollarfix_compat(email: str) -> Result:
-    """Diagnose DollarFix response format without exposing response contents."""
-    url = "https://api.dollarfix.com/core-userinfo/user_center/apkLogin"
-    show_url = "https://dollarfix.com"
-    payload = {
-        "password": "generic_password_123",
-        "verifiable_type": 1,
-        "user_name": email,
-    }
-    import base64
-    import secrets
-    uuid_val = base64.urlsafe_b64encode(secrets.token_bytes(16)).decode("utf-8").rstrip("=").replace("-", "_")
-    headers = {
-        "User-Agent": "okhttp/4.10.0",
-        "Accept": "application/json",
-        "Accept-Encoding": "gzip",
-        "client": "1",
-        "appversion": "1.8.9.1",
-        "phonemodel": "Pixel 6",
-        "phonesystem": "13",
-        "appid": "9205",
-        "appname": "DollarFix",
-        "headsn": "",
-        "token": "",
-        "uuid": uuid_val,
-        "zone": "GMT+0:00",
-        "lang": "en",
-        "content-type": "application/json; charset=utf-8",
-    }
-    try:
-        async with httpx.AsyncClient(timeout=15.0, http2=True) as client:
-            response = await client.post(url, json=payload, headers=headers)
-            content_type = response.headers.get("content-type", "unknown")
-            body = response.text
-            body_lower = body.lower()
-            markers = [
-                marker for marker in (
-                    '"msg"', '"code"', '"data"', '"success"',
-                    "incorrect password", "not set password",
-                    "user does not exist", "error", "captcha",
-                    "challenge", "blocked",
-                )
-                if marker in body_lower
-            ]
-            try:
-                data = response.json()
-                json_type = type(data).__name__
-                keys = list(data.keys())[:12] if isinstance(data, dict) else []
-                msg_type = type(data.get("msg")).__name__ if isinstance(data, dict) and "msg" in data else "none"
-            except ValueError:
-                json_type = "invalid"
-                keys = []
-                msg_type = "none"
-            if response.status_code == 429:
-                return Result.error("DollarFix rate limited (HTTP 429)", url=show_url)
-            if response.status_code != 200:
-                return Result.error(f"DollarFix unexpected HTTP status: {response.status_code}", url=show_url)
-            if not isinstance(data, dict):
-                return Result.error("DollarFix returned non-object JSON", url=show_url)
-            msg = data.get("msg", "")
-            if msg in ("Incorrect password", "not set password"):
-                return Result.taken(url=show_url)
-            if msg == "The user does not exist.":
-                return Result.available(url=show_url)
-            return Result.error(
-                "DollarFix diagnostic: JSON schema recognized, but msg value is not a known account-state response "
-                f"(msg length: {len(msg) if isinstance(msg, str) else 0})",
-                url=show_url,
-            )
-
 async def _validate_stackoverflow_compat(email: str) -> Result:
     """Compatibility validator for Stack Overflow's changed login response."""
     url = "https://stackoverflow.com/users/login"
@@ -504,8 +434,6 @@ def _prepare_module(module):
             setattr(module, "validate_besoccer", validator)
     elif module_name == "deviantart":
         setattr(module, "validate_deviantart", _validate_deviantart_compat)
-    elif module_name == "dollarfix":
-        setattr(module, "validate_dollarfix", _validate_dollarfix_compat)
     elif module_name == "stackoverflow":
         setattr(module, "validate_stackoverflow", _validate_stackoverflow_compat)
     elif module_name == "hackerone":
