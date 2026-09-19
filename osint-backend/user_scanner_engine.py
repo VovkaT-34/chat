@@ -5,7 +5,7 @@ from user_scanner.core import engine
 from user_scanner.core.helpers import load_categories, load_modules
 
 BATCH_SIZE = 20
-MAX_CONCURRENCY = 4
+MAX_CONCURRENCY = 2
 BATCH_PAUSE = 0.10
 
 
