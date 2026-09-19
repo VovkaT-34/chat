@@ -304,6 +304,7 @@ deepStatus=document.getElementById('deepStatus'),
 deepChecked=document.getElementById('deepChecked'),
 deepFound=document.getElementById('deepFound'),
 deepSites=document.getElementById('deepSites'),
+deepDiagnostics=document.getElementById('deepDiagnostics'),
 stopDeep=document.getElementById('stopDeep'),
 deepRunning=document.getElementById('deepRunning');
 let currentType='all',deepTimer=null,deepJobId=null,deepRender=RENDER;
@@ -639,6 +640,22 @@ function renderDeep(d){
   deepChecked.textContent='Проверено: '+checked+' / '+(isMailAccess?checked:total);
   const foundCount=Number(d.count||0);
   deepFound.innerHTML='Найдено: <span style="color:'+(foundCount>0?'#39e58c':'#ff4b5c')+'">'+foundCount+'</span>';
+  if(deepDiagnostics){
+    const diagnostics=d.diagnostics&&typeof d.diagnostics==='object'?d.diagnostics:{};
+    const errorCount=Number(diagnostics.errors||0);
+    const details=Array.isArray(diagnostics.details)?diagnostics.details:[];
+    if(kind==='email_userscanner'){
+      deepDiagnostics.innerHTML=
+        '<div class="deep-diagnostics-title">Диагностика внешних проверок: <b>'+errorCount+'</b></div>'+
+        (details.length
+          ?details.map(x=>'<div class="deep-diagnostic-error">⚠️ '+esc(x)+'</div>').join('')
+          :'<div class="deep-diagnostic-ok">✓ Ошибок внешних проверок не зафиксировано</div>');
+      deepDiagnostics.style.display='block';
+    }else{
+      deepDiagnostics.innerHTML='';
+      deepDiagnostics.style.display='none';
+    }
+  }
   const sites=Array.isArray(d.checked_items)?d.checked_items:[];
   const data=Array.isArray(d.results)?d.results:[];
   if(isMailAccess){
