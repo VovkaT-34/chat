@@ -131,6 +131,8 @@ async def mailaccess_search(
     total_modules = 0
 
     active_modules = set()
+    errors = 0
+    error_details = []
 
     server = None
 
@@ -453,10 +455,14 @@ async def mailaccess_search(
 
                     if event_type == "module_error":
 
+                        errors += 1
                         error_text = str(
                             event.get("error")
                             or event.get("message")
-                            or "неизвестная ошибка"
+                            or "unknown error"
+                        )
+                        error_details.append(
+                            f"{module}: {error_text[:160]}"
                         )
 
                         send_progress(
@@ -561,7 +567,7 @@ async def mailaccess_search(
         if checked_modules > total_modules:
             total_modules = checked_modules
 
-        return found, checked_modules
+        return found, checked_modules, errors, error_details
 
     except asyncio.TimeoutError:
 
@@ -579,7 +585,7 @@ async def mailaccess_search(
             ),
         )
 
-        return found, checked_modules
+        return found, checked_modules, errors, error_details
 
     except FileNotFoundError:
 
@@ -591,7 +597,7 @@ async def mailaccess_search(
                 [],
             )
 
-        return [], 0
+        return [], 0, 1, ["MailAccess: not installed"]
 
     except Exception as exc:
 
@@ -600,6 +606,8 @@ async def mailaccess_search(
         if not error_text:
             error_text = type(exc).__name__
 
+        errors += 1
+        error_details.append(f"MailAccess: {error_text[:160]}")
         send_progress(
             checked_modules,
             total_modules,
@@ -609,7 +617,7 @@ async def mailaccess_search(
             ),
         )
 
-        return found, checked_modules
+        return found, checked_modules, errors, error_details
 
     finally:
 
