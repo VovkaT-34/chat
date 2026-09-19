@@ -224,9 +224,10 @@ async def _validate_dollarfix_compat(email: str) -> Result:
                 return Result.taken(url=show_url)
             if msg == "The user does not exist.":
                 return Result.available(url=show_url)
+            safe_msg = msg if isinstance(msg, str) else repr(msg)
             return Result.error(
-                "DollarFix returned an unknown account-state response "
-                f"(msg length: {len(msg) if isinstance(msg, str) else 0})",
+                "DollarFix unknown account-state response "
+                f"(msg: {safe_msg!r})",
                 url=show_url,
             )
     except httpx.TimeoutException:
