@@ -63,6 +63,103 @@ def _make_found_item(data):
     }
 
 
+async def _validate_hackerone_compat(email: str) -> Result:
+    """Compatibility validator for HackerOne responses that are not JSON."""
+    show_url = "https://hackerone.com"
+    signup_url = "https://hackerone.com/sign_up"
+    api_url = "https://hackerone.com/users"
+
+    headers_init = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,image/apng,*/*;q=0.8,"
+        "application/signed-exchange;v=b3;q=0.7",
+        "Accept-Encoding": "identity",
+        "referer": "https://hackerone.com/users/sign_in",
+        "accept-language": "en-US,en;q=0.9",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            page = await client.get(signup_url, headers=headers_init)
+
+            if page.status_code in (401, 403):
+                return Result.error(
+                    f"HackerOne blocked the validation request (HTTP {page.status_code})",
+                    url=show_url,
+                )
+            if page.status_code == 429:
+                return Result.error("Rate limited by HackerOne", url=show_url)
+
+            csrf_match = re.search(
+                r'name="csrf-token" content="([^"]+)"', page.text
+            )
+            if not csrf_match:
+                return Result.error(
+                    f"Failed to extract HackerOne CSRF token (HTTP {page.status_code})",
+                    url=show_url,
+                )
+
+            csrf_token = csrf_match.group(1)
+            reg_headers = {
+                "Accept": "application/json, text/javascript, */*; q=0.01",
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "X-CSRF-Token": csrf_token,
+                "X-Requested-With": "XMLHttpRequest",
+                "User-Agent": headers_init["User-Agent"],
+                "Origin": "https://hackerone.com",
+                "Referer": signup_url,
+                "Accept-Encoding": "identity",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
+            payload = {
+                "user[name]": "St33l_h3art_g3t_n0_l0v3",
+                "user[username]": "kn0wl3dg3_is_curs3",
+                "user[email]": email,
+                "user[password]": "thisw0rldwasn3v3rg00d",
+                "user[password_confirmation]": "mismatch_on_purpose",
+            }
+
+            response = await client.post(api_url, data=payload, headers=reg_headers)
+
+            if response.status_code in (401, 403):
+                return Result.error(
+                    f"HackerOne blocked the validation request (HTTP {response.status_code})",
+                    url=show_url,
+                )
+            if response.status_code == 429:
+                return Result.error("Rate limited by HackerOne", url=show_url)
+
+            try:
+                data = response.json()
+            except ValueError:
+                content_type = response.headers.get("content-type", "").lower()
+                if "json" not in content_type:
+                    return Result.error(
+                        f"Unexpected HackerOne response format (HTTP {response.status_code})",
+                        url=show_url,
+                    )
+                return Result.error(
+                    f"Unexpected HackerOne JSON response (HTTP {response.status_code})",
+                    url=show_url,
+                )
+
+            errors = data.get("errors", {}) if isinstance(data, dict) else {}
+            email_errors = str(errors.get("email", []))
+
+            if "has already been taken" in email_errors:
+                return Result.taken(url=show_url)
+
+            if isinstance(data, dict) and "email" not in errors:
+                return Result.available(url=show_url)
+
+            return Result.error(
+                f"Unexpected HackerOne response: {response.status_code}",
+                url=show_url,
+            )
+
+
 async def _validate_stackoverflow_compat(email: str) -> Result:
     """Compatibility validator for Stack Overflow's changed login response."""
     url = "https://stackoverflow.com/users/login"
@@ -173,6 +270,8 @@ def _prepare_module(module):
             setattr(module, "validate_besoccer", validator)
     elif module_name == "stackoverflow":
         setattr(module, "validate_stackoverflow", _validate_stackoverflow_compat)
+    elif module_name == "hackerone":
+        setattr(module, "validate_hackerone", _validate_hackerone_compat)
     return module
 
 
