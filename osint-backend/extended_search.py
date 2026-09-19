@@ -201,7 +201,7 @@ async def _direct_engine_search(engine_name: str, template: str, query: str) -> 
             return []
         return [
             {"engine": engine_name, "url": href, "title": title}
-            for href, title in _result_urls(response.text)[:10]
+            for href, title in _result_urls(response.text)
         ]
     except Exception:
         return []
@@ -307,7 +307,7 @@ async def _verify_page(kind: str, query: str, url: str) -> bool:
 async def _search_items(search_query: str) -> list[dict]:
     return await asyncio.to_thread(
         lambda q=search_query: DDGS(timeout=TIMEOUT).text(
-            q, region="ru-ru", safesearch="off", max_results=5, backend="auto"
+            q, region="ru-ru", safesearch="off", backend="auto"
         )
     )
 
@@ -373,7 +373,7 @@ async def _search_person_catalogue_batch(
     return results
 
 
-async def extended_public_search(query: str, kind: str, max_results: int = 30, progress=None) -> list[dict]:
+async def extended_public_search(query: str, kind: str, progress=None) -> list[dict]:
     """Search public pages: direct engines first, then Russian catalogue, then foreign catalogue."""
     ru_sources = SOURCES_RU.get(kind, [])
     foreign_sources = SOURCES_FOREIGN.get(kind, [])
@@ -423,8 +423,6 @@ async def extended_public_search(query: str, kind: str, max_results: int = 30, p
             "engine": item["engine"],
             "kind": f"{kind}_public",
         })
-        if len(results) >= max_results:
-            return results
 
     if progress:
         progress(engine_count, total, "Поисковики: Google → Яндекс → Bing → DuckDuckGo → Mail.ru завершены", results)
@@ -441,8 +439,6 @@ async def extended_public_search(query: str, kind: str, max_results: int = 30, p
                     continue
                 seen.add(key)
                 results.append(item)
-                if len(results) >= max_results:
-                    return results
 
             completed = min(batch_start + PERSON_BATCH_SIZE, len(sources))
             if progress:
@@ -477,17 +473,10 @@ async def extended_public_search(query: str, kind: str, max_results: int = 30, p
                     continue
                 seen.add(key)
                 results.append({"source": f"{name}: точное публичное упоминание", "name": title or href, "url": href, "snippet": body, "domain": domain, "site": name, "kind": f"{kind}_public"})
-                if len(results) >= max_results:
-                    break
         except Exception:
             pass
         if progress:
             progress(index, total, current, results)
-        if len(results) >= max_results:
-            break
-
-    if len(results) >= max_results:
-        return results
 
     # 3) Foreign catalogue.
     start = engine_count + len(ru_sources) + 1
@@ -509,14 +498,10 @@ async def extended_public_search(query: str, kind: str, max_results: int = 30, p
                     continue
                 seen.add(key)
                 results.append({"source": f"{name}: точное публичное упоминание", "name": title or href, "url": href, "snippet": body, "domain": domain, "site": name, "kind": f"{kind}_public"})
-                if len(results) >= max_results:
-                    break
         except Exception:
             pass
         if progress:
             progress(index, total, current, results)
-        if len(results) >= max_results:
-            break
 
     return results
 
