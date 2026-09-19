@@ -544,6 +544,13 @@ async def _validate_atlassian_compat(email: str) -> Result:
                 if marker in body_lower
             ]
 
+            if "captcha" in markers and "required" in markers:
+                return Result.error(
+                    "Atlassian CAPTCHA/required validation blocked the check "
+                    f"(HTTP {response.status_code})",
+                    url=show_url,
+                )
+
             return Result.error(
                 "Atlassian diagnostic "
                 f"(HTTP {response.status_code}, content-type: {content_type}, "
