@@ -250,6 +250,65 @@ async def reset_memory(request: Request):
     return memory()
 
 
+MAILACCESS_RENDER_SERVICE_ID = "srv-danemmjtqb8s73blr0i0"
+
+
+async def _render_api_request(path: str, method: str = "GET"):
+    api_key = os.getenv("RENDER_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail="RENDER_API_KEY не настроен")
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            response = await client.request(
+                method,
+                "https://api.render.com/v1" + path,
+                headers={"Authorization": "Bearer " + api_key, "Accept": "application/json"},
+            )
+        if response.status_code >= 400:
+            raise HTTPException(status_code=502, detail=f"Render API вернул HTTP {response.status_code}")
+        return response.json()
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=502, detail="Не удалось получить данные Render API")
+
+
+@app.get("/mailaccess/memory")
+async def mailaccess_memory(request: Request):
+    """Return current Render memory usage for the isolated MailAccess service."""
+    await require_authenticated_user(request)
+    end = time.time()
+    start = end - 180
+    payload = await _render_api_request(
+        f"/metrics/memory?resource={MAILACCESS_RENDER_SERVICE_ID}"
+        f"&startTime={start}&endTime={end}&resolutionSeconds=30"
+    )
+    points = payload.get("metrics", payload.get("data", [])) if isinstance(payload, dict) else payload
+    if not isinstance(points, list) or not points:
+        raise HTTPException(status_code=502, detail="Render API не вернул значения RAM MailAccess")
+    latest = points[-1]
+    if isinstance(latest, dict):
+        value = latest.get("value", latest.get("memory", latest.get("ram_mb")))
+    else:
+        value = latest
+    try:
+        ram_mb = float(value) / (1024 * 1024) if float(value) > 100000 else float(value)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=502, detail="Не удалось разобрать значение RAM MailAccess")
+    return {"ram_mb": round(ram_mb, 1), "unit": "MB RAM", "service": "glaz-boga-mailaccess"}
+
+
+@app.post("/mailaccess/memory/reset")
+async def mailaccess_memory_reset(request: Request):
+    """Restart the isolated MailAccess Render service after confirming no local deep scan is active."""
+    await require_authenticated_user(request)
+    state = scan_state()
+    if state["scanning"]:
+        raise HTTPException(status_code=409, detail="Нельзя очищать ОЗУ во время сканирования")
+    await _render_api_request(f"/services/{MAILACCESS_RENDER_SERVICE_ID}/restart", method="POST")
+    return {"ok": True, "action": "restart", "service": "glaz-boga-mailaccess"}
+
+
 async def run_username_job(job_id: str, username: str, sites):
     global ACTIVE_JOB_ID
 
