@@ -431,7 +431,6 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             public_results = await public_search(
                 query,
                 "phone",
-                max_results=20,
             )
             info = phone_info(query)
 
@@ -510,7 +509,6 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             public_results = await extended_public_search(
                 query,
                 "email",
-                max_results=30,
                 progress=progress,
             )
 
@@ -539,7 +537,6 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             public_results = await extended_public_search(
                 query,
                 "phone",
-                max_results=30,
                 progress=progress,
             )
 
@@ -568,7 +565,6 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             public_results = await extended_public_search(
                 query,
                 "person",
-                max_results=20,
                 progress=progress,
             )
 
@@ -696,11 +692,10 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
             plate_results = []
 
-            for plate in extracted[:3]:
+            for plate in extracted:
                 plate_results.extend(
                     await plate_public_search(
                         plate,
-                        max_results=8,
                     )
                 )
 
