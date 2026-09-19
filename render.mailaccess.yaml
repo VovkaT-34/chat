@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: glaz-boga-mailaccess
+    runtime: docker
+    region: oregon
+    plan: free
+    rootDir: osint-backend
+    dockerfilePath: Dockerfile.mailaccess
+    dockerContext: .
+    autoDeployTrigger: commit
+    healthCheckPath: /health
