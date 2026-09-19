@@ -5,8 +5,8 @@ from user_scanner.core import engine
 from user_scanner.core.helpers import load_categories, load_modules
 
 BATCH_SIZE = 20
-MAX_CONCURRENCY = 4
-BATCH_PAUSE = 0.10
+MAX_CONCURRENCY = 1
+BATCH_PAUSE = 0.20
 
 
 def _serialize_result(res):
