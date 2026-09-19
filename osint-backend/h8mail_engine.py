@@ -55,9 +55,6 @@ async def h8mail_search(email: str, progress=None) -> Tuple[List[dict], int]:
                 if progress:
                     progress(checked, checked + 5, "h8mail", found)
 
-                if len(found) >= 30:
-                    break
-
         total = max(checked, len(found))
 
     except FileNotFoundError:
