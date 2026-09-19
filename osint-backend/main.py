@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import resource
 import time
 import uuid
@@ -162,20 +163,67 @@ def scan_state():
     return {"scanning": quick_running or deep_running, "quick": quick_running, "deep": deep_running}
 
 
+def _read_process_rss_mb(pid: int) -> float:
+    try:
+        with open(f"/proc/{pid}/statm", "r", encoding="utf-8") as fh:
+            pages = int(fh.read().split()[1])
+        return pages * resource.getpagesize() / (1024 * 1024)
+    except Exception:
+        return 0.0
+
+
+def _process_tree_pids(root_pid: int) -> set[int]:
+    pids = {root_pid}
+    queue = [root_pid]
+
+    while queue:
+        pid = queue.pop()
+        try:
+            with open(
+                f"/proc/{pid}/task/{pid}/children",
+                "r",
+                encoding="utf-8",
+            ) as fh:
+                children = [
+                    int(value)
+                    for value in fh.read().split()
+                    if value.isdigit()
+                ]
+        except Exception:
+            continue
+
+        for child_pid in children:
+            if child_pid not in pids:
+                pids.add(child_pid)
+                queue.append(child_pid)
+
+    return pids
+
+
 @app.get("/memory")
 def memory():
-    """Return the current process RSS in megabytes for the lightweight UI indicator."""
+    """Return RSS for this service process and its child processes."""
     try:
-        with open("/proc/self/statm", "r", encoding="utf-8") as fh:
-            pages = int(fh.read().split()[1])
-        rss_mb = pages * resource.getpagesize() / (1024 * 1024)
+        pids = _process_tree_pids(os.getpid())
+        rss_mb = sum(
+            _read_process_rss_mb(pid)
+            for pid in pids
+        )
     except Exception:
-        rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        rss_mb = rss_kb / 1024
+        pids = {os.getpid()}
+        rss_mb = 0.0
+
+    if rss_mb <= 0:
+        try:
+            rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            rss_mb = rss_kb / 1024
+        except Exception:
+            rss_mb = 0.0
 
     return {
         "ram_mb": round(rss_mb, 1),
         "unit": "MB RAM",
+        "processes": len(pids),
     }
 
 
