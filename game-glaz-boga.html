@@ -702,7 +702,17 @@ async function pollDeep(){
   if(!deepJobId)return;
   try{
     const r=await fetch(deepRender+'/deep/status?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
-    if(!r.ok)return;
+    if(!r.ok){
+      if(r.status===404){
+        deepStatus.innerHTML='Статус: <span class="deep-status-done">задание Render потеряно или перезапущено (HTTP 404)</span>';
+        clearInterval(deepTimer);deepTimer=null;
+        stopDeep.classList.remove('active');
+        deepRunning.classList.remove('active');
+      }else{
+        deepStatus.innerHTML='Статус: <span class="deep-status-waiting">Render вернул HTTP '+r.status+' — ждём восстановления связи…</span>';
+      }
+      return;
+    }
     const d=await r.json();
     renderDeep(d);
     if(d.status==='done'||d.status==='error'||d.status==='cancelled'){
