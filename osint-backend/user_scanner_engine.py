@@ -1,4 +1,3 @@
-
 import asyncio
 import json
 import re
@@ -836,6 +835,133 @@ async def _validate_threadless_compat(email: str) -> Result:
         )
 
 
+async def _validate_payhip_compat(email: str) -> Result:
+    """Diagnose Payhip password-reset responses without exposing response bodies."""
+    url = "https://payhip.com/auth/forgot_password_buyer_ajax"
+    show_url = "https://payhip.com"
+    headers = {
+        "origin": show_url,
+        "referer": f"{show_url}/auth/forgot_password",
+        "x-requested-with": "XMLHttpRequest",
+        "User-Agent": (
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36"
+        ),
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "identity",
+    }
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=15.0,
+            follow_redirects=True,
+        ) as client:
+            response = await client.post(
+                url,
+                data={"login": email},
+                headers=headers,
+            )
+
+        body = response.text
+        body_lower = body.lower()
+        content_type = response.headers.get("content-type", "unknown")
+
+        challenge_markers = [
+            marker
+            for marker in (
+                "cloudflare",
+                "captcha",
+                "challenge",
+                "verify you are human",
+                "access denied",
+                "attention required",
+                "just a moment",
+                "perimeterx",
+                "datadome",
+                "incapsula",
+                "waf",
+                "bot detection",
+            )
+            if marker in body_lower
+        ]
+
+        if response.status_code in (401, 403, 429):
+            return Result.error(
+                "Payhip password-reset request blocked "
+                f"(HTTP {response.status_code}, final URL: {response.url}, "
+                f"content-type: {content_type}, "
+                f"challenge markers: {','.join(challenge_markers) or 'none'}, "
+                f"body length: {len(body)})",
+                url=show_url,
+            )
+
+        if response.status_code != 200:
+            return Result.error(
+                "Payhip password-reset request returned "
+                f"HTTP {response.status_code} "
+                f"(final URL: {response.url}, content-type: {content_type}, "
+                f"body length: {len(body)})",
+                url=show_url,
+            )
+
+        try:
+            data = response.json()
+        except ValueError:
+            return Result.error(
+                "Payhip returned an unexpected non-JSON response "
+                f"(HTTP 200, content-type: {content_type}, "
+                f"body length: {len(body)}, "
+                f"challenge markers: {','.join(challenge_markers) or 'none'})",
+                url=show_url,
+            )
+
+        if not isinstance(data, dict):
+            return Result.error(
+                "Payhip returned an unexpected JSON structure "
+                f"(HTTP 200, type: {type(data).__name__})",
+                url=show_url,
+            )
+
+        if data.get("success") is True:
+            return Result.taken(url=show_url)
+
+        if (
+            data.get("success") is False
+            and data.get("error_message_public")
+            == "Login or email doesn't exist"
+        ):
+            return Result.available(url=show_url)
+
+        keys = sorted(str(key) for key in data.keys())[:12]
+        return Result.error(
+            "Unexpected Payhip password-reset response "
+            f"(HTTP 200, keys: {','.join(keys) or 'none'})",
+            url=show_url,
+        )
+
+    except httpx.ConnectTimeout:
+        return Result.error(
+            "Payhip connection timed out",
+            url=show_url,
+        )
+    except httpx.ReadTimeout:
+        return Result.error(
+            "Payhip response timed out",
+            url=show_url,
+        )
+    except httpx.TimeoutException:
+        return Result.error(
+            "Payhip request timed out",
+            url=show_url,
+        )
+    except Exception as exc:
+        return Result.error(
+            f"Payhip validation failed: {type(exc).__name__}",
+            url=show_url,
+        )
+
+
 async def _validate_emirates_compat(email: str) -> Result:
     """Diagnose Emirates validation transport failures without exposing response data."""
     show_url = "https://emirates.com"
@@ -950,6 +1076,8 @@ def _prepare_module(module):
         setattr(module, "validate_netflix", _validate_netflix_compat)
     elif module_name == "threadless":
         setattr(module, "validate_threadless", _validate_threadless_compat)
+    elif module_name == "payhip":
+        setattr(module, "validate_payhip", _validate_payhip_compat)
     elif module_name == "emirates":
         setattr(module, "validate_emirates", _validate_emirates_compat)
     return module
@@ -1048,4 +1176,3 @@ async def user_scanner_search(email: str, progress=None):
         if progress:
             progress(0, 0, "error", [])
         return [], 0, 1, ["User Scanner: внутренняя ошибка запуска"]
-
