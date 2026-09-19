@@ -8,6 +8,7 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="auth-check.js"></script>
 <script src="glaz-ram.js"></script>
+<script src="mailaccess-ram.js"></script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:linear-gradient(145deg,#171318,#35242f 55%,#171318);color:#fff}
@@ -97,8 +98,7 @@ body{padding:16px 14px 30px}
 .title-wrap{grid-column:2;justify-content:center;min-width:0}
 .info-link{font-size:12px;white-space:normal;max-width:100%;overflow:visible;text-overflow:clip}
 }
-.deep-diagnostics{display:none;margin:8px 0 10px;padding:9px 11px;border:1px solid rgba(255,190,80,.28);border-radius:10px;background:rgba(255,190,80,.07);font-size:12px;line-height:1.45}.deep-diagnostics-title{font-weight:800;margin-bottom:4px}.deep-diagnostic-error{color:#ffb36b;margin-top:3px;word-break:break-word}.deep-diagnostic-ok{color:#39e58c}.osint-ram-controls{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:10px;flex:0 0 auto}.mailaccess-ram-controls{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:8px;flex:0 0 auto}.mailaccess-ram-controls[hidden]{display:none}.osint-ram-indicator{display:inline-flex;align-items:center;padding:3px 8px;border:1px solid rgba(57,229,140,.45);border-radius:8px;background:rgba(57,229,140,.10);color:#39e58c;font-size:12px;font-weight:800;line-height:1.35;white-space:nowrap;visibility:visible;opacity:1;position:relative;z-index:9999}.osint-ram-indicator.osint-ram-high{border-color:rgba(255,70,70,.65);background:rgba(255,70,70,.12);color:#ff4646}.osint-ram-reset{border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.07);color:#fff;padding:3px 8px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.osint-ram-reset:disabled{opacity:.45;cursor:not-allowed}.glaz-eye{display:inline-block;transition:filter .2s ease}.glaz-eye.glaz-eye-scanning{filter:hue-rotate(285deg) saturate(3) brightness(1.05);text-shadow:0 0 10px rgba(255,50,50,.9)}@media(max-width:650px){.osint-ram-controls{margin-left:7px}.mailaccess-ram-controls{margin-left:5px}.osint-ram-indicator{font-size:11px}.osint-ram-reset{font-size:10px;padding:3px 7px}}</style>
-</head>
+.deep-diagnostics{display:none;margin:8px 0 10px;padding:9px 11px;border:1px solid rgba(255,190,80,.28);border-radius:10px;background:rgba(255,190,80,.07);font-size:12px;line-height:1.45}.deep-diagnostics-title{font-weight:800;margin-bottom:4px}.deep-diagnostic-error{color:#ffb36b;margin-top:3px;word-break:break-word}.deep-diagnostic-ok{color:#39e58c}.osint-ram-controls{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:10px;flex:0 0 auto}.mailaccess-ram-controls{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin-left:8px;flex:0 0 auto}.mailaccess-ram-controls[hidden]{display:none}.osint-ram-indicator{display:inline-flex;align-items:center;padding:3px 8px;border:1px solid rgba(57,229,140,.45);border-radius:8px;background:rgba(57,229,140,.10);color:#39e58c;font-size:12px;font-weight:800;line-height:1.35;white-space:nowrap;visibility:visible;opacity:1;position:relative;z-index:9999}.osint-ram-indicator.osint-ram-high{border-color:rgba(255,70,70,.65);background:rgba(255,70,70,.12);color:#ff4646}.osint-ram-reset{border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.07);color:#fff;padding:3px 8px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.osint-ram-reset:disabled{opacity:.45;cursor:not-allowed}.glaz-eye{display:inline-block;transition:filter .2s ease}.glaz-eye.glaz-eye-scanning{filter:hue-rotate(285deg) saturate(3) brightness(1.05);text-shadow:0 0 10px rgba(255,50,50,.9)}@media(max-width:650px){.osint-ram-controls{margin-left:7px}.mailaccess-ram-controls{margin-left:5px}.osint-ram-indicator{font-size:11px}.osint-ram-reset{font-size:10px;padding:3px 7px}}</style></head>
 <body>
 <div class="page">
 <div class="top">
@@ -197,8 +197,7 @@ body{padding:16px 14px 30px}
 <a href="https://epieos.com/" target="_blank" rel="noopener noreferrer">Epieos</a>
 </div>
 </section>
-<section class="card" data-cats="email">
-<h2>📧 Email</h2>
+<section class="card" data-cats="email"><h2>📧 Email</h2>
 <p>Публичные упоминания и проверка присутствия.</p>
 <div class="links">
 <a data-url="https://www.google.com/search?q=%22{q}%22+site%3Agithub.com">GitHub</a>
@@ -297,8 +296,7 @@ quickQ=document.getElementById('quickQ'),
 deepQ=document.getElementById('deepQ'),
 deepKind=document.getElementById('deepKind'),
 statusBox=document.getElementById('status'),
-results=document.getElementById('results'),
-resultBox=document.getElementById('resultbox'),
+results=document.getElementById('results'),resultBox=document.getElementById('resultbox'),
 deepProgress=document.getElementById('deepProgress'),
 deepQuery=document.getElementById('deepQuery'),
 deepStatus=document.getElementById('deepStatus'),
@@ -397,8 +395,7 @@ function formatMailAccessDossier(results){
     'emailrep_spam',
     'emailrep_blacklisted',
     'emailrep_free_provider',
-    'emailrep_disposable'
-  ]);
+    'emailrep_disposable'  ]);
   const sections={
     reputation:[],
     identity:[],
@@ -498,357 +495,3 @@ function formatMailAccessDossier(results){
     )return 'relations';
     if(
       /email|canonical|name|fio|person|phone/.test(k)
-    )return 'identity';
-    return 'other';
-  }
-  items.forEach(item=>{
-    if(!item||typeof item!=='object')return;
-    const data=item.data;
-    if(!data||typeof data!=='object')return;
-    const sourceTitle=item.name||item.source||item.url||item.href||'Источник';
-    Object.entries(data).forEach(([key,value])=>{
-      if(key==='metadata'&&value&&typeof value==='object'&&!Array.isArray(value)){
-        Object.entries(value).forEach(([metaKey,metaValue])=>{
-          if(!isEmpty(metaValue)){
-            add(classify(metaKey,metaValue,sourceTitle),metaKey,metaValue,sourceTitle);
-          }
-        });
-        return;
-      }
-      add(classify(key,value,sourceTitle),key,value,sourceTitle);
-    });
-  });
-  /* ===== Отдельно строим компактные карточки профилей ===== */
-  const profiles=[];
-  const profileSeen=new Set();
-  items.forEach(item=>{
-    if(!item||typeof item!=='object'||!item.data||typeof item.data!=='object')return;
-    const d=item.data;
-    const url=item.url||item.href||d.profile_url;
-    const username=d.username||d.handle||d.login||d.nickname;
-    if(!url&&!username)return;
-    const signature=String(url||username);
-    if(profileSeen.has(signature))return;
-    profileSeen.add(signature);
-    profiles.push({
-      title:item.name||item.source||'Публичный профиль',
-      url,
-      username,
-      instance:d.instance,
-      member_since:d.member_since,
-      first_seen:d.first_seen,
-      karma:d.karma,
-      description:d.description||d.bio
-    });
-  });
-  if(profiles.length){
-    sections.accounts=[];
-    profiles.forEach(p=>{
-      let html='<div class="dossier-profile">';
-      html+='<div class="dossier-source">'+esc(p.title)+'</div>';
-      if(p.url){
-        html+='<div><a href="'+esc(p.url)+'" target="_blank" rel="noopener noreferrer">'+esc(p.username||p.url)+'</a></div>';
-      }else if(p.username){
-        html+='<div><b>Username:</b> '+linkify(p.username)+'</div>';
-      }
-      if(p.instance)html+='<div><b>Instance:</b> '+linkify(p.instance)+'</div>';
-      if(p.member_since)html+='<div><b>Регистрация:</b> '+linkify(p.member_since)+'</div>';
-      if(p.first_seen)html+='<div><b>Первое обнаружение:</b> '+linkify(p.first_seen)+'</div>';
-      if(p.karma!==undefined&&p.karma!==null&&p.karma!=='')html+='<div><b>Karma:</b> '+linkify(p.karma)+'</div>';
-      if(p.description)html+='<div><b>Описание:</b> '+linkify(p.description)+'</div>';
-      html+='</div>';
-      sections.accounts.push({
-        rawHtml:html
-      });
-    });
-  }
-  function badges(){
-    const all=items.flatMap(x=>{
-      const d=x&&x.data&&typeof x.data==='object'?x.data:{};
-      return Object.entries(d);
-    });
-    const out=[];
-    const malicious=all.some(([k,v])=>/is_malicious|malicious|reputation_verdict/i.test(k)&&String(v).toLowerCase().includes('malicious'));
-    const spamhaus=all.some(([k,v])=>/spamhaus/i.test(k)&&String(v).toLowerCase().includes('listed'));
-    const spf=all.some(([k,v])=>/has_spf/i.test(k)&&String(v).toLowerCase()==='true');
-    const dmarc=all.some(([k,v])=>/has_dmarc/i.test(k)&&String(v).toLowerCase()==='true');
-    const google=all.some(([k,v])=>/google_hosted/i.test(k)&&String(v).toLowerCase()==='true');
-    if(malicious)out.push('<span class="dossier-badge danger">🚨 malicious</span>');
-    if(spamhaus)out.push('<span class="dossier-badge danger">🔴 Spamhaus</span>');
-    if(spf)out.push('<span class="dossier-badge good">✓ SPF</span>');
-    if(dmarc)out.push('<span class="dossier-badge good">✓ DMARC</span>');
-    if(google)out.push('<span class="dossier-badge good">Google</span>');
-    return out.join('');
-  }
-  function renderSection(title,icon,list){
-    if(!list.length)return '';
-    let body='';
-    list.forEach(x=>{
-      if(x.rawHtml){
-        body+=x.rawHtml;
-        return;
-      }
-      body+='<div class="dossier-item">';
-      if(x.source){
-        body+='<div class="dossier-source">'+esc(x.source)+'</div>';
-      }
-      body+='<b>'+esc(x.key)+':</b> '+x.value;
-      body+='</div>';
-    });
-    return '<section class="dossier-section">'+
-      '<div class="dossier-section-title">'+icon+' '+title+'</div>'+ 
-      '<div class="dossier-section-body">'+body+'</div>'+ 
-      '</section>';
-  }
-  let html='<div class="osint-dossier">';
-  html+='<div class="dossier-head">'+
-    '<div class="dossier-title">🕵️ Структурированное досье</div>'+ 
-    '<div class="dossier-subtitle">MailAccess · полезные сведения собраны по категориям</div>'+ 
-    '<div style="margin-top:7px">'+badges()+'</div>'+ 
-    '</div>';
-  html+=renderSection('Репутация и риски','🚨',sections.reputation);
-  html+=renderSection('Идентификация','📧',sections.identity);
-  html+=renderSection('DNS и сетевая инфраструктура','🌐',sections.dns);
-  html+=renderSection('Публичные аккаунты и профили','👤',sections.accounts);
-  html+=renderSection('Утечки и компрометации','🔴',sections.breaches);
-  html+=renderSection('Домены и инфраструктура','🏗️',sections.infrastructure);
-  html+=renderSection('Связи и дополнительные идентификаторы','🔗',sections.relations);
-  html+=renderSection('Дополнительные сведения','🔎',sections.other);
-  if(
-    !sections.reputation.length &&
-    !sections.identity.length &&
-    !sections.dns.length &&
-    !sections.accounts.length &&
-    !sections.breaches.length &&
-    !sections.infrastructure.length &&
-    !sections.relations.length &&
-    !sections.other.length
-  ){
-    html+='<div class="dossier-empty">Полезных сведений для отображения пока не найдено.</div>';
-  }
-  html+='</div>';
-  return html;
-}
-function renderDeep(d){
-  const kind=d.kind||deepKind.value;
-  const isMailAccess=kind==='email_mailaccess';
-  deepQuery.textContent=deepLabel(kind)+': '+(d.query||'');
-  const statusLabel=d.status==='running'?'выполняется':d.status==='done'?'завершен':d.status==='queued'?'ожидает запуска':d.status==='error'?'ошибка':d.status==='cancelled'?'остановлен':d.status;
-  const statusClass=d.status==='running'?'deep-status-running':d.status==='done'?'deep-status-done':d.status==='cancelled'?'deep-status-done':'';
-  deepStatus.innerHTML='Статус: <span class="'+statusClass+'">'+esc(statusLabel)+'</span>';
-  const checked=Number(d.checked||0);
-  const total=Number(d.total||0);
-  deepChecked.textContent='Проверено: '+checked+' / '+total;
-  const foundCount=Number(d.count||0);
-  deepFound.innerHTML='Найдено: <span style="color:'+(foundCount>0?'#39e58c':'#ff4b5c')+'">'+foundCount+'</span>';
-  if(deepDiagnostics){
-    const diagnostics=d.diagnostics&&typeof d.diagnostics==='object'?d.diagnostics:{};
-    const errorCount=Number(diagnostics.errors||0);
-    const details=Array.isArray(diagnostics.details)?diagnostics.details:[];
-    if(kind==='email_userscanner'||kind==='email_mailaccess'){
-      deepDiagnostics.innerHTML=
-        '<div class="deep-diagnostics-title">Диагностика внешних проверок: <b>'+errorCount+'</b></div>'+
-        (details.length
-          ?details.map(x=>'<div class="deep-diagnostic-error">⚠️ '+esc(x)+'</div>').join('')
-          :'<div class="deep-diagnostic-ok">✓ Ошибок внешних проверок не зафиксировано</div>');
-      deepDiagnostics.style.display='block';
-    }else{
-      deepDiagnostics.innerHTML='';
-      deepDiagnostics.style.display='none';
-    }
-  }
-  const sites=Array.isArray(d.checked_items)?d.checked_items:[];
-  const data=Array.isArray(d.results)?d.results:[];
-  if(isMailAccess){
-    const sourceLinks=data.map(x=>{
-      const url=x&&typeof x==='object'?(x.url||x.href):'';
-      const title=x&&typeof x==='object'?(x.name||x.source||url||'Результат'):'Результат';
-      if(!url)return '';
-      return '<div class="deep-site">✓ <a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a></div>';
-    }).join('');
-    deepSites.innerHTML=
-      sourceLinks+
-      formatMailAccessDossier(data);
-    if(!deepSites.innerHTML){
-      deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
-    }
-    return;
-  }
-  deepSites.innerHTML=
-    (sites.length
-      ?sites.map(x=>'<div class="deep-site">✓ '+esc(x)+'</div>').join('')
-      :''
-    )+
-    (data.length
-      ?data.map(x=>{
-        const url=x.url||x.href;
-        const title=x.name||x.source||url||'Результат';
-        const body=formatDeepData(x.data);
-        return '<div class="deep-result">'+
-          (url
-            ?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a>'
-            :esc(title)
-          )+
-          (body?'<div class="deep-data">'+body+'</div>':'')+
-          '</div>';
-      }).join('')
-      :''
-    );
-  if(!deepSites.innerHTML){
-    deepSites.innerHTML='<div class="deep-site muted">Результаты ещё не появились.</div>';
-  }
-}
-async function pollDeep(){
-  if(!deepJobId)return;
-  try{
-    const r=await fetch(deepRender+'/deep/status?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
-    if(!r.ok){
-      if(r.status===404){
-        deepStatus.innerHTML='Статус: <span class="deep-status-done">задание Render потеряно или перезапущено (HTTP 404)</span>';
-        deepDiagnostics.innerHTML='<div class="deep-diagnostics-title">Диагностика внешних проверок: <b>1</b></div><div class="deep-diagnostic-error">⚠️ Render потерял текущее задание после перезапуска сервера (HTTP 404). Проверка прервана.</div>';
-        deepDiagnostics.style.display='block';
-        clearInterval(deepTimer);deepTimer=null;
-        deepJobId=null;
-        stopDeep.classList.remove('active');
-        deepRunning.classList.remove('active');
-        deepSearchButton.disabled=false;
-        deepSearchButton.textContent='Поиск';
-      }else{
-        deepStatus.innerHTML='Статус: <span class="deep-status-waiting">Render вернул HTTP '+r.status+' — ждём восстановления связи…</span>';
-      }
-      return;
-    }
-    const d=await r.json();
-    renderDeep(d);
-    if(d.status==='done'||d.status==='error'||d.status==='cancelled'){
-      clearInterval(deepTimer);deepTimer=null;
-      stopDeep.classList.remove('active');
-      deepRunning.classList.remove('active');
-    }
-  }catch(e){
-    deepStatus.innerHTML='Статус: <span class="deep-status-waiting">ожидание связи с Render…</span>';
-  }
-}
-async function stopDeepSearch(){
-  if(!deepJobId)return;
-  stopDeep.disabled=true;
-  deepStatus.textContent='Статус: остановка…';
-  try{
-    const r=await fetch(deepRender+'/deep/cancel?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
-    const d=await r.json();
-    if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
-    clearInterval(deepTimer);deepTimer=null;
-    renderDeep(d);
-    stopDeep.classList.remove('active');
-    deepRunning.classList.remove('active');
-  }catch(e){
-    deepStatus.textContent='Статус: ошибка остановки — '+e.message;
-  }finally{
-    stopDeep.disabled=false;
-  }
-}
-async function deepSearch(){
-  const value=deepQ.value.trim(),kind=deepKind.value;
-  if(!value){
-    deepQ.focus();
-    return;
-  }
-  deepRender=kind==='email_mosint'?RENDER_MOSINT:RENDER;
-  if(deepTimer){
-    clearInterval(deepTimer);
-    deepTimer=null;
-  }
-  deepProgress.style.display='block';
-  deepQuery.textContent=deepLabel(kind)+': '+value;
-  deepStatus.textContent='Статус: запуск…';
-  deepChecked.textContent='Проверено: 0 / …';
-  deepFound.innerHTML='Найдено: <span style="color:#ff4b5c">0</span>';
-  deepSites.innerHTML='';
-  stopDeep.classList.remove('active');
-  deepRunning.classList.remove('active');
-  if(kind==='username'&&!validUsername(value)){
-    deepStatus.textContent='Статус: username должен содержать латинские буквы, цифры, точку, дефис или подчёркивание.';
-    return;
-  }
-  try{
-    const r=await fetch(
-      deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),
-      {cache:'no-store'}
-    );
-    const d=await r.json();
-    if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
-    deepJobId=d.job_id;
-    renderDeep(d);
-    if(d.status!=='done'&&d.status!=='error'&&d.status!=='cancelled'){
-      stopDeep.classList.add('active');
-      deepRunning.classList.add('active');
-      await pollDeep();
-      deepTimer=setInterval(pollDeep,4000);
-    }
-  }catch(e){
-    stopDeep.classList.remove('active');
-    deepRunning.classList.remove('active');
-    deepStatus.textContent='Статус: ошибка запуска — '+e.message;
-  }
-}
-function updateDeepPlaceholder(){
-  const p={
-    username_sherlock:'Username для быстрого поиска Sherlock…',
-    username:'Username для глубокого поиска Maigret…',
-    username_wmn:'Username для WhatsMyName…',
-    person:'ФИО, например Иван Иванов…',
-    phone:'Номер телефона…',
-    email:'Email…',
-    email_holehe:'Email для проверки через Holehe…',
-    email_userscanner:'Email для проверки через user-scanner…',
-    email_mailaccess:'Email для проверки через MailAccess…',
-    email_h8mail:'Email для проверки через h8mail…',
-    email_mosint:'Email для проверки через Mosint…',
-    email_blackbird:'Email для проверки через Blackbird…',
-    username_blackbird:'Username для проверки через Blackbird…',
-    vin:'VIN из 17 символов…',
-    domain:'example.com…',
-    ip:'IP-адрес…',
-    image:'URL изображения…',
-    email_extended:'Email/Gmail для расширенного поиска…',
-    phone_extended:'Номер телефона для расширенного поиска…'
-  };
-  deepQ.placeholder=p[deepKind.value]||'Запрос…';
-}
-function searchAll(){
-  const value=quickQ.value.trim();
-  if(!value){
-    quickQ.focus();
-    return;
-  }
-  document.querySelectorAll('.card a[data-url]').forEach(a=>{
-    a.href=a.dataset.url.replaceAll('{q}',enc(value));
-    a.target='_blank';
-    a.rel='noopener noreferrer';
-  });
-  document.querySelectorAll('.card').forEach(c=>{
-    c.style.display=
-      currentType==='all'||
-      (c.dataset.cats||'').split(' ').includes(currentType)
-        ?'block'
-        :'none';
-  });
-  quickLookup(value);
-}
-document.querySelectorAll('.type').forEach(b=>b.onclick=()=>{
-  currentType=b.dataset.type;
-  document.querySelectorAll('.type').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');
-  if(quickQ.value.trim())searchAll();
-});
-quickQ.addEventListener('keydown',e=>{
-  if(e.key==='Enter')searchAll();
-});
-deepQ.addEventListener('keydown',e=>{
-  if(e.key==='Enter')deepSearch();
-});
-deepKind.addEventListener('change',updateDeepPlaceholder);
-updateDeepPlaceholder();
-</script>
-</body>
-</html>
