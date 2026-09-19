@@ -227,19 +227,22 @@ async def _validate_dollarfix_compat(email: str) -> Result:
                 json_type = "invalid"
                 keys = []
                 msg_type = "none"
+            if response.status_code == 429:
+                return Result.error("DollarFix rate limited (HTTP 429)", url=show_url)
+            if response.status_code != 200:
+                return Result.error(f"DollarFix unexpected HTTP status: {response.status_code}", url=show_url)
+            if not isinstance(data, dict):
+                return Result.error("DollarFix returned non-object JSON", url=show_url)
+            msg = data.get("msg", "")
+            if msg in ("Incorrect password", "not set password"):
+                return Result.taken(url=show_url)
+            if msg == "The user does not exist.":
+                return Result.available(url=show_url)
             return Result.error(
-                "DollarFix diagnostic "
-                f"(HTTP {response.status_code}, content-type: {content_type}, "
-                f"JSON: {json_type}, keys: {','.join(map(str, keys)) or 'none'}, "
-                f"msg type: {msg_type}, markers: {','.join(markers) or 'none'}, "
-                f"body length: {len(body)})",
+                "DollarFix diagnostic: JSON schema recognized, but msg value is not a known account-state response "
+                f"(msg length: {len(msg) if isinstance(msg, str) else 0})",
                 url=show_url,
             )
-    except httpx.TimeoutException:
-        return Result.error("DollarFix request timed out", url=show_url)
-    except Exception as exc:
-        return Result.error(f"DollarFix diagnostic failed: {exc}", url=show_url)
-
 
 async def _validate_stackoverflow_compat(email: str) -> Result:
     """Compatibility validator for Stack Overflow's changed login response."""
