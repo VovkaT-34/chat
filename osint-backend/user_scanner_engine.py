@@ -4,6 +4,7 @@ import re
 
 import httpx
 from user_scanner.core import engine
+from user_scanner.core.impersonate import get_warm_session, impersonate_request_async
 from user_scanner.core.helpers import load_categories, load_modules
 from user_scanner.core.result import Result
 
@@ -229,6 +230,65 @@ async def _validate_hackerone_compat(email: str) -> Result:
         return Result.error(f"HackerOne validation failed: {exc}", url=show_url)
 
 
+async def _validate_letterboxd_compat(email: str) -> Result:
+    """Use the cached impersonation session when Letterboxd's CSRF cookie is reused."""
+    show_url = "https://letterboxd.com"
+    home_url = "https://letterboxd.com/sign-in/"
+    register_url = "https://letterboxd.com/user/standalone/register.do"
+    user_agent = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36"
+    headers = {
+        "User-Agent": user_agent,
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest",
+        "Origin": "https://letterboxd.com",
+        "Referer": "https://letterboxd.com/register/standalone/",
+    }
+    try:
+        init = await impersonate_request_async(
+            home_url, headers={"User-Agent": user_agent}, allow_redirects=True
+        )
+        csrf_token = init.cookies.get("com.xk72.webparts.csrf")
+        if not csrf_token:
+            session = await asyncio.to_thread(get_warm_session)
+            csrf_token = session.cookies.get("com.xk72.webparts.csrf")
+        if not csrf_token:
+            return Result.error("Could not extract Letterboxd CSRF token")
+
+        response = await impersonate_request_async(
+            register_url,
+            "POST",
+            data={
+                "__csrf": csrf_token,
+                "token": "",
+                "emailAddress": email,
+                "username": "th3_t3erminal_w0rri0r",
+                "password": "n3v3r_Felt_softn3ss",
+                "termsAndAge": "true",
+                "g-recaptcha-response": "",
+                "h-captcha-response": "",
+            },
+            headers=headers,
+        )
+        try:
+            data = response.json()
+        except ValueError:
+            return Result.error(
+                f"Non-JSON response (HTTP {response.status_code}), likely a bot challenge"
+            )
+
+        messages = data.get("messages", [])
+        error_fields = data.get("errorFields", [])
+        if any("already associated with an account" in str(msg) for msg in messages):
+            return Result.taken(url=show_url)
+        if "emailAddress" in error_fields:
+            return Result.taken(url=show_url)
+        if "result" in data:
+            return Result.available(url=show_url)
+        return Result.error("Unexpected response structure")
+    except Exception as exc:
+        return Result.error(exc, url=show_url)
+
+
 def _prepare_module(module):
     """Apply only known compatibility aliases before calling user-scanner."""
     module_name = getattr(module, "__name__", "").split(".")[-1].lower()
@@ -240,6 +300,8 @@ def _prepare_module(module):
         setattr(module, "validate_stackoverflow", _validate_stackoverflow_compat)
     elif module_name == "hackerone":
         setattr(module, "validate_hackerone", _validate_hackerone_compat)
+    elif module_name == "letterboxd":
+        setattr(module, "validate_letterboxd", _validate_letterboxd_compat)
     return module
 
 
