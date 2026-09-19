@@ -135,6 +135,27 @@ async def _validate_deviantart_compat(email: str) -> Result:
                 if marker in body_lower
             ]
 
+            title_match = re.search(r"<title[^>]*>(.*?)</title>", body, re.IGNORECASE | re.DOTALL)
+            title_text = re.sub(r"\\s+", " ", title_match.group(1)).strip() if title_match else "none"
+            body_markers = [
+                marker
+                for marker in (
+                    "access to this page has been denied",
+                    "just a moment",
+                    "attention required",
+                    "verify you are human",
+                    "captcha",
+                    "challenge",
+                    "cloudflare",
+                    "akamai",
+                    "perimeterx",
+                    "datadome",
+                    "incapsula",
+                    "access denied",
+                )
+                if marker in body_lower
+            ]
+
             return Result.error(
                 "DeviantArt CSRF diagnostic "
                 f"(HTTP {response.status_code}, final URL {response.url}, "
@@ -142,6 +163,8 @@ async def _validate_deviantart_compat(email: str) -> Result:
                 f"CSRF markers: {','.join(marker_hits) or 'none'}, "
                 f"forms: {len(form_actions)}, inputs: {','.join(input_names[:12]) or 'none'}, "
                 f"scripts: {script_count}, JS markers: {','.join(js_markers) or 'none'}, "
+                f"title: {title_text[:80]}, body markers: {','.join(body_markers) or 'none'}, "
+                f"body length: {len(body)}, "
                 f"content-type: {response.headers.get('content-type', 'unknown')})",
                 url=show_url,
             )
