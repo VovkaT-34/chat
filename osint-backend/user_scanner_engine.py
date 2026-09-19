@@ -53,6 +53,8 @@ async def user_scanner_search(email: str, progress=None):
         total = len(modules)
         found = []
         checked = 0
+        errors = 0
+        error_details = []
         batch_total = (total + BATCH_SIZE - 1) // BATCH_SIZE
 
         if progress:
@@ -102,6 +104,15 @@ async def user_scanner_search(email: str, progress=None):
                             )
                     except Exception as exc:
                         checked += 1
+                        errors += 1
+                        module_name = (
+                            getattr(module, "name", None)
+                            or getattr(module, "site_name", None)
+                            or str(module)
+                        )
+                        error_details.append(
+                            f"{module_name}: {str(exc)[:120]}"
+                        )
                         if progress:
                             progress(
                                 checked,
@@ -113,9 +124,9 @@ async def user_scanner_search(email: str, progress=None):
             if batch_start + BATCH_SIZE < total:
                 await asyncio.sleep(BATCH_PAUSE)
 
-        return found, total
+        return found, total, errors, error_details
 
     except Exception:
         if progress:
             progress(0, 0, "error", [])
-        return [], 0
+        return [], 0, 1, ["User Scanner: внутренняя ошибка запуска"]
