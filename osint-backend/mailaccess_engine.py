@@ -410,9 +410,10 @@ async def mailaccess_search(
                         checked_modules,
                         total_modules,
                         (
-                            "Проверяется модуль: "
-                            f"{module} • "
-                            f"активно {len(active_modules)}"
+                            "Пакет "
+                            f"{checked_modules + 1}/"
+                            f"{total_modules} • "
+                            f"{module}"
                         ),
                     )
 
