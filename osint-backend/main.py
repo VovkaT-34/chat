@@ -179,6 +179,18 @@ def memory():
     }
 
 
+def release_process_memory():
+    """Release reclaimable Python/Linux heap pages after a completed scan."""
+    import gc
+
+    gc.collect()
+    try:
+        import ctypes
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except Exception:
+        pass
+
+
 @app.post("/memory/reset")
 async def reset_memory(request: Request):
     """Release reclaimable Python/Linux heap pages; never reset while a scan is active."""
@@ -186,13 +198,7 @@ async def reset_memory(request: Request):
     state = scan_state()
     if state["scanning"]:
         raise HTTPException(status_code=409, detail="Нельзя очищать ОЗУ во время сканирования")
-    import gc
-    gc.collect()
-    try:
-        import ctypes
-        ctypes.CDLL("libc.so.6").malloc_trim(0)
-    except Exception:
-        pass
+    release_process_memory()
     return memory()
 
 
@@ -848,6 +854,8 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["checked_items"] = [
                 f"user-scanner: готово ({total} модулей, найдено {len(found)})"
             ]
+
+            release_process_memory()
 
         elif kind == "email_mailaccess":
 
