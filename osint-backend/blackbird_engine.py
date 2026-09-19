@@ -78,9 +78,6 @@ async def blackbird_search(query: str, is_email: bool = True, progress=None) -> 
                 if progress:
                     progress(checked, checked + 10, name, found)
 
-                if len(found) >= 40:
-                    break
-
         total = max(checked, len(found))
 
     except FileNotFoundError:
