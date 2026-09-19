@@ -599,6 +599,100 @@ async def _validate_atlassian_compat(email: str) -> Result:
         return Result.error(f"Atlassian validation failed: {exc}", url=show_url)
 
 
+async def _validate_netflix_compat(email: str) -> Result:
+    """Diagnose Netflix signup-check responses without exposing session data."""
+    show_url = "https://netflix.com"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/144.0.0.0 Mobile Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Origin": "https://www.netflix.com",
+        "Referer": "https://www.netflix.com/",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            page = await client.get("https://www.netflix.com/", headers=headers)
+            flwssn = client.cookies.get("flwssn")
+            if not flwssn:
+                body_lower = page.text.lower()
+                markers = [
+                    marker
+                    for marker in (
+                        "captcha", "challenge", "cloudflare", "verify you are human",
+                        "access denied", "waf", "just a moment", "datadome",
+                        "perimeterx", "incapsula",
+                    )
+                    if marker in body_lower
+                ]
+                return Result.error(
+                    "Netflix session token unavailable "
+                    f"(HTTP {page.status_code}, content-type: "
+                    f"{page.headers.get('content-type', 'unknown')}, "
+                    f"final URL: {page.url}, challenge markers: "
+                    f"{','.join(markers) or 'none'}, body length: {len(page.text)})",
+                    url=show_url,
+                )
+
+            graphql_url = "https://web.prod.cloud.netflix.com/graphql"
+            graphql_headers = {
+                **headers,
+                "content-type": "application/json",
+                "x-netflix.context.operation-name": "CLCSWebInitSignup",
+                "x-netflix.request.clcs.bucket": "high",
+            }
+            payload = {
+                "operationName": "CLCSWebInitSignup",
+                "variables": {
+                    "inputUserJourneyNode": "WELCOME",
+                    "locale": "en-US",
+                    "inputFields": [
+                        {"name": "flwssn", "value": {"stringValue": flwssn}},
+                        {"name": "email", "value": {"stringValue": email}},
+                    ],
+                },
+                "extensions": {
+                    "persistedQuery": {
+                        "id": "f6e8ddc6-79fb-4ff2-8e55-893d707887a4",
+                        "version": 102,
+                    }
+                },
+            }
+            response = await client.post(
+                graphql_url, headers=graphql_headers, json=payload
+            )
+            if response.status_code != 200:
+                return Result.error(
+                    f"Netflix signup check returned HTTP {response.status_code} "
+                    f"(content-type: {response.headers.get('content-type', 'unknown')}, "
+                    f"body length: {len(response.text)})",
+                    url=show_url,
+                )
+
+            body_lower = response.text.lower()
+            if "welcome back!" in body_lower:
+                return Result.taken(url=show_url)
+            if "sign-up link" in body_lower or "create your account" in body_lower:
+                return Result.available(url=show_url)
+            if '"errors"' in body_lower:
+                return Result.error(
+                    f"Netflix GraphQL error response (HTTP {response.status_code}, "
+                    f"body length: {len(response.text)})",
+                    url=show_url,
+                )
+            return Result.error(
+                f"Netflix returned an unexpected response (HTTP {response.status_code}, "
+                f"body length: {len(response.text)})",
+                url=show_url,
+            )
+    except httpx.TimeoutException:
+        return Result.error("Netflix request timed out", url=show_url)
+    except Exception as exc:
+        return Result.error(f"Netflix validation failed: {exc}", url=show_url)
+
+
 def _prepare_module(module):
     """Apply only known compatibility aliases before calling user-scanner."""
     module_name = getattr(module, "__name__", "").split(".")[-1].lower()
@@ -618,6 +712,8 @@ def _prepare_module(module):
         setattr(module, "validate_letterboxd", _validate_letterboxd_compat)
     elif module_name == "atlassian":
         setattr(module, "validate_atlassian", _validate_atlassian_compat)
+    elif module_name == "netflix":
+        setattr(module, "validate_netflix", _validate_netflix_compat)
     return module
 
 
