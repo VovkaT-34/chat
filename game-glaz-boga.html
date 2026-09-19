@@ -12,10 +12,10 @@
 html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:linear-gradient(145deg,#171318,#35242f 55%,#171318);color:#fff}
 body{padding:16px 14px 30px}
 .page{width:min(1000px,100%);margin:auto}
-.top{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.top{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;align-items:center;gap:6px 10px;margin-bottom:16px}.title-wrap{grid-column:2;grid-row:1;display:flex;align-items:center;justify-content:center;gap:0;min-width:0}.back{grid-column:1;grid-row:1}.info-link{grid-column:1/-1;grid-row:2;justify-self:center;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .back,.type,.deep-kind{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;padding:10px 14px;cursor:pointer}
 .title{margin:0;font-size:26px}
-.info-link{margin-left:auto;color:#55a7ff;text-decoration:none;font-size:13px;font-weight:700;white-space:nowrap}
+.info-link{color:#55a7ff;text-decoration:none;font-size:13px;font-weight:700;white-space:normal;text-align:center;line-height:1.25}
 .info-link:hover{text-decoration:underline}
 .subtitle{margin:0 0 16px;color:#d7cdd3;font-size:14px}
 .search-block{margin:0 0 14px;padding:14px;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(255,255,255,.055)}
@@ -32,7 +32,7 @@ body{padding:16px 14px 30px}
 .deep-button{background:#7b5264!important}
 .deep-kind{background:rgba(0,0,0,.3);font-size:15px;min-width:150px}
 .status,.deep-progress,.results{display:none;margin-top:10px;padding:11px 12px;border-radius:12px;background:rgba(255,255,255,.06);color:#d8cfd4;font-size:13px}
-.deep-progress{border:1px solid rgba(255,255,255,.13);padding:14px}
+.deep-progress{border:1px solid rgba(255,75,92,.45);padding:14px}
 .deep-progress h3,.results h3{font-size:18px;margin:0 0 9px}
 .deep-line{line-height:1.5}
 .deep-status-running{color:#39e58c;font-weight:800}
@@ -52,7 +52,7 @@ body{padding:16px 14px 30px}
 .dossier-head{padding:13px 14px;border:1px solid rgba(180,75,112,.35);border-radius:14px;background:linear-gradient(135deg,rgba(180,75,112,.16),rgba(255,255,255,.045))}
 .dossier-title{font-size:19px;font-weight:800;margin-bottom:5px}
 .dossier-subtitle{font-size:12px;color:#bfb5bb}
-.dossier-section{border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(0,0,0,.13);overflow:hidden}
+.dossier-section{border:1px solid rgba(255,75,92,.45);border-radius:13px;background:rgba(0,0,0,.13);overflow:hidden}
 .dossier-section-title{padding:9px 11px;font-size:13px;font-weight:800;background:rgba(255,255,255,.055);border-bottom:1px solid rgba(255,255,255,.07)}
 .dossier-section-body{padding:9px 11px;display:grid;gap:6px}
 .dossier-item{font-size:12px;line-height:1.45}
@@ -73,7 +73,7 @@ body{padding:16px 14px 30px}
 .dossier-dns-row{padding:6px 7px;border-radius:8px;background:rgba(255,255,255,.035)}
 .dossier-dns-label{display:inline-block;min-width:45px;color:#f0a5bd;font-weight:800}
 .dossier-empty{color:#aaa0a6;font-size:12px}
-.resultbox{border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;background:rgba(255,255,255,.055)}
+.resultbox{border:1px solid rgba(255,75,92,.45);border-radius:14px;padding:12px;background:rgba(255,255,255,.055)}
 .resultrow{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:13px;line-height:1.4}
 .resultrow:last-child
 .resultrow a{color:#f0a5bd;text-decoration:none}
@@ -93,13 +93,14 @@ body{padding:16px 14px 30px}
 .search{flex-direction:column}
 .search button,.deep-kind{min-height:44px}
 .title{font-size:23px}
-.info-link{font-size:12px}
+.title-wrap{grid-column:2;justify-content:center;min-width:0}
+.info-link{font-size:12px;white-space:normal;max-width:100%;overflow:visible;text-overflow:clip}
 }
 .osint-ram-indicator{display:inline-flex;align-items:center;margin-left:10px;padding:3px 8px;border:1px solid rgba(57,229,140,.45);border-radius:8px;background:rgba(57,229,140,.10);color:#39e58c;font-size:12px;font-weight:800;line-height:1.35;white-space:nowrap;visibility:visible;opacity:1;position:relative;z-index:9999;flex:0 0 auto}</style>
 <script id="glazRamDirectFix">
 (function(){
   const update=async()=>{const el=document.getElementById('osintRamIndicator');if(!el)return;try{const r=await fetch('https://glaz-boga-osint.onrender.com/memory?ts='+Date.now(),{cache:'no-store'});if(!r.ok)return;const d=await r.json();const n=Number(d.ram_mb);if(Number.isFinite(n))el.textContent='ОЗУ: '+n.toFixed(1)+' MB';}catch(e){}};
-  const start=()=>{update();setInterval(update,2500)};
+  const start=()=>{let timer=null;const tick=async()=>{await update();timer=setTimeout(tick,2500)};tick();};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
 </script></head>
@@ -107,7 +108,7 @@ body{padding:16px 14px 30px}
 <div class="page">
 <div class="top">
 <button class="back" onclick="location.href='games.html'">← Игры</button>
-<h1 class="title">👁️ Глаз Бога</h1><span id="osintRamIndicator" class="osint-ram-indicator">ОЗУ: — MB</span>
+<div class="title-wrap"><h1 class="title">👁️ Глаз Бога</h1><span id="osintRamIndicator" class="osint-ram-indicator">ОЗУ: — MB</span></div>
 <a class="info-link" href="game-glaz-boga-info.html">Как пользоваться поиском →</a>
 </div>
 <p class="subtitle">Публичный OSINT-поиск: несколько независимых движков и источников в одном интерфейсе.</p>
