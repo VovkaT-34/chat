@@ -108,11 +108,40 @@ async def _validate_deviantart_compat(email: str) -> Result:
             )
             marker_hits = [marker for marker in marker_names if marker in body_lower]
 
+            form_actions = re.findall(
+                r'<form[^>]+action=["\\\']([^"\\\']+)["\\\']',
+                body,
+                re.IGNORECASE,
+            )
+            input_names = re.findall(
+                r'<input[^>]+name=["\\\']([^"\\\']+)["\\\']',
+                body,
+                re.IGNORECASE,
+            )
+            script_count = len(
+                re.findall(r'<script\\b', body, re.IGNORECASE)
+            )
+            js_markers = [
+                marker
+                for marker in (
+                    "__next_data__",
+                    "__apollo_state__",
+                    "recaptcha",
+                    "turnstile",
+                    "hcaptcha",
+                    "sisu",
+                    "_sisu",
+                )
+                if marker in body_lower
+            ]
+
             return Result.error(
                 "DeviantArt CSRF diagnostic "
                 f"(HTTP {response.status_code}, final URL {response.url}, "
                 f"token pattern: {'found' if matched_pattern else 'not found'}, "
                 f"CSRF markers: {','.join(marker_hits) or 'none'}, "
+                f"forms: {len(form_actions)}, inputs: {','.join(input_names[:12]) or 'none'}, "
+                f"scripts: {script_count}, JS markers: {','.join(js_markers) or 'none'}, "
                 f"content-type: {response.headers.get('content-type', 'unknown')})",
                 url=show_url,
             )
