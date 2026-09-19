@@ -217,7 +217,7 @@ async def mailaccess_search(
                 "MailAccess: API-сервер не запустился",
             )
 
-            return [], 0
+            return [], 0, 1, ["MailAccess: API-сервер не запустился"]
 
         send_progress(
             0,
