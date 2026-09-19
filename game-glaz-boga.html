@@ -647,7 +647,7 @@ function renderDeep(d){
   const sites=Array.isArray(d.checked_items)?d.checked_items:[];
   const data=Array.isArray(d.results)?d.results:[];
   if(isMailAccess){
-    const sourceLinks=data.slice(0,50).map(x=>{
+    const sourceLinks=data.map(x=>{
       const url=x&&typeof x==='object'?(x.url||x.href):'';
       const title=x&&typeof x==='object'?(x.name||x.source||url||'Результат'):'Результат';
       if(!url)return '';
@@ -667,7 +667,7 @@ function renderDeep(d){
       :''
     )+
     (data.length
-      ?data.slice(0,50).map(x=>{
+      ?data.map(x=>{
         const url=x.url||x.href;
         const title=x.name||x.source||url||'Результат';
         const body=formatDeepData(x.data);
