@@ -347,11 +347,18 @@ async def mailaccess_search(
             f"{investigation_id}"
         )
 
+        websocket_headers = (
+            {"X-API-Key": MAILACCESS_API_KEY}
+            if MAILACCESS_API_KEY
+            else {}
+        )
+
         async with websockets.connect(
             websocket_url,
             open_timeout=15,
             close_timeout=5,
             max_size=1024 * 1024,
+            additional_headers=websocket_headers,
         ) as websocket:
 
             send_progress(
