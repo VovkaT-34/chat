@@ -112,7 +112,7 @@ function installOsintUiIndicators() {
     const updateRam = async () => {
         if (!installRam()) return;
         try {
-            const response = await fetch("https://glaz-boga-osint.onrender.com/memory", { cache: "no-store" });
+            const response = await fetch("https://glaz-boga-osint.onrender.com/memory?ts=" + Date.now(), { cache: "no-store" });
             if (!response.ok) return;
             const data = await response.json();
             const value = Number(data.ram_mb);
