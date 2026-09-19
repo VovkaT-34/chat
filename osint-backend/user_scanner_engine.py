@@ -266,17 +266,33 @@ async def _validate_letterboxd_compat(email: str) -> Result:
             ]
 
             body_lower = init.text.lower()
-            has_csrf_markup = (
-                "com.xk72.webparts.csrf" in body_lower
-                or 'name="__csrf"' in body_lower
-                or "csrf" in body_lower
+            csrf_markers = (
+                "__csrf",
+                "csrf",
+                "com.xk72.webparts.csrf",
+                "csrf_token",
+                "xsrf",
             )
+            marker_hits = [marker for marker in csrf_markers if marker in body_lower]
+
+            cookie_names = []
+            try:
+                cookie_names = sorted(
+                    {
+                        str(cookie.name)
+                        for cookie in init.cookies.jar
+                        if getattr(cookie, "name", None)
+                    }
+                )
+            except Exception:
+                pass
 
             return Result.error(
                 "Could not extract Letterboxd CSRF token "
                 f"(HTTP {init.status_code}, final URL {init.url}, "
                 f"Set-Cookie CSRF headers: {len(csrf_cookie_headers)}, "
-                f"CSRF markers in body: {'yes' if has_csrf_markup else 'no'})",
+                f"CSRF markers in body: {','.join(marker_hits) or 'none'}, "
+                f"response cookies: {len(cookie_names)})",
                 url=show_url,
             )
 
