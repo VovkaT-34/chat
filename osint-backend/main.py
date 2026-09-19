@@ -851,6 +851,10 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             job["total"] = total
             job["checked"] = total
             job["count"] = len(found)
+            job["diagnostics"] = {
+                "errors": errors,
+                "details": error_details,
+            }
 
             summary = (
                 f"user-scanner: готово ({total} модулей, найдено {len(found)}, "
