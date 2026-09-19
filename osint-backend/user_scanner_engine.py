@@ -64,6 +64,64 @@ def _make_found_item(data):
     }
 
 
+async def _validate_deviantart_compat(email: str) -> Result:
+    """Diagnose DeviantArt CSRF delivery without exposing token values."""
+    show_url = "https://www.deviantart.com"
+    join_page = "https://www.deviantart.com/join/"
+    user_agent = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36"
+    headers = {
+        "User-Agent": user_agent,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Encoding": "identity",
+        "sec-ch-ua-platform": '"Android"',
+        "upgrade-insecure-requests": "1",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            response = await client.get(join_page, headers=headers)
+            if response.status_code in (401, 403, 429):
+                return Result.error(
+                    f"DeviantArt signup page blocked/rate-limited (HTTP {response.status_code})",
+                    url=show_url,
+                )
+
+            body = response.text
+            body_lower = body.lower()
+            csrf_patterns = (
+                r"window\\.__CSRF_TOKEN__\\s*=\\s*'([^']+)'",
+                r'window\\.__CSRF_TOKEN__\\s*=\\s*"([^"]+)"',
+                r'"csrf[_-]?token"\\s*:\\s*"[^"]+"',
+                r"'csrf[_-]?token'\\s*:\\s*'[^']+'",
+            )
+            matched_pattern = None
+            for pattern in csrf_patterns:
+                if re.search(pattern, body, re.IGNORECASE):
+                    matched_pattern = pattern
+                    break
+
+            marker_names = (
+                "__csrf_token__",
+                "csrf-token",
+                "csrf_token",
+                "csrf",
+            )
+            marker_hits = [marker for marker in marker_names if marker in body_lower]
+
+            return Result.error(
+                "DeviantArt CSRF diagnostic "
+                f"(HTTP {response.status_code}, final URL {response.url}, "
+                f"token pattern: {'found' if matched_pattern else 'not found'}, "
+                f"CSRF markers: {','.join(marker_hits) or 'none'}, "
+                f"content-type: {response.headers.get('content-type', 'unknown')})",
+                url=show_url,
+            )
+    except httpx.TimeoutException:
+        return Result.error("DeviantArt signup page request timed out", url=show_url)
+    except Exception as exc:
+        return Result.error(f"DeviantArt CSRF diagnostic failed: {exc}", url=show_url)
+
+
 async def _validate_stackoverflow_compat(email: str) -> Result:
     """Compatibility validator for Stack Overflow's changed login response."""
     url = "https://stackoverflow.com/users/login"
@@ -322,6 +380,8 @@ def _prepare_module(module):
         validator = getattr(module, "validate_okcats", None)
         if validator is not None:
             setattr(module, "validate_besoccer", validator)
+    elif module_name == "deviantart":
+        setattr(module, "validate_deviantart", _validate_deviantart_compat)
     elif module_name == "stackoverflow":
         setattr(module, "validate_stackoverflow", _validate_stackoverflow_compat)
     elif module_name == "hackerone":
