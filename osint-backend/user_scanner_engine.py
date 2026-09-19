@@ -164,20 +164,69 @@ async def _validate_stackoverflow_compat(email: str) -> Result:
         )
 
 
-async def _validate_hackerone_compat(email: str, original_validator=None) -> Result:
-    """Keep HackerOne JSON parsing failures as structured diagnostics."""
-    validator = original_validator
-    if validator is None:
-        return Result.error("HackerOne validator is unavailable")
+async def _validate_hackerone_compat(email: str) -> Result:
+    """Compatibility validator for HackerOne responses with safe JSON parsing."""
+    show_url = "https://hackerone.com"
+    signup_url = "https://hackerone.com/sign_up"
+    api_url = "https://hackerone.com/users"
+    headers = {"User-Agent": "Mozilla/5.0", "Accept": "text/html,application/xhtml+xml,application/json", "Accept-Encoding": "identity"}
 
     try:
-        return await validator(email)
-    except ValueError:
-        return Result.error("HackerOne returned a non-JSON validation response")
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            page = await client.get(signup_url, headers=headers)
+            if page.status_code == 403:
+                return Result.error("HackerOne WAF blocked the signup page (HTTP 403)", url=show_url)
+            if page.status_code == 429:
+                return Result.error("Rate limited by HackerOne during handshake", url=show_url)
+
+            match = re.search(r'name="csrf-token" content="([^"]+)"', page.text)
+            if not match:
+                return Result.error(f"Failed to extract HackerOne CSRF token (HTTP {page.status_code})", url=show_url)
+
+            response = await client.post(
+                api_url,
+                data={
+                    "user[name]": "St33l_h3art_g3t_n0_l0v3",
+                    "user[username]": "kn0wl3dg3_is_curs3",
+                    "user[email]": email,
+                    "user[password]": "thisw0rldwasn3v3rg00d",
+                    "user[password_confirmation]": "mismatch_on_purpose",
+                },
+                headers={
+                    **headers,
+                    "Accept": "application/json, text/javascript, */*; q=0.01",
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                    "X-CSRF-Token": match.group(1),
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Origin": "https://hackerone.com",
+                    "Referer": signup_url,
+                },
+            )
+            status = response.status_code
+            if status == 403:
+                return Result.error("HackerOne WAF blocked the validation request (HTTP 403)", url=show_url)
+            if status == 429:
+                return Result.error("Rate limited by HackerOne", url=show_url)
+
+            try:
+                data = response.json()
+            except ValueError:
+                return Result.error(f"Unexpected HackerOne response body (HTTP {status})", url=show_url)
+            if not isinstance(data, dict):
+                return Result.error(f"Unexpected HackerOne response structure (HTTP {status})", url=show_url)
+
+            errors = data.get("errors", {})
+            if not isinstance(errors, dict):
+                return Result.error(f"Unexpected HackerOne errors structure (HTTP {status})", url=show_url)
+            if "has already been taken" in str(errors.get("email", [])):
+                return Result.taken(url=show_url)
+            if "email" not in errors:
+                return Result.available(url=show_url)
+            return Result.error(f"Unexpected HackerOne validation response (HTTP {status})", url=show_url)
     except httpx.TimeoutException:
-        return Result.error("HackerOne request timed out")
+        return Result.error("HackerOne request timed out", url=show_url)
     except Exception as exc:
-        return Result.error(f"HackerOne validation failed: {exc}")
+        return Result.error(f"HackerOne validation failed: {exc}", url=show_url)
 
 
 def _prepare_module(module):
@@ -190,11 +239,7 @@ def _prepare_module(module):
     elif module_name == "stackoverflow":
         setattr(module, "validate_stackoverflow", _validate_stackoverflow_compat)
     elif module_name == "hackerone":
-        original_validator = getattr(module, "validate_hackerone", None)
-        if original_validator is not None:
-            async def _wrapped_hackerone(email, _validator=original_validator):
-                return await _validate_hackerone_compat(email, _validator)
-            setattr(module, "validate_hackerone", _wrapped_hackerone)
+        setattr(module, "validate_hackerone", _validate_hackerone_compat)
     return module
 
 
