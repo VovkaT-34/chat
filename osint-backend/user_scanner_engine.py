@@ -287,10 +287,6 @@ async def _validate_stackoverflow_compat(email: str) -> Result:
             if "the email or password is incorrect" in body_lower:
                 return Result.taken(url=show_url)
 
-            # Stack Overflow has changed the wording/HTML of its login
-            # response over time. Accept only explicit negative/positive
-            # account-state markers; never infer existence from a generic
-            # successful HTTP response.
             unavailable_markers = (
                 "no account found",
                 "account doesn't exist",
@@ -485,6 +481,117 @@ async def _validate_letterboxd_compat(email: str) -> Result:
     except Exception as exc:
         return Result.error(exc, url=show_url)
 
+
+async def _validate_atlassian_compat(email: str) -> Result:
+    """Diagnose Atlassian check-username responses without exposing response bodies."""
+    url = "https://id.atlassian.com/rest/check-username"
+    show_url = "https://id.atlassian.com"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Referer": "https://id.atlassian.com/login",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+    payload = json.dumps({"username": email})
+
+    try:
+        response = await impersonate_request_async(
+            url,
+            method="POST",
+            data=payload,
+            headers=headers,
+            impersonate="chrome",
+        )
+
+        if response.status_code == 403:
+            return Result.error("Atlassian validation request blocked by WAF (HTTP 403)", url=show_url)
+        if response.status_code == 429:
+            return Result.error("Atlassian rate limited the validation request (HTTP 429)", url=show_url)
+
+        if response.status_code != 200:
+            content_type = response.headers.get("content-type", "unknown")
+            body = response.text
+            body_lower = body.lower()
+            json_valid = False
+            json_type = "invalid"
+            top_level_keys = []
+            if body:
+                try:
+                    parsed = response.json()
+                    json_valid = True
+                    json_type = type(parsed).__name__
+                    if isinstance(parsed, dict):
+                        top_level_keys = sorted(str(key) for key in parsed.keys())[:12]
+                except ValueError:
+                    pass
+
+            markers = [
+                marker
+                for marker in (
+                    "invalid",
+                    "bad request",
+                    "required",
+                    "missing",
+                    "username",
+                    "captcha",
+                    "challenge",
+                    "cloudflare",
+                    "waf",
+                    "forbidden",
+                    "csrf",
+                    "siteid",
+                )
+                if marker in body_lower
+            ]
+
+            return Result.error(
+                "Atlassian diagnostic "
+                f"(HTTP {response.status_code}, content-type: {content_type}, "
+                f"JSON: {'valid' if json_valid else 'invalid'}, type: {json_type}, "
+                f"keys: {','.join(top_level_keys) or 'none'}, "
+                f"markers: {','.join(markers) or 'none'}, "
+                f"body length: {len(body)})",
+                url=show_url,
+            )
+
+        try:
+            data = response.json()
+        except ValueError:
+            return Result.error(
+                "Atlassian returned invalid JSON (HTTP 200)",
+                url=show_url,
+            )
+
+        if not isinstance(data, dict):
+            return Result.error(
+                f"Atlassian returned unexpected JSON type (HTTP 200: {type(data).__name__})",
+                url=show_url,
+            )
+
+        action = data.get("action")
+        if action == "signup":
+            return Result.available(url=show_url)
+
+        if action in ("no_action", "redirect"):
+            extra = {}
+            if action == "redirect":
+                extra["auth_type"] = "SSO / SAML"
+                if redirect_type := data.get("redirect_type"):
+                    extra["sso_type"] = redirect_type
+            else:
+                extra["auth_type"] = "Password / Social"
+            return Result.taken(extra=extra, url=show_url)
+
+        return Result.error(
+            "Atlassian unknown action response",
+            url=show_url,
+        )
+    except httpx.TimeoutException:
+        return Result.error("Atlassian validation request timed out", url=show_url)
+    except Exception as exc:
+        return Result.error(f"Atlassian validation failed: {exc}", url=show_url)
+
+
 def _prepare_module(module):
     """Apply only known compatibility aliases before calling user-scanner."""
     module_name = getattr(module, "__name__", "").split(".")[-1].lower()
@@ -502,6 +609,8 @@ def _prepare_module(module):
         setattr(module, "validate_hackerone", _validate_hackerone_compat)
     elif module_name == "letterboxd":
         setattr(module, "validate_letterboxd", _validate_letterboxd_compat)
+    elif module_name == "atlassian":
+        setattr(module, "validate_atlassian", _validate_atlassian_compat)
     return module
 
 
