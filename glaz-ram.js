@@ -40,7 +40,8 @@ async function updateMailaccessRam(){
   setMailaccessVisibility();
   const el=mailRamEl();if(!el)return;
   try{
-    const headers=await getOsintAuthHeaders();\n    const r=await fetch(RENDER+'/mailaccess/memory?ts='+Date.now(),{cache:'no-store',headers});
+    const headers=await getOsintAuthHeaders();
+    const r=await fetch(RENDER+'/mailaccess/memory?ts='+Date.now(),{cache:'no-store',headers});
     if(!r.ok)return;
     const d=await r.json(),n=Number(d.ram_mb);
     if(Number.isFinite(n)){el.textContent='ОЗУ: '+n.toFixed(1)+' MB';el.classList.toggle('osint-ram-high',n>=500);}
@@ -63,7 +64,8 @@ async function resetRam(){
 async function resetMailaccessRam(){
   const b=mailResetEl();if(!b||b.disabled)return;b.disabled=true;
   try{
-    const headers=await getOsintAuthHeaders();\n    const r=await fetch(RENDER+'/mailaccess/memory/reset',{method:'POST',headers});
+    const headers=await getOsintAuthHeaders();
+    const r=await fetch(RENDER+'/mailaccess/memory/reset',{method:'POST',headers});
     const d=await r.json().catch(()=>({}));
     if(!r.ok){alert(d.detail||'Очистка ОЗУ MailAccess сейчас недоступна.');return;}
     if(mailRamEl())mailRamEl().textContent='ОЗУ: перезапуск…';
