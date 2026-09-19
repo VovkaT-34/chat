@@ -87,6 +87,11 @@ function installOsintUiIndicators() {
             z-index:9999 !important;
         }
         .search-title-row .osint-ram-indicator { flex:0 0 auto !important; }
+        .osint-ram-indicator.osint-ram-high {
+            border-color:rgba(255,70,70,.65) !important;
+            background:rgba(255,70,70,.12) !important;
+            color:#ff4646 !important;
+        }
     `;
     document.head.appendChild(style);
 
@@ -118,7 +123,10 @@ function installOsintUiIndicators() {
             const value = Number(data.ram_mb);
             if (Number.isFinite(value)) {
                 const indicator = document.getElementById("osintRamIndicator");
-                if (indicator) indicator.textContent = "ОЗУ: " + value.toFixed(1) + " MB";
+                if (indicator) {
+                    indicator.textContent = "ОЗУ: " + value.toFixed(1) + " MB";
+                    indicator.classList.toggle("osint-ram-high", value >= 500);
+                }
             }
         } catch (error) {}
     };
