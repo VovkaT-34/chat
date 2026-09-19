@@ -267,7 +267,7 @@ async def _validate_letterboxd_compat(email: str) -> Result:
 
             body_lower = init.text.lower()
             has_csrf_markup = (
-                "com.x72.webparts.csrf" in body_lower
+                "com.xk72.webparts.csrf" in body_lower
                 or 'name="__csrf"' in body_lower
                 or "csrf" in body_lower
             )
