@@ -7,7 +7,6 @@ from user_scanner.core.helpers import load_categories, load_modules
 BATCH_SIZE = 20
 MAX_CONCURRENCY = 6
 BATCH_PAUSE = 0.10
-MAX_FOUND = 50
 
 
 def _serialize_result(res):
@@ -82,7 +81,7 @@ async def user_scanner_search(email: str, progress=None):
                         data = _serialize_result(res)
                         item = _make_found_item(data)
 
-                        if item is not None and len(found) < MAX_FOUND:
+                        if item is not None:
                             found.append(item)
 
                         checked += 1
