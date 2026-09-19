@@ -5,8 +5,8 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir mailaccess
+RUN pip install --no-cache-dir mailaccess fastapi uvicorn[standard] httpx websockets
 
 EXPOSE 10000
 
-CMD ["sh", "-c", "mailaccess serve --host 0.0.0.0 --port ${PORT:-10000}"]
+CMD ["sh", "-c", "uvicorn mailaccess_proxy:app --host 0.0.0.0 --port ${PORT:-10000}"]
