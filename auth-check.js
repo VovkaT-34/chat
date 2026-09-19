@@ -149,7 +149,7 @@ async function checkAuth() {
         const { data: profile, error: profileError } = await supabaseClient.from("profiles").select("approved").eq("id", session.user.id).single();
         if (profileError || !profile || profile.approved !== true) { window.location.replace(loginPath); return; }
         installOsintAuthFetch();
-        installOsintUiIndicators();
+        // RAM/scan UI is managed by glaz-ram.js on the Glaz Boga page.
     } catch (error) {
         console.error("Ошибка проверки авторизации:", error);
         window.location.replace(loginPath);
