@@ -315,7 +315,7 @@ async def _search_items(search_query: str) -> list[dict]:
 async def _search_person_items(search_query: str) -> list[dict]:
     return await asyncio.to_thread(
         lambda q=search_query: DDGS(timeout=PERSON_TIMEOUT).text(
-            q, region="ru-ru", safesearch="off", max_results=5, backend="auto"
+            q, region="ru-ru", safesearch="off", backend="auto"
         )
     )
 
