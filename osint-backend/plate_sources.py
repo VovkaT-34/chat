@@ -19,7 +19,7 @@ def plate_like(value: str) -> bool:
     v = normalize_plate(value)
     return bool(re.fullmatch(r"[A-ZА-Я0-9]{5,10}", v)) and any(c.isdigit() for c in v)
 
-async def _ddg_images(query: str, limit: int = 12) -> list[dict]:
+async def _ddg_images(query: str) -> list[dict]:
     async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True, headers=HEADERS) as client:
         page = await client.get("https://duckduckgo.com/?q=" + quote(query) + "&iar=images&iax=images&ia=images")
         page.raise_for_status()
@@ -30,11 +30,11 @@ async def _ddg_images(query: str, limit: int = 12) -> list[dict]:
         api.raise_for_status()
         data = api.json()
     out = []
-    for item in (data.get("results") or [])[:limit]:
+    for item in (data.get("results") or []):
         out.append({"source": "DuckDuckGo Images", "name": item.get("title") or "Фото по номеру", "url": item.get("image") or item.get("url"), "snippet": item.get("url") or "", "kind": "plate_image"})
     return [x for x in out if x.get("url")]
 
-async def plate_public_search(value: str, max_results: int = 12) -> list[dict]:
+async def plate_public_search(value: str) -> list[dict]:
     plate = normalize_plate(value)
     variants = [plate, value.strip(), f'"{plate}"']
     results = []
@@ -57,14 +57,10 @@ async def plate_public_search(value: str, max_results: int = 12) -> list[dict]:
                     sm = re.search(r'class="result__snippet"[^>]*>(.*?)</', block, re.S)
                     snippet = re.sub(r"<[^>]+>", " ", sm.group(1)).strip() if sm else ""
                     results.append({"source": "Python / public web", "name": title, "url": url, "snippet": snippet, "kind": "plate_public"})
-                    if len(results) >= max_results:
-                        break
             except Exception:
                 continue
-            if len(results) >= max_results:
-                break
     try:
-        results.extend(await _ddg_images(plate, 12))
+        results.extend(await _ddg_images(plate))
     except Exception:
         pass
     return results
