@@ -638,7 +638,7 @@ function renderDeep(d){
   deepStatus.innerHTML='Статус: <span class="'+statusClass+'">'+esc(statusLabel)+'</span>';
   const checked=Number(d.checked||0);
   const total=Number(d.total||0);
-  deepChecked.textContent='Проверено: '+checked+' / '+(isMailAccess?checked:total);
+  deepChecked.textContent='Проверено: '+checked+' / '+total;
   const foundCount=Number(d.count||0);
   deepFound.innerHTML='Найдено: <span style="color:'+(foundCount>0?'#39e58c':'#ff4b5c')+'">'+foundCount+'</span>';
   if(deepDiagnostics){
