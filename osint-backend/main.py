@@ -1017,14 +1017,6 @@ async def deep_search(
     query = q.strip()
 
     if ACTIVE_DEEP_JOB_ID and ACTIVE_DEEP_JOB_ID in DEEP_JOBS:
-        active = DEEP_JOBS[ACTIVE_DEEP_JOB_ID]
-
-        if (
-            active["kind"] == kind
-            and active["query"].lower() == query.lower()
-        ):
-            return active
-
         raise HTTPException(
             status_code=409,
             detail="Другой глубокий поиск уже выполняется",
