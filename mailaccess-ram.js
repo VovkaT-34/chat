@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const RENDER = 'https://glaz-boga-osint.onrender.com';
+const RENDER = 'https://glaz-boga-mailaccess.onrender.com';
 const RENDER_MAIN = 'https://glaz-boga-osint.onrender.com';
 const controlsEl = () => document.getElementById('mailaccessRamControls');
 const ramEl = () => document.getElementById('mailaccessRamIndicator');
