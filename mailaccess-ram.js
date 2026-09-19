@@ -1,7 +1,8 @@
 (function(){
 'use strict';
 
-const RENDER = 'https://glaz-boga-osint.onrender.com';
+const RENDER = 'https://glaz-boga-mailaccess.onrender.com';
+const RENDER_MAIN = 'https://glaz-boga-osint.onrender.com';
 const controlsEl = () => document.getElementById('mailaccessRamControls');
 const ramEl = () => document.getElementById('mailaccessRamIndicator');
 const resetEl = () => document.getElementById('mailaccessRamReset');
@@ -42,7 +43,7 @@ async function resetRam(){
   if(!b || b.disabled || !isMailAccessSelected()) return;
   b.disabled = true;
   try{
-    const r = await fetch(RENDER + '/mailaccess/memory/reset', {
+    const r = await fetch(RENDER_MAIN + '/mailaccess/memory/reset', {
       method:'POST',
       cache:'no-store'
     });
