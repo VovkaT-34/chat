@@ -96,10 +96,10 @@ body{padding:16px 14px 30px}
 .title-wrap{grid-column:2;justify-content:center;min-width:0}
 .info-link{font-size:12px;white-space:normal;max-width:100%;overflow:visible;text-overflow:clip}
 }
-.osint-ram-indicator{display:inline-flex;align-items:center;margin-left:10px;padding:3px 8px;border:1px solid rgba(57,229,140,.45);border-radius:8px;background:rgba(57,229,140,.10);color:#39e58c;font-size:12px;font-weight:800;line-height:1.35;white-space:nowrap;visibility:visible;opacity:1;position:relative;z-index:9999;flex:0 0 auto}</style>
+.osint-ram-indicator{display:inline-flex;align-items:center;margin-left:10px;padding:3px 8px;border:1px solid rgba(57,229,140,.45);border-radius:8px;background:rgba(57,229,140,.10);color:#39e58c;font-size:12px;font-weight:800;line-height:1.35;white-space:nowrap;visibility:visible;opacity:1;position:relative;z-index:9999;flex:0 0 auto}.osint-ram-indicator.osint-ram-high{border-color:rgba(255,70,70,.65);background:rgba(255,70,70,.12);color:#ff4646}</style>
 <script id="glazRamDirectFix">
 (function(){
-  const update=async()=>{const el=document.getElementById('osintRamIndicator');if(!el)return;try{const r=await fetch('https://glaz-boga-osint.onrender.com/memory?ts='+Date.now(),{cache:'no-store'});if(!r.ok)return;const d=await r.json();const n=Number(d.ram_mb);if(Number.isFinite(n))el.textContent='ОЗУ: '+n.toFixed(1)+' MB';}catch(e){}};
+  const update=async()=>{const el=document.getElementById('osintRamIndicator');if(!el)return;try{const r=await fetch('https://glaz-boga-osint.onrender.com/memory?ts='+Date.now(),{cache:'no-store'});if(!r.ok)return;const d=await r.json();const n=Number(d.ram_mb);if(Number.isFinite(n)){el.textContent='ОЗУ: '+n.toFixed(1)+' MB';el.classList.toggle('osint-ram-high',n>=500);}}catch(e){}};
   const start=()=>{let timer=null;const tick=async()=>{await update();timer=setTimeout(tick,2500)};tick();};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
