@@ -7,7 +7,7 @@ body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}
 .title{margin:0;font-size:27px}
 .score{font-weight:700;margin-left:auto}
 .tetris-wrap{width:600px;height:600px;margin:auto;display:flex;justify-content:center;align-items:center;position:relative;background:#2b2927;border:2px solid rgba(255,255,255,.28);border-radius:16px}
-.tetris-canvas{width:300px;height:600px;background:#0a0c0d;touch-action:none}.tetris-next{position:absolute;right:18px;top:12px;width:72px;text-align:center;pointer-events:none}.tetris-next-title{display:none}.tetris-next canvas{display:block;width:64px;height:64px;margin:auto;background:rgba(0,0,0,.16);border-radius:8px}
+.tetris-canvas{width:300px;height:600px;background:#0a0c0d;touch-action:none}.tetris-next{position:absolute;right:18px;top:10px;width:72px;text-align:center;pointer-events:none}.tetris-next-title{display:none}.tetris-next canvas{display:block;width:64px;height:64px;margin:auto;background:rgba(0,0,0,.16);border-radius:8px}
 .game-controls-wide{width:min(600px,100%);margin:14px auto 0}
 .wide-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:auto auto auto;gap:8px}
 .wide-grid .pause-btn{grid-column:1/-1;grid-row:1}
