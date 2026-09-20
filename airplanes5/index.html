@@ -104,8 +104,11 @@ function mpSendControl(dx,dy){
   mpChannel.send({type:'broadcast',event:'control',payload:{player:mpLocalPlayer,dx:Number(dx)||0,dy:Number(dy)||0}});
 }
 function mpSendSelection(index,ready){
-  mpLocalSelection=Number(index);
-  mpLocalReady=!!ready;
+  const nextIndex=Number(index);
+  const nextReady=!!ready;
+  if(nextIndex===mpLocalSelection && nextReady===mpLocalReady)return;
+  mpLocalSelection=nextIndex;
+  mpLocalReady=nextReady;
   if(mpChannel)mpTrack().catch(()=>{});
 }
 window.__airplanes5LocalPlayer=()=>mpLocalPlayer;
