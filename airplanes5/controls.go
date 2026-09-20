@@ -134,6 +134,35 @@ func (i *Controls) Update(w donburi.World) {
 		}
 	}
 
+	if js.Global().Call("__airplanes5IsMultiplayer").Bool() {
+		localPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
+		if localPlayer < 1 || localPlayer > 4 { localPlayer = 1 }
+		i.query.Each(w, func(entry *donburi.Entry) {
+			airplane := component.PlayerAirplane.Get(entry)
+			in := component.Input.Get(entry)
+			component.Sprite.Get(entry).Hide()
+			isLocal := airplane.PlayerNumber == localPlayer
+			x := js.Global().Call("__airplanes5LocalX").Float()
+			y := js.Global().Call("__airplanes5LocalY").Float()
+			if !isLocal { x = js.Global().Call("__airplanes5RemoteX", airplane.PlayerNumber).Float(); y = js.Global().Call("__airplanes5RemoteY", airplane.PlayerNumber).Float() }
+			if x != 0 || y != 0 {
+				pos := transform.Transform.Get(entry).LocalPosition
+				pos.X, pos.Y = x, y
+				transform.Transform.Get(entry).LocalPosition = pos
+			}
+			if isLocal {
+				dx, dy := 0.0, 0.0
+				if ebiten.IsKeyPressed(in.MoveUpKey) { dy = -1 }
+				if ebiten.IsKeyPressed(in.MoveDownKey) { dy = 1 }
+				if ebiten.IsKeyPressed(in.MoveLeftKey) { dx = -1 }
+				if ebiten.IsKeyPressed(in.MoveRightKey) { dx = 1 }
+				if i.leftActive { tx,ty:=ebiten.TouchPosition(i.leftTouch); if a,b,ok:=mobileJoystick(tx,ty,90,610); ok { dx,dy=a,b } } else if i.rightActive { tx,ty:=ebiten.TouchPosition(i.rightTouch); if a,b,ok:=mobileJoystick(tx,ty,390,700); ok { dx,dy=a,b } }
+				js.Global().Call("__airplanes5SendControl", dx, dy)
+			}
+		})
+		return
+	}
+
 	localPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
 	if localPlayer < 1 || localPlayer > 4 {
 		localPlayer = 1
