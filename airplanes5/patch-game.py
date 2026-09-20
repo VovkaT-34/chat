@@ -103,7 +103,7 @@ new_touch = """\tjs.Global().Call("__airplanes5SelectionScreen", true)
 
 \t\tentry := playerSelects[targetIndex]
 \t\tplayerSelect := component.PlayerSelect.Get(entry)
-if playerSelect.Selected {\n\t\t\t// A selected airplane is locked. The player must use the PUSK button.\n\t\t\tcontinue\n\t\t}\n\n\t\tplayerSelect.Select(localPlayer)
+if playerSelect.Selected && playerSelect.PlayerNumber != localPlayer {\n\t\t\tcontinue\n\t\t}\n\t\tif playerSelect.Selected && playerSelect.PlayerNumber == localPlayer {\n\t\t\tplayerSelect.Unselect()\n\t\t\tjs.Global().Call("__airplanes5SendSelection", -1, false)\n\t\t\tcontinue\n\t\t}\n\t\tfor _, otherEntry := range playerSelects {\n\t\t\tother := component.PlayerSelect.Get(otherEntry)\n\t\t\tif other.Selected && other.PlayerNumber == localPlayer && !other.Ready {\n\t\t\t\tother.Unselect()\n\t\t\t}\n\t\t}\n\n\t\tplayerSelect.Select(localPlayer)
 \t\tjs.Global().Call("__airplanes5SendSelection", targetIndex, false)
 \t}
 """
