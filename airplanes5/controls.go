@@ -133,33 +133,56 @@ func (i *Controls) Update(w donburi.World) {
 		}
 	}
 
+	localPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
+	if localPlayer < 1 || localPlayer > 2 {
+		localPlayer = 1
+	}
+	remotePlayer := 3 - localPlayer
+	remoteDX := js.Global().Call("__airplanes5RemoteDX").Float()
+	remoteDY := js.Global().Call("__airplanes5RemoteDY").Float()
+
 	i.query.Each(w, func(entry *donburi.Entry) {
 		in := component.Input.Get(entry)
 		velocity := component.Velocity.Get(entry)
+		airplane := component.PlayerAirplane.Get(entry)
+		isLocal := airplane.PlayerNumber == localPlayer
 
 		velocity.Velocity = math.Vec2{X: 0, Y: -0.5}
-		if ebiten.IsKeyPressed(in.MoveUpKey) {
-			velocity.Velocity.Y = -in.MoveSpeed
-		} else if ebiten.IsKeyPressed(in.MoveDownKey) {
-			velocity.Velocity.Y = in.MoveSpeed
-		}
-		if ebiten.IsKeyPressed(in.MoveRightKey) {
-			velocity.Velocity.X = in.MoveSpeed
-		}
-		if ebiten.IsKeyPressed(in.MoveLeftKey) {
-			velocity.Velocity.X = -in.MoveSpeed
+		if isLocal {
+			if ebiten.IsKeyPressed(in.MoveUpKey) {
+				velocity.Velocity.Y = -in.MoveSpeed
+			} else if ebiten.IsKeyPressed(in.MoveDownKey) {
+				velocity.Velocity.Y = in.MoveSpeed
+			}
+			if ebiten.IsKeyPressed(in.MoveRightKey) {
+				velocity.Velocity.X = in.MoveSpeed
+			}
+			if ebiten.IsKeyPressed(in.MoveLeftKey) {
+				velocity.Velocity.X = -in.MoveSpeed
+			}
+
+			if i.leftActive {
+				x, y := ebiten.TouchPosition(i.leftTouch)
+				if dx, dy, ok := mobileJoystick(x, y, 90.0, 610.0); ok && !in.Disabled {
+					velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
+				}
+			} else if i.rightActive {
+				x, y := ebiten.TouchPosition(i.rightTouch)
+				if dx, dy, ok := mobileJoystick(x, y, 390.0, 700.0); ok && !in.Disabled {
+					velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
+				}
+			}
+		} else if airplane.PlayerNumber == remotePlayer {
+			velocity.Velocity = math.Vec2{X: remoteDX * in.MoveSpeed, Y: remoteDY * in.MoveSpeed}
 		}
 
-		if i.leftActive {
-			x, y := ebiten.TouchPosition(i.leftTouch)
-			if dx, dy, ok := mobileJoystick(x, y, 90.0, 610.0); ok && !in.Disabled {
-				velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
+		if isLocal {
+			dx, dy := 0.0, 0.0
+			if in.MoveSpeed != 0 {
+				dx = velocity.Velocity.X / in.MoveSpeed
+				dy = velocity.Velocity.Y / in.MoveSpeed
 			}
-		} else if i.rightActive {
-			x, y := ebiten.TouchPosition(i.rightTouch)
-			if dx, dy, ok := mobileJoystick(x, y, 390.0, 700.0); ok && !in.Disabled {
-				velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
-			}
+			js.Global().Call("__airplanes5SendControl", dx, dy)
 		}
 
 		if in.Disabled {
@@ -167,7 +190,7 @@ func (i *Controls) Update(w donburi.World) {
 		}
 
 		airplane := component.PlayerAirplane.Get(entry)
-		player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
+
 		if player.Respawning || player.Lives <= 0 {
 			return
 		}
