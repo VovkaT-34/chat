@@ -285,16 +285,22 @@ async def mailaccess_memory(request: Request):
         f"/metrics/memory?resource={MAILACCESS_RENDER_SERVICE_ID}"
         f"&startTime={start_iso}&endTime={end_iso}&resolutionSeconds=30"
     )
-    points = payload.get("metrics", payload.get("data", [])) if isinstance(payload, dict) else payload
-    if not isinstance(points, list) or not points:
+    values = []
+    def collect(obj):
+        if isinstance(obj, dict):
+            if "timestamp" in obj and "value" in obj:
+                values.append(obj["value"])
+            for value in obj.values():
+                collect(value)
+        elif isinstance(obj, list):
+            for value in obj:
+                collect(value)
+    collect(payload)
+    if not values:
         raise HTTPException(status_code=502, detail="Render API не вернул значения RAM MailAccess")
-    latest = points[-1]
-    if isinstance(latest, dict):
-        value = latest.get("value", latest.get("memory", latest.get("ram_mb")))
-    else:
-        value = latest
     try:
-        ram_mb = float(value) / (1024 * 1024) if float(value) > 100000 else float(value)
+        value = float(values[-1])
+        ram_mb = value / (1024 * 1024) if value > 100000 else value
     except (TypeError, ValueError):
         raise HTTPException(status_code=502, detail="Не удалось разобрать значение RAM MailAccess")
     return {"ram_mb": round(ram_mb, 1), "unit": "MB RAM", "service": "glaz-boga-mailaccess"}
