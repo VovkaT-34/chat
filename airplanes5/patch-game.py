@@ -39,7 +39,10 @@ if count != 1:
     raise SystemExit('Update pause block not found')
 
 s = s.replace("\n\tfor _, s := range g.systems {\n\t\ts.Update(g.world)\n\t}", "\n\tfor _, s := range g.systems {\n\t\tif js.Global().Call(\"__airplanes5IsMultiplayer\").Bool() {\n\t\t\tname := fmt.Sprintf(\"%T\", s)\n\t\t\tif !strings.Contains(name, \"Controls\") && !strings.Contains(name, \"Camera\") && !strings.Contains(name, \"Observer\") {\n\t\t\t\tcontinue\n\t\t\t}\n\t\t}\n\t\ts.Update(g.world)\n\t}", 1)
-\np.write_text(s)\n\n# Mobile player selection: touch coordinates choose the airplane actually tapped.
+
+p.write_text(s)
+
+# Mobile player selection: touch coordinates choose the airplane actually tapped.
 # The original game has two players and four airplane choices.
 p = Path('/tmp/airplanes/system/playerselect.go')
 s = p.read_text()
