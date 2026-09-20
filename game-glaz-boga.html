@@ -765,8 +765,9 @@ async function deepSearch(){
   deepChecked.textContent='Проверено: 0 / …';
   deepFound.innerHTML='Найдено: <span style="color:#ff4b5c">0</span>';
   deepSites.innerHTML='';
-  stopDeep.classList.remove('active');
-  deepRunning.classList.remove('active');
+  stopDeep.classList.add('active');
+  stopDeep.disabled=true;
+  deepRunning.classList.add('active');
   if(kind==='username'&&!validUsername(value)){
     deepStatus.textContent='Статус: username должен содержать латинские буквы, цифры, точку, дефис или подчёркивание.';
     return;
@@ -779,6 +780,7 @@ async function deepSearch(){
     const d=await r.json();
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
     deepJobId=d.job_id;
+    stopDeep.disabled=false;
     renderDeep(d);
     if(d.status!=='done'&&d.status!=='error'&&d.status!=='cancelled'){
       stopDeep.classList.add('active');
@@ -788,6 +790,7 @@ async function deepSearch(){
     }
   }catch(e){
     stopDeep.classList.remove('active');
+    stopDeep.disabled=false;
     deepRunning.classList.remove('active');
     deepStatus.textContent='Статус: ошибка запуска — '+e.message;
   }
