@@ -46,7 +46,8 @@ s = p.read_text()
 start = s.index("\tvar isTouch bool")
 end = s.index("\n\tfor number, settings := range archetype.Players", start)
 
-new_touch = """\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
+new_touch = """\tjs.Global().Call("__airplanes5SelectionScreen", true)
+	localPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
 \\tif localPlayer < 1 || localPlayer > 4 {
 \\t\\tlocalPlayer = 1
 \\t}
