@@ -38,7 +38,8 @@ if count != 1:
 
 p.write_text(s)
 
-# Mobile player selection: the original game has two players and four airplane
+# Mobile player selection: touch coordinates choose the airplane actually tapped.
+# The original game has two players and four airplane
 # choices (factions). A touch on one airplane selects it for player 1, then
 # another airplane can be selected for player 2. Tapping a selected airplane
 # locks that player in, matching the original keyboard flow.
