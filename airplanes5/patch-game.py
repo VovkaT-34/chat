@@ -46,47 +46,85 @@ s = p.read_text()
 start = s.index("\tvar isTouch bool")
 end = s.index("\n\tfor number, settings := range archetype.Players", start)
 
-new_touch = (
-    "\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)\n"
-    "\tfor _, touchID := range touchIDs {\n"
-    "\t\tx, y := ebiten.TouchPosition(touchID)\n"
-    "\t\ttargetIndex := -1\n"
-    "\t\tbestDistance := 36.0 * 36.0\n"
-    "\n"
-    "\t\tfor i, entry := range playerSelects {\n"
-    "\t\t\tposition := transform.WorldPosition(entry)\n"
-    "\t\t\tdx := float64(x) - position.X\n"
-    "\t\t\tdy := float64(y) - position.Y\n"
-    "\t\t\tdistance := dx*dx + dy*dy\n"
-    "\t\t\tif distance <= bestDistance {\n"
-    "\t\t\t\tbestDistance = distance\n"
-    "\t\t\t\ttargetIndex = i\n"
-    "\t\t\t}\n"
-    "\t\t}\n"
-    "\n"
-    "\t\tif targetIndex < 0 {\n"
-    "\t\t\tcontinue\n"
-    "\t\t}\n"
-    "\n"
-    "\t\tentry := playerSelects[targetIndex]\n"
-    "\t\tplayerSelect := component.PlayerSelect.Get(entry)\n"
-    "\t\tif playerSelect.Selected {\n"
-    "\t\t\tif !playerSelect.Ready {\n"
-    "\t\t\t\tplayerSelect.LockIn()\n"
-    "\t\t\t}\n"
-    "\t\t\tcontinue\n"
-    "\t\t}\n"
-    "\n"
-    "\t\tplayerNumber := 0\n"
-    "\t\tif _, ok := selected[1]; !ok {\n"
-    "\t\t\tplayerNumber = 1\n"
-    "\t\t} else if _, ok := selected[2]; !ok {\n"
-    "\t\t\tplayerNumber = 2\n"
-    "\t\t}\n"
-    "\t\tif playerNumber != 0 {\n"
-    "\t\t\tplayerSelect.Select(playerNumber)\n"\n    "\t\t\tselected[playerNumber] = entry\n"
-    "\t\t}\n"
-    "\t}\n"
-)
+new_touch = """\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
+\tif localPlayer < 1 || localPlayer > 2 {
+\t\tlocalPlayer = 1
+\t}
+\tremotePlayer := 3 - localPlayer
+\tremoteIndex := js.Global().Call("__airplanes5RemoteSelection").Int()
+\tremoteReady := js.Global().Call("__airplanes5RemoteReady").Bool()
+
+\tif remoteIndex >= 0 && remoteIndex < len(playerSelects) {
+\t\tfor index, entry := range playerSelects {
+\t\t\tps := component.PlayerSelect.Get(entry)
+\t\t\tif ps.Selected && ps.PlayerNumber == remotePlayer && index != remoteIndex && !ps.Ready {
+\t\t\t\tps.Unselect()
+\t\t\t}
+\t\t}
+\t\ttarget := playerSelects[remoteIndex]
+\t\ttargetPS := component.PlayerSelect.Get(target)
+\t\tif !targetPS.Selected {
+\t\t\ttargetPS.Select(remotePlayer)
+\t\t}
+\t\tif targetPS.Selected && targetPS.PlayerNumber == remotePlayer && remoteReady && !targetPS.Ready {
+\t\t\ttargetPS.LockIn()
+\t\t}
+\t}
+
+\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)
+\tfor _, touchID := range touchIDs {
+\t\tx, y := ebiten.TouchPosition(touchID)
+\t\ttargetIndex := -1
+\t\tbestDistance := 44.0 * 44.0
+
+\t\tfor i, entry := range playerSelects {
+\t\t\tposition := transform.WorldPosition(entry)
+\t\t\tdx := float64(x) - position.X
+\t\t\tdy := float64(y) - position.Y
+\t\t\tdistance := dx*dx + dy*dy
+\t\t\tif distance <= bestDistance {
+\t\t\t\tbestDistance = distance
+\t\t\t\ttargetIndex = i
+\t\t\t}
+\t\t}
+
+\t\tif targetIndex < 0 {
+\t\t\tcontinue
+\t\t}
+
+\t\tentry := playerSelects[targetIndex]
+\t\tplayerSelect := component.PlayerSelect.Get(entry)
+\t\tif playerSelect.Selected && playerSelect.PlayerNumber == localPlayer {
+\t\t\tif !playerSelect.Ready {
+\t\t\t\tplayerSelect.LockIn()
+\t\t\t}
+\t\t\tjs.Global().Call("__airplanes5SendSelection", targetIndex, playerSelect.Ready)
+\t\t\tcontinue
+\t\t}
+\t\tif playerSelect.Selected {
+\t\t\tcontinue
+\t\t}
+
+\t\tplayerSelect.Select(localPlayer)
+\t\tjs.Global().Call("__airplanes5SendSelection", targetIndex, false)
+\t}
+"""
 s = s[:start] + new_touch + s[end:]
+
+if '"syscall/js"' not in s:
+    s = s.replace('import (\n\t"fmt"', 'import (\n\t"fmt"\n\t"syscall/js"', 1)
+
+marker = '\tfor _, entry := range playerSelects {\n\t\tplayerSelect := component.PlayerSelect.Get(entry)\n\t\tcrosshair := hierarchy.MustGetChildren(entry)[0]'
+publish = '''\tfor index, entry := range playerSelects {
+\t\tps := component.PlayerSelect.Get(entry)
+\t\tif ps.Selected && ps.PlayerNumber == localPlayer {
+\t\t\tjs.Global().Call("__airplanes5SendSelection", index, ps.Ready)
+\t\t\tbreak
+\t\t}
+\t}
+
+''' + marker
+if marker not in s:
+    raise SystemExit("render marker not found")
+s = s.replace(marker, publish, 1)
 p.write_text(s)
