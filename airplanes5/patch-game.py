@@ -138,6 +138,40 @@ publish = '''\tfor index, entry := range playerSelects {
 if marker not in s:
     raise SystemExit("render marker not found")
 s = s.replace(marker, publish, 1)
+s = s.replace(
+    'if playersReady > 0 && playersReady == len(chosenPlayers) {',
+    'if playersReady > 0 && playersReady == len(chosenPlayers) && js.Global().Call("__airplanes5CanStart").Bool() {',
+    1,
+)
+p.write_text(s)
+
+# Airplanes 5 multiplayer: player 1 is authoritative for enemy damage.
+p = Path('/tmp/airplanes/system/collision.go')
+s = p.read_text()
+if '"syscall/js"' not in s:
+    s = s.replace('import (\n\t"fmt"', 'import (\n\t"fmt"\n\t"syscall/js"', 1)
+s = s.replace('''component.CollisionLayerAirEnemies: func(w donburi.World, entry *donburi.Entry, other *donburi.Entry) {
+\t\t\tcomponent.Destroy(entry)
+\t\t\tcomponent.Health.Get(other).Damage()
+\t\t},''','''component.CollisionLayerAirEnemies: func(w donburi.World, entry *donburi.Entry, other *donburi.Entry) {
+\t\t\tif !js.Global().Call("__airplanes5IsAuthority").Bool() {
+\t\t\t\treturn
+\t\t\t}
+\t\t\tcomponent.Destroy(entry)
+\t\t\tcomponent.Health.Get(other).Damage()
+\t\t\tjs.Global().Call("__airplanes5SendEnemyHit", other.Entity().Id())
+\t\t},''',1)
+s = s.replace('''component.CollisionLayerGroundEnemies: func(w donburi.World, entry *donburi.Entry, other *donburi.Entry) {
+\t\t\tcomponent.Destroy(entry)
+\t\t\tcomponent.Health.Get(other).Damage()
+\t\t},''','''component.CollisionLayerGroundEnemies: func(w donburi.World, entry *donburi.Entry, other *donburi.Entry) {
+\t\t\tif !js.Global().Call("__airplanes5IsAuthority").Bool() {
+\t\t\t\treturn
+\t\t\t}
+\t\t\tcomponent.Destroy(entry)
+\t\t\tcomponent.Health.Get(other).Damage()
+\t\t\tjs.Global().Call("__airplanes5SendEnemyHit", other.Entity().Id())
+\t\t},''',1)
 p.write_text(s)
 
 # Airplanes 5 multiplayer: the upstream game defines two players. Extend it to four
