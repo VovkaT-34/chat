@@ -92,7 +92,7 @@ function start(){
     busy = true;
     await updateRam();
     busy = false;
-    setTimeout(tick, 2500);
+    setTimeout(tick, 5000);
   };
   tick();
 }
