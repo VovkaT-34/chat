@@ -84,7 +84,7 @@ new_touch = (
     "\t\t\tplayerNumber = 2\n"
     "\t\t}\n"
     "\t\tif playerNumber != 0 {\n"
-    "\t\t\tplayerSelect.Select(playerNumber)\n"
+    "\t\t\tplayerSelect.Select(playerNumber)\n"\n    "\t\t\tselected[playerNumber] = entry\n"
     "\t\t}\n"
     "\t}\n"
 )
