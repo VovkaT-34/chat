@@ -19,11 +19,13 @@ replacement = '''func (g *Game) Update() {
 \tgameData := component.MustFindGame(g.world)
 \tif inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 \t\tgameData.Paused = !gameData.Paused
+\t\tjs.Global().Call("__airplanes5SetPaused", gameData.Paused)
 \t}
 \tpauseRequest := js.Global().Get("__airplanes5PauseRequest")
 \tif !pauseRequest.IsUndefined() && !pauseRequest.IsNull() {
 \t\tgameData.Paused = pauseRequest.Bool()
 \t\tjs.Global().Set("__airplanes5PauseRequest", js.Null())
+\t\tjs.Global().Call("__airplanes5SetPaused", gameData.Paused)
 \t}
 \tif gameData.Paused {
 \t\treturn
