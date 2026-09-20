@@ -189,8 +189,7 @@ func (i *Controls) Update(w donburi.World) {
 			return
 		}
 
-		airplane := component.PlayerAirplane.Get(entry)
-
+		player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
 		if player.Respawning || player.Lives <= 0 {
 			return
 		}
