@@ -46,6 +46,41 @@ s = p.read_text()
 start = s.index("\tvar isTouch bool")
 end = s.index("\n\tfor number, settings := range archetype.Players", start)
 
+new_touch = """\\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
+\\tif localPlayer < 1 || localPlayer > 4 {
+\\t\\tlocalPlayer = 1
+\\t}
+\\n
+\\t// Mirror every other room member into this local selection screen.
+\\tfor playerNumber := 1; playerNumber <= 4; playerNumber++ {
+\\t\\tif playerNumber == localPlayer {
+\\t\\t\\tcontinue
+\\t\\t}
+\\t\\tremoteIndex := js.Global().Call("__airplanes5RemoteSelection", playerNumber).Int()
+\\t\\tremoteReady := js.Global().Call("__airplanes5RemoteReady", playerNumber).Bool()
+\\t\\tfor index, entry := range playerSelects {
+\\t\\t\\tps := component.PlayerSelect.Get(entry)
+\\t\\t\\tif ps.Selected && ps.PlayerNumber == playerNumber && index != remoteIndex && !ps.Ready {
+\\t\\t\\t\\tps.Unselect()
+\\t\\t\\t}
+\\t\\t}
+\\t\\tif remoteIndex < 0 || remoteIndex >= len(playerSelects) {
+\\t\\t\\tcontinue
+\\t\\t}
+\\t\\ttarget := playerSelects[remoteIndex]
+\\t\\ttargetPS := component.PlayerSelect.Get(target)
+\\t\\tif targetPS.Selected && targetPS.PlayerNumber != playerNumber && !targetPS.Ready {
+\\t\\t\\tcontinue
+\\t\\t}
+\\t\\tif !targetPS.Selected {
+\\t\\t\\ttargetPS.Select(playerNumber)
+\\t\\t}
+\\t\\tif remoteReady && targetPS.Selected && targetPS.PlayerNumber == playerNumber && !targetPS.Ready {
+\\t\\t\\ttargetPS.LockIn()
+\\t\\t}
+\\t}
+\n\tfor number, settings := range archetype.Players", start)
+
 new_touch = """\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
 \tif localPlayer < 1 || localPlayer > 2 {
 \t\tlocalPlayer = 1
