@@ -275,8 +275,11 @@ async def _render_api_request(path: str, method: str = "GET"):
 
 @app.get("/mailaccess/memory")
 async def mailaccess_memory():
-    """Return current Render memory usage for the isolated MailAccess service."""
-    end = time.time()
+    """Return cached current Render memory usage for the isolated MailAccess service."""
+    now = time.time()
+    if (MAILACCESS_MEMORY_CACHE["ram_mb"] is not None and now - MAILACCESS_MEMORY_CACHE["at"] < 10):
+        return {"ram_mb": MAILACCESS_MEMORY_CACHE["ram_mb"], "unit": "MB RAM", "service": "glaz-boga-mailaccess", "cached": True}
+    end = now
     start = end - 180
     end_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(end))
     start_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(start))
@@ -307,7 +310,10 @@ async def mailaccess_memory():
     except (TypeError, ValueError):
         raise HTTPException(status_code=502, detail="Не удалось разобрать значение RAM MailAccess")
 
-    return {"ram_mb": round(ram_mb, 1), "unit": "MB RAM", "service": "glaz-boga-mailaccess"}
+    ram_mb = round(ram_mb, 1)
+    MAILACCESS_MEMORY_CACHE["at"] = now
+    MAILACCESS_MEMORY_CACHE["ram_mb"] = ram_mb
+    return {"ram_mb": ram_mb, "unit": "MB RAM", "service": "glaz-boga-mailaccess", "cached": False}
 
 
 @app.post("/mailaccess/memory/reset")
