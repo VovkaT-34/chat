@@ -50,7 +50,7 @@ new_touch = """\\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int
 \\tif localPlayer < 1 || localPlayer > 4 {
 \\t\\tlocalPlayer = 1
 \\t}
-\\n
+
 \\t// Mirror every other room member into this local selection screen.
 \\tfor playerNumber := 1; playerNumber <= 4; playerNumber++ {
 \\t\\tif playerNumber == localPlayer {
