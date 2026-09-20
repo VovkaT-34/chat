@@ -172,6 +172,29 @@ s = s.replace('''component.CollisionLayerGroundEnemies: func(w donburi.World, en
 \t\t\tcomponent.Health.Get(other).Damage()
 \t\t\tjs.Global().Call("__airplanes5SendEnemyHit", other.Entity().Id())
 \t\t},''',1)
+s = s.replace(
+'''\tfor _, entry := range entries {
+\t\tif !entry.Valid() {
+\t\t\tcontinue
+\t\t}
+
+\t\tcollider := component.Collider.Get(entry)''',
+'''\tfor _, entry := range entries {
+\t\tif !entry.Valid() {
+\t\t\tcontinue
+\t\t}
+
+\t\tif !js.Global().Call("__airplanes5IsAuthority").Bool() && entry.HasComponent(component.Health) {
+\t\t\thitID := js.Global().Call("__airplanes5PeekEnemyHit").Int()
+\t\t\tif hitID >= 0 && entry.Entity().Id() == hitID {
+\t\t\t\tcomponent.Health.Get(entry).Damage()
+\t\t\t\tjs.Global().Call("__airplanes5AckEnemyHit", hitID)
+\t\t\t}
+\t\t}
+
+\t\tcollider := component.Collider.Get(entry)''',
+1,
+)
 p.write_text(s)
 
 # Airplanes 5 multiplayer: the upstream game defines two players. Extend it to four
