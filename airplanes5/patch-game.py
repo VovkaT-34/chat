@@ -46,7 +46,7 @@ s = p.read_text()
 start = s.index("\tvar isTouch bool")
 end = s.index("\n\tfor number, settings := range archetype.Players", start)
 
-new_touch = """\\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
+new_touch = """\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
 \\tif localPlayer < 1 || localPlayer > 4 {
 \\t\\tlocalPlayer = 1
 \\t}
@@ -117,6 +117,7 @@ new_touch = """\\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int
 \t\tjs.Global().Call("__airplanes5SendSelection", targetIndex, false)
 \t}
 """
+new_touch = new_touch.replace("\\t", "\t")
 s = s[:start] + new_touch + s[end:]
 
 s = s.replace('if inpututil.IsKeyJustPressed(settings.Inputs.Shoot) || isTouch {', 'if inpututil.IsKeyJustPressed(settings.Inputs.Shoot) {', 1)
