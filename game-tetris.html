@@ -13,7 +13,7 @@
 <body>
 <div class="page">
   <div class="top"><button class="back" onclick="location.href='games.html'">← Игры</button><h1 class="title">🧱 Тетрис</h1><span id="tetrisScore" class="score">0</span></div>
-  <div class="tetris-wrap"><canvas id="tetrisCanvas" class="tetris-canvas" width="300" height="600"></canvas></div>
+  <div class="tetris-wrap"><canvas id="tetrisCanvas" class="tetris-canvas" width="300" height="600"></canvas><div class="tetris-next"><div class="tetris-next-title">Следующая</div><canvas id="tetrisNextCanvas" width="64" height="64"></canvas></div></div>
   <div class="game-controls-wide"><div class="wide-grid"><button class="mobile-pause pause-btn" onclick="toggleTetrisPause()">Пауза</button><button class="game-btn" data-tetris="left">◀</button><button class="game-btn" data-tetris="rotate">↻</button><button class="game-btn" data-tetris="right">▶</button><button class="game-btn" data-tetris="down">▼</button></div></div>
   <p class="hint desktop-hint">Компьютер: ← → движение · ↑ поворот · ↓ вниз · Пробел — пауза</p>
 </div>
