@@ -39,164 +39,77 @@ if count != 1:
 p.write_text(s)
 
 # Mobile player selection: touch coordinates choose the airplane actually tapped.
-# The original game has two players and four airplane
-# choices (factions). A touch on one airplane selects it for player 1, then
-# another airplane can be selected for player 2. Tapping a selected airplane
-# locks that player in, matching the original keyboard flow.
+# The original game has two players and four airplane choices.
 p = Path('/tmp/airplanes/system/playerselect.go')
 s = p.read_text()
 
-old_touch = '''\tvar isTouch bool
-\touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
-\tif len(touchIDs) > 0 {
-\t\tisTouch = true
-\t}
-
-\tfor number, settings := range archetype.Players {
-\t\tif inpututil.IsKeyJustPressed(settings.Inputs.Shoot) || isTouch {
-\t\t\tif entry, ok := selected[number]; ok {
-\t\t\t\tcomponent.PlayerSelect.Get(entry).LockIn()
-\t\t\t} else {
-\t\t\t\tfor _, entry := range playerSelects {
-\t\t\t\t\tplayerSelect := component.PlayerSelect.Get(entry)
-\t\t\t\t\tif !playerSelect.Selected {
-\t\t\t\t\t\tplayerSelect.Select(number)
-\t\t\t\t\t\tbreak
-\t\t\t\t\t}
-\t\t\t\t}
-\t\t\t}
-\t\t}
-\t}
-'''
-
-new_touch = '''\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)
-
-\tfor number, settings := range archetype.Players {
-\t\tif inpututil.IsKeyJustPressed(settings.Inputs.Shoot) {
-\t\t\tif entry, ok := selected[number]; ok {
-\t\t\t\tcomponent.PlayerSelect.Get(entry).LockIn()
-\t\t\t} else {
-\t\t\t\tfor _, entry := range playerSelects {
-\t\t\t\t\tplayerSelect := component.PlayerSelect.Get(entry)
-\t\t\t\t\tif !playerSelect.Selected {
-\t\t\t\t\t\tplayerSelect.Select(number)
-\t\t\t\t\t\tbreak
-\t\t\t\t\t}
-\t\t\t\t}
-\t\t\t}
-\t\t}
-\t}
-
-\tfor _, touchID := range touchIDs {
-\t\tx, _ := ebiten.TouchPosition(touchID)
-\t\tvar target *donburi.Entry
-\t\tbestDistance := 40.0
-\t\tfor _, entry := range playerSelects {
-\t\t\tplayerSelect := component.PlayerSelect.Get(entry)
-\t\t\ttargetX := float64(120 + playerSelect.Index*80)
-\t\t\tdistance := float64(x) - targetX
-\t\t\tif distance < 0 {
-\t\t\t\tdistance = -distance
-\t\t\t}
-\t\t\tif distance <= bestDistance {
-\t\t\t\tbestDistance = distance
-\t\t\t\ttarget = entry
-\t\t\t}
-\t\t}
-\t\tif target == nil {
-\t\t\tcontinue
-\t\t}
-
-\t\tplayerSelect := component.PlayerSelect.Get(target)
-\t\tif playerSelect.Selected {
-\t\t\tif !playerSelect.Ready {
-\t\t\t\tplayerSelect.LockIn()
-\t\t\t}
-\t\t\tcontinue
-\t\t}
-
-\t\tplayerNumber := 0
-\t\tif _, ok := selected[1]; !ok {
-\t\t\tplayerNumber = 1
-\t\t} else if _, ok := selected[2]; !ok {
-\t\t\tplayerNumber = 2
-\t\t}
-\t\tif playerNumber != 0 {
-\t\t\tplayerSelect.Select(playerNumber)
-\t\t\tselected[playerNumber] = target
-\t\t}
-\t}
-'''
-
-if old_touch not in s:
-    raise SystemExit('Original mobile player-selection block not found')
-
-s = s.replace(old_touch, new_touch, 1)
 start = s.index("\tvar isTouch bool")
 end = s.index("\n\t\tif inpututil.IsKeyJustPressed(settings.Inputs.Left)", start)
 
-new_touch = '''\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)
-
-\tfor number, settings := range archetype.Players {
-\t\tif inpututil.IsKeyJustPressed(settings.Inputs.Shoot) {
-\t\t\tif entry, ok := selected[number]; ok {
-\t\t\t\tcomponent.PlayerSelect.Get(entry).LockIn()
-\t\t\t} else {
-\t\t\t\tfor _, entry := range playerSelects {
-\t\t\t\t\tplayerSelect := component.PlayerSelect.Get(entry)
-\t\t\t\t\tif !playerSelect.Selected {
-\t\t\t\t\t\tplayerSelect.Select(number)
-\t\t\t\t\t\tbreak
-\t\t\t\t\t}
-\t\t\t\t}
-\t\t\t}
-\t\t}
-\t}
-
-\tfor _, touchID := range touchIDs {
-\t\tx, _ := ebiten.TouchPosition(touchID)
-\t\ttargetIndex := -1
-\t\tbestDistance := 40.0
-
-\t\tfor i, entry := range playerSelects {
-\t\t\tplayerSelect := component.PlayerSelect.Get(entry)
-\t\t\ttargetX := float64(120 + playerSelect.Index*80)
-\t\t\tdistance := float64(x) - targetX
-\t\t\tif distance < 0 {
-\t\t\t\tdistance = -distance
-\t\t\t}
-\t\t\tif distance <= bestDistance {
-\t\t\t\tbestDistance = distance
-\t\t\t\ttargetIndex = i
-\t\t\t}
-\t\t}
-
-\t\tif targetIndex < 0 {
-\t\t\tcontinue
-\t\t}
-
-\t\tentry := playerSelects[targetIndex]
-\t\tplayerSelect := component.PlayerSelect.Get(entry)
-
-\t\tif playerSelect.Selected {
-\t\t\tif !playerSelect.Ready {
-\t\t\t\tplayerSelect.LockIn()
-\t\t\t}
-\t\t\tcontinue
-\t\t}
-
-\t\tplayerNumber := 0
-\t\tif _, ok := selected[1]; !ok {
-\t\t\tplayerNumber = 1
-\t\t} else if _, ok := selected[2]; !ok {
-\t\t\tplayerNumber = 2
-\t\t}
-
-\t\tif playerNumber != 0 {
-\t\t\tplayerSelect.Select(playerNumber)
-\t\t\tselected[playerNumber] = entry
-\t\t}
-\t}
+new_touch = (
+    "\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)\n"
+    "\n"
+    "\tfor number, settings := range archetype.Players {\n"
+    "\t\tif inpututil.IsKeyJustPressed(settings.Inputs.Shoot) {\n"
+    "\t\t\tif entry, ok := selected[number]; ok {\n"
+    "\t\t\t\tcomponent.PlayerSelect.Get(entry).LockIn()\n"
+    "\t\t\t} else {\n"
+    "\t\t\t\tfor _, entry := range playerSelects {\n"
+    "\t\t\t\t\tplayerSelect := component.PlayerSelect.Get(entry)\n"
+    "\t\t\t\t\tif !playerSelect.Selected {\n"
+    "\t\t\t\t\t\tplayerSelect.Select(number)\n"
+    "\t\t\t\t\t\tbreak\n"
+    "\t\t\t\t\t}\n"
+    "\t\t\t\t}\n"
+    "\t\t\t}\n"
+    "\t\t}\n"
+    "\t}\n"
+    "\n"
+    "\tfor _, touchID := range touchIDs {\n"
+    "\t\tx, _ := ebiten.TouchPosition(touchID)\n"
+    "\t\ttargetIndex := -1\n"
+    "\t\tbestDistance := 40.0\n"
+    "\n"
+    "\t\tfor i, entry := range playerSelects {\n"
+    "\t\t\tplayerSelect := component.PlayerSelect.Get(entry)\n"
+    "\t\t\ttargetX := float64(120 + playerSelect.Index*80)\n"
+    "\t\t\tdistance := float64(x) - targetX\n"
+    "\t\t\tif distance < 0 {\n"
+    "\t\t\t\tdistance = -distance\n"
+    "\t\t\t}\n"
+    "\t\t\tif distance <= bestDistance {\n"
+    "\t\t\t\tbestDistance = distance\n"
+    "\t\t\t\ttargetIndex = i\n"
+    "\t\t\t}\n"
+    "\t\t}\n"
+    "\n"
+    "\t\tif targetIndex < 0 {\n"
+    "\t\t\tcontinue\n"
+    "\t\t}\n"
+    "\n"
+    "\t\tentry := playerSelects[targetIndex]\n"
+    "\t\tplayerSelect := component.PlayerSelect.Get(entry)\n"
+    "\n"
+    "\t\tif playerSelect.Selected {\n"
+    "\t\t\tif !playerSelect.Ready {\n"
+    "\t\t\t\tplayerSelect.LockIn()\n"
+    "\t\t\t}\n"
+    "\t\t\tcontinue\n"
+    "\t\t}\n"
+    "\n"
+    "\t\tplayerNumber := 0\n"
+    "\t\tif _, ok := selected[1]; !ok {\n"
+    "\t\t\tplayerNumber = 1\n"
+    "\t\t} else if _, ok := selected[2]; !ok {\n"
+    "\t\t\tplayerNumber = 2\n"
+    "\t\t}\n"
+    "\n"
+    "\t\tif playerNumber != 0 {\n"
+    "\t\t\tplayerSelect.Select(playerNumber)\n"
+    "\t\t\tselected[playerNumber] = entry\n"
+    "\t\t}\n"
+    "\t}\n"
+)
 
 s = s[:start] + new_touch + s[end:]
 p.write_text(s)
