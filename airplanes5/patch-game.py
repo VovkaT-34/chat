@@ -111,6 +111,8 @@ new_touch = """\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int(
 """
 s = s[:start] + new_touch + s[end:]
 
+s = s.replace('if inpututil.IsKeyJustPressed(settings.Inputs.Shoot) || isTouch {', 'if inpututil.IsKeyJustPressed(settings.Inputs.Shoot) {', 1)
+
 if '"syscall/js"' not in s:
     s = s.replace('import (\n\t"fmt"', 'import (\n\t"fmt"\n\t"syscall/js"', 1)
 
