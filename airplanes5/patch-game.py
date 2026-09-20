@@ -102,18 +102,7 @@ new_touch = """\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int(
 
 \t\tentry := playerSelects[targetIndex]
 \t\tplayerSelect := component.PlayerSelect.Get(entry)
-\t\tif playerSelect.Selected && playerSelect.PlayerNumber == localPlayer {
-\t\t\tif !playerSelect.Ready {
-\t\t\t\tplayerSelect.LockIn()
-\t\t\t}
-\t\t\tjs.Global().Call("__airplanes5SendSelection", targetIndex, playerSelect.Ready)
-\t\t\tcontinue
-\t\t}
-\t\tif playerSelect.Selected {
-\t\t\tcontinue
-\t\t}
-
-\t\tplayerSelect.Select(localPlayer)
+if playerSelect.Selected {\n\t\t\t// A selected airplane is locked. The player must use the PUSK button.\n\t\t\tcontinue\n\t\t}\n\n\t\tplayerSelect.Select(localPlayer)
 \t\tjs.Global().Call("__airplanes5SendSelection", targetIndex, false)
 \t}
 """
