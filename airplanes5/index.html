@@ -14,7 +14,7 @@
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;overscroll-behavior:none}
 body{position:relative;display:flex;align-items:center;justify-content:center}
 canvas{display:block!important;width:100vw!important;height:100vh!important;object-fit:contain!important;touch-action:none}
-.mobile-controls{position:fixed;inset:0;z-index:9999;pointer-events:none}
+.mobile-controls{position:fixed;inset:0;z-index:9999;pointer-events:none}.mp-panel{position:fixed;top:max(6px,env(safe-area-inset-top));left:8px;right:8px;z-index:10000;display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid #ffffff33;border-radius:10px;background:#111a;color:#fff;font:600 13px/1.2 system-ui,sans-serif;pointer-events:auto;backdrop-filter:blur(4px)}.mp-panel input{min-width:72px;width:84px;padding:5px 7px;border:1px solid #ffffff44;border-radius:7px;background:#0008;color:#fff;text-transform:uppercase}.mp-panel button{padding:5px 8px;border:1px solid #ffffff44;border-radius:7px;background:#ffffff18;color:#fff;font-weight:700}.mp-copy{margin-left:auto}.mp-status{white-space:nowrap}.mp-panel.hidden{display:none}
 .joystick{display:none}
 .pause{position:absolute;left:0;right:0;bottom:max(4px,env(safe-area-inset-bottom));margin:auto;width:clamp(58px,14vw,82px);height:clamp(44px,8vh,62px);border:1px solid #ffffff55;border-radius:12px;background:#77777766;color:#fff;font-size:clamp(22px,5vw,32px);font-weight:700;line-height:1;opacity:.9;backdrop-filter:blur(2px);pointer-events:auto;touch-action:manipulation;-webkit-user-select:none;user-select:none}
 @media(min-width:700px){.mobile-controls{display:none}}
@@ -25,6 +25,97 @@ canvas{display:block!important;width:100vw!important;height:100vh!important;obje
 <script>
 if(!WebAssembly.instantiateStreaming){WebAssembly.instantiateStreaming=async(resp,importObject)=>{const source=await(await resp).arrayBuffer();return WebAssembly.instantiate(source,importObject);};}
 let audioCtx=null,musicTimer=null,musicStep=0,gameplayActive=false,paused=false;
+let mpChannel=null;
+let mpKey=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
+let mpRoom='';
+let mpLocalPlayer=1;
+let mpPeerCount=1;
+let mpLocalSelection=-1;
+let mpLocalReady=false;
+let mpRemote={selection:-1,ready:false,dx:0,dy:0,lastControl:0};
+let mpPresenceTimer=0;
+let mpLastControl=0;
+
+function mpRoomCode(){
+  const raw=new URLSearchParams(location.search).get('room');
+  if(raw&&/^[A-Za-z0-9]{4,8}$/.test(raw)) return raw.toUpperCase();
+  return Math.random().toString(36).slice(2,6).toUpperCase();
+}
+function mpUpdateUI(){
+  const s=document.getElementById('mpStatus'), inp=document.getElementById('mpRoomInput');
+  if(!s)return;
+  s.textContent='Игрок '+mpLocalPlayer+' · '+(mpPeerCount>=2?'2/2':'ждём второго');
+  if(inp && document.activeElement!==inp) inp.value=mpRoom;
+}
+function mpRebuildState(){
+  if(!mpChannel)return;
+  const state=mpChannel.presenceState();
+  const peers=[];
+  for(const [key, metas] of Object.entries(state)){
+    const m=Array.isArray(metas)?metas[0]:metas;
+    peers.push({key, ...(m||{})});
+  }
+  peers.sort((a,b)=>(Number(a.joinedAt)||0)-(Number(b.joinedAt)||0)||a.key.localeCompare(b.key));
+  const mine=peers.findIndex(p=>p.key===mpKey);
+  mpLocalPlayer=mine<0?1:mine+1;
+  if(mpLocalPlayer>2)mpLocalPlayer=2;
+  mpPeerCount=Math.min(peers.length,2);
+  const remote=peers.find(p=>p.key!==mpKey);
+  if(remote){
+    mpRemote.selection=Number.isInteger(remote.selection)?remote.selection:-1;
+    mpRemote.ready=!!remote.ready;
+  }else{
+    mpRemote.selection=-1;mpRemote.ready=false;mpRemote.dx=0;mpRemote.dy=0;
+  }
+  mpUpdateUI();
+}
+async function mpTrack(){
+  if(!mpChannel)return;
+  await mpChannel.track({joinedAt:Number(mpKey.split('-')[0],36)||Date.now(),selection:mpLocalSelection,ready:mpLocalReady});
+  mpRebuildState();
+}
+async function mpJoin(room){
+  room=String(room||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
+  if(room.length<4)return;
+  if(mpChannel){try{await supabaseClient.removeChannel(mpChannel);}catch(e){}}
+  mpRoom=room;
+  const url=new URL(location.href);url.searchParams.set('room',room);history.replaceState(null,'',url.toString());
+  mpChannel=supabaseClient.channel('airplanes5-'+room,{config:{broadcast:{self:false}}});
+  mpChannel.on('presence',{event:'sync'},mpRebuildState);
+  mpChannel.on('presence',{event:'join'},mpRebuildState);
+  mpChannel.on('presence',{event:'leave'},mpRebuildState);
+  mpChannel.on('broadcast',{event:'control'},payload=>{
+    const p=payload&&payload.payload;
+    if(!p||Number(p.player)===mpLocalPlayer)return;
+    mpRemote.dx=Math.max(-1,Math.min(1,Number(p.dx)||0));
+    mpRemote.dy=Math.max(-1,Math.min(1,Number(p.dy)||0));
+    mpRemote.lastControl=performance.now();
+  });
+  mpChannel.subscribe(async status=>{
+    if(status==='SUBSCRIBED') await mpTrack();
+  });
+  mpUpdateUI();
+}
+function mpSendControl(dx,dy){
+  if(!mpChannel||mpPeerCount<2)return;
+  const now=performance.now();
+  if(now-mpLastControl<45)return;
+  mpLastControl=now;
+  mpChannel.send({type:'broadcast',event:'control',payload:{player:mpLocalPlayer,dx:Number(dx)||0,dy:Number(dy)||0}});
+}
+function mpSendSelection(index,ready){
+  mpLocalSelection=Number(index);
+  mpLocalReady=!!ready;
+  if(mpChannel)mpTrack().catch(()=>{});
+}
+window.__airplanes5LocalPlayer=()=>mpLocalPlayer;
+window.__airplanes5RemoteSelection=()=>mpRemote.selection;
+window.__airplanes5RemoteReady=()=>mpRemote.ready;
+window.__airplanes5RemoteDX=()=>performance.now()-mpRemote.lastControl>300?0:mpRemote.dx;
+window.__airplanes5RemoteDY=()=>performance.now()-mpRemote.lastControl>300?0:mpRemote.dy;
+window.__airplanes5SendControl=mpSendControl;
+window.__airplanes5SendSelection=mpSendSelection;
+
 const melody=[261.63,329.63,392,329.63,293.66,349.23,440,349.23],bass=[130.81,130.81,146.83,146.83,164.81,164.81,146.83,146.83];
 function ensureAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}
 function startMusic(){ensureAudio();if(musicTimer||paused||!gameplayActive)return;musicTimer=setInterval(()=>{if(paused||!gameplayActive||!audioCtx||audioCtx.state!=='running')return;const n=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=melody[musicStep%melody.length];g.gain.setValueAtTime(.0001,n);g.gain.exponentialRampToValueAtTime(.035,n+.025);g.gain.exponentialRampToValueAtTime(.0001,n+.28);o.connect(g).connect(audioCtx.destination);o.start(n);o.stop(n+.3);if(musicStep%2===0){const b=audioCtx.createOscillator(),bg=audioCtx.createGain();b.type='sine';b.frequency.value=bass[(musicStep/2)%bass.length|0];bg.gain.setValueAtTime(.0001,n);bg.gain.exponentialRampToValueAtTime(.018,n+.02);bg.gain.exponentialRampToValueAtTime(.0001,n+.42);b.connect(bg).connect(audioCtx.destination);b.start(n);b.stop(n+.45);}musicStep++;},360);}
@@ -35,8 +126,10 @@ window.__airplanes5PauseRequest=null;
 window.__airplanes5Pause=function(e){if(e){e.preventDefault();e.stopPropagation();}const next=!paused;window.__airplanes5SetPaused(next);window.__airplanes5PauseRequest=next;};
 window.__airplanes5SetPaused=function(value){paused=!!value;const b=document.getElementById('pauseButton');if(b)b.textContent=paused?'▶':'Ⅱ';if(paused)stopMusic();else if(gameplayActive)startMusic();};
 window.addEventListener('pointerdown',()=>ensureAudio(),{passive:true});window.addEventListener('touchstart',()=>ensureAudio(),{passive:true});window.addEventListener('keydown',()=>ensureAudio(),{passive:true});
+const initialRoom=mpRoomCode();document.addEventListener('DOMContentLoaded',()=>{document.getElementById('mpRoomInput').value=initialRoom;mpJoin(initialRoom);});
 const go=new Go();WebAssembly.instantiateStreaming(fetch('game.wasm'),go.importObject).then(result=>go.run(result.instance)).catch(error=>console.error('Airplanes 5 WASM error:',error));
 </script>
+<div id="mpPanel" class="mp-panel"><span id="mpStatus" class="mp-status">Подключение…</span><input id="mpRoomInput" maxlength="8" placeholder="КОД"><button type="button" onclick="mpJoin(document.getElementById('mpRoomInput').value)">Войти</button><button type="button" class="mp-copy" onclick="navigator.clipboard?.writeText(location.href)">Ссылка</button></div>
 <div class="mobile-controls"><button id="pauseButton" class="pause" type="button" aria-label="Пауза" onclick="__airplanes5Pause(event)">Ⅱ</button></div>
 </body>
 </html>
