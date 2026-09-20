@@ -26,6 +26,9 @@ canvas{display:block!important;width:100vw!important;height:100vh!important;obje
 if(!WebAssembly.instantiateStreaming){WebAssembly.instantiateStreaming=async(resp,importObject)=>{const source=await(await resp).arrayBuffer();return WebAssembly.instantiate(source,importObject);};}
 let audioCtx=null,musicTimer=null,musicStep=0,gameplayActive=false,paused=false;
 let mpChannel=null;
+let mpSocket=null;
+let mpSocketConnected=false;
+let mpInputSeq=0;
 let mpKey=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
 let mpRoom='';
 let mpLocalPlayer=1;
@@ -87,50 +90,64 @@ async function mpTrack(){
 async function mpJoin(room){
   room=String(room||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
   if(room.length<4)return;
-  if(mpChannel){try{await supabaseClient.removeChannel(mpChannel);}catch(e){}}
+  if(mpSocket){try{mpSocket.close();}catch(e){} mpSocket=null;}
   mpRoom=room;
   const url=new URL(location.href);url.searchParams.set('room',room);history.replaceState(null,'',url.toString());
-  mpChannel=supabaseClient.channel('airplanes5-'+room,{config:{broadcast:{self:false}}});
-  mpChannel.on('presence',{event:'sync'},mpRebuildState);
-  mpChannel.on('presence',{event:'join'},mpRebuildState);
-  mpChannel.on('presence',{event:'leave'},mpRebuildState);
-  mpChannel.on('broadcast',{event:'control'},payload=>{
-    const p=payload&&payload.payload;
-    const player=Number(p&&p.player);
-    if(!p||!Number.isInteger(player)||player<1||player>4||player===mpLocalPlayer)return;
-    mpRemoteControls[player]={
-      dx:Math.max(-1,Math.min(1,Number(p.dx)||0)),
-      dy:Math.max(-1,Math.min(1,Number(p.dy)||0)),
-      lastControl:performance.now()
+  mpSocketConnected=false;
+  mpRemotePlayers={};
+  mpPeerCount=1;
+  mpLocalReady=false;
+  mpLocalSelection=-1;
+  mpStarted=false;
+  const scheme=location.protocol==='https:'?'wss:':'ws:';
+  const wsUrl=scheme+'//airplanes5-multiplayer.onrender.com/ws?room='+encodeURIComponent(room);
+  try{
+    mpSocket=new WebSocket(wsUrl);
+    mpSocket.onopen=()=>{mpSocketConnected=true;mpPanelNotice='';mpUpdateUI();};
+    mpSocket.onclose=()=>{mpSocketConnected=false;mpPanelNotice='Сервер отключён';mpUpdateUI();};
+    mpSocket.onerror=()=>{mpSocketConnected=false;mpPanelNotice='Ошибка подключения';mpUpdateUI();};
+    mpSocket.onmessage=(event)=>{
+      let m;try{m=JSON.parse(event.data);}catch(e){return;}
+      if(m.type==='welcome'){
+        mpLocalPlayer=Math.max(1,Math.min(4,Number(m.player)||1));
+        mpUpdateUI();
+        return;
+      }
+      if(m.type!=='snapshot'||!Array.isArray(m.players))return;
+      mpPeerCount=Math.min(m.players.length,4);
+      const next={};
+      for(const p of m.players){
+        const player=Number(p.id);
+        if(player===mpLocalPlayer){
+          mpLocalSelection=Number(p.selection);
+          mpLocalReady=!!p.ready;
+        }else if(player>=1&&player<=4){
+          next[player]={selection:Number(p.selection),ready:!!p.ready,x:Number(p.x)||0,y:Number(p.y)||0};
+        }
+      }
+      mpRemotePlayers=next;
+      mpStarted=m.phase==='game';
+      if(mpStarted){
+        const launch=document.getElementById('mpLaunch');
+        if(launch)launch.style.display='none';
+      }
+      mpUpdateUI();
     };
-  });
-  mpChannel.on('broadcast',{event:'enemyHit'},payload=>{
-    const p=payload&&payload.payload;
-    const player=Number(p&&p.player), enemyId=Number(p&&p.enemyId);
-    if(!p||player!==1||mpLocalPlayer===1||!Number.isInteger(enemyId))return;
-    mpEnemyHits.push(enemyId);
-  });
-  mpChannel.on('broadcast',{event:'shot'},payload=>{
-    const p=payload&&payload.payload;
-    const player=Number(p&&p.player), seq=Number(p&&p.seq);
-    if(!p||!Number.isInteger(player)||player<1||player>4||player===mpLocalPlayer||!Number.isFinite(seq))return;
-    mpRemoteShots[player]=seq;
-  });
-  mpChannel.subscribe(async status=>{
-    if(status==='SUBSCRIBED') await mpTrack();
-  });
-  mpUpdateUI();
+  }catch(e){
+    mpPanelNotice='Ошибка подключения';
+    mpUpdateUI();
+  }
 }
 function mpSendControl(dx,dy){
-  if(!mpChannel||mpPeerCount<2)return;
+  if(!mpSocket||mpSocket.readyState!==WebSocket.OPEN)return;
   const now=performance.now();
   if(now-mpLastControl<45)return;
   mpLastControl=now;
-  mpChannel.send({type:'broadcast',event:'control',payload:{player:mpLocalPlayer,dx:Number(dx)||0,dy:Number(dy)||0}});
+  mpInputSeq++;
+  mpSocket.send(JSON.stringify({type:'input',input:{seq:mpInputSeq,dx:Number(dx)||0,dy:Number(dy)||0,shoot:false}}));
 }
 function mpSendEnemyHit(enemyId){
-  if(!mpChannel||mpLocalPlayer!==1||!Number.isInteger(Number(enemyId)))return;
-  mpChannel.send({type:'broadcast',event:'enemyHit',payload:{player:1,enemyId:Number(enemyId)}});
+  return;
 }
 function mpPressLaunch(){
   if(mpLocalSelection<0){mpPanelNotice='Сначала выберите самолёт';mpUpdateUI();return;}
@@ -148,17 +165,19 @@ function mpCanStart(){
   return true;
 }
 function mpSendShot(){
-  if(!mpChannel||mpPeerCount<2)return;
-  mpShotSequence++;
-  mpChannel.send({type:'broadcast',event:'shot',payload:{player:mpLocalPlayer,seq:mpShotSequence}});
+  if(!mpSocket||mpSocket.readyState!==WebSocket.OPEN)return;
+  mpInputSeq++;
+  mpSocket.send(JSON.stringify({type:'input',input:{seq:mpInputSeq,dx:0,dy:0,shoot:true}}));
 }
 function mpSendSelection(index,ready){
   const nextIndex=Number(index);
   const nextReady=!!ready;
-  if(nextIndex===mpLocalSelection && nextReady===mpLocalReady)return;
   mpLocalSelection=nextIndex;
   mpLocalReady=nextReady;
-  if(mpChannel)mpTrack().catch(()=>{});
+  if(!mpSocket||mpSocket.readyState!==WebSocket.OPEN)return;
+  mpSocket.send(JSON.stringify({type:'selection',selection:nextIndex}));
+  mpSocket.send(JSON.stringify({type:'ready',ready:nextReady}));
+  mpUpdateUI();
 }
 window.__airplanes5LocalPlayer=()=>mpLocalPlayer;
 window.__airplanes5RemoteSelection=(player)=>mpRemotePlayers[Number(player)]?.selection ?? -1;
