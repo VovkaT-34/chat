@@ -186,7 +186,7 @@ s = s.replace(
 
 \t\tif !js.Global().Call("__airplanes5IsAuthority").Bool() && entry.HasComponent(component.Health) {
 \t\t\thitID := js.Global().Call("__airplanes5PeekEnemyHit").Int()
-\t\t\tif hitID >= 0 && entry.Entity().Id() == hitID {
+\t\t\tif hitID >= 0 && uint64(entry.Entity().Id()) == uint64(hitID) {
 \t\t\t\tcomponent.Health.Get(entry).Damage()
 \t\t\t\tjs.Global().Call("__airplanes5AckEnemyHit", hitID)
 \t\t\t}
