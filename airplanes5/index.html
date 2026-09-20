@@ -32,7 +32,7 @@ function stopMusic(){if(musicTimer){clearInterval(musicTimer);musicTimer=null;}i
 window.__airplanes5SetGameplay=function(active){gameplayActive=!!active;if(gameplayActive&&!paused)startMusic();else stopMusic();};
 window.__airplanes5PlayShot=function(){if(!gameplayActive||paused)return;ensureAudio();const n=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(760,n);o.frequency.exponentialRampToValueAtTime(240,n+.075);g.gain.setValueAtTime(.05,n);g.gain.exponentialRampToValueAtTime(.0001,n+.085);o.connect(g).connect(audioCtx.destination);o.start(n);o.stop(n+.09);};
 window.__airplanes5PauseRequest=null;
-window.__airplanes5Pause=function(e){if(e){e.preventDefault();e.stopPropagation();}window.__airplanes5PauseRequest=!paused;};
+window.__airplanes5Pause=function(e){if(e){e.preventDefault();e.stopPropagation();}const next=!paused;window.__airplanes5SetPaused(next);window.__airplanes5PauseRequest=next;};
 window.__airplanes5SetPaused=function(value){paused=!!value;const b=document.getElementById('pauseButton');if(b)b.textContent=paused?'▶':'Ⅱ';if(paused)stopMusic();else if(gameplayActive)startMusic();};
 window.addEventListener('pointerdown',()=>ensureAudio(),{passive:true});window.addEventListener('touchstart',()=>ensureAudio(),{passive:true});window.addEventListener('keydown',()=>ensureAudio(),{passive:true});
 const go=new Go();WebAssembly.instantiateStreaming(fetch('game.wasm'),go.importObject).then(result=>go.run(result.instance)).catch(error=>console.error('Airplanes 5 WASM error:',error));
