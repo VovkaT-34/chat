@@ -39,7 +39,8 @@ let mpEnemyHits=[];
 let mpShotSequence=0;
 let mpPanelNotice='';
 let mpPresenceTimer=0;
-let mpLastControl=0;\nlet mpStarted=false;
+let mpLastControl=0;
+let mpStarted=false;
 
 function mpRoomCode(){
   const raw=new URLSearchParams(location.search).get('room');
@@ -49,7 +50,9 @@ function mpRoomCode(){
 function mpUpdateUI(){
   const s=document.getElementById('mpStatus'), inp=document.getElementById('mpRoomInput');
   if(!s)return;
-  s.textContent='Игрок '+mpLocalPlayer+' · '+mpPeerCount+'/4'+(mpPanelNotice?' · '+mpPanelNotice:'');\n  const launch=document.getElementById('mpLaunch'), checks=document.getElementById('mpChecks');\n  if(launch&&!mpStarted){launch.disabled=mpLocalSelection<0; launch.innerHTML='ПУСК<div id="mpChecks" class="mp-checks">'+Array.from({length:mpPeerCount},(_,i)=>'<span class="mp-check '+((i+1===mpLocalPlayer?mpLocalReady:(mpRemotePlayers[i+1]?.ready))?'ok':'')+'">✓ '+(i+1)+'</span>').join('')+'</div>';}
+  s.textContent='Игрок '+mpLocalPlayer+' · '+mpPeerCount+'/4'+(mpPanelNotice?' · '+mpPanelNotice:'');
+  const launch=document.getElementById('mpLaunch'), checks=document.getElementById('mpChecks');
+  if(launch&&!mpStarted){launch.disabled=mpLocalSelection<0; launch.innerHTML='ПУСК<div id="mpChecks" class="mp-checks">'+Array.from({length:mpPeerCount},(_,i)=>'<span class="mp-check '+((i+1===mpLocalPlayer?mpLocalReady:(mpRemotePlayers[i+1]?.ready))?'ok':'')+'">✓ '+(i+1)+'</span>').join('')+'</div>';}
   if(inp && document.activeElement!==inp) inp.value=mpRoom;
 }
 function mpRebuildState(){
@@ -128,7 +131,12 @@ function mpSendEnemyHit(enemyId){
   if(!mpChannel||mpLocalPlayer!==1||!Number.isInteger(Number(enemyId)))return;
   mpChannel.send({type:'broadcast',event:'enemyHit',payload:{player:1,enemyId:Number(enemyId)}});
 }
-function mpPressLaunch(){\n  if(mpLocalSelection<0){mpPanelNotice='Сначала выберите самолёт';mpUpdateUI();return;}\n  if(!mpLocalReady){mpLocalReady=true;mpPanelNotice='';mpTrack().catch(()=>{});mpUpdateUI();}\n  if(!mpCanStart()){mpPanelNotice='Не все игроки нажали ПУСК';mpUpdateUI();}\n}\nfunction mpCanStart(){
+function mpPressLaunch(){
+  if(mpLocalSelection<0){mpPanelNotice='Сначала выберите самолёт';mpUpdateUI();return;}
+  if(!mpLocalReady){mpLocalReady=true;mpPanelNotice='';mpSendSelection(mpLocalSelection,true);mpUpdateUI();}
+  if(!mpCanStart()){mpPanelNotice='Не все игроки нажали ПУСК';mpUpdateUI();}
+}
+function mpCanStart(){
   if(mpLocalSelection<0||!mpLocalReady)return false;
   if(mpPeerCount<=1)return true;
   for(let player=1;player<=mpPeerCount;player++){
@@ -171,7 +179,8 @@ window.__airplanes5AckEnemyHit=(id)=>{if(mpEnemyHits.length&&mpEnemyHits[0]===Nu
 window.__airplanes5PlayerCount=()=>mpPeerCount;
 window.__airplanes5SendControl=mpSendControl;
 window.__airplanes5SendShot=mpSendShot;
-window.__airplanes5SendSelection=mpSendSelection;\nwindow.__airplanes5Launch=mpPressLaunch;
+window.__airplanes5SendSelection=mpSendSelection;\nwindow.__airplanes5LocalReady=()=>mpLocalReady;
+window.__airplanes5Launch=mpPressLaunch;
 
 const melody=[261.63,329.63,392,329.63,293.66,349.23,440,349.23],bass=[130.81,130.81,146.83,146.83,164.81,164.81,146.83,146.83];
 function ensureAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}
