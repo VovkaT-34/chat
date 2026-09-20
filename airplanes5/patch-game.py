@@ -79,33 +79,6 @@ new_touch = """\\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int
 \\t\\t\\ttargetPS.LockIn()
 \\t\\t}
 \\t}
-\n\tfor number, settings := range archetype.Players", start)
-
-new_touch = """\tlocalPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
-\tif localPlayer < 1 || localPlayer > 2 {
-\t\tlocalPlayer = 1
-\t}
-\tremotePlayer := 3 - localPlayer
-\tremoteIndex := js.Global().Call("__airplanes5RemoteSelection").Int()
-\tremoteReady := js.Global().Call("__airplanes5RemoteReady").Bool()
-
-\tif remoteIndex >= 0 && remoteIndex < len(playerSelects) {
-\t\tfor index, entry := range playerSelects {
-\t\t\tps := component.PlayerSelect.Get(entry)
-\t\t\tif ps.Selected && ps.PlayerNumber == remotePlayer && index != remoteIndex && !ps.Ready {
-\t\t\t\tps.Unselect()
-\t\t\t}
-\t\t}
-\t\ttarget := playerSelects[remoteIndex]
-\t\ttargetPS := component.PlayerSelect.Get(target)
-\t\tif !targetPS.Selected {
-\t\t\ttargetPS.Select(remotePlayer)
-\t\t}
-\t\tif targetPS.Selected && targetPS.PlayerNumber == remotePlayer && remoteReady && !targetPS.Ready {
-\t\t\ttargetPS.LockIn()
-\t\t}
-\t}
-
 \ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)
 \tfor _, touchID := range touchIDs {
 \t\tx, y := ebiten.TouchPosition(touchID)
