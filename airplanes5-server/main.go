@@ -196,7 +196,6 @@ func (r *Room) update(m ClientMessage, id int) {
 			if m.Input.Shoot {
 				p.FireSeq = m.Input.Seq
 			}
-			p.Shoot = false
 		}
 	}
 
