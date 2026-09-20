@@ -140,8 +140,8 @@ if marker not in s:
 s = s.replace(marker, publish, 1)
 p.write_text(s)
 
-// Airplanes 5 multiplayer: the upstream game defines two players. Extend it to four
-// so each room member gets a real player entity and a stable spawn/input mapping.
+# Airplanes 5 multiplayer: the upstream game defines two players. Extend it to four
+# so each room member gets a real player entity and a stable spawn/input mapping.
 p = Path('/tmp/airplanes/archetype/player.go')
 s = p.read_text()
 if 'ebiten.KeyI' not in s:
