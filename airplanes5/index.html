@@ -28,7 +28,7 @@ let audioCtx=null,musicTimer=null,musicStep=0,gameplayActive=false,paused=false;
 let mpChannel=null;
 let mpSocket=null;
 let mpSocketConnected=false;
-let mpInputSeq=0;
+let mpInputSeq=0;\nlet mpLastDX=0;\nlet mpLastDY=0;
 let mpKey=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
 let mpRoom='';
 let mpLocalPlayer=1;
@@ -44,7 +44,7 @@ let mpPanelNotice='';
 let mpPresenceTimer=0;
 let mpLastControl=0;
 let mpStarted=false;
-let mpSelectionScreenVisible=false;
+let mpSelectionScreenVisible=false;\nlet mpLocalServerState=null;
 
 function mpRoomCode(){
   const raw=new URLSearchParams(location.search).get('room');
@@ -119,10 +119,11 @@ async function mpJoin(room){
       for(const p of m.players){
         const player=Number(p.id);
         if(player===mpLocalPlayer){
+          mpLocalServerState=p;
           mpLocalSelection=Number(p.selection);
           mpLocalReady=!!p.ready;
         }else if(player>=1&&player<=4){
-          next[player]={selection:Number(p.selection),ready:!!p.ready,x:Number(p.x)||0,y:Number(p.y)||0};
+          next[player]={selection:Number(p.selection),ready:!!p.ready,x:Number(p.x)||0,y:Number(p.y)||0,dx:Number(p.dx)||0,dy:Number(p.dy)||0,fireSeq:Number(p.fireSeq)||0};
         }
       }
       mpRemotePlayers=next;
@@ -143,8 +144,9 @@ function mpSendControl(dx,dy){
   const now=performance.now();
   if(now-mpLastControl<45)return;
   mpLastControl=now;
+  mpLastDX=Number(dx)||0; mpLastDY=Number(dy)||0;
   mpInputSeq++;
-  mpSocket.send(JSON.stringify({type:'input',input:{seq:mpInputSeq,dx:Number(dx)||0,dy:Number(dy)||0,shoot:false}}));
+  mpSocket.send(JSON.stringify({type:'input',input:{seq:mpInputSeq,dx:mpLastDX,dy:mpLastDY,shoot:false}}));
 }
 function mpSendEnemyHit(enemyId){
   return;
@@ -167,7 +169,7 @@ function mpCanStart(){
 function mpSendShot(){
   if(!mpSocket||mpSocket.readyState!==WebSocket.OPEN)return;
   mpInputSeq++;
-  mpSocket.send(JSON.stringify({type:'input',input:{seq:mpInputSeq,dx:0,dy:0,shoot:true}}));
+  mpSocket.send(JSON.stringify({type:'input',input:{seq:mpInputSeq,dx:mpLastDX,dy:mpLastDY,shoot:true}}));
 }
 function mpSendSelection(index,ready){
   const nextIndex=Number(index);
@@ -187,9 +189,19 @@ window.__airplanes5RemoteDX=(player)=>{
   return !r||performance.now()-r.lastControl>300?0:r.dx;
 };
 window.__airplanes5RemoteDY=(player)=>{
-  const r=mpRemoteControls[Number(player)];
-  return !r||performance.now()-r.lastControl>300?0:r.dy;
+  const r=mpRemotePlayers[Number(player)];
+  return r?Number(r.dy)||0:0;
 };
+window.__airplanes5RemoteX=(player)=>{
+  const r=mpRemotePlayers[Number(player)];
+  return r?Number(r.x)||0:0;
+};
+window.__airplanes5RemoteY=(player)=>{
+  const r=mpRemotePlayers[Number(player)];
+  return r?Number(r.y)||0:0;
+};
+window.__airplanes5LocalX=()=>Number(mpLocalServerState?.x)||0;
+window.__airplanes5LocalY=()=>Number(mpLocalServerState?.y)||0;
 window.__airplanes5RemoteShot=(player)=>mpRemoteShots[Number(player)]||0;
 window.__airplanes5CanStart=mpCanStart;
 window.__airplanes5IsAuthority=()=>mpLocalPlayer===1;
