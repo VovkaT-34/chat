@@ -1,7 +1,6 @@
 (function(){
 'use strict';
 
-const RENDER = 'https://glaz-boga-mailaccess.onrender.com';
 const RENDER_MAIN = 'https://glaz-boga-osint.onrender.com';
 const controlsEl = () => document.getElementById('mailaccessRamControls');
 const ramEl = () => document.getElementById('mailaccessRamIndicator');
@@ -27,12 +26,12 @@ async function updateRam(){
   const el = ramEl();
   if(!el) return;
   try{
-    const r = await fetch(RENDER + '/mailaccess/memory?ts=' + Date.now(), {cache:'no-store'});
+    const r = await fetch(RENDER_MAIN + '/mailaccess/memory?ts=' + Date.now(), {cache:'no-store', headers:await authHeaders()});
     if(!r.ok) return;
     const d = await r.json();
     const n = Number(d.ram_mb);
     if(Number.isFinite(n)){
-      el.textContent = 'ОЗУ: ' + n.toFixed(1) + ' MB';
+      el.textContent = 'MailAccess ОЗУ: ' + n.toFixed(1) + ' MB';
       el.classList.toggle('osint-ram-high', n >= 500);
     }
   }catch(e){}
@@ -44,8 +43,7 @@ async function resetRam(){
   b.disabled = true;
   try{
     const r = await fetch(RENDER_MAIN + '/mailaccess/memory/reset', {
-      method:'POST',
-      cache:'no-store'
+      method:'POST', cache:'no-store', headers:await authHeaders()
     });
     const d = await r.json().catch(()=>({}));
     if(!r.ok){
