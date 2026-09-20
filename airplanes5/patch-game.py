@@ -193,8 +193,5 @@ new_touch = '''\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)
 \t\t}
 \t}
 
-if old_touch not in s:
-    raise SystemExit('Original mobile player-selection block not found')
-
-s = s.replace(old_touch, new_touch, 1)
+s = s[:start] + new_touch + s[end:]
 p.write_text(s)
