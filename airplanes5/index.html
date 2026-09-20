@@ -45,6 +45,7 @@ let mpPresenceTimer=0;
 let mpLastControl=0;
 let mpStarted=false;
 let mpSelectionScreenVisible=false;\nlet mpLocalServerState=null;
+let mpWorldState={tick:0,wave:1,enemies:[],bullets:[]};
 
 function mpRoomCode(){
   const raw=new URLSearchParams(location.search).get('room');
@@ -127,6 +128,7 @@ async function mpJoin(room){
         }
       }
       mpRemotePlayers=next;
+      mpWorldState={tick:Number(m.tick)||0,wave:Number(m.wave)||1,enemies:Array.isArray(m.enemies)?m.enemies:[],bullets:Array.isArray(m.bullets)?m.bullets:[]};
       mpStarted=m.phase==='game';
       if(mpStarted){
         const launch=document.getElementById('mpLaunch');
@@ -185,8 +187,8 @@ window.__airplanes5LocalPlayer=()=>mpLocalPlayer;
 window.__airplanes5RemoteSelection=(player)=>mpRemotePlayers[Number(player)]?.selection ?? -1;
 window.__airplanes5RemoteReady=(player)=>!!mpRemotePlayers[Number(player)]?.ready;
 window.__airplanes5RemoteDX=(player)=>{
-  const r=mpRemoteControls[Number(player)];
-  return !r||performance.now()-r.lastControl>300?0:r.dx;
+  const r=mpRemotePlayers[Number(player)];
+  return r?Number(r.dx)||0:0;
 };
 window.__airplanes5RemoteDY=(player)=>{
   const r=mpRemotePlayers[Number(player)];
@@ -202,6 +204,7 @@ window.__airplanes5RemoteY=(player)=>{
 };
 window.__airplanes5LocalX=()=>Number(mpLocalServerState?.x)||0;
 window.__airplanes5LocalY=()=>Number(mpLocalServerState?.y)||0;
+window.__airplanes5World=()=>mpWorldState;
 window.__airplanes5RemoteShot=(player)=>mpRemoteShots[Number(player)]||0;
 window.__airplanes5CanStart=mpCanStart;
 window.__airplanes5IsAuthority=()=>mpLocalPlayer===1;
