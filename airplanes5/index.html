@@ -35,6 +35,7 @@ let mpLocalReady=false;
 let mpRemotePlayers={};
 let mpRemoteControls={};
 let mpRemoteShots={};
+let mpEnemyHits=[];
 let mpShotSequence=0;
 let mpPanelNotice='';
 let mpPresenceTimer=0;
@@ -99,6 +100,12 @@ async function mpJoin(room){
       lastControl:performance.now()
     };
   });
+  mpChannel.on('broadcast',{event:'enemyHit'},payload=>{
+    const p=payload&&payload.payload;
+    const player=Number(p&&p.player), enemyId=Number(p&&p.enemyId);
+    if(!p||player!==1||mpLocalPlayer===1||!Number.isInteger(enemyId))return;
+    mpEnemyHits.push(enemyId);
+  });
   mpChannel.on('broadcast',{event:'shot'},payload=>{
     const p=payload&&payload.payload;
     const player=Number(p&&p.player), seq=Number(p&&p.seq);
@@ -116,6 +123,20 @@ function mpSendControl(dx,dy){
   if(now-mpLastControl<45)return;
   mpLastControl=now;
   mpChannel.send({type:'broadcast',event:'control',payload:{player:mpLocalPlayer,dx:Number(dx)||0,dy:Number(dy)||0}});
+}
+function mpSendEnemyHit(enemyId){
+  if(!mpChannel||mpLocalPlayer!==1||!Number.isInteger(Number(enemyId)))return;
+  mpChannel.send({type:'broadcast',event:'enemyHit',payload:{player:1,enemyId:Number(enemyId)}});
+}
+function mpCanStart(){
+  if(mpLocalSelection<0||!mpLocalReady)return false;
+  if(mpPeerCount<=1)return true;
+  for(let player=1;player<=mpPeerCount;player++){
+    if(player===mpLocalPlayer)continue;
+    const p=mpRemotePlayers[player];
+    if(!p||p.selection<0||!p.ready)return false;
+  }
+  return true;
 }
 function mpSendShot(){
   if(!mpChannel||mpPeerCount<2)return;
@@ -142,6 +163,11 @@ window.__airplanes5RemoteDY=(player)=>{
   return !r||performance.now()-r.lastControl>300?0:r.dy;
 };
 window.__airplanes5RemoteShot=(player)=>mpRemoteShots[Number(player)]||0;
+window.__airplanes5CanStart=mpCanStart;
+window.__airplanes5IsAuthority=()=>mpLocalPlayer===1;
+window.__airplanes5SendEnemyHit=mpSendEnemyHit;
+window.__airplanes5PeekEnemyHit=()=>mpEnemyHits.length?mpEnemyHits[0]:-1;
+window.__airplanes5AckEnemyHit=(id)=>{if(mpEnemyHits.length&&mpEnemyHits[0]===Number(id))mpEnemyHits.shift();};
 window.__airplanes5PlayerCount=()=>mpPeerCount;
 window.__airplanes5SendControl=mpSendControl;
 window.__airplanes5SendShot=mpSendShot;
