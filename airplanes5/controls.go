@@ -177,6 +177,14 @@ func (i *Controls) Update(w donburi.World) {
 		}
 
 		if isLocal {
+			serverX := js.Global().Call("__airplanes5LocalX").Float()
+			serverY := js.Global().Call("__airplanes5LocalY").Float()
+			if serverX != 0 || serverY != 0 {
+				pos := transform.Transform.Get(entry).LocalPosition
+				pos.X = serverX
+				pos.Y = serverY
+				transform.Transform.Get(entry).LocalPosition = pos
+			}
 			dx, dy := 0.0, 0.0
 			if in.MoveSpeed != 0 {
 				dx = velocity.Velocity.X / in.MoveSpeed
