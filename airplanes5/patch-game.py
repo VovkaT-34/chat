@@ -107,7 +107,7 @@ if playerSelect.Selected && playerSelect.PlayerNumber != localPlayer {\n\t\t\tco
 \t\tjs.Global().Call("__airplanes5SendSelection", targetIndex, false)
 \t}
 """
-new_touch = new_touch.replace("\\t", "\t")
+new_touch = new_touch.replace("\\t", "\t").replace("\\n", "\n")
 s = s[:start] + new_touch + s[end:]
 
 s = s.replace('if inpututil.IsKeyJustPressed(settings.Inputs.Shoot) || isTouch {', 'if inpututil.IsKeyJustPressed(settings.Inputs.Shoot) {', 1)
@@ -116,15 +116,7 @@ if '"syscall/js"' not in s:
     s = s.replace('import (\n\t"fmt"', 'import (\n\t"fmt"\n\t"syscall/js"', 1)
 
 marker = '\tfor _, entry := range playerSelects {\n\t\tplayerSelect := component.PlayerSelect.Get(entry)\n\t\tcrosshair := hierarchy.MustGetChildren(entry)[0]'
-publish = '''\tfor index, entry := range playerSelects {
-\t\tps := component.PlayerSelect.Get(entry)
-\t\tif ps.Selected && ps.PlayerNumber == localPlayer {
-\t\t\tjs.Global().Call("__airplanes5SendSelection", index, ps.Ready)
-\t\t\tbreak
-\t\t}
-\t}
-
-''' + marker
+publish = '''''' + marker
 if marker not in s:
     raise SystemExit("render marker not found")
 s = s.replace(marker, publish, 1)
@@ -133,6 +125,8 @@ s = s.replace(
     'if len(chosenPlayers) > 0 && js.Global().Call("__airplanes5CanStart").Bool() {',
     1,
 )
+s = re.sub(r'(")Player\\b', r'\1Игрок', s)
+
 p.write_text(s)
 
 # Airplanes 5 multiplayer: player 1 is authoritative for enemy damage.
