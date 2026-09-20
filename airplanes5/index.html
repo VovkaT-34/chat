@@ -45,7 +45,7 @@ let mpPresenceTimer=0;
 let mpLastControl=0;
 let mpStarted=false;
 let mpSelectionScreenVisible=false;\nlet mpLocalServerState=null;
-let mpWorldState={tick:0,wave:1,enemies:[],bullets:[]};
+let mpWorldState={tick:0,wave:1,players:[],enemies:[],bullets:[]};
 
 function mpRoomCode(){
   const raw=new URLSearchParams(location.search).get('room');
@@ -128,7 +128,7 @@ async function mpJoin(room){
         }
       }
       mpRemotePlayers=next;
-      mpWorldState={tick:Number(m.tick)||0,wave:Number(m.wave)||1,enemies:Array.isArray(m.enemies)?m.enemies:[],bullets:Array.isArray(m.bullets)?m.bullets:[]};
+      mpWorldState={tick:Number(m.tick)||0,wave:Number(m.wave)||1,players:Array.isArray(m.players)?m.players:[],enemies:Array.isArray(m.enemies)?m.enemies:[],bullets:Array.isArray(m.bullets)?m.bullets:[]};
       mpStarted=m.phase==='game';
       if(mpStarted){
         const launch=document.getElementById('mpLaunch');
