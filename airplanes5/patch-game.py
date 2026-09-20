@@ -132,7 +132,7 @@ if old_touch not in s:
     raise SystemExit('Original mobile player-selection block not found')
 
 s = s.replace(old_touch, new_touch, 1)
-p.write_text(s)start = s.index("\tvar isTouch bool")
+start = s.index("\tvar isTouch bool")
 end = s.index("\n\t\tif inpututil.IsKeyJustPressed(settings.Inputs.Left)", start)
 
 new_touch = '''\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)
@@ -155,9 +155,10 @@ new_touch = '''\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)
 
 \tfor _, touchID := range touchIDs {
 \t\tx, _ := ebiten.TouchPosition(touchID)
-\t\tvar target *donburi.Entry
+\t\ttargetIndex := -1
 \t\tbestDistance := 40.0
-\t\tfor _, entry := range playerSelects {
+
+\t\tfor i, entry := range playerSelects {
 \t\t\tplayerSelect := component.PlayerSelect.Get(entry)
 \t\t\ttargetX := float64(120 + playerSelect.Index*80)
 \t\t\tdistance := float64(x) - targetX
@@ -166,14 +167,17 @@ new_touch = '''\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)
 \t\t\t}
 \t\t\tif distance <= bestDistance {
 \t\t\t\tbestDistance = distance
-\t\t\t\ttarget = entry
+\t\t\t\ttargetIndex = i
 \t\t\t}
 \t\t}
-\t\tif target == nil {
+
+\t\tif targetIndex < 0 {
 \t\t\tcontinue
 \t\t}
 
-\t\tplayerSelect := component.PlayerSelect.Get(target)
+\t\tentry := playerSelects[targetIndex]
+\t\tplayerSelect := component.PlayerSelect.Get(entry)
+
 \t\tif playerSelect.Selected {
 \t\t\tif !playerSelect.Ready {
 \t\t\t\tplayerSelect.LockIn()
@@ -187,9 +191,10 @@ new_touch = '''\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)
 \t\t} else if _, ok := selected[2]; !ok {
 \t\t\tplayerNumber = 2
 \t\t}
+
 \t\tif playerNumber != 0 {
 \t\t\tplayerSelect.Select(playerNumber)
-\t\t\tselected[playerNumber] = target
+\t\t\tselected[playerNumber] = entry
 \t\t}
 \t}
 
