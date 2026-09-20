@@ -44,7 +44,7 @@ p = Path('/tmp/airplanes/system/playerselect.go')
 s = p.read_text()
 
 start = s.index("\tvar isTouch bool")
-end = s.index("\n\t\tif inpututil.IsKeyJustPressed(settings.Inputs.Left)", start)
+end = s.index("\tfor number, settings := range archetype.Players", start)
 
 new_touch = (
     "\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)\n"
