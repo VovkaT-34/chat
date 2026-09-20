@@ -22,6 +22,7 @@ type Controls struct {
 	rightTouch      ebiten.TouchID
 	leftActive      bool
 	rightActive     bool
+	remoteShotSeen  [5]int
 }
 
 func NewControls() *Controls {
@@ -192,13 +193,25 @@ func (i *Controls) Update(w donburi.World) {
 		if player.Respawning || player.Lives <= 0 {
 			return
 		}
+		if !isLocal {
+			seq := js.Global().Call("__airplanes5RemoteShot", airplane.PlayerNumber).Int()
+			if seq > i.remoteShotSeen[airplane.PlayerNumber] {
+				i.remoteShotSeen[airplane.PlayerNumber] = seq
+				position := transform.Transform.Get(entry).LocalPosition
+				archetype.NewPlayerBullet(w, player, position)
+			}
+			return
+		}
+
 		player.ShootTimer.Update()
 
-		// Continuous fire: the airplane shoots automatically whenever the game is running.
+		// Continuous fire: the local player creates the bullet and publishes the shot
+		// event so every other phone creates the same bullet for this player.
 		if player.ShootTimer.IsReady() {
 			position := transform.Transform.Get(entry).LocalPosition
 			archetype.NewPlayerBullet(w, player, position)
 			player.ShootTimer.Reset()
+			js.Global().Call("__airplanes5SendShot")
 			js.Global().Call("__airplanes5PlayShot")
 		}
 	})
