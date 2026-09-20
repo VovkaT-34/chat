@@ -5,7 +5,7 @@ p = Path('/tmp/airplanes/scene/game.go')
 s = p.read_text()
 
 if '"syscall/js"' not in s:
-    s = s.replace('import (\n\t"time"', 'import (\n\t"time"\n\t"syscall/js"', 1)
+    s = s.replace('import (\n\t"time"', 'import (\n\t"time"\n\t"syscall/js"\n\t"fmt"\n\t"strings"', 1)
 
 pattern = re.compile(
     r'func \(g \*Game\) Update\(\) \{\n'
@@ -36,9 +36,8 @@ s, count = pattern.subn(replacement, s, count=1)
 if count != 1:
     raise SystemExit('Update pause block not found')
 
-p.write_text(s)
-
-# Mobile player selection: touch coordinates choose the airplane actually tapped.
+s = s.replace("\n\tfor _, s := range g.systems {\n\t\ts.Update(g.world)\n\t}", "\n\tfor _, s := range g.systems {\n\t\tif js.Global().Call(\"__airplanes5IsMultiplayer\").Bool() {\n\t\t\tname := fmt.Sprintf(\"%T\", s)\n\t\t\tif !strings.Contains(name, \"Controls\") && !strings.Contains(name, \"Camera\") && !strings.Contains(name, \"Observer\") {\n\t\t\t\tcontinue\n\t\t\t}\n\t\t}\n\t\ts.Update(g.world)\n\t}", 1)
+\np.write_text(s)\n\n# Mobile player selection: touch coordinates choose the airplane actually tapped.
 # The original game has two players and four airplane choices.
 p = Path('/tmp/airplanes/system/playerselect.go')
 s = p.read_text()
