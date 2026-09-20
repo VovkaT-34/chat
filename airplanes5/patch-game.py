@@ -129,7 +129,7 @@ if marker not in s:
 s = s.replace(marker, publish, 1)
 s = s.replace(
     'if playersReady > 0 && playersReady == len(chosenPlayers) {',
-    'if playersReady > 0 && playersReady == len(chosenPlayers) && js.Global().Call("__airplanes5CanStart").Bool() {',
+    'if len(chosenPlayers) > 0 && js.Global().Call("__airplanes5CanStart").Bool() {',
     1,
 )
 p.write_text(s)
