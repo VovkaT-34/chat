@@ -88,15 +88,20 @@ touch_replacement = '''\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)
 \t}
 
 \tfor _, touchID := range touchIDs {
-\t\tx, y := ebiten.TouchPosition(touchID)
+\t\tx, _ := ebiten.TouchPosition(touchID)
 \t\tvar target *donburi.Entry
-\t\tbestDistance := 64.0
+\t\tbestDistance := 49.0
 \t\tfor _, entry := range playerSelects {
-\t\t\tpos := transform.WorldPosition(entry)
-\t\t\tdx := float64(x) - pos.X
-\t\t\tdy := float64(y) - pos.Y
-\t\t\tdistance := dx*dx + dy*dy
-\t\t\tif distance <= bestDistance*bestDistance {
+\t\t\tplayerSelect := component.PlayerSelect.Get(entry)
+\t\t\t// The four selectable airplanes are laid out at fixed 80px horizontal intervals.
+\t\t\t// Match by horizontal position so browser/mobile canvas scaling cannot make a
+\t\t\t// tap on the right-hand airplanes fall back to the first two choices.
+\t\t\ttargetX := float64(120 + playerSelect.Index*80)
+\t\tdistance := float64(x) - targetX
+\t\t\tif distance < 0 {
+\t\t\t\tdistance = -distance
+\t\t\t}
+\t\t\tif distance <= bestDistance {
 \t\t\t\tbestDistance = distance
 \t\t\t\ttarget = entry
 \t\t\t}
