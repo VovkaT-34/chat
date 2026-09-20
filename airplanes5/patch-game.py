@@ -44,20 +44,19 @@ p = Path('/tmp/airplanes/system/playerselect.go')
 s = p.read_text()
 
 start = s.index("\tvar isTouch bool")
-end = s.index("\n\t\tif inpututil.IsKeyJustPressed(settings.Inputs.Left)", start)
+end = s.index("\n\tfor number, settings := range archetype.Players", start)
 
 new_touch = (
     "\ttouchIDs := inpututil.AppendJustPressedTouchIDs(nil)\n"
-    "\n"
     "\tfor _, touchID := range touchIDs {\n"
     "\t\tx, y := ebiten.TouchPosition(touchID)\n"
     "\t\ttargetIndex := -1\n"
-    "\t\tbestDistance := 32.0 * 32.0\n"
+    "\t\tbestDistance := 36.0 * 36.0\n"
     "\n"
     "\t\tfor i, entry := range playerSelects {\n"
-    "\t\t\tpos := transform.WorldPosition(entry)\n"
-    "\t\t\tdx := float64(x) - pos.X\n"
-    "\t\t\tdy := float64(y) - pos.Y\n"
+    "\t\t\tposition := transform.WorldPosition(entry)\n"
+    "\t\t\tdx := float64(x) - position.X\n"
+    "\t\t\tdy := float64(y) - position.Y\n"
     "\t\t\tdistance := dx*dx + dy*dy\n"
     "\t\t\tif distance <= bestDistance {\n"
     "\t\t\t\tbestDistance = distance\n"
@@ -86,23 +85,6 @@ new_touch = (
     "\t\t}\n"
     "\t\tif playerNumber != 0 {\n"
     "\t\t\tplayerSelect.Select(playerNumber)\n"
-    "\t\t\tselected[playerNumber] = entry\n"
-    "\t\t}\n"
-    "\t}\n"
-    "\n"
-    "\tfor number, settings := range archetype.Players {\n"
-    "\t\tif inpututil.IsKeyJustPressed(settings.Inputs.Shoot) {\n"
-    "\t\t\tif entry, ok := selected[number]; ok {\n"
-    "\t\t\t\tcomponent.PlayerSelect.Get(entry).LockIn()\n"
-    "\t\t\t} else {\n"
-    "\t\t\t\tfor _, entry := range playerSelects {\n"
-    "\t\t\t\t\tplayerSelect := component.PlayerSelect.Get(entry)\n"
-    "\t\t\t\t\tif !playerSelect.Selected {\n"
-    "\t\t\t\t\t\tplayerSelect.Select(number)\n"
-    "\t\t\t\t\t\tbreak\n"
-    "\t\t\t\t\t}\n"
-    "\t\t\t\t}\n"
-    "\t\t\t}\n"
     "\t\t}\n"
     "\t}\n"
 )
