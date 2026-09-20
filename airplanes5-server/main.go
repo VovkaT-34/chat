@@ -21,7 +21,7 @@ type Input struct {
 	Seq uint64  `json:"seq"`
 	DX  float64 `json:"dx"`
 	DY  float64 `json:"dy"`
-	Shoot bool  `json:"shoot"`
+	Shoot bool    `json:"shoot"`
 }
 
 type Player struct {
@@ -34,6 +34,7 @@ type Player struct {
 	DY        float64 `json:"dy"`
 	Shoot     bool    `json:"shoot"`
 	Seq       uint64  `json:"seq"`
+	FireSeq   uint64  `json:"fireSeq"`
 }
 
 type ClientMessage struct {
@@ -155,8 +156,11 @@ func (r *Room) update(m ClientMessage, id int) {
 		if m.Input != nil {
 			p.DX = clamp(m.Input.DX)
 			p.DY = clamp(m.Input.DY)
-			p.Shoot = m.Input.Shoot
 			p.Seq = m.Input.Seq
+			if m.Input.Shoot {
+				p.FireSeq = m.Input.Seq
+			}
+			p.Shoot = false
 		}
 	}
 
