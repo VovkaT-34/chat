@@ -34,6 +34,8 @@ let mpLocalSelection=-1;
 let mpLocalReady=false;
 let mpRemotePlayers={};
 let mpRemoteControls={};
+let mpRemoteShots={};
+let mpShotSequence=0;
 let mpPanelNotice='';
 let mpPresenceTimer=0;
 let mpLastControl=0;
@@ -97,6 +99,12 @@ async function mpJoin(room){
       lastControl:performance.now()
     };
   });
+  mpChannel.on('broadcast',{event:'shot'},payload=>{
+    const p=payload&&payload.payload;
+    const player=Number(p&&p.player), seq=Number(p&&p.seq);
+    if(!p||!Number.isInteger(player)||player<1||player>4||player===mpLocalPlayer||!Number.isFinite(seq))return;
+    mpRemoteShots[player]=seq;
+  });
   mpChannel.subscribe(async status=>{
     if(status==='SUBSCRIBED') await mpTrack();
   });
@@ -108,6 +116,11 @@ function mpSendControl(dx,dy){
   if(now-mpLastControl<45)return;
   mpLastControl=now;
   mpChannel.send({type:'broadcast',event:'control',payload:{player:mpLocalPlayer,dx:Number(dx)||0,dy:Number(dy)||0}});
+}
+function mpSendShot(){
+  if(!mpChannel||mpPeerCount<2)return;
+  mpShotSequence++;
+  mpChannel.send({type:'broadcast',event:'shot',payload:{player:mpLocalPlayer,seq:mpShotSequence}});
 }
 function mpSendSelection(index,ready){
   const nextIndex=Number(index);
@@ -128,8 +141,10 @@ window.__airplanes5RemoteDY=(player)=>{
   const r=mpRemoteControls[Number(player)];
   return !r||performance.now()-r.lastControl>300?0:r.dy;
 };
+window.__airplanes5RemoteShot=(player)=>mpRemoteShots[Number(player)]||0;
 window.__airplanes5PlayerCount=()=>mpPeerCount;
 window.__airplanes5SendControl=mpSendControl;
+window.__airplanes5SendShot=mpSendShot;
 window.__airplanes5SendSelection=mpSendSelection;
 
 const melody=[261.63,329.63,392,329.63,293.66,349.23,440,349.23],bass=[130.81,130.81,146.83,146.83,164.81,164.81,146.83,146.83];
