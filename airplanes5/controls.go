@@ -134,18 +134,17 @@ func (i *Controls) Update(w donburi.World) {
 	}
 
 	localPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
-	if localPlayer < 1 || localPlayer > 2 {
+	if localPlayer < 1 || localPlayer > 4 {
 		localPlayer = 1
 	}
-	remotePlayer := 3 - localPlayer
-	remoteDX := js.Global().Call("__airplanes5RemoteDX").Float()
-	remoteDY := js.Global().Call("__airplanes5RemoteDY").Float()
 
 	i.query.Each(w, func(entry *donburi.Entry) {
 		in := component.Input.Get(entry)
 		velocity := component.Velocity.Get(entry)
 		airplane := component.PlayerAirplane.Get(entry)
 		isLocal := airplane.PlayerNumber == localPlayer
+		remoteDX := js.Global().Call("__airplanes5RemoteDX", airplane.PlayerNumber).Float()
+		remoteDY := js.Global().Call("__airplanes5RemoteDY", airplane.PlayerNumber).Float()
 
 		velocity.Velocity = math.Vec2{X: 0, Y: -0.5}
 		if isLocal {
@@ -172,7 +171,7 @@ func (i *Controls) Update(w donburi.World) {
 					velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
 				}
 			}
-		} else if airplane.PlayerNumber == remotePlayer {
+		} else {
 			velocity.Velocity = math.Vec2{X: remoteDX * in.MoveSpeed, Y: remoteDY * in.MoveSpeed}
 		}
 
