@@ -179,7 +179,8 @@ window.__airplanes5AckEnemyHit=(id)=>{if(mpEnemyHits.length&&mpEnemyHits[0]===Nu
 window.__airplanes5PlayerCount=()=>mpPeerCount;
 window.__airplanes5SendControl=mpSendControl;
 window.__airplanes5SendShot=mpSendShot;
-window.__airplanes5SendSelection=mpSendSelection;\nwindow.__airplanes5LocalReady=()=>mpLocalReady;
+window.__airplanes5SendSelection=mpSendSelection;
+window.__airplanes5LocalReady=()=>mpLocalReady;
 window.__airplanes5Launch=mpPressLaunch;
 
 const melody=[261.63,329.63,392,329.63,293.66,349.23,440,349.23],bass=[130.81,130.81,146.83,146.83,164.81,164.81,146.83,146.83];
@@ -196,6 +197,6 @@ const initialRoom=mpRoomCode();document.addEventListener('DOMContentLoaded',()=>
 const go=new Go();WebAssembly.instantiateStreaming(fetch('game.wasm'),go.importObject).then(result=>go.run(result.instance)).catch(error=>console.error('Airplanes 5 WASM error:',error));
 </script>
 <div id="mpPanel" class="mp-panel"><span id="mpStatus" class="mp-status">Подключение…</span><input id="mpRoomInput" maxlength="8" placeholder="КОД"><button type="button" onclick="mpJoin(document.getElementById('mpRoomInput').value)">Войти</button><button type="button" class="mp-copy" onclick="navigator.clipboard?.writeText(location.href)">Ссылка</button></div>
-<div class="mobile-controls"><button id="pauseButton" class="pause" type="button" aria-label="Пауза" onclick="__airplanes5Pause(event)">Ⅱ</button></div>
+<button id="mpLaunch" class="mp-launch" type="button" onclick="__airplanes5Launch()">ПУСК<div id="mpChecks" class="mp-checks"></div></button><div id="mpNotice" class="mp-notice"></div><div class="mobile-controls"><button id="pauseButton" class="pause" type="button" aria-label="Пауза" onclick="__airplanes5Pause(event)">Ⅱ</button></div>
 </body>
 </html>
