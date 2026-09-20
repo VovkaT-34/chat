@@ -274,9 +274,8 @@ async def _render_api_request(path: str, method: str = "GET"):
 
 
 @app.get("/mailaccess/memory")
-async def mailaccess_memory(request: Request):
+async def mailaccess_memory():
     """Return current Render memory usage for the isolated MailAccess service."""
-    await require_authenticated_user(request)
     end = time.time()
     start = end - 180
     end_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(end))
@@ -285,24 +284,29 @@ async def mailaccess_memory(request: Request):
         f"/metrics/memory?resource={MAILACCESS_RENDER_SERVICE_ID}"
         f"&startTime={start_iso}&endTime={end_iso}&resolutionSeconds=30"
     )
-    values = []
-    def collect(obj):
-        if isinstance(obj, dict):
-            if "timestamp" in obj and "value" in obj:
-                values.append(obj["value"])
-            for value in obj.values():
-                collect(value)
-        elif isinstance(obj, list):
-            for value in obj:
-                collect(value)
-    collect(payload)
-    if not values:
+
+    metrics = payload.get("metrics", []) if isinstance(payload, dict) else []
+    points = []
+    for metric in metrics:
+        if not isinstance(metric, dict) or metric.get("type") != "memory_usage":
+            continue
+        for series in metric.get("data", []):
+            if not isinstance(series, dict):
+                continue
+            for point in series.get("values", []):
+                if isinstance(point, dict) and "timestamp" in point and "value" in point:
+                    points.append(point)
+
+    if not points:
         raise HTTPException(status_code=502, detail="Render API не вернул значения RAM MailAccess")
+
+    latest = max(points, key=lambda point: str(point.get("timestamp", "")))
     try:
-        value = float(values[-1])
+        value = float(latest["value"])
         ram_mb = value / (1024 * 1024) if value > 100000 else value
     except (TypeError, ValueError):
         raise HTTPException(status_code=502, detail="Не удалось разобрать значение RAM MailAccess")
+
     return {"ram_mb": round(ram_mb, 1), "unit": "MB RAM", "service": "glaz-boga-mailaccess"}
 
 
