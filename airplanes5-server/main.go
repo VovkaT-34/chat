@@ -32,9 +32,32 @@ type Player struct {
 	Y         float64 `json:"y"`
 	DX        float64 `json:"dx"`
 	DY        float64 `json:"dy"`
-	Shoot     bool    `json:"shoot"`
+	Health    int     `json:"health"`
+	Alive     bool    `json:"alive"`
+	Score     int     `json:"score"`
 	Seq       uint64  `json:"seq"`
 	FireSeq   uint64  `json:"fireSeq"`
+}
+
+type Enemy struct {
+	ID uint64 `json:"id"`
+	Type string `json:"type"`
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	VX float64 `json:"vx"`
+	VY float64 `json:"vy"`
+	Health int `json:"health"`
+	Alive bool `json:"alive"`
+}
+
+type Bullet struct {
+	ID uint64 `json:"id"`
+	Owner int `json:"owner"`
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	VX float64 `json:"vx"`
+	VY float64 `json:"vy"`
+	Alive bool `json:"alive"`
 }
 
 type ClientMessage struct {
@@ -45,10 +68,13 @@ type ClientMessage struct {
 }
 
 type Snapshot struct {
-	Type    string   `json:"type"`
-	Tick    uint64   `json:"tick"`
-	Phase   string   `json:"phase"`
+	Type string `json:"type"`
+	Tick uint64 `json:"tick"`
+	Phase string `json:"phase"`
+	Wave int `json:"wave"`
 	Players []Player `json:"players"`
+	Enemies []Enemy `json:"enemies"`
+	Bullets []Bullet `json:"bullets"`
 }
 
 type Client struct {
@@ -59,11 +85,17 @@ type Client struct {
 }
 
 type Room struct {
-	mu      sync.Mutex
+	mu sync.Mutex
 	clients map[int]*Client
 	players map[int]*Player
-	tick    uint64
-	phase   string
+	enemies map[uint64]*Enemy
+	bullets map[uint64]*Bullet
+	nextEnemyID uint64
+	nextBulletID uint64
+	tick uint64
+	phase string
+	wave int
+	spawnTimer int
 }
 
 var roomsMu sync.Mutex
@@ -74,7 +106,7 @@ func getRoom(code string) *Room {
 	defer roomsMu.Unlock()
 	r := rooms[code]
 	if r == nil {
-		r = &Room{clients: map[int]*Client{}, players: map[int]*Player{}, phase: "lobby"}
+		r = &Room{clients: map[int]*Client{}, players: map[int]*Player{}, enemies: map[uint64]*Enemy{}, bullets: map[uint64]*Bullet{}, phase: "lobby", wave: 1}
 		rooms[code] = r
 	}
 	return r
@@ -110,7 +142,7 @@ func (r *Room) add(c net.Conn, rw *bufio.ReadWriter) (int, bool) {
 			continue
 		}
 		r.clients[id] = &Client{conn: c, rw: rw, player: id}
-		r.players[id] = &Player{ID: id, Selection: -1}
+		r.players[id] = &Player{ID: id, Selection: -1, Health: 3, Alive: true}
 		return id, true
 	}
 	return 0, false
@@ -123,6 +155,10 @@ func (r *Room) remove(id int) {
 	delete(r.players, id)
 	if len(r.clients) == 0 {
 		r.phase = "lobby"
+		r.enemies = map[uint64]*Enemy{}
+		r.bullets = map[uint64]*Bullet{}
+		r.wave = 1
+		r.spawnTimer = 0
 	}
 }
 
@@ -169,20 +205,75 @@ func (r *Room) update(m ClientMessage, id int) {
 	}
 }
 
-func (r *Room) snapshot() Snapshot {
+func (r *Room) step() Snapshot {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
 	r.tick++
-	out := make([]Player, 0, len(r.players))
+	if r.phase != "game" { return r.makeSnapshotLocked() }
+
 	for _, p := range r.players {
-		if r.phase == "game" {
-			p.X += p.DX * 5
-			p.Y += p.DY * 5
-		}
-		out = append(out, *p)
+		if !p.Alive { continue }
+		p.X += p.DX * 5
+		p.Y += p.DY * 5
+		if p.X < 20 { p.X = 20 }; if p.X > 780 { p.X = 780 }
+		if p.Y < 40 { p.Y = 40 }; if p.Y > 720 { p.Y = 720 }
 	}
-	return Snapshot{Type: "snapshot", Tick: r.tick, Phase: r.phase, Players: out}
+	r.spawnTimer++
+	if r.spawnTimer >= 30 {
+		r.spawnTimer = 0
+		r.nextEnemyID++
+		slot := int(r.nextEnemyID % 8)
+		r.enemies[r.nextEnemyID] = &Enemy{ID:r.nextEnemyID,Type:"airplane",X:80+float64(slot)*90,Y:-30,VY:2.2,Health:1,Alive:true}
+	}
+	for id,e := range r.enemies {
+		if !e.Alive { delete(r.enemies,id); continue }
+		e.X += e.VX; e.Y += e.VY
+		if e.Y > 780 { delete(r.enemies,id) }
+	}
+	for id,b := range r.bullets {
+		b.X += b.VX; b.Y += b.VY
+		if b.Y < -40 || b.Y > 800 || b.X < -40 || b.X > 840 { delete(r.bullets,id); continue }
+		for eid,e := range r.enemies {
+			if distance2(b.X,b.Y,e.X,e.Y) <= 28*28 {
+				delete(r.bullets,id); e.Health--
+				if e.Health <= 0 {
+					delete(r.enemies,eid)
+					if p:=r.players[b.Owner]; p!=nil { p.Score++ }
+				}
+				break
+			}
+		}
+	}
+	for _,p := range r.players {
+		if p.FireSeq > 0 && p.Alive {
+			r.nextBulletID++
+			r.bullets[r.nextBulletID]=&Bullet{ID:r.nextBulletID,Owner:p.ID,X:p.X,Y:p.Y-24,VY:-9,Alive:true}
+			p.FireSeq=0
+		}
+		for id,e := range r.enemies {
+			if distance2(p.X,p.Y,e.X,e.Y) <= 32*32 {
+				delete(r.enemies,id); p.Health--
+				if p.Health<=0 { p.Alive=false }
+				break
+			}
+		}
+	}
+	return r.makeSnapshotLocked()
+}
+
+func distance2(ax,ay,bx,by float64) float64 {
+	dx,dy:=ax-bx,ay-by
+	return dx*dx+dy*dy
+}
+
+func (r *Room) makeSnapshotLocked() Snapshot {
+	players:=make([]Player,0,len(r.players))
+	for _,p:=range r.players { players=append(players,*p) }
+	enemies:=make([]Enemy,0,len(r.enemies))
+	for _,e:=range r.enemies { enemies=append(enemies,*e) }
+	bullets:=make([]Bullet,0,len(r.bullets))
+	for _,b:=range r.bullets { bullets=append(bullets,*b) }
+	return Snapshot{Type:"snapshot",Tick:r.tick,Phase:r.phase,Wave:r.wave,Players:players,Enemies:enemies,Bullets:bullets}
 }
 
 func wsAccept(w http.ResponseWriter, req *http.Request) (net.Conn, *bufio.ReadWriter, error) {
@@ -380,7 +471,7 @@ func main() {
 			roomsMu.Unlock()
 
 			for _, r := range rs {
-				data, _ := json.Marshal(r.snapshot())
+				data, _ := json.Marshal(r.step())
 				r.mu.Lock()
 				clients := make([]*Client, 0, len(r.clients))
 				for _, c := range r.clients {
