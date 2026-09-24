@@ -36,7 +36,21 @@ s, count = pattern.subn(replacement, s, count=1)
 if count != 1:
     raise SystemExit('Update pause block not found')
 
-s = s.replace("\n\tfor _, s := range g.systems {\n\t\ts.Update(g.world)\n\t}", "\n\tfor _, s := range g.systems {\n\t\ts.Update(g.world)\n\t}", 1)
+s = s.replace(
+"""\tif gameData.Paused {
+\t\treturn
+\t}
+""",
+"""\tif gameData.Paused {
+\t\treturn
+\t}
+\tif js.Global().Call("__airplanes5IsMultiplayer").Bool() && js.Global().Call("__airplanes5GameStarted").Bool() {
+\t\tg.systems[0].Update(g.world)
+\t\treturn
+\t}
+""",
+1,
+)
 
 p.write_text(s)
 
@@ -268,4 +282,27 @@ s = s.replace('''	case 1:
 			X: float64(game.Settings.ScreenWidth) * 0.25,''','''	case 1:
 		return math.Vec2{
 			X: float64(game.Settings.ScreenWidth) * 0.1,''',1)
+p.write_text(s)
+
+# Multiplayer rendering: keep the original background and UI, but suppress
+# local gameplay entities once the authoritative server game has started.
+p = Path('/tmp/airplanes/system/render.go')
+s = p.read_text()
+if '"syscall/js"' not in s:
+    s = s.replace('import (\n', 'import (\n\t"syscall/js"\n', 1)
+needle='''\t\tfor _, entry := range byLayer[layer] {
+\t\t\tsprite := component.Sprite.Get(entry)
+
+\t\t\tif sprite.Hidden {'''
+rep='''\t\tfor _, entry := range byLayer[layer] {
+\t\t\tsprite := component.Sprite.Get(entry)
+
+\t\t\tif js.Global().Call("__airplanes5IsMultiplayer").Bool() && js.Global().Call("__airplanes5GameStarted").Bool() && sprite.Layer != component.SpriteLayerBackground {
+\t\t\t\tcontinue
+\t\t\t}
+
+\t\t\tif sprite.Hidden {'''
+if needle not in s:
+    raise SystemExit('render needle not found')
+s=s.replace(needle,rep,1)
 p.write_text(s)
