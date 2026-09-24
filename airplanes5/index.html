@@ -170,7 +170,7 @@ async function mpJoin(room,isReconnect=false){
       mpRemotePlayers=next;
       mpWorldState={tick:Number(m.tick)||0,wave:Number(m.wave)||1,players:Array.isArray(m.players)?m.players:[],enemies:Array.isArray(m.enemies)?m.enemies:[],bullets:Array.isArray(m.bullets)?m.bullets:[]};
       mpLastSnapshotAt=performance.now();
-      if(m.phase==='game') mpStarted=true; else if(!isReconnect) mpStarted=false;
+      if(m.phase==='game') mpStarted=true; else mpStarted=false;
       mpRoomPaused=!!m.paused;
       window.__airplanes5SetPaused(mpRoomPaused);
       if(mpStarted){
