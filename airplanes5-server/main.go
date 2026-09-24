@@ -64,6 +64,7 @@ type ClientMessage struct {
 	Type      string `json:"type"`
 	Selection int    `json:"selection,omitempty"`
 	Ready     bool   `json:"ready,omitempty"`
+	Paused    bool   `json:"paused,omitempty"`
 	Input     *Input `json:"input,omitempty"`
 }
 
