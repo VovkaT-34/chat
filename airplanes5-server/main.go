@@ -144,6 +144,7 @@ func allReady(p map[int]*Player) bool {
 func (r *Room) add(c net.Conn, rw *bufio.ReadWriter, session string) (int, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
 	id := 0
 	if session != "" {
 		if existing, ok := r.sessions[session]; ok {
@@ -168,16 +169,16 @@ func (r *Room) add(c net.Conn, rw *bufio.ReadWriter, session string) (int, bool)
 		r.sessions[session] = id
 	}
 	r.clients[id] = &Client{
-			conn: c,
-			rw: rw,
-			player: id,
-			send: make(chan []byte, 2),
-			done: make(chan struct{}),
-		}
-		r.players[id] = &Player{ID: id, Selection: -1, Health: 3, Alive: true}
-		return id, true
+		conn: c,
+		rw: rw,
+		player: id,
+		send: make(chan []byte, 2),
+		done: make(chan struct{}),
 	}
-	return 0, false
+	if _, exists := r.players[id]; !exists {
+		r.players[id] = &Player{ID: id, Selection: -1, Health: 3, Alive: true}
+	}
+	return id, true
 }
 
 func (r *Room) remove(id int) {
