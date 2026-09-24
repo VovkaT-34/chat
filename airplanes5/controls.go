@@ -180,7 +180,9 @@ func (i *Controls) Update(w donburi.World) {
 					touchShooting := i.leftActive || i.rightActive
 					if (ebiten.IsKeyPressed(in.ShootKey) || touchShooting) && player.ShootTimer.IsReady() {
 						player.ShootTimer.Reset()
-						// In authoritative multiplayer the server creates the bullet.
+						// Use the original game's bullet entity locally, then publish the shot event.
+						position := transform.Transform.Get(entry).LocalPosition
+						archetype.NewPlayerBullet(w, player, position)
 						js.Global().Call("__airplanes5SendShot")
 						js.Global().Call("__airplanes5PlayShot")
 					}
@@ -266,6 +268,7 @@ func (i *Controls) Update(w donburi.World) {
 				i.remoteShotSeen[airplane.PlayerNumber] = seq
 				position := transform.Transform.Get(entry).LocalPosition
 				archetype.NewPlayerBullet(w, player, position)
+				js.Global().Call("__airplanes5PlayShot")
 			}
 			return
 		}
