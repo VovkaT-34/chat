@@ -78,10 +78,10 @@ function mpRebuildState(){
   peers.sort((a,b)=>(Number(a.joinedAt)||0)-(Number(b.joinedAt)||0)||a.key.localeCompare(b.key));
   const mine=peers.findIndex(p=>p.key===mpKey);
   mpLocalPlayer=mine<0?1:mine+1;
-  if(mpLocalPlayer>4)mpLocalPlayer=4;
-  mpPeerCount=Math.min(peers.length,4);
+  if(mpLocalPlayer>2)mpLocalPlayer=2;
+  mpPeerCount=Math.min(peers.length,2);
   mpRemotePlayers={};
-  for(let i=0;i<peers.length&&i<4;i++){
+  for(let i=0;i<peers.length&&i<2;i++){
     const p=peers[i];
     const player=i+1;
     if(p.key!==mpKey){
@@ -141,7 +141,7 @@ async function mpJoin(room,isReconnect=false){
     mpSocket.onmessage=(event)=>{
       let m;try{m=JSON.parse(event.data);}catch(e){return;}
       if(m.type==='welcome'){
-        mpLocalPlayer=Math.max(1,Math.min(4,Number(m.player)||1));
+        mpLocalPlayer=Math.max(1,Math.min(2,Number(m.player)||1));
         mpUpdateUI();
         return;
       }
