@@ -18,7 +18,7 @@ canvas{display:block!important;width:100vw!important;height:100vh!important;obje
 .joystick{display:none}
 .pause{position:fixed;left:50%;right:auto;transform:translateX(-50%);bottom:max(8px,env(safe-area-inset-bottom));z-index:20000;margin:0;width:clamp(58px,14vw,82px);height:clamp(44px,8vh,62px);border:1px solid #ffffff55;border-radius:12px;background:#77777766;color:#fff;font-size:clamp(22px,5vw,32px);font-weight:700;line-height:1;opacity:.9;backdrop-filter:blur(2px);pointer-events:auto;touch-action:manipulation;-webkit-user-select:none;user-select:none;pointer-events:auto;cursor:pointer}
 @media(min-width:700px){.mobile-controls{display:none}}
-.mp-world{display:none!important}
+.mp-world{display:none;position:fixed;inset:0;width:100vw;height:100vh;z-index:1000;pointer-events:none}
 </style>
 </head>
 <body>
@@ -232,10 +232,13 @@ window.__airplanes5LocalReady=()=>mpLocalReady;
 window.__airplanes5Launch=mpPressLaunch;
 window.__airplanes5SelectionScreen=function(show){mpSelectionScreenVisible=!!show;const b=document.getElementById("mpLaunch");if(b)b.style.display=mpSelectionScreenVisible?"block":"none";};
 window.__airplanes5IsMultiplayer=()=>mpSocketConnected;
+window.__airplanes5GameStarted=()=>mpStarted;
 function mpWorldPoint(x,y,w,h){return [x*w/800,y*h/720];}
 function mpDrawWorld(){
  const c=document.getElementById('mpWorldCanvas'); if(!c)return;
- const active=false; c.style.display='none'; if(!active){requestAnimationFrame(mpDrawWorld);return;}
+ const active=mpStarted && mpSocketConnected;
+ c.style.display=active?'block':'none';
+ if(!active){requestAnimationFrame(mpDrawWorld);return;}
  const dpr=Math.max(1,devicePixelRatio||1),w=innerWidth,h=innerHeight;
  if(c.width!==w*dpr||c.height!==h*dpr){c.width=w*dpr;c.height=h*dpr;}
  const x=c.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
