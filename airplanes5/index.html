@@ -267,7 +267,7 @@ window.__airplanes5GameStarted=()=>mpStarted;
 function mpWorldPoint(x,y,w,h){return [x*w/800,y*h/720];}
 function mpDrawWorld(){
  const c=document.getElementById('mpWorldCanvas'); if(!c)return;
- const active=mpStarted && mpSocketConnected;
+ const active=window.__airplanes5AuthoritativeActive ? window.__airplanes5AuthoritativeActive() : (mpStarted && mpSocketConnected && mpPeerCount>1);
  c.style.display=active?'block':'none';
  if(!active){requestAnimationFrame(mpDrawWorld);return;}
  const dpr=Math.max(1,devicePixelRatio||1),w=innerWidth,h=innerHeight;
