@@ -165,7 +165,8 @@ func (i *Controls) Update(w donburi.World) {
 				player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
 				if !in.Disabled && !player.Respawning && player.Lives > 0 {
 					player.ShootTimer.Update()
-					if player.ShootTimer.IsReady() {
+					touchShooting := i.leftActive || i.rightActive
+					if (ebiten.IsKeyPressed(in.ShootKey) || touchShooting) && player.ShootTimer.IsReady() {
 						position := transform.Transform.Get(entry).LocalPosition
 						archetype.NewPlayerBullet(w, player, position)
 						player.ShootTimer.Reset()
