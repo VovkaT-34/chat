@@ -144,15 +144,24 @@ func (i *Controls) Update(w donburi.World) {
 			x := js.Global().Call("__airplanes5LocalX").Float()
 			y := js.Global().Call("__airplanes5LocalY").Float()
 			if !isLocal { x = js.Global().Call("__airplanes5RemoteX", airplane.PlayerNumber).Float(); y = js.Global().Call("__airplanes5RemoteY", airplane.PlayerNumber).Float() }
-			if x != 0 || y != 0 {
+			if !isLocal && (x != 0 || y != 0) {
 				camera := archetype.MustFindCamera(w)
 				cameraY := transform.Transform.Get(camera).LocalPosition.Y
 				pos := transform.Transform.Get(entry).LocalPosition
 				pos.X, pos.Y = x, cameraY+y
 				transform.Transform.Get(entry).LocalPosition = pos
 			}
+			if isLocal && (x != 0 || y != 0) {
+				camera := archetype.MustFindCamera(w)
+				cameraY := transform.Transform.Get(camera).LocalPosition.Y
+				pos := transform.Transform.Get(entry).LocalPosition
+				// Reconcile only a real divergence; don't overwrite every touch frame.
+				if stdmath.Hypot(pos.X-x, pos.Y-(cameraY+y)) > 45 {
+					pos.X, pos.Y = x, cameraY+y
+					transform.Transform.Get(entry).LocalPosition = pos
+				}
+			}
 			velocity := component.Velocity.Get(entry)
-			velocity.Velocity = math.Vec2{}
 			if isLocal {
 				dx, dy := 0.0, 0.0
 				if ebiten.IsKeyPressed(in.MoveUpKey) { dy = -1 }
@@ -160,6 +169,9 @@ func (i *Controls) Update(w donburi.World) {
 				if ebiten.IsKeyPressed(in.MoveLeftKey) { dx = -1 }
 				if ebiten.IsKeyPressed(in.MoveRightKey) { dx = 1 }
 				if i.leftActive { tx,ty:=ebiten.TouchPosition(i.leftTouch); if a,b,ok:=mobileJoystick(tx,ty,90,610); ok { dx,dy=a,b } } else if i.rightActive { tx,ty:=ebiten.TouchPosition(i.rightTouch); if a,b,ok:=mobileJoystick(tx,ty,390,700); ok { dx,dy=a,b } }
+				// Keep local movement responsive. The server remains authoritative,
+				// but the local plane is predicted immediately from the touch/keyboard.
+				velocity.Velocity = math.Vec2{X: dx * in.MoveSpeed, Y: dy * in.MoveSpeed}
 				js.Global().Call("__airplanes5SendControl", dx, dy)
 
 				player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
@@ -175,6 +187,7 @@ func (i *Controls) Update(w donburi.World) {
 					}
 				}
 			} else {
+				velocity.Velocity = math.Vec2{}
 				seq := js.Global().Call("__airplanes5RemoteShot", airplane.PlayerNumber).Int()
 				if seq > i.remoteShotSeen[airplane.PlayerNumber] {
 					i.remoteShotSeen[airplane.PlayerNumber] = seq
