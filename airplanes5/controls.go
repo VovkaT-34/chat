@@ -161,6 +161,28 @@ func (i *Controls) Update(w donburi.World) {
 				if ebiten.IsKeyPressed(in.MoveRightKey) { dx = 1 }
 				if i.leftActive { tx,ty:=ebiten.TouchPosition(i.leftTouch); if a,b,ok:=mobileJoystick(tx,ty,90,610); ok { dx,dy=a,b } } else if i.rightActive { tx,ty:=ebiten.TouchPosition(i.rightTouch); if a,b,ok:=mobileJoystick(tx,ty,390,700); ok { dx,dy=a,b } }
 				js.Global().Call("__airplanes5SendControl", dx, dy)
+
+				player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
+				if !in.Disabled && !player.Respawning && player.Lives > 0 {
+					player.ShootTimer.Update()
+					if player.ShootTimer.IsReady() {
+						position := transform.Transform.Get(entry).LocalPosition
+						archetype.NewPlayerBullet(w, player, position)
+						player.ShootTimer.Reset()
+						js.Global().Call("__airplanes5SendShot")
+						js.Global().Call("__airplanes5PlayShot")
+					}
+				}
+			} else {
+				seq := js.Global().Call("__airplanes5RemoteShot", airplane.PlayerNumber).Int()
+				if seq > i.remoteShotSeen[airplane.PlayerNumber] {
+					i.remoteShotSeen[airplane.PlayerNumber] = seq
+					player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
+					if !player.Respawning && player.Lives > 0 {
+						position := transform.Transform.Get(entry).LocalPosition
+						archetype.NewPlayerBullet(w, player, position)
+					}
+				}
 			}
 		})
 		return
