@@ -44,10 +44,6 @@ s = s.replace(
 """\tif gameData.Paused {
 \t\treturn
 \t}
-\tif js.Global().Call("__airplanes5IsMultiplayer").Bool() && js.Global().Call("__airplanes5GameStarted").Bool() {
-\t\tg.systems[0].Update(g.world)
-\t\treturn
-\t}
 """,
 1,
 )
@@ -119,7 +115,22 @@ new_touch = """\tjs.Global().Call("__airplanes5SelectionScreen", true)
 
 \t\tentry := playerSelects[targetIndex]
 \t\tplayerSelect := component.PlayerSelect.Get(entry)
-if playerSelect.Selected && playerSelect.PlayerNumber != localPlayer {\n\t\t\tcontinue\n\t\t}\n\t\tif playerSelect.Selected && playerSelect.PlayerNumber == localPlayer {\n\t\t\tplayerSelect.Unselect()\n\t\t\tjs.Global().Call("__airplanes5SendSelection", -1, false)\n\t\t\tcontinue\n\t\t}\n\t\tfor _, otherEntry := range playerSelects {\n\t\t\tother := component.PlayerSelect.Get(otherEntry)\n\t\t\tif other.Selected && other.PlayerNumber == localPlayer && !other.Ready {\n\t\t\t\tother.Unselect()\n\t\t\t}\n\t\t}\n\n\t\tplayerSelect.Select(localPlayer)
+if playerSelect.Selected && playerSelect.PlayerNumber != localPlayer {
+			continue
+		}
+		if playerSelect.Selected && playerSelect.PlayerNumber == localPlayer {
+			playerSelect.Unselect()
+			js.Global().Call("__airplanes5SendSelection", -1, false)
+			continue
+		}
+		for _, otherEntry := range playerSelects {
+			other := component.PlayerSelect.Get(otherEntry)
+			if other.Selected && other.PlayerNumber == localPlayer && !other.Ready {
+				other.Unselect()
+			}
+		}
+
+		playerSelect.Select(localPlayer)
 \t\tjs.Global().Call("__airplanes5SendSelection", targetIndex, false)
 \t}
 """
