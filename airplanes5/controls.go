@@ -179,24 +179,14 @@ func (i *Controls) Update(w donburi.World) {
 					player.ShootTimer.Update()
 					touchShooting := i.leftActive || i.rightActive
 					if (ebiten.IsKeyPressed(in.ShootKey) || touchShooting) && player.ShootTimer.IsReady() {
-						position := transform.Transform.Get(entry).LocalPosition
-						archetype.NewPlayerBullet(w, player, position)
 						player.ShootTimer.Reset()
+						// In authoritative multiplayer the server creates the bullet.
 						js.Global().Call("__airplanes5SendShot")
 						js.Global().Call("__airplanes5PlayShot")
 					}
 				}
 			} else {
 				velocity.Velocity = math.Vec2{}
-				seq := js.Global().Call("__airplanes5RemoteShot", airplane.PlayerNumber).Int()
-				if seq > i.remoteShotSeen[airplane.PlayerNumber] {
-					i.remoteShotSeen[airplane.PlayerNumber] = seq
-					player := archetype.MustFindPlayerByNumber(w, airplane.PlayerNumber)
-					if !player.Respawning && player.Lives > 0 {
-						position := transform.Transform.Get(entry).LocalPosition
-						archetype.NewPlayerBullet(w, player, position)
-					}
-				}
 			}
 		})
 		return
