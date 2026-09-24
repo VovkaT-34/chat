@@ -568,7 +568,14 @@ func main() {
 			roomsMu.Unlock()
 
 			for _, r := range rs {
-				data, _ := json.Marshal(r.step())
+				snapshot := r.step()
+				// The simulation remains at 20 Hz, but network snapshots are sent at 10 Hz.
+				// Clients predict/interpolate between snapshots, cutting outbound traffic
+				// roughly in half without slowing the authoritative simulation.
+				if snapshot.Tick%2 != 0 {
+					continue
+				}
+				data, _ := json.Marshal(snapshot)
 				r.mu.Lock()
 				clients := make([]*Client, 0, len(r.clients))
 				for _, c := range r.clients {
