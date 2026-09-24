@@ -5,7 +5,7 @@ p = Path('/tmp/airplanes/scene/game.go')
 s = p.read_text()
 
 if '"syscall/js"' not in s:
-    s = s.replace('import (\n\t"time"', 'import (\n\t"time"\n\t"syscall/js"\n\t"fmt"\n\t"strings"', 1)
+    s = s.replace('import (\n\t"time"', 'import (\n\t"time"\n\t"syscall/js"', 1)
 if '"fmt"' not in s:
     s = s.replace('"syscall/js"\n', '"syscall/js"\n\t"fmt"\n\t"strings"\n', 1)
 
@@ -38,7 +38,7 @@ s, count = pattern.subn(replacement, s, count=1)
 if count != 1:
     raise SystemExit('Update pause block not found')
 
-s = s.replace("\n\tfor _, s := range g.systems {\n\t\ts.Update(g.world)\n\t}", "\n\tfor _, s := range g.systems {\n\t\tif js.Global().Call(\"__airplanes5IsMultiplayer\").Bool() {\n\t\t\tname := fmt.Sprintf(\"%T\", s)\n\t\t\tif !strings.Contains(name, \"Controls\") && !strings.Contains(name, \"Camera\") && !strings.Contains(name, \"Observer\") {\n\t\t\t\tcontinue\n\t\t\t}\n\t\t}\n\t\ts.Update(g.world)\n\t}", 1)
+s = s.replace("\n\tfor _, s := range g.systems {\n\t\ts.Update(g.world)\n\t}", "\n\tfor _, s := range g.systems {\n\t\ts.Update(g.world)\n\t}", 1)
 
 p.write_text(s)
 
