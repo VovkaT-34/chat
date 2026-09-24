@@ -64,12 +64,12 @@ end = s.index("\n\tfor number, settings := range archetype.Players", start)
 
 new_touch = """\tjs.Global().Call("__airplanes5SelectionScreen", true)
 	localPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
-\\tif localPlayer < 1 || localPlayer > 4 {
+\\tif localPlayer < 1 || localPlayer > 2 {
 \\t\\tlocalPlayer = 1
 \\t}
 
 \\t// Mirror every other room member into this local selection screen.
-\\tfor playerNumber := 1; playerNumber <= 4; playerNumber++ {
+\\tfor playerNumber := 1; playerNumber <= 2; playerNumber++ {
 \\t\\tif playerNumber == localPlayer {
 \\t\\t\\tcontinue
 \\t\\t}
