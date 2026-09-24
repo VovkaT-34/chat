@@ -48,6 +48,7 @@ let mpPanelNotice='';
 let mpPresenceTimer=0;
 let mpLastControl=0;
 let mpStarted=false;
+let mpRoomPaused=false;
 let mpSelectionScreenVisible=false;
 let mpLocalServerState=null;
 let mpWorldState={tick:0,wave:1,players:[],enemies:[],bullets:[]};
@@ -119,6 +120,11 @@ async function mpJoin(room){
         mpUpdateUI();
         return;
       }
+      if(m.type==='pause'){
+        mpRoomPaused=!!m.paused;
+        window.__airplanes5SetPaused(mpRoomPaused);
+        return;
+      }
       if(m.type!=='snapshot'||!Array.isArray(m.players))return;
       mpPeerCount=Math.min(m.players.length,4);
       const next={};
@@ -135,6 +141,7 @@ async function mpJoin(room){
       mpRemotePlayers=next;
       mpWorldState={tick:Number(m.tick)||0,wave:Number(m.wave)||1,players:Array.isArray(m.players)?m.players:[],enemies:Array.isArray(m.enemies)?m.enemies:[],bullets:Array.isArray(m.bullets)?m.bullets:[]};
       mpStarted=m.phase==='game';
+      mpRoomPaused=!!m.paused;
       if(mpStarted){
         const launch=document.getElementById('mpLaunch');
         if(launch)launch.style.display='none';
@@ -248,7 +255,14 @@ function stopMusic(){if(musicTimer){clearInterval(musicTimer);musicTimer=null;}i
 window.__airplanes5SetGameplay=function(active){gameplayActive=!!active;if(gameplayActive&&!paused)startMusic();else stopMusic();};
 window.__airplanes5PlayShot=function(){if(!gameplayActive||paused)return;ensureAudio();const n=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(760,n);o.frequency.exponentialRampToValueAtTime(240,n+.075);g.gain.setValueAtTime(.05,n);g.gain.exponentialRampToValueAtTime(.0001,n+.085);o.connect(g).connect(audioCtx.destination);o.start(n);o.stop(n+.09);};
 window.__airplanes5PauseRequest=null;
-window.__airplanes5Pause=function(e){if(e){e.preventDefault();e.stopPropagation();}const next=!paused;window.__airplanes5SetPaused(next);window.__airplanes5PauseRequest=next;};
+window.__airplanes5Pause=function(e){
+  if(e){e.preventDefault();e.stopPropagation();}
+  if(mpSocketConnected){
+    mpSocket.send(JSON.stringify({type:'pause',paused:!mpRoomPaused}));
+    return;
+  }
+  const next=!paused;window.__airplanes5SetPaused(next);window.__airplanes5PauseRequest=next;
+};
 window.__airplanes5SetPaused=function(value){paused=!!value;const b=document.getElementById('pauseButton');if(b)b.textContent=paused?'▶':'Ⅱ';if(paused)stopMusic();else if(gameplayActive)startMusic();};
 window.addEventListener('pointerdown',()=>ensureAudio(),{passive:true});window.addEventListener('touchstart',()=>ensureAudio(),{passive:true});window.addEventListener('keydown',()=>ensureAudio(),{passive:true});
 const initialRoom=mpRoomCode();document.addEventListener('DOMContentLoaded',()=>{document.getElementById('mpRoomInput').value=initialRoom;const b=document.getElementById("mpLaunch");if(b)b.style.display=mpSelectionScreenVisible?"block":"none";mpJoin(initialRoom);});
