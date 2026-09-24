@@ -56,6 +56,7 @@ let mpReconnectDelay=1000;
 let mpReconnectSelection=-1;
 let mpReconnectReady=false;
 let mpWorldState={tick:0,wave:1,players:[],enemies:[],bullets:[]};
+let mpLastSnapshotAt=performance.now();
 
 function mpRoomCode(){
   const raw=new URLSearchParams(location.search).get('room');
@@ -166,6 +167,7 @@ async function mpJoin(room,isReconnect=false){
       }
       mpRemotePlayers=next;
       mpWorldState={tick:Number(m.tick)||0,wave:Number(m.wave)||1,players:Array.isArray(m.players)?m.players:[],enemies:Array.isArray(m.enemies)?m.enemies:[],bullets:Array.isArray(m.bullets)?m.bullets:[]};
+      mpLastSnapshotAt=performance.now();
       mpStarted=m.phase==='game';
       mpRoomPaused=!!m.paused;
       window.__airplanes5SetPaused(mpRoomPaused);
@@ -269,7 +271,14 @@ function mpDrawWorld(){
  if(c.width!==w*dpr||c.height!==h*dpr){c.width=w*dpr;c.height=h*dpr;}
  const x=c.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
  const s=mpWorldState||{}, point=mpWorldPoint;
- function plane(p){const q=point(+p.x||0,+p.y||0,w,h);x.save();x.translate(q[0],q[1]);x.beginPath();x.moveTo(0,-18);x.lineTo(13,15);x.lineTo(0,9);x.lineTo(-13,15);x.closePath();x.fillStyle=+p.id===mpLocalPlayer?'#39d98a':'#55a7ff';x.fill();x.strokeStyle='#fff';x.stroke();x.fillStyle='#fff';x.font='bold 12px system-ui';x.textAlign='center';x.fillText('Игрок '+p.id,0,31);x.restore();}
+ function plane(p){
+  let px=+p.x||0, py=+p.y||0;
+  if(+p.id===mpLocalPlayer && mpStarted && !mpRoomPaused){
+    const dt=Math.min(0.12,Math.max(0,(performance.now()-mpLastSnapshotAt)/1000));
+    px += mpLastDX*100*dt;
+    py += mpLastDY*100*dt;
+  }
+  const q=point(px,py,w,h);x.save();x.translate(q[0],q[1]);x.beginPath();x.moveTo(0,-18);x.lineTo(13,15);x.lineTo(0,9);x.lineTo(-13,15);x.closePath();x.fillStyle=+p.id===mpLocalPlayer?'#39d98a':'#55a7ff';x.fill();x.strokeStyle='#fff';x.stroke();x.fillStyle='#fff';x.font='bold 12px system-ui';x.textAlign='center';x.fillText('Игрок '+p.id,0,31);x.restore();}
  for(const p of (s.players||[]))if(p.alive!==false)plane(p);
  x.fillStyle='#ffe066';for(const b of(s.bullets||[])){const q=point(+b.x||0,+b.y||0,w,h);x.beginPath();x.arc(q[0],q[1],3,0,Math.PI*2);x.fill();}
  for(const e of(s.enemies||[])){const q=point(+e.x||0,+e.y||0,w,h);x.save();x.translate(q[0],q[1]);x.beginPath();x.moveTo(0,-17);x.lineTo(5,-4);x.lineTo(18,4);x.lineTo(6,7);x.lineTo(4,17);x.lineTo(-4,17);x.lineTo(-6,7);x.lineTo(-18,4);x.lineTo(-5,-4);x.closePath();x.fillStyle='#ff5b5b';x.fill();x.strokeStyle='#fff';x.stroke();x.restore();}
