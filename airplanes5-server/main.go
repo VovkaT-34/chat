@@ -182,6 +182,10 @@ func (r *Room) update(m ClientMessage, id int) {
 			}
 		}
 		p.Selection = m.Selection
+		// Keep the authoritative spawn aligned with the original Airplanes playfield.
+		spawnX := []float64{80, 240, 400, 560}[m.Selection]
+		p.X = spawnX
+		p.Y = 620
 
 	case "ready":
 		if p.Selection >= 0 {
@@ -200,6 +204,13 @@ func (r *Room) update(m ClientMessage, id int) {
 	}
 
 	if allReady(r.players) {
+		if r.phase != "game" {
+			for _, p := range r.players {
+				p.Health = 3
+				p.Alive = true
+				if p.Y == 0 { p.Y = 620 }
+			}
+		}
 		r.phase = "game"
 	}
 }
