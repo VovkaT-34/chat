@@ -81,10 +81,12 @@ Paused bool `json:"paused"`
 }
 
 type Client struct {
-	conn   net.Conn
-	rw     *bufio.ReadWriter
-	player int
-	mu     sync.Mutex
+	conn      net.Conn
+	rw        *bufio.ReadWriter
+	player    int
+	send      chan []byte
+	done      chan struct{}
+	closeOnce sync.Once
 }
 
 type Room struct {
@@ -145,7 +147,13 @@ func (r *Room) add(c net.Conn, rw *bufio.ReadWriter) (int, bool) {
 		if _, ok := r.clients[id]; ok {
 			continue
 		}
-		r.clients[id] = &Client{conn: c, rw: rw, player: id}
+		r.clients[id] = &Client{
+			conn: c,
+			rw: rw,
+			player: id,
+			send: make(chan []byte, 16),
+			done: make(chan struct{}),
+		}
 		r.players[id] = &Player{ID: id, Selection: -1, Health: 3, Alive: true}
 		return id, true
 	}
@@ -395,26 +403,56 @@ func readFrame(r *bufio.Reader) (byte, []byte, error) {
 	return op, p, nil
 }
 
-func writeText(c *Client, p []byte) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
+func frameText(p []byte) ([]byte, error) {
 	n := len(p)
 	if n > 65535 {
-		return fmt.Errorf("message too large")
+		return nil, fmt.Errorf("message too large")
 	}
-
 	h := []byte{129}
 	if n < 126 {
 		h = append(h, byte(n))
 	} else {
 		h = append(h, 126, byte(n>>8), byte(n))
 	}
+	frame := make([]byte, 0, len(h)+n)
+	frame = append(frame, h...)
+	frame = append(frame, p...)
+	return frame, nil
+}
 
-	if _, err := c.rw.Write(append(h, p...)); err != nil {
+func (c *Client) writer() {
+	for {
+		select {
+		case <-c.done:
+			return
+		case frame := <-c.send:
+			if _, err := c.rw.Write(frame); err != nil {
+				return
+			}
+			if err := c.rw.Flush(); err != nil {
+				return
+			}
+		}
+	}
+}
+
+func (c *Client) closeWriter() {
+	c.closeOnce.Do(func() { close(c.done) })
+}
+
+func writeText(c *Client, p []byte) error {
+	frame, err := frameText(p)
+	if err != nil {
 		return err
 	}
-	return c.rw.Flush()
+	select {
+	case <-c.done:
+		return fmt.Errorf("client closed")
+	case c.send <- frame:
+		return nil
+	default:
+		return fmt.Errorf("client send queue full")
+	}
 }
 
 func handleWS(w http.ResponseWriter, req *http.Request) {
@@ -443,10 +481,12 @@ func handleWS(w http.ResponseWriter, req *http.Request) {
 	}
 	welcomeBytes, _ := json.Marshal(welcome{Type: "welcome", Player: id})
 	client := room.clients[id]
+	go client.writer()
 	_ = writeText(client, welcomeBytes)
 
 	defer func() {
 		room.remove(id)
+		client.closeWriter()
 		_ = conn.Close()
 	}()
 
