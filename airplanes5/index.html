@@ -116,7 +116,7 @@ async function mpJoin(room,isReconnect=false){
     mpStarted=false;
   }
   const scheme=location.protocol==='https:'?'wss:':'ws:';
-  const wsUrl=scheme+'//airplanes5-multiplayer.onrender.com/ws?room='+encodeURIComponent(room);
+  const wsUrl=scheme+'//airplanes5-multiplayer.onrender.com/ws?room='+encodeURIComponent(room)+'&session='+encodeURIComponent(mpKey);
   try{
     mpSocket=new WebSocket(wsUrl);
     mpSocket.onopen=()=>{
