@@ -162,75 +162,7 @@ s = re.sub(r'(")Player\\b', r'\1Игрок', s)
 
 p.write_text(s)
 
-# Airplanes 5 multiplayer: the upstream game defines two players. Extend it to four
-# so each room member gets a real player entity and a stable spawn/input mapping.
-p = Path('/tmp/airplanes/archetype/player.go')
-s = p.read_text()
-if 'ebiten.KeyI' not in s:
-    s = s.replace('''	2: {
-		Inputs: PlayerInputs{
-			Up:    ebiten.KeyUp,
-			Right: ebiten.KeyRight,
-			Down:  ebiten.KeyDown,
-			Left:  ebiten.KeyLeft,
-			Shoot: ebiten.KeyEnter,
-		},
-	},
-}''', '''	2: {
-		Inputs: PlayerInputs{
-			Up:    ebiten.KeyUp,
-			Right: ebiten.KeyRight,
-			Down:  ebiten.KeyDown,
-			Left:  ebiten.KeyLeft,
-			Shoot: ebiten.KeyEnter,
-		},
-	},
-	3: {
-		Inputs: PlayerInputs{
-			Up:    ebiten.KeyI,
-			Right: ebiten.KeyL,
-			Down:  ebiten.KeyK,
-			Left:  ebiten.KeyJ,
-			Shoot: ebiten.KeyNumpad0,
-		},
-	},
-	4: {
-		Inputs: PlayerInputs{
-			Up:    ebiten.KeyT,
-			Right: ebiten.KeyH,
-			Down:  ebiten.KeyG,
-			Left:  ebiten.KeyF,
-			Shoot: ebiten.KeyNumpad1,
-		},
-	},
-}''',1)
-s = s.replace('''	case 2:
-		return math.Vec2{
-			X: float64(game.Settings.ScreenWidth) * 0.75,
-			Y: cameraPos.Y + float64(game.Settings.ScreenHeight)*0.9,
-		}
-	default:''', '''	case 2:
-		return math.Vec2{
-			X: float64(game.Settings.ScreenWidth) * 0.5,
-			Y: cameraPos.Y + float64(game.Settings.ScreenHeight)*0.9,
-		}
-	case 3:
-		return math.Vec2{
-			X: float64(game.Settings.ScreenWidth) * 0.75,
-			Y: cameraPos.Y + float64(game.Settings.ScreenHeight)*0.9,
-		}
-	case 4:
-		return math.Vec2{
-			X: float64(game.Settings.ScreenWidth) * 0.9,
-			Y: cameraPos.Y + float64(game.Settings.ScreenHeight)*0.9,
-		}
-	default:''',1)
-s = s.replace('''	case 1:
-		return math.Vec2{
-			X: float64(game.Settings.ScreenWidth) * 0.25,''','''	case 1:
-		return math.Vec2{
-			X: float64(game.Settings.ScreenWidth) * 0.1,''',1)
-p.write_text(s)
+
 
 # Keep the upstream renderer intact. Multiplayer synchronizes player state
 # through controls.go; it does not replace the game's sprites with a second canvas.
