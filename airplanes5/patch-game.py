@@ -6,8 +6,6 @@ s = p.read_text()
 
 if '"syscall/js"' not in s:
     s = s.replace('import (\n\t"time"', 'import (\n\t"time"\n\t"syscall/js"', 1)
-if '"fmt"' not in s:
-    s = s.replace('"syscall/js"\n', '"syscall/js"\n\t"fmt"\n\t"strings"\n', 1)
 
 pattern = re.compile(
     r'func \(g \*Game\) Update\(\) \{\n'
