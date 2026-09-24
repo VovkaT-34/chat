@@ -108,11 +108,13 @@ async function mpJoin(room,isReconnect=false){
   mpRoom=room;
   const url=new URL(location.href);url.searchParams.set('room',room);history.replaceState(null,'',url.toString());
   mpSocketConnected=false;
-  mpRemotePlayers={};
-  mpPeerCount=1;
-  mpLocalReady=false;
-  mpLocalSelection=-1;
-  mpStarted=false;
+  if(!isReconnect){
+    mpRemotePlayers={};
+    mpPeerCount=1;
+    mpLocalReady=false;
+    mpLocalSelection=-1;
+    mpStarted=false;
+  }
   const scheme=location.protocol==='https:'?'wss:':'ws:';
   const wsUrl=scheme+'//airplanes5-multiplayer.onrender.com/ws?room='+encodeURIComponent(room);
   try{
@@ -168,7 +170,7 @@ async function mpJoin(room,isReconnect=false){
       mpRemotePlayers=next;
       mpWorldState={tick:Number(m.tick)||0,wave:Number(m.wave)||1,players:Array.isArray(m.players)?m.players:[],enemies:Array.isArray(m.enemies)?m.enemies:[],bullets:Array.isArray(m.bullets)?m.bullets:[]};
       mpLastSnapshotAt=performance.now();
-      mpStarted=m.phase==='game';
+      if(m.phase==='game') mpStarted=true; else if(!isReconnect) mpStarted=false;
       mpRoomPaused=!!m.paused;
       window.__airplanes5SetPaused(mpRoomPaused);
       if(mpStarted){
@@ -259,7 +261,8 @@ window.__airplanes5SendSelection=mpSendSelection;
 window.__airplanes5LocalReady=()=>mpLocalReady;
 window.__airplanes5Launch=mpPressLaunch;
 window.__airplanes5SelectionScreen=function(show){mpSelectionScreenVisible=!!show;const b=document.getElementById("mpLaunch");if(b)b.style.display=mpSelectionScreenVisible?"block":"none";};
-window.__airplanes5IsMultiplayer=()=>mpSocketConnected;
+window.__airplanes5IsMultiplayer=()=>mpSocketConnected && mpPeerCount>1;
+window.__airplanes5AuthoritativeActive=()=>mpSocketConnected && mpStarted && mpPeerCount>1;
 window.__airplanes5GameStarted=()=>mpStarted;
 function mpWorldPoint(x,y,w,h){return [x*w/800,y*h/720];}
 function mpDrawWorld(){
