@@ -1,12 +1,8 @@
 package main
 import (
-	"bufio"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/binary"
+		"github.com/gorilla/websocket"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
@@ -81,8 +77,6 @@ Paused bool `json:"paused"`
 }
 
 type Client struct {
-	conn      net.Conn
-	rw        *bufio.ReadWriter
 	player    int
 	send      chan []byte
 	done      chan struct{}
@@ -141,7 +135,7 @@ func allReady(p map[int]*Player) bool {
 	return true
 }
 
-func (r *Room) add(c net.Conn, rw *bufio.ReadWriter, session string) (int, bool) {
+func (r *Room) add(c *websocket.Conn, session string) (int, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -168,7 +162,6 @@ func (r *Room) add(c net.Conn, rw *bufio.ReadWriter, session string) (int, bool)
 
 	client := &Client{
 		conn: c,
-		rw: rw,
 		player: id,
 		send: make(chan []byte, 2),
 		done: make(chan struct{}),
@@ -340,118 +333,20 @@ func (r *Room) makeSnapshotLocked() Snapshot {
 	return Snapshot{Type:"snapshot",Tick:r.tick,Phase:r.phase,Wave:r.wave,Players:players,Enemies:enemies,Bullets:bullets,Paused:r.paused}
 }
 
-func wsAccept(w http.ResponseWriter, req *http.Request) (net.Conn, *bufio.ReadWriter, error) {
-	if req.Header.Get("Connection") == "" || req.Header.Get("Upgrade") == "" {
-		return nil, nil, fmt.Errorf("not websocket")
-	}
-
-	key := req.Header.Get("Sec-WebSocket-Key")
-	if key == "" {
-		return nil, nil, fmt.Errorf("missing key")
-	}
-
-	hj, ok := w.(http.Hijacker)
-	if !ok {
-		return nil, nil, fmt.Errorf("hijack unsupported")
-	}
-
-	c, rw, err := hj.Hijack()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	sum := sha1.Sum([]byte(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
-	response := fmt.Sprintf(
-		"HTTP/1.1 101 Switching Protocols\r\n"+
-			"Upgrade: websocket\r\n"+
-			"Connection: Upgrade\r\n"+
-			"Sec-WebSocket-Accept: %s\r\n"+
-			"\r\n",
-		base64.StdEncoding.EncodeToString(sum[:]),
-	)
-
-	if _, err = rw.WriteString(response); err != nil {
-		_ = c.Close()
-		return nil, nil, err
-	}
-	if err = rw.Flush(); err != nil {
-		_ = c.Close()
-		return nil, nil, err
-	}
-	return c, rw, nil
+var wsUpgrader = websocket.Upgrader{
+	ReadBufferSize: 1024,
+	WriteBufferSize: 4096,
+	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-func readFrame(r *bufio.Reader) (byte, []byte, error) {
-	b1, err := r.ReadByte()
-	if err != nil {
-		return 0, nil, err
-	}
-	b2, err := r.ReadByte()
-	if err != nil {
-		return 0, nil, err
-	}
-
-	op := b1 & 15
-	masked := b2 & 128
-	n := int64(b2 & 127)
-
-	if n == 126 {
-		var x uint16
-		if err := binary.Read(r, binary.BigEndian, &x); err != nil {
-			return 0, nil, err
-		}
-		n = int64(x)
-	} else if n == 127 {
-		var x uint64
-		if err := binary.Read(r, binary.BigEndian, &x); err != nil {
-			return 0, nil, err
-		}
-		if x > 1<<24 {
-			return 0, nil, fmt.Errorf("frame too large")
-		}
-		n = int64(x)
-	}
-
-	if n < 0 || n > 1<<24 {
-		return 0, nil, fmt.Errorf("bad frame")
-	}
-
-	var mask [4]byte
-	if masked != 0 {
-		if _, err := io.ReadFull(r, mask[:]); err != nil {
-			return 0, nil, err
-		}
-	}
-
-	p := make([]byte, n)
-	if _, err := io.ReadFull(r, p); err != nil {
-		return 0, nil, err
-	}
-
-	if masked != 0 {
-		for i := range p {
-			p[i] ^= mask[i%4]
-		}
-	}
-
-	return op, p, nil
+var wsUpgrader = websocket.Upgrader{
+	ReadBufferSize: 1024,
+	WriteBufferSize: 4096,
+	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-func frameText(p []byte) ([]byte, error) {
-	n := len(p)
-	if n > 65535 {
-		return nil, fmt.Errorf("message too large")
-	}
-	h := []byte{129}
-	if n < 126 {
-		h = append(h, byte(n))
-	} else {
-		h = append(h, 126, byte(n>>8), byte(n))
-	}
-	frame := make([]byte, 0, len(h)+n)
-	frame = append(frame, h...)
-	frame = append(frame, p...)
-	return frame, nil
+func wsAccept(w http.ResponseWriter, req *http.Request) (*websocket.Conn, error) {
+	return wsUpgrader.Upgrade(w, req, nil)
 }
 
 func (c *Client) writer() {
@@ -459,11 +354,11 @@ func (c *Client) writer() {
 		select {
 		case <-c.done:
 			return
-		case frame := <-c.send:
-			if _, err := c.rw.Write(frame); err != nil {
+		case payload := <-c.send:
+			if err := c.conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
 				return
 			}
-			if err := c.rw.Flush(); err != nil {
+			if err := c.conn.WriteMessage(websocket.TextMessage, payload); err != nil {
 				return
 			}
 		}
@@ -474,38 +369,24 @@ func (c *Client) closeWriter() {
 	c.closeOnce.Do(func() { close(c.done) })
 }
 
-func writeControl(c *Client, opcode byte, p []byte) error {
-	if len(p) > 125 {
-		return fmt.Errorf("control frame too large")
-	}
-	frame := append([]byte{0x80 | (opcode & 0x0f), byte(len(p))}, p...)
+func writeControl(c *Client, opcode int, p []byte) error {
 	select {
 	case <-c.done:
 		return fmt.Errorf("client closed")
 	default:
 	}
-	select {
-	case c.send <- frame:
-		return nil
-	default:
-		return nil
-	}
+	return c.conn.WriteControl(opcode, p, time.Now().Add(2*time.Second))
 }
 
 func writeText(c *Client, p []byte) error {
-	frame, err := frameText(p)
-	if err != nil {
-		return err
-	}
 	select {
 	case <-c.done:
 		return fmt.Errorf("client closed")
 	default:
 	}
-	// Snapshots are state, not events: if a slow client has an old snapshot
-	// queued, discard that old snapshot and keep only the newest state.
+	// Snapshots are state, not events: retain only the newest pending snapshot.
 	select {
-	case c.send <- frame:
+	case c.send <- p:
 		return nil
 	default:
 	}
@@ -514,7 +395,7 @@ func writeText(c *Client, p []byte) error {
 	default:
 	}
 	select {
-	case c.send <- frame:
+	case c.send <- p:
 		return nil
 	case <-c.done:
 		return fmt.Errorf("client closed")
@@ -522,7 +403,6 @@ func writeText(c *Client, p []byte) error {
 		return nil
 	}
 }
-
 func handleWS(w http.ResponseWriter, req *http.Request) {
 	code := req.URL.Query().Get("room")
 	session := req.URL.Query().Get("session")
@@ -531,22 +411,26 @@ func handleWS(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	conn, rw, err := wsAccept(w, req)
+	conn, err := wsAccept(w, req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	conn.SetReadLimit(1 << 20)
+	_ = conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		return conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	})
 
 	room := getRoom(code)
-	id, ok := room.add(conn, rw, session)
+	id, ok := room.add(conn, session)
 	if !ok {
 		_ = conn.Close()
 		return
 	}
 
 	type welcome struct {
-		Type   string `json:"type"`
-		Player int    `json:"player"`
+		Type string `json:"type"`
+		Player int `json:"player"`
 	}
 	welcomeBytes, _ := json.Marshal(welcome{Type: "welcome", Player: id})
 	client := room.clients[id]
@@ -560,25 +444,19 @@ func handleWS(w http.ResponseWriter, req *http.Request) {
 	}()
 
 	for {
-		op, payload, err := readFrame(rw.Reader)
+		op, payload, err := conn.ReadMessage()
 		if err != nil {
 			return
 		}
-		switch op {
-		case 8:
-			return
-		case 9:
-			// WebSocket ping must be answered with a pong control frame.
-			_ = writeControl(client, 10, payload)
-		case 1:
-			var msg ClientMessage
-			if json.Unmarshal(payload, &msg) == nil {
-				room.update(msg, id)
-			}
+		if op != websocket.TextMessage {
+			continue
+		}
+		var msg ClientMessage
+		if json.Unmarshal(payload, &msg) == nil {
+			room.update(msg, id)
 		}
 	}
 }
-
 func main() {
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -619,13 +497,6 @@ func main() {
 				r.mu.Unlock()
 				for _, c := range clients {
 					_ = writeText(c, data)
-				}
-				// Keep long-lived WebSocket connections healthy without adding
-				// meaningful bandwidth. Render recommends periodic keepalives.
-				if snapshot.Tick%300 == 0 {
-					for _, c := range clients {
-						_ = writeControl(c, 9, nil)
-					}
 				}
 			}
 		}
