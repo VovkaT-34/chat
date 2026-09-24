@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const maxPlayers = 4
+const maxPlayers = 2
 
 type Input struct {
 	Seq uint64  `json:"seq"`
@@ -410,9 +410,9 @@ func handleWS(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	conn.SetReadLimit(1 << 20)
-	_ = conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	_ = conn.SetReadDeadline(time.Now().Add(45 * time.Second))
 	conn.SetPongHandler(func(string) error {
-		return conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return conn.SetReadDeadline(time.Now().Add(45 * time.Second))
 	})
 
 	room := getRoom(code)
@@ -491,6 +491,11 @@ func main() {
 				r.mu.Unlock()
 				for _, c := range clients {
 					_ = writeText(c, data)
+				}
+				if snapshot.Tick%400 == 0 {
+					for _, c := range clients {
+						_ = writeControl(c, websocket.PingMessage, nil)
+					}
 				}
 			}
 		}
