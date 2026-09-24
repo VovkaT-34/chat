@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -77,6 +76,7 @@ Paused bool `json:"paused"`
 }
 
 type Client struct {
+	conn      *websocket.Conn
 	player    int
 	send      chan []byte
 	done      chan struct{}
