@@ -585,6 +585,13 @@ func main() {
 				for _, c := range clients {
 					_ = writeText(c, data)
 				}
+				// Keep long-lived WebSocket connections healthy without adding
+				// meaningful bandwidth. Render recommends periodic keepalives.
+				if snapshot.Tick%300 == 0 {
+					for _, c := range clients {
+						_ = writeControl(c, 9, nil)
+					}
+				}
 			}
 		}
 	}()
