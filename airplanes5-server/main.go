@@ -75,6 +75,7 @@ type Snapshot struct {
 	Players []Player `json:"players"`
 	Enemies []Enemy `json:"enemies"`
 	Bullets []Bullet `json:"bullets"`
+Paused bool `json:"paused"`
 }
 
 type Client struct {
@@ -96,6 +97,7 @@ type Room struct {
 	phase string
 	wave int
 	spawnTimer int
+paused bool
 }
 
 var roomsMu sync.Mutex
@@ -159,6 +161,7 @@ func (r *Room) remove(id int) {
 		r.bullets = map[uint64]*Bullet{}
 		r.wave = 1
 		r.spawnTimer = 0
+		r.paused = false
 	}
 }
 
@@ -192,6 +195,10 @@ func (r *Room) update(m ClientMessage, id int) {
 			p.Ready = m.Ready
 		}
 
+	case "pause":
+		if r.phase == "game" {
+			r.paused = m.Paused
+		}
 	case "input":
 		if m.Input != nil {
 			p.DX = clamp(m.Input.DX)
@@ -205,6 +212,7 @@ func (r *Room) update(m ClientMessage, id int) {
 
 	if allReady(r.players) {
 		if r.phase != "game" {
+			r.paused = false
 			for _, p := range r.players {
 				p.Health = 3
 				p.Alive = true
@@ -219,7 +227,7 @@ func (r *Room) step() Snapshot {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.tick++
-	if r.phase != "game" { return r.makeSnapshotLocked() }
+	if r.phase != "game" || r.paused { return r.makeSnapshotLocked() }
 
 	for _, p := range r.players {
 		if !p.Alive { continue }
@@ -283,7 +291,7 @@ func (r *Room) makeSnapshotLocked() Snapshot {
 	for _,e:=range r.enemies { enemies=append(enemies,*e) }
 	bullets:=make([]Bullet,0,len(r.bullets))
 	for _,b:=range r.bullets { bullets=append(bullets,*b) }
-	return Snapshot{Type:"snapshot",Tick:r.tick,Phase:r.phase,Wave:r.wave,Players:players,Enemies:enemies,Bullets:bullets}
+	return Snapshot{Type:"snapshot",Tick:r.tick,Phase:r.phase,Wave:r.wave,Players:players,Enemies:enemies,Bullets:bullets,Paused:r.paused}
 }
 
 func wsAccept(w http.ResponseWriter, req *http.Request) (net.Conn, *bufio.ReadWriter, error) {
