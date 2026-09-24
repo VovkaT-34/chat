@@ -37,7 +37,7 @@ type Player struct {
 	Score     int     `json:"score"`
 	Seq       uint64  `json:"seq"`
 	FireSeq   uint64  `json:"fireSeq"`
-}
+	processedFireSeq uint64
 
 type Enemy struct {
 	ID uint64 `json:"id"`
@@ -206,7 +206,7 @@ func (r *Room) update(m ClientMessage, id int) {
 			p.DY = clamp(m.Input.DY)
 			p.Seq = m.Input.Seq
 			if m.Input.Shoot {
-				p.FireSeq = m.Input.Seq
+				p.FireSeq++
 			}
 		}
 	}
@@ -264,10 +264,12 @@ func (r *Room) step() Snapshot {
 		}
 	}
 	for _,p := range r.players {
-		if p.FireSeq > 0 && p.Alive {
-			r.nextBulletID++
-			r.bullets[r.nextBulletID]=&Bullet{ID:r.nextBulletID,Owner:p.ID,X:p.X,Y:p.Y-24,VY:-9,Alive:true}
-			p.FireSeq=0
+		if p.FireSeq > p.processedFireSeq && p.Alive {
+			for p.processedFireSeq < p.FireSeq {
+				r.nextBulletID++
+				r.bullets[r.nextBulletID]=&Bullet{ID:r.nextBulletID,Owner:p.ID,X:p.X,Y:p.Y-24,VY:-9,Alive:true}
+				p.processedFireSeq++
+			}
 		}
 		for id,e := range r.enemies {
 			if distance2(p.X,p.Y,e.X,e.Y) <= 32*32 {
