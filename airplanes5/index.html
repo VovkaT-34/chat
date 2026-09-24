@@ -62,7 +62,7 @@ function mpRoomCode(){
 function mpUpdateUI(){
   const s=document.getElementById('mpStatus'), inp=document.getElementById('mpRoomInput');
   if(!s)return;
-  s.textContent='Игрок '+mpLocalPlayer+' · '+mpPeerCount+'/4'+(mpPanelNotice?' · '+mpPanelNotice:'');
+  s.textContent='Игрок '+mpLocalPlayer+' · '+mpPeerCount+'/2'+(mpPanelNotice?' · '+mpPanelNotice:'');
   const launch=document.getElementById('mpLaunch'), checks=document.getElementById('mpChecks');
   if(launch&&!mpStarted){launch.disabled=mpLocalSelection<0; launch.innerHTML='ПУСК<div id="mpChecks" class="mp-checks">'+Array.from({length:mpPeerCount},(_,i)=>'<span class="mp-check '+((i+1===mpLocalPlayer?mpLocalReady:(mpRemotePlayers[i+1]?.ready))?'ok':'')+'">✓ '+(i+1)+'</span>').join('')+'</div>';}
   if(inp && document.activeElement!==inp) inp.value=mpRoom;
@@ -151,7 +151,7 @@ async function mpJoin(room,isReconnect=false){
         return;
       }
       if(m.type!=='snapshot'||!Array.isArray(m.players))return;
-      mpPeerCount=Math.min(m.players.length,4);
+      mpPeerCount=Math.min(m.players.length,2);
       const next={};
       for(const p of m.players){
         const player=Number(p.id);
@@ -164,7 +164,6 @@ async function mpJoin(room,isReconnect=false){
         }
       }
       mpRemotePlayers=next;
-      mpWorldState={tick:Number(m.tick)||0,wave:Number(m.wave)||1,players:Array.isArray(m.players)?m.players:[],enemies:Array.isArray(m.enemies)?m.enemies:[],bullets:Array.isArray(m.bullets)?m.bullets:[]};
       mpLastSnapshotAt=performance.now();
       if(m.phase==='game') mpStarted=true; else mpStarted=false;
       mpRoomPaused=!!m.paused;
