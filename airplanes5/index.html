@@ -18,7 +18,7 @@ canvas{display:block!important;width:100vw!important;height:100vh!important;obje
 .joystick{display:none}
 .pause{position:absolute;left:0;right:0;bottom:max(4px,env(safe-area-inset-bottom));margin:auto;width:clamp(58px,14vw,82px);height:clamp(44px,8vh,62px);border:1px solid #ffffff55;border-radius:12px;background:#77777766;color:#fff;font-size:clamp(22px,5vw,32px);font-weight:700;line-height:1;opacity:.9;backdrop-filter:blur(2px);pointer-events:auto;touch-action:manipulation;-webkit-user-select:none;user-select:none}
 @media(min-width:700px){.mobile-controls{display:none}}
-.mp-world{position:fixed;inset:0;width:100vw;height:100vh;z-index:9000;pointer-events:none;display:none}
+.mp-world{display:none!important}
 </style>
 </head>
 <body>
@@ -227,7 +227,7 @@ window.__airplanes5IsMultiplayer=()=>mpSocketConnected;
 function mpWorldPoint(x,y,w,h){return [x*w/800,y*h/720];}
 function mpDrawWorld(){
  const c=document.getElementById('mpWorldCanvas'); if(!c)return;
- const active=mpSocketConnected&&mpStarted; c.style.display=active?'block':'none'; if(!active){requestAnimationFrame(mpDrawWorld);return;}
+ const active=false; c.style.display='none'; if(!active){requestAnimationFrame(mpDrawWorld);return;}
  const dpr=Math.max(1,devicePixelRatio||1),w=innerWidth,h=innerHeight;
  if(c.width!==w*dpr||c.height!==h*dpr){c.width=w*dpr;c.height=h*dpr;}
  const x=c.getContext('2d'); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,h);
