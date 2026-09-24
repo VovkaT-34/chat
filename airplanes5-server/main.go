@@ -93,6 +93,7 @@ type Room struct {
 	mu sync.Mutex
 	clients map[int]*Client
 	players map[int]*Player
+	sessions map[string]int
 	enemies map[uint64]*Enemy
 	bullets map[uint64]*Bullet
 	nextEnemyID uint64
@@ -112,7 +113,7 @@ func getRoom(code string) *Room {
 	defer roomsMu.Unlock()
 	r := rooms[code]
 	if r == nil {
-		r = &Room{clients: map[int]*Client{}, players: map[int]*Player{}, enemies: map[uint64]*Enemy{}, bullets: map[uint64]*Bullet{}, phase: "lobby", wave: 1}
+		r = &Room{clients: map[int]*Client{}, players: map[int]*Player{}, sessions: map[string]int{}, enemies: map[uint64]*Enemy{}, bullets: map[uint64]*Bullet{}, phase: "lobby", wave: 1}
 		rooms[code] = r
 	}
 	return r
@@ -140,14 +141,33 @@ func allReady(p map[int]*Player) bool {
 	return true
 }
 
-func (r *Room) add(c net.Conn, rw *bufio.ReadWriter) (int, bool) {
+func (r *Room) add(c net.Conn, rw *bufio.ReadWriter, session string) (int, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	for id := 1; id <= maxPlayers; id++ {
-		if _, ok := r.clients[id]; ok {
-			continue
+	id := 0
+	if session != "" {
+		if existing, ok := r.sessions[session]; ok {
+			if _, occupied := r.clients[existing]; !occupied {
+				id = existing
+			}
 		}
-		r.clients[id] = &Client{
+	}
+	if id == 0 {
+		for candidate := 1; candidate <= maxPlayers; candidate++ {
+			if _, ok := r.clients[candidate]; ok {
+				continue
+			}
+			id = candidate
+			break
+		}
+	}
+	if id == 0 {
+		return 0, false
+	}
+	if session != "" {
+		r.sessions[session] = id
+	}
+	r.clients[id] = &Client{
 			conn: c,
 			rw: rw,
 			player: id,
@@ -491,6 +511,7 @@ func writeText(c *Client, p []byte) error {
 
 func handleWS(w http.ResponseWriter, req *http.Request) {
 	code := req.URL.Query().Get("room")
+	session := req.URL.Query().Get("session")
 	if len(code) < 4 || len(code) > 8 {
 		http.Error(w, "invalid room", http.StatusBadRequest)
 		return
@@ -503,7 +524,7 @@ func handleWS(w http.ResponseWriter, req *http.Request) {
 	}
 
 	room := getRoom(code)
-	id, ok := room.add(conn, rw)
+	id, ok := room.add(conn, rw, session)
 	if !ok {
 		_ = conn.Close()
 		return
