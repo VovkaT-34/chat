@@ -140,7 +140,6 @@ func (i *Controls) Update(w donburi.World) {
 		i.query.Each(w, func(entry *donburi.Entry) {
 			airplane := component.PlayerAirplane.Get(entry)
 			in := component.Input.Get(entry)
-			component.Sprite.Get(entry).Hide()
 			isLocal := airplane.PlayerNumber == localPlayer
 			x := js.Global().Call("__airplanes5LocalX").Float()
 			y := js.Global().Call("__airplanes5LocalY").Float()
@@ -150,6 +149,8 @@ func (i *Controls) Update(w donburi.World) {
 				pos.X, pos.Y = x, y
 				transform.Transform.Get(entry).LocalPosition = pos
 			}
+			velocity := component.Velocity.Get(entry)
+			velocity.Velocity = math.Vec2{}
 			if isLocal {
 				dx, dy := 0.0, 0.0
 				if ebiten.IsKeyPressed(in.MoveUpKey) { dy = -1 }
