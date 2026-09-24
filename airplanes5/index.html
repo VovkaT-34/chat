@@ -142,6 +142,7 @@ async function mpJoin(room){
       mpWorldState={tick:Number(m.tick)||0,wave:Number(m.wave)||1,players:Array.isArray(m.players)?m.players:[],enemies:Array.isArray(m.enemies)?m.enemies:[],bullets:Array.isArray(m.bullets)?m.bullets:[]};
       mpStarted=m.phase==='game';
       mpRoomPaused=!!m.paused;
+      window.__airplanes5SetPaused(mpRoomPaused);
       if(mpStarted){
         const launch=document.getElementById('mpLaunch');
         if(launch)launch.style.display='none';
@@ -258,7 +259,10 @@ window.__airplanes5PauseRequest=null;
 window.__airplanes5Pause=function(e){
   if(e){e.preventDefault();e.stopPropagation();}
   if(mpSocketConnected){
-    mpSocket.send(JSON.stringify({type:'pause',paused:!mpRoomPaused}));
+    const next=!mpRoomPaused;
+    mpRoomPaused=next;
+    window.__airplanes5SetPaused(next);
+    mpSocket.send(JSON.stringify({type:'pause',paused:next}));
     return;
   }
   const next=!paused;window.__airplanes5SetPaused(next);window.__airplanes5PauseRequest=next;
@@ -266,7 +270,7 @@ window.__airplanes5Pause=function(e){
 window.__airplanes5SetPaused=function(value){paused=!!value;const b=document.getElementById('pauseButton');if(b)b.textContent=paused?'▶':'Ⅱ';if(paused)stopMusic();else if(gameplayActive)startMusic();};
 window.addEventListener('pointerdown',()=>ensureAudio(),{passive:true});window.addEventListener('touchstart',()=>ensureAudio(),{passive:true});window.addEventListener('keydown',()=>ensureAudio(),{passive:true});
 const initialRoom=mpRoomCode();document.addEventListener('DOMContentLoaded',()=>{document.getElementById('mpRoomInput').value=initialRoom;const b=document.getElementById("mpLaunch");if(b)b.style.display=mpSelectionScreenVisible?"block":"none";mpJoin(initialRoom);});
-const go=new Go();WebAssembly.instantiateStreaming(fetch('game.wasm'),go.importObject).then(result=>go.run(result.instance)).catch(error=>console.error('Airplanes 5 WASM error:',error));
+const go=new Go();WebAssembly.instantiateStreaming(fetch('game.wasm?v=mpfix-20260924-2'),go.importObject).then(result=>go.run(result.instance)).catch(error=>console.error('Airplanes 5 WASM error:',error));
 </script>
 <div id="mpPanel" class="mp-panel"><span id="mpStatus" class="mp-status">Подключение…</span><input id="mpRoomInput" maxlength="8" placeholder="КОД"><button type="button" onclick="mpJoin(document.getElementById('mpRoomInput').value)">Войти</button><button type="button" class="mp-copy" onclick="navigator.clipboard?.writeText(location.href)">Ссылка</button></div>
 <button id="mpLaunch" class="mp-launch" type="button" onclick="__airplanes5Launch()">ПУСК<div id="mpChecks" class="mp-checks"></div></button><div id="mpNotice" class="mp-notice"></div><div class="mobile-controls"><button id="pauseButton" class="pause" type="button" aria-label="Пауза" onclick="__airplanes5Pause(event)">Ⅱ</button></div>
