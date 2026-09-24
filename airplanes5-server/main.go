@@ -151,7 +151,7 @@ func (r *Room) add(c net.Conn, rw *bufio.ReadWriter) (int, bool) {
 			conn: c,
 			rw: rw,
 			player: id,
-			send: make(chan []byte, 16),
+			send: make(chan []byte, 2),
 			done: make(chan struct{}),
 		}
 		r.players[id] = &Player{ID: id, Selection: -1, Health: 3, Alive: true}
@@ -440,6 +440,24 @@ func (c *Client) closeWriter() {
 	c.closeOnce.Do(func() { close(c.done) })
 }
 
+func writeControl(c *Client, opcode byte, p []byte) error {
+	if len(p) > 125 {
+		return fmt.Errorf("control frame too large")
+	}
+	frame := append([]byte{0x80 | (opcode & 0x0f), byte(len(p))}, p...)
+	select {
+	case <-c.done:
+		return fmt.Errorf("client closed")
+	default:
+	}
+	select {
+	case c.send <- frame:
+		return nil
+	default:
+		return nil
+	}
+}
+
 func writeText(c *Client, p []byte) error {
 	frame, err := frameText(p)
 	if err != nil {
@@ -448,10 +466,26 @@ func writeText(c *Client, p []byte) error {
 	select {
 	case <-c.done:
 		return fmt.Errorf("client closed")
+	default:
+	}
+	// Snapshots are state, not events: if a slow client has an old snapshot
+	// queued, discard that old snapshot and keep only the newest state.
+	select {
 	case c.send <- frame:
 		return nil
 	default:
-		return fmt.Errorf("client send queue full")
+	}
+	select {
+	case <-c.send:
+	default:
+	}
+	select {
+	case c.send <- frame:
+		return nil
+	case <-c.done:
+		return fmt.Errorf("client closed")
+	default:
+		return nil
 	}
 }
 
@@ -499,7 +533,8 @@ func handleWS(w http.ResponseWriter, req *http.Request) {
 		case 8:
 			return
 		case 9:
-			_ = writeText(client, payload)
+			// WebSocket ping must be answered with a pong control frame.
+			_ = writeControl(client, 10, payload)
 		case 1:
 			var msg ClientMessage
 			if json.Unmarshal(payload, &msg) == nil {
