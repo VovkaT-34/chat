@@ -145,8 +145,10 @@ func (i *Controls) Update(w donburi.World) {
 			y := js.Global().Call("__airplanes5LocalY").Float()
 			if !isLocal { x = js.Global().Call("__airplanes5RemoteX", airplane.PlayerNumber).Float(); y = js.Global().Call("__airplanes5RemoteY", airplane.PlayerNumber).Float() }
 			if x != 0 || y != 0 {
+				camera := archetype.MustFindCamera(w)
+				cameraY := transform.Transform.Get(camera).LocalPosition.Y
 				pos := transform.Transform.Get(entry).LocalPosition
-				pos.X, pos.Y = x, y
+				pos.X, pos.Y = x, cameraY+y
 				transform.Transform.Get(entry).LocalPosition = pos
 			}
 			velocity := component.Velocity.Get(entry)
@@ -210,10 +212,11 @@ func (i *Controls) Update(w donburi.World) {
 			serverX := js.Global().Call("__airplanes5LocalX").Float()
 			serverY := js.Global().Call("__airplanes5LocalY").Float()
 			if serverX != 0 || serverY != 0 {
+				camera := archetype.MustFindCamera(w)
+				cameraY := transform.Transform.Get(camera).LocalPosition.Y
 				pos := transform.Transform.Get(entry).LocalPosition
 				pos.X = serverX
-				pos.Y = serverY
-				transform.Transform.Get(entry).LocalPosition = pos
+				pos.Y = cameraY + serverY
 			}
 			dx, dy := 0.0, 0.0
 			if in.MoveSpeed != 0 {
