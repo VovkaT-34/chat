@@ -146,11 +146,11 @@ func (r *Room) add(c net.Conn, rw *bufio.ReadWriter, session string) (int, bool)
 	defer r.mu.Unlock()
 
 	id := 0
+	var oldClient *Client
 	if session != "" {
 		if existing, ok := r.sessions[session]; ok {
-			if _, occupied := r.clients[existing]; !occupied {
-				id = existing
-			}
+			id = existing
+			oldClient = r.clients[existing]
 		}
 	}
 	if id == 0 {
@@ -165,25 +165,38 @@ func (r *Room) add(c net.Conn, rw *bufio.ReadWriter, session string) (int, bool)
 	if id == 0 {
 		return 0, false
 	}
-	if session != "" {
-		r.sessions[session] = id
-	}
-	r.clients[id] = &Client{
+
+	client := &Client{
 		conn: c,
 		rw: rw,
 		player: id,
 		send: make(chan []byte, 2),
 		done: make(chan struct{}),
 	}
+	if session != "" {
+		r.sessions[session] = id
+	}
+	// A reconnect with the same session replaces the old socket in the same
+	// player slot. The old handler must not be allowed to remove the new one.
+	r.clients[id] = client
 	if _, exists := r.players[id]; !exists {
 		r.players[id] = &Player{ID: id, Selection: -1, Health: 3, Alive: true}
+	}
+
+	if oldClient != nil && oldClient != client {
+		oldClient.closeWriter()
+		_ = oldClient.conn.Close()
 	}
 	return id, true
 }
 
-func (r *Room) remove(id int) {
+func (r *Room) remove(id int, client *Client) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	// Only the currently registered connection may remove this player.
+	if current, ok := r.clients[id]; !ok || current != client {
+		return
+	}
 	delete(r.clients, id)
 	delete(r.players, id)
 	if len(r.clients) == 0 {
@@ -541,7 +554,7 @@ func handleWS(w http.ResponseWriter, req *http.Request) {
 	_ = writeText(client, welcomeBytes)
 
 	defer func() {
-		room.remove(id)
+		room.remove(id, client)
 		client.closeWriter()
 		_ = conn.Close()
 	}()
