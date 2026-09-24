@@ -127,6 +127,23 @@ s = s.replace(
     'if len(chosenPlayers) > 0 && js.Global().Call("__airplanes5CanStart").Bool() {',
     1,
 )
+s = s.replace('''if len(chosenPlayers) > 0 && js.Global().Call("__airplanes5CanStart").Bool() {
+		s.chosenPlayers = chosenPlayers
+		s.started = true
+		for _, entry := range playerSelects {
+			ps := component.PlayerSelect.Get(entry)
+			if ps.Selected && ps.Ready {
+				velocity := component.Velocity.Get(entry)
+				velocity.Velocity.Y = -0.5
+			}
+		}
+	}''', '''if len(chosenPlayers) > 0 && js.Global().Call("__airplanes5CanStart").Bool() {
+		s.chosenPlayers = chosenPlayers
+		s.started = true
+		s.startCallback(s.chosenPlayers)
+		return
+	}''', 1)
+
 s = re.sub(r'(")Player\\b', r'\1Игрок', s)
 
 p.write_text(s)
