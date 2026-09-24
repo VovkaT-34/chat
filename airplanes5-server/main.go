@@ -38,6 +38,7 @@ type Player struct {
 	Seq       uint64  `json:"seq"`
 	FireSeq   uint64  `json:"fireSeq"`
 	processedFireSeq uint64
+}
 
 type Enemy struct {
 	ID uint64 `json:"id"`
