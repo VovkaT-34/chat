@@ -98,6 +98,16 @@
             return;
         }
 
+        var captchaInput = document.querySelector('input[name="turnstile-token"]');
+        var captchaToken = captchaInput && captchaInput.value
+            ? captchaInput.value
+            : "";
+
+        if (!captchaToken) {
+            message.textContent = "Подтвердите проверку безопасности и попробуйте снова.";
+            return;
+        }
+
         if (submitButton) {
             submitButton.disabled = true;
             submitButton.textContent = "Создаём аккаунт...";
@@ -109,9 +119,11 @@
             {
                 email: email,
                 password: password,
-                data: { username: username }
+                data: { username: username },
+                gotrue_meta_security: { captcha_token: captchaToken }
             }
         ).then(function (result) {
+            try { if (window.turnstile) window.turnstile.reset(); } catch (e) {}
             var data = result ? result.data : null;
             var error = result ? result.error : null;
 
@@ -160,6 +172,7 @@
                 window.location.href = "login.html";
             }, 1200);
         }).catch(function (error) {
+            try { if (window.turnstile) window.turnstile.reset(); } catch (e) {}
             console.error("Неожиданная ошибка регистрации:", error);
             message.textContent =
                 "Не удалось выполнить регистрацию. Проверьте интернет-соединение и попробуйте ещё раз позже.";
