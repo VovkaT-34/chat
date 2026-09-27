@@ -59,7 +59,7 @@
         }
     })();
 
-    function loginRequest(email, password) {
+    function loginRequest(email, password, captchaToken) {
         return new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
 
@@ -132,7 +132,10 @@
 
             xhr.send(JSON.stringify({
                 email: email,
-                password: password
+                password: password,
+                gotrue_meta_security: {
+                    captcha_token: captchaToken
+                }
             }));
         });
     }
@@ -249,12 +252,22 @@
             guard.attempts = 0;
         }
 
+        var captchaInput = document.querySelector('input[name="turnstile-token"]');
+        var captchaToken = captchaInput && captchaInput.value
+            ? captchaInput.value
+            : "";
+
+        if (!captchaToken) {
+            errorBox.textContent = "Подтвердите проверку безопасности и попробуйте снова.";
+            return;
+        }
+
         if (submitButton) {
             submitButton.disabled = true;
             submitButton.textContent = "Входим...";
         }
 
-        loginRequest(email, password)
+        loginRequest(email, password, captchaToken)
             .then(function (session) {
                 try {
                     localStorage.removeItem(key);
@@ -270,6 +283,8 @@
                     };
                 }
 
+                try { if (window.turnstile) window.turnstile.reset(); } catch (e) {}
+
                 // Do not perform another authenticated request here.
                 // The main page will read the saved Supabase session through
                 // the normal Supabase client, avoiding the old Safari network
@@ -277,6 +292,7 @@
                 window.location.replace("index.html");
             })
             .catch(function (error) {
+                try { if (window.turnstile) window.turnstile.reset(); } catch (e) {}
                 guard.attempts += 1;
 
                 if (guard.attempts >= 5) {
