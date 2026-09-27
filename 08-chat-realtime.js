@@ -264,34 +264,14 @@ function cacheAndApplyMessageStatus(id, status) {
 
 async function refreshOwnMessageStatuses() {
     if (!currentUser || !supabaseClient) return;
-
-    let query = supabaseClient
-        .from("messages")
-        .select("id,chat_id")
-        .eq("user_id", currentUser.id)
-        .order("id", { ascending: false })
-        .limit(10);
-
-    const currentChat = Number(currentChatId || 0);
-    if (currentChat > 0) query = query.eq("chat_id", currentChat);
-
-    const result = await query;
-    if (result.error || !result.data || !result.data.length) return;
-
-    for (const message of result.data) {
-        try {
-            const status = await supabaseClient.rpc(
-                "get_message_status",
-                { p_message_id: Number(message.id) }
-            );
-
-            if (!status.error) {
-                cacheAndApplyMessageStatus(message.id, status.data);
-            }
-        } catch (error) {
-            console.warn("Ошибка статуса:", error);
-        }
-    }
+    const chatId = Number(currentChatId || 0);
+    if (!chatId || typeof refreshChatMessageStatuses !== "function") return;
+    const box = document.getElementById("messages");
+    if (!box) return;
+    const ids = Array.prototype.slice.call(
+        box.querySelectorAll('.message[data-message-id][data-user-id="' + currentUser.id + '"]')
+    ).map(function (el) { return Number(el.dataset.messageId); }).filter(Boolean);
+    if (ids.length) await refreshChatMessageStatuses(chatId, ids);
 }
 
 // ===============================
