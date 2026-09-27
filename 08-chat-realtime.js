@@ -31,7 +31,6 @@ async function registerAndroidFcmToken(token) {
             return;
         }
 
-        console.log("FCM-токен Android зарегистрирован");
     } catch (error) {
         console.warn("Ошибка регистрации FCM-токена Android:", error);
     }
