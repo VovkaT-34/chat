@@ -1,33 +1,43 @@
 # E2EE audit: Signal Protocol + post-quantum protection
 
-Status: audit only; no production chat behavior changed.
+Status: audit and design only. No production chat behavior or Supabase schema changed.
 
-## Current architecture findings
+## Confirmed current architecture
 
-- The site is a static HTML/JavaScript application. The main page loads separate scripts directly; there is no root `package.json`.
-- Supabase JS client is created in `supabase.js`; project ref is `sxkukrqjtgkxmzuzondm`.
-- Message plaintext is currently written to `public.messages.text` by `06-chat-send.js`.
-- `05-chat-messages.js` and `14-chat-message-render.js` read/render `text` and reply previews.
-- `08-chat-realtime.js` reads incoming message content and can pass it to Android notifications.
-- `push.js` invokes the `send-message-push` Edge Function; `sw.js` displays the push payload's body. The push function must be audited before E2EE is enabled.
-- The app currently uses numeric chat IDs and existing server-side delivery/read/status logic. Those features should be preserved where they can work with ciphertext.
-- The app supports private, group, and public chats. The first rollout must be explicitly limited to one-to-one private chats; other chat types must not be presented as end-to-end encrypted until implemented and tested.
+- Static HTML/JavaScript PWA; no root `package.json`. Supabase client is initialized in `supabase.js`.
+- `public.messages` currently stores message plaintext in `text`; current table includes `id, chat_id, user_id, text, created_at, reply_to`.
+- `06-chat-send.js` inserts plaintext and fetches reply previews from `text`.
+- `05-chat-messages.js` loads `text` and reply previews; `14-chat-message-render.js` renders message text and message actions.
+- `08-chat-realtime.js` receives the database row through Realtime and handles delivery/notification-related paths.
+- `push.js` invokes the `send-message-push` Edge Function.
+- Supabase `send-message-push` version 19 selects `messages.text` and places that value in both Web Push and FCM notification bodies. This is a confirmed plaintext exposure path and must be changed before any encrypted pilot is enabled.
+- `sw.js` displays the push payload's `body` directly. For encrypted messages, push must be generic (for example, “Новое зашифрованное сообщение”) and must not include content, reply previews, or other secrets.
+- Existing RLS is enabled on `messages`, `chats`, and `chat_members`. The current `messages` SELECT policy permits members of a chat and public chats to read message rows. RLS does not protect message contents from database operators; E2EE must encrypt before insertion.
+- The app includes public, group, and private conversations. Pilot must be restricted to a verified one-to-one private chat. Other chat types remain explicitly unencrypted until separately implemented.
 
-## Security requirements for the pilot
+## Protocol/library finding
 
-1. Encrypt on the sender's device before any Supabase request.
-2. Store only ciphertext and necessary routing/protocol metadata on the server; never upload private identity/session keys.
-3. Keep identity keys, prekeys, and ratchet state in device-local persistent storage with a documented recovery/device-change strategy.
-4. Do not put message plaintext, reply previews, or other sensitive content in push payloads, logs, analytics, or error messages.
-5. Verify recipient identity keys and provide a way for users to compare/verify safety numbers.
-6. Fail closed if required post-quantum session establishment is unavailable; never silently downgrade.
-7. Preserve current non-E2EE chat behavior until the pilot is deliberately enabled. Clearly label which chat is encrypted and which is not.
-8. Test multiple devices, browser refresh/restart, out-of-order delivery, duplicate realtime events, key rotation, recipient key changes, and failure/recovery.
+Signal's official specifications describe PQXDH for post-quantum initial key establishment and post-quantum ratchet options (including SPQR / Triple Ratchet material in the Double Ratchet specification). This is the right protocol family to target, but protocol documentation alone does not establish that a usable browser implementation is available.
 
-## Library decision gate
+The official `signalapp/libsignal` repository exposes Java, Swift, and TypeScript APIs backed by Rust and explicitly says use outside Signal is unsupported. The TypeScript package is not documented as a drop-in browser/PWA library. Do not ship a custom cryptographic implementation or assume the official library's latest PQ ratchet features are exposed in a browser-compatible build without verifying the exact release, APIs, and target environment.
 
-Signal's official `signalapp/libsignal` documents Java, Swift, and TypeScript/Node-facing packages and explicitly says external use is unsupported; the repository is not a simple drop-in browser script for this static site. The older browser package `libsignal-protocol` is stale and does not meet the required post-quantum requirement by itself.
+Decision gate: test whether the official implementation can be built and safely maintained for our actual web/PWA runtime. If not, compare audited alternatives against the same requirements and clearly distinguish Signal-inspired protocol compatibility from official Signal interoperability. Do not silently downgrade or claim “Signal Protocol” where the implementation is not wire-compatible.
 
-A browser-capable third-party implementation claiming PQXDH and post-quantum ratcheting is a candidate for evaluation, but it is **not wire-compatible with Signal Messenger** and is not affiliated with Signal. It must not be described as the official Signal implementation. Before choosing it, review its protocol profile, implementation/security review, license, API stability, browser storage model, and interoperability claims.
+## Proposed implementation design (not yet applied)
 
-Do not implement custom cryptographic primitives or enable E2EE based on a demo alone. Next step is to complete the library/security review and map the exact message schema and push function before writing integration code.
+1. Add a versioned encrypted-message envelope, separate from plaintext. Minimum fields: protocol/version identifier, ciphertext, message type, sender device/key identifier, session/prekey metadata needed by the selected protocol, and authenticated associated-data binding to chat ID, sender ID, and message ID where supported.
+2. Add device public identity/prekey records only. Private identity keys, one-time private prekeys, session/ratchet state, and decrypted message cache must remain local and protected. Define device reset, key change, and recovery behavior before enabling the pilot.
+3. Update sending, loading, realtime, reply previews, search/copy/rendering, and notifications as one coherent feature. Replies must reference encrypted message IDs and must never fetch or display server-side plaintext previews.
+4. Update `send-message-push` before rollout: encrypted messages get generic notification text; no plaintext can be selected into notification payloads. Preserve existing call notifications separately.
+5. Use a per-chat encryption state/version so only the pilot private chat is labelled encrypted. Reject plaintext sends in a chat marked encrypted; never silently mix encrypted and plaintext messages.
+6. Preserve delivery/read receipts as metadata only. Avoid exposing unnecessary content or key material in logs and error responses.
+7. Add tests for two devices, refresh/restart, offline/out-of-order messages, replay/duplicate events, invalid ciphertext, changed recipient identity keys, no-prekey condition, key rotation, device loss, and push payload inspection.
+
+## Next safe steps
+
+- Finish protocol/library feasibility review and pin a version/release.
+- Inspect the complete chat-type determination and message action paths before touching them.
+- Prepare a reviewable PR/branch implementation with a reversible schema migration.
+- Test in a separate/private pilot chat; do not deploy to the live site until the cryptographic and push paths pass review.
+
+No production messages have been modified and no E2EE has been enabled.
