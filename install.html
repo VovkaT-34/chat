@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Установка чата</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="favicon.svg">
+<link rel="stylesheet" href="chat.css">
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="auth-check.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:#fffaf5;color:#30251e;font-family:Arial,sans-serif;line-height:1.55}
+.install-page{width:min(760px,100%);margin:0 auto}
+.page-head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.back{width:42px;height:42px;flex:none;border:0;border-radius:50%;background:#6eae83;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px}
+h1{font-size:25px;line-height:1.25;margin:0}
+.intro{margin:0 0 18px;color:#786e67}
+.card{background:#fff;border:1px solid #eadfd5;border-radius:18px;box-shadow:0 8px 24px rgba(55,38,25,.09);overflow:hidden;margin-bottom:14px;padding:20px}
+.card h2{font-size:20px;margin:0 0 12px;color:#5d4637}
+.card h3{font-size:16px;margin:16px 0 6px}
+ol{margin:0;padding-left:24px}
+li{padding-left:3px;margin:0 0 10px}
+li:last-child{margin-bottom:0}
+.note{margin-top:14px;padding:12px 14px;border-left:4px solid #d29a43;border-radius:0 10px 10px 0;background:#fff7e8;color:#604a31;font-size:14px}
+.links{padding:8px}
+.links a{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#5d4637;text-decoration:none;padding:13px 14px;margin:4px 0;border:1px solid #eadfd5;border-radius:11px;background:#fffaf5;font-weight:700}
+.links a::after{content:"→";font-size:18px;line-height:1;flex:none}
+.links a:hover{background:#f7eee6}
+@media(max-width:700px){body{padding:12px}.card{padding:16px}.page-head h1{font-size:22px}}
+</style>
+</head>
+<body>
+<main class="install-page">
+<header class="page-head">
+<button class="back" type="button" onclick="location.href='settings.html'" aria-label="Назад в настройки" title="Назад в настройки">‹</button>
+<h1>Установка чата на телефон</h1>
+</header>
+<p class="intro">Добавьте чат на главный экран телефона, чтобы открывать его как приложение. Установка выполняется через браузер — магазин приложений не нужен.</p>
+
+<section class="card">
+<h2>🤖 Android — Google Chrome</h2>
+<ol>
+<li>Откройте сайт чата в браузере Google Chrome и войдите в свой аккаунт.</li>
+<li>Нажмите меню браузера <strong>⋮</strong> в правом верхнем углу.</li>
+<li>Если предлагается <strong>«Установить»</strong>, выберите этот вариант и подтвердите установку. Если доступно только <strong>«Создать ярлык»</strong>, можно выбрать его — на главном экране появится значок для быстрого открытия сайта.</li>
+<li>Откройте чат с созданного значка и нажмите в чате <strong>«Включить уведомления»</strong>, если такая кнопка отображается. Разрешите уведомления, когда браузер или система запросит разрешение.</li>
+</ol>
+<div class="note"><strong>Важно:</strong> установка приложения и разрешение уведомлений — разные действия. Наличие значка само по себе не означает, что уведомления включены. Названия пунктов меню могут отличаться в зависимости от телефона и версии Chrome.</div>
+</section>
+
+<section class="card">
+<h2>🍎 iPhone — Safari</h2>
+<ol>
+<li>Откройте браузер <strong>Safari</strong> и перейдите на сайт чата.</li>
+<li>Нажмите кнопку <strong>«Поделиться»</strong> — значок квадрата со стрелкой вверх.</li>
+<li>Прокрутите меню и выберите <strong>«На экран Домой»</strong>. Если пункт не виден, проверьте дополнительные действия в меню.</li>
+<li>При наличии переключателя <strong>«Открывать как веб-приложение»</strong> включите его, затем нажмите <strong>«Добавить»</strong>.</li>
+<li>Запустите чат с нового значка. Войдите в аккаунт и нажмите <strong>«Включить уведомления»</strong>, если кнопка доступна. Подтвердите системный запрос на разрешение уведомлений.</li>
+</ol>
+<div class="note"><strong>Важно:</strong> поддержка веб-уведомлений на iPhone зависит от версии iOS и способа добавления сайта на экран «Домой». Если запрос разрешения не появляется, проверьте настройки уведомлений устройства и настройки самого сайта.</div>
+</section>
+
+<section class="card">
+<h2>Если уведомления не приходят</h2>
+<ol>
+<li>Убедитесь, что уведомления разрешены для чата в настройках телефона и браузера.</li>
+<li>Откройте чат и проверьте, доступна ли кнопка включения уведомлений.</li>
+<li>На Android проверьте системные ограничения фоновой работы и энергосбережения для браузера или установленного веб-приложения. Пункты меню зависят от производителя телефона.</li>
+</ol>
+<p class="note">Даже при правильных настройках доставка push-уведомлений может зависеть от операционной системы, браузера, сети и энергосбережения. Эта инструкция не гарантирует мгновенную доставку.</p>
+</section>
+
+<div class="links"><a href="privacy.html">Политика конфиденциальности</a><a href="terms.html">Пользовательское соглашение</a><a href="settings.html">Вернуться в настройки</a></div>
+</main>
+</body>
+</html>
