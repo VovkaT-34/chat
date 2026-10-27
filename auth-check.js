@@ -78,8 +78,13 @@ async function checkAuth() {
             if (storedSession && storedSession.access_token && storedSession.user) session = storedSession;
         }
         if (!session || !session.user || !session.user.id) { window.location.replace(loginPath); return; }
-        const { data: profile, error: profileError } = await supabaseClient.from("profiles").select("approved").eq("id", session.user.id).single();
+        const { data: profile, error: profileError } = await supabaseClient.from("profiles").select("approved,role").eq("id", session.user.id).single();
         if (profileError || !profile || profile.approved !== true) { window.location.replace(loginPath); return; }
+        const pageName = window.location.pathname.split("/").pop() || "";
+        if (pageName === "game-glaz-boga.html" && !["admin", "superadmin"].includes(profile.role)) {
+            window.location.replace("games.html");
+            return;
+        }
         installOsintAuthFetch();
         // RAM/scan UI is managed by glaz-ram.js on the Glaz Boga page.
     } catch (error) {
