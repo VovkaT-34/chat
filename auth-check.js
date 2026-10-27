@@ -66,9 +66,8 @@ async function checkAuth() {
     const loginPath = window.location.pathname.includes("/airplanes5/") ? "../login.html" : "./login.html";
     const initialPageName = (window.location.pathname.split("/").pop() || "").toLowerCase();
     const initialPageRoute = initialPageName.replace(/\.html$/i, "");
-    // On Netlify's games listing, let the page's dedicated Supabase check
-    // control only the two restricted cards. Direct game URLs remain protected below.
-    if (window.location.hostname === "brut-chat.netlify.app" && (initialPageRoute === "games")) return;
+    // Netlify uses the page-level Supabase check for these two cards only.
+    // Continue the normal authentication and approval checks for the page itself.
     try {
         try { await loadSupabaseIfNeeded(); } catch (error) {}
         if (!window.supabaseClient) { window.location.replace(loginPath); return; }
@@ -91,7 +90,8 @@ async function checkAuth() {
             window.location.replace(inAirplanesFolder ? "../games.html" : "games.html");
             return;
         }
-        if (["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
+        const isNetlifyGamesPage = window.location.hostname === "brut-chat.netlify.app" && initialPageRoute === "games";
+        if (!isNetlifyGamesPage && ["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
             const revealCards = () => {
                 document.querySelectorAll('a.play[href="game-glaz-boga.html"], a.play[href="game-airplanes2.html"]').forEach(link => {
                     const card = link.closest(".game-card");
