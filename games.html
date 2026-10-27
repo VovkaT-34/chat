@@ -86,5 +86,38 @@
     </article>
   </section>
 </div>
+<script>
+(async function restrictGlazBogaCard() {
+  const link = document.querySelector('a.play[href="game-glaz-boga.html"]');
+  const card = link && link.closest('.game-card');
+  if (!card) return;
+  card.style.display = 'none';
+  try {
+    if (!window.supabaseClient) {
+      const script = document.createElement('script');
+      script.src = 'supabase.js';
+      await new Promise((resolve, reject) => {
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+    if (!window.supabaseClient) return;
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) return;
+    const { data: profile, error } = await supabaseClient
+      .from('profiles')
+      .select('approved,role')
+      .eq('id', user.id)
+      .single();
+    if (!error && profile && profile.approved === true &&
+        ['admin', 'superadmin'].includes(profile.role)) {
+      card.style.display = '';
+    }
+  } catch (error) {
+    console.warn('Не удалось проверить доступ к «Глазу Бога».', error);
+  }
+})();
+</script>
 </body>
 </html>
