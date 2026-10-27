@@ -87,6 +87,14 @@
     </article>
   </section>
 </div>
-<!-- Restricted cards are revealed by auth-check.js only after role verification. -->
+<!-- On Netlify only, show these two game cards to every visitor as requested. Other domains retain role-based visibility. -->
+<script>
+if (window.location.hostname === "brut-chat.netlify.app") {
+  document.querySelectorAll('a.play[href="game-glaz-boga.html"], a.play[href="game-airplanes2.html"]').forEach(link => {
+    const card = link.closest(".game-card");
+    if (card) card.hidden = false;
+  });
+}
+</script>
 </body>
 </html>
