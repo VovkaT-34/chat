@@ -64,6 +64,11 @@ function installOsintAuthFetch() {
 
 async function checkAuth() {
     const loginPath = window.location.pathname.includes("/airplanes5/") ? "../login.html" : "./login.html";
+    const initialPageName = (window.location.pathname.split("/").pop() || "").toLowerCase();
+    const initialPageRoute = initialPageName.replace(/\.html$/i, "");
+    // On Netlify's games listing, let the page's dedicated Supabase check
+    // control only the two restricted cards. Direct game URLs remain protected below.
+    if (window.location.hostname === "brut-chat.netlify.app" && (initialPageRoute === "games" || initialPageRoute === "")) return;
     try {
         try { await loadSupabaseIfNeeded(); } catch (error) {}
         if (!window.supabaseClient) { window.location.replace(loginPath); return; }
@@ -82,14 +87,11 @@ async function checkAuth() {
         const pageName = (window.location.pathname.split("/").pop() || "").toLowerCase();
         const pageRoute = pageName.replace(/\.html$/i, "");
         const inAirplanesFolder = window.location.pathname.toLowerCase().includes("/airplanes5/");
-        const isNetlifyGamesPage = window.location.hostname === "brut-chat.netlify.app" && (pageRoute === "games" || pageRoute === "");
         if ((pageRoute === "game-glaz-boga" || pageRoute === "game-airplanes2" || (inAirplanesFolder && pageRoute === "index")) && !["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
             window.location.replace(inAirplanesFolder ? "../games.html" : "games.html");
             return;
         }
-        // Netlify games.html uses its dedicated Supabase role check. Keep the
-        // shared card-reveal logic unchanged on Workers and Vercel.
-        if (!isNetlifyGamesPage && ["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
+        if (["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
             const revealCards = () => {
                 document.querySelectorAll('a.play[href="game-glaz-boga.html"], a.play[href="game-airplanes2.html"]').forEach(link => {
                     const card = link.closest(".game-card");
