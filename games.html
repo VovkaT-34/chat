@@ -119,6 +119,30 @@
     console.warn('Не удалось проверить доступ к «Глазу Бога».', error);
   }
 })();
+ 
+(async function restrictAirplanesCard() {
+  const link = document.querySelector('a.play[href="game-airplanes2.html"]');
+  const card = link && link.closest('.game-card');
+  if (!card) return;
+  card.style.display = 'none';
+  try {
+    if (!window.supabaseClient) return;
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) return;
+    const { data: profile, error } = await supabaseClient
+      .from('profiles')
+      .select('approved,role')
+      .eq('id', user.id)
+      .single();
+    if (!error && profile && profile.approved === true &&
+        ['admin', 'superadmin'].includes(profile.role)) {
+      card.style.display = '';
+    }
+  } catch (error) {
+    console.warn('Не удалось проверить доступ к Airplanes 2.', error);
+  }
+})();
+
 </script>
 </body>
 </html>

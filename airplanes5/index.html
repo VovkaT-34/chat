@@ -112,8 +112,20 @@ async function mpJoin(room,isReconnect=false){
     mpStarted=false;
   }
   const scheme=location.protocol==='https:'?'wss:':'ws:';
-  const wsUrl=scheme+'//airplanes5-multiplayer.onrender.com/ws?room='+encodeURIComponent(room)+'&session='+encodeURIComponent(mpKey);
   try{
+    if (!window.supabaseClient) throw new Error('Supabase авторизация не загружена');
+    const sessionResult = await window.supabaseClient.auth.getSession();
+    const accessToken = sessionResult && sessionResult.data && sessionResult.data.session
+      ? sessionResult.data.session.access_token : '';
+    if (!accessToken) throw new Error('Нет действующей сессии');
+    const ticketResponse = await fetch('https://airplanes5-multiplayer.onrender.com/auth-ticket', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    });
+    if (!ticketResponse.ok) throw new Error('Доступ разрешён только admin/superadmin');
+    const ticketData = await ticketResponse.json();
+    if (!ticketData.ticket) throw new Error('Не удалось получить билет подключения');
+    const wsUrl=scheme+'//airplanes5-multiplayer.onrender.com/ws?room='+encodeURIComponent(room)+'&session='+encodeURIComponent(mpKey)+'&ticket='+encodeURIComponent(ticketData.ticket);
     mpSocket=new WebSocket(wsUrl);
     mpSocket.onopen=()=>{
       mpSocketConnected=true;
