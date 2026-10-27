@@ -10,6 +10,7 @@ import httpx
 
 import phonenumbers
 from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from maigret import search as maigret_search
 from maigret.sites import MaigretDatabase
@@ -132,26 +133,68 @@ def health():
 
 
 async def require_authenticated_user(request: Request):
-    """Validate the caller's Supabase access token without exposing service secrets."""
+    """Validate the Supabase session and require an approved admin profile."""
     authorization = request.headers.get("authorization", "")
     if not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Требуется авторизация")
     token = authorization[7:].strip()
     if not token:
         raise HTTPException(status_code=401, detail="Требуется авторизация")
+
+    headers = {
+        "Authorization": "Bearer " + token,
+        "apikey": "sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3N",
+    }
     try:
         async with httpx.AsyncClient(timeout=5) as client:
-            response = await client.get("https://sxkukrqjtgkxmzuzondm.supabase.co/auth/v1/user", headers={"Authorization": "Bearer " + token, "apikey": "sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3N"})
-        if response.status_code != 200:
-            raise HTTPException(status_code=401, detail="Недействительная сессия")
-        user = response.json()
-        if not user.get("id"):
-            raise HTTPException(status_code=401, detail="Недействительная сессия")
-        return user
+            response = await client.get(
+                "https://sxkukrqjtgkxmzuzondm.supabase.co/auth/v1/user",
+                headers=headers,
+            )
+            if response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Недействительная сессия")
+
+            user = response.json()
+            user_id = user.get("id")
+            if not user_id:
+                raise HTTPException(status_code=401, detail="Недействительная сессия")
+
+            profile_response = await client.get(
+                "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/profiles",
+                params={"id": "eq." + user_id, "select": "role,approved"},
+                headers={**headers, "Accept": "application/json"},
+            )
+            if profile_response.status_code != 200:
+                raise HTTPException(status_code=403, detail="Не удалось проверить права администратора")
+
+            profiles = profile_response.json()
+            profile = profiles[0] if isinstance(profiles, list) and profiles else None
+            if (
+                not profile
+                or profile.get("approved") is not True
+                or profile.get("role") not in {"admin", "superadmin"}
+            ):
+                raise HTTPException(status_code=403, detail="Доступ разрешён только администраторам")
+
+            return user
     except HTTPException:
         raise
     except Exception:
-        raise HTTPException(status_code=401, detail="Не удалось проверить сессию")
+        raise HTTPException(status_code=503, detail="Не удалось проверить сессию и права доступа")
+
+
+@app.middleware("http")
+async def enforce_admin_access(request: Request, call_next):
+    """Protect every OSINT API route; only health checks and CORS preflight are public."""
+    if request.url.path == "/health" or request.method == "OPTIONS":
+        return await call_next(request)
+
+    try:
+        await require_authenticated_user(request)
+    except HTTPException as exc:
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+    return await call_next(request)
 
 
 @app.get("/scan/state")
@@ -242,7 +285,6 @@ def release_process_memory():
 @app.post("/memory/reset")
 async def reset_memory(request: Request):
     """Release reclaimable Python/Linux heap pages; never reset while a scan is active."""
-    await require_authenticated_user(request)
     state = scan_state()
     if state["scanning"]:
         raise HTTPException(status_code=409, detail="Нельзя очищать ОЗУ во время сканирования")
@@ -319,7 +361,6 @@ async def mailaccess_memory():
 @app.post("/mailaccess/memory/reset")
 async def mailaccess_memory_reset(request: Request):
     """Restart the isolated MailAccess Render service after confirming no local deep scan is active."""
-    await require_authenticated_user(request)
     state = scan_state()
     if state["scanning"]:
         raise HTTPException(status_code=409, detail="Нельзя очищать ОЗУ во время сканирования")
