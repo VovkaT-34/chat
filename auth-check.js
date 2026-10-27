@@ -81,8 +81,8 @@ async function checkAuth() {
         const { data: profile, error: profileError } = await supabaseClient.from("profiles").select("approved,role").eq("id", session.user.id).single();
         if (profileError || !profile || profile.approved !== true) { window.location.replace(loginPath); return; }
         const pageName = window.location.pathname.split("/").pop() || "";
-        if (pageName === "game-glaz-boga.html" && !["admin", "superadmin"].includes(profile.role)) {
-            window.location.replace("games.html");
+        if ((pageName === "game-glaz-boga.html" || pageName === "game-airplanes2.html" || (window.location.pathname.includes("/airplanes5/") && pageName === "index.html")) && !["admin", "superadmin"].includes(profile.role)) {
+            window.location.replace(window.location.pathname.includes("/airplanes5/") ? "../games.html" : "games.html");
             return;
         }
         installOsintAuthFetch();
