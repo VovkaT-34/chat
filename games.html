@@ -87,5 +87,31 @@
     </article>
   </section>
 </div>
+<script>
+/* Netlify fallback: reveal the two restricted cards only after Supabase verifies an approved admin role. */
+(async function revealAdminGameCards() {
+  try {
+    const client = window.supabaseClient;
+    if (!client) return;
+    const { data: userData, error: userError } = await client.auth.getUser();
+    const user = userData && userData.user;
+    if (userError || !user || !user.id) return;
+    const { data: profile, error: profileError } = await client
+      .from("profiles")
+      .select("approved,role")
+      .eq("id", user.id)
+      .single();
+    if (profileError || !profile || profile.approved !== true) return;
+    const role = String(profile.role || "").trim().toLowerCase();
+    if (role !== "admin" && role !== "superadmin") return;
+    document.querySelectorAll('a.play[href="game-glaz-boga.html"], a.play[href="game-airplanes2.html"]').forEach(link => {
+      const card = link.closest(".game-card");
+      if (card) card.hidden = false;
+    });
+  } catch (error) {
+    console.warn("Admin game cards remain hidden because role verification failed.", error);
+  }
+})();
+</script>
 </body>
 </html>
