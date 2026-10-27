@@ -1,40 +1,31 @@
-// Show the two restricted game cards only after the site's auth check succeeds
-// and Supabase confirms an administrator role. Fail closed on every error.
+// Restrict the two special game cards to approved admin accounts.
 (async function applyGameCardAccess() {
-  const selectors = [
+  const cards = [
     'a.play[href="game-glaz-boga.html"]',
     'a.play[href="game-airplanes2.html"]'
-  ];
-  const cards = selectors
-    .map(selector => document.querySelector(selector)?.closest('.game-card'))
-    .filter(Boolean);
+  ].map(selector => document.querySelector(selector)?.closest('.game-card')).filter(Boolean);
 
-  // The HTML hidden attribute is the safe default for logged-out/unverified users.
+  // HTML marks these cards hidden by default; keep them hidden on any failure.
   try {
-    if (typeof window.checkAuth === 'function') {
-      // auth-check.js also loads/validates the current approved session.
-      await window.checkAuth();
-    }
-
     const client = window.supabaseClient;
     if (!client) return;
 
-    const { data: sessionData, error: sessionError } = await client.auth.getSession();
-    const user = sessionData && sessionData.session && sessionData.session.user;
-    if (sessionError || !user || !user.id) return;
+    const { data: userData, error: userError } = await client.auth.getUser();
+    const user = userData && userData.user;
+    if (userError || !user || !user.id) return;
 
     const { data: profile, error: profileError } = await client
       .from('profiles')
-      .select('role')
+      .select('approved,role')
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile) return;
+    if (profileError || !profile || profile.approved !== true) return;
     const role = String(profile.role || '').trim().toLowerCase();
     if (role !== 'admin' && role !== 'superadmin') return;
 
     cards.forEach(card => { card.hidden = false; });
   } catch (error) {
-    console.warn('Restricted game cards remain hidden because access could not be verified.', error);
+    console.warn('Game card access verification failed; restricted cards remain hidden.', error);
   }
 })();
