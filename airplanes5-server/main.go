@@ -495,6 +495,10 @@ func writeText(c *Client, p []byte) error {
 	}
 }
 func handleWS(w http.ResponseWriter, req *http.Request) {
+	if !allowTicketAttempt(clientIP(req)) {
+		http.Error(w, "too many attempts", http.StatusTooManyRequests)
+		return
+	}
 	code := req.URL.Query().Get("room")
 	session := req.URL.Query().Get("session")
 	ticket := req.URL.Query().Get("ticket")
