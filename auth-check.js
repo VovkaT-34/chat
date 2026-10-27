@@ -62,7 +62,6 @@ function installOsintAuthFetch() {
     };
 }
 
-
 async function checkAuth() {
     const loginPath = window.location.pathname.includes("/airplanes5/") ? "../login.html" : "./login.html";
     try {
@@ -83,16 +82,14 @@ async function checkAuth() {
         const pageName = (window.location.pathname.split("/").pop() || "").toLowerCase();
         const pageRoute = pageName.replace(/\.html$/i, "");
         const inAirplanesFolder = window.location.pathname.toLowerCase().includes("/airplanes5/");
+        const isNetlifyGamesPage = window.location.hostname === "brut-chat.netlify.app" && (pageRoute === "games" || pageRoute === "");
         if ((pageRoute === "game-glaz-boga" || pageRoute === "game-airplanes2" || (inAirplanesFolder && pageRoute === "index")) && !["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
             window.location.replace(inAirplanesFolder ? "../games.html" : "games.html");
             return;
         }
-        // Support both /games.html and extensionless /games routes (some hosts
-        // rewrite pretty URLs). Reveal only after this auth flow verifies the
-        // current session and approved profile.
-        // Only the games page contains these links. Do not depend on the
-        // hosting provider's pathname/rewrite format to reveal admin-only cards.
-        if (["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
+        // Netlify games.html uses its dedicated Supabase role check. Keep the
+        // shared card-reveal logic unchanged on Workers and Vercel.
+        if (!isNetlifyGamesPage && ["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
             const revealCards = () => {
                 document.querySelectorAll('a.play[href="game-glaz-boga.html"], a.play[href="game-airplanes2.html"]').forEach(link => {
                     const card = link.closest(".game-card");
