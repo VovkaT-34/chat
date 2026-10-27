@@ -68,7 +68,7 @@ async function checkAuth() {
     const initialPageRoute = initialPageName.replace(/\.html$/i, "");
     // On Netlify's games listing, let the page's dedicated Supabase check
     // control only the two restricted cards. Direct game URLs remain protected below.
-    if (window.location.hostname === "brut-chat.netlify.app" && (initialPageRoute === "games" || initialPageRoute === "")) return;
+    if (window.location.hostname === "brut-chat.netlify.app" && (initialPageRoute === "games")) return;
     try {
         try { await loadSupabaseIfNeeded(); } catch (error) {}
         if (!window.supabaseClient) { window.location.replace(loginPath); return; }
