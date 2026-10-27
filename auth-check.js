@@ -90,7 +90,9 @@ async function checkAuth() {
         // Support both /games.html and extensionless /games routes (some hosts
         // rewrite pretty URLs). Reveal only after this auth flow verifies the
         // current session and approved profile.
-        if (pageRoute === "games" && ["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
+        // Only the games page contains these links. Do not depend on the
+        // hosting provider's pathname/rewrite format to reveal admin-only cards.
+        if (["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
             const revealCards = () => {
                 document.querySelectorAll('a.play[href="game-glaz-boga.html"], a.play[href="game-airplanes2.html"]').forEach(link => {
                     const card = link.closest(".game-card");
