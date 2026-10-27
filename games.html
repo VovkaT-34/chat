@@ -20,12 +20,12 @@
     <h1 class="title">Игры</h1>
   </div>
   <section class="games">
-    <article class="game-card">
+    <article class="game-card" hidden>
       <h2>👁️ Глаз Бога — OSINT</h2>
       <p>Публичный OSINT-поиск: быстрый поиск и отдельный глубокий Python-поиск.</p>
       <a class="play" href="game-glaz-boga.html">Открыть</a>
     </article>
-    <article class="game-card">
+    <article class="game-card" hidden>
       <h2>✈️ Airplanes 2 — Самолётики 5</h2>
       <p>Оригинальный проект m110: Go, Ebitengine, ECS, уровни и бонусы.</p>
       <a class="play" href="game-airplanes2.html">Играть</a>
@@ -87,63 +87,6 @@
     </article>
   </section>
 </div>
-<script>
-(async function restrictGlazBogaCard() {
-  const link = document.querySelector('a.play[href="game-glaz-boga.html"]');
-  const card = link && link.closest('.game-card');
-  if (!card) return;
-  card.style.display = 'none';
-  try {
-    if (!window.supabaseClient) {
-      const script = document.createElement('script');
-      script.src = 'supabase.js';
-      await new Promise((resolve, reject) => {
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    }
-    if (!window.supabaseClient) return;
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) return;
-    const { data: profile, error } = await supabaseClient
-      .from('profiles')
-      .select('approved,role')
-      .eq('id', user.id)
-      .single();
-    if (!error && profile && profile.approved === true &&
-        ['admin', 'superadmin'].includes(profile.role)) {
-      card.style.display = '';
-    }
-  } catch (error) {
-    console.warn('Не удалось проверить доступ к «Глазу Бога».', error);
-  }
-})();
- 
-(async function restrictAirplanesCard() {
-  const link = document.querySelector('a.play[href="game-airplanes2.html"]');
-  const card = link && link.closest('.game-card');
-  if (!card) return;
-  card.style.display = 'none';
-  try {
-    if (!window.supabaseClient) return;
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) return;
-    const { data: profile, error } = await supabaseClient
-      .from('profiles')
-      .select('approved,role')
-      .eq('id', user.id)
-      .single();
-    if (!error && profile && profile.approved === true &&
-        ['admin', 'superadmin'].includes(profile.role)) {
-      card.style.display = '';
-    }
-  } catch (error) {
-    console.warn('Не удалось проверить доступ к Airplanes 2.', error);
-  }
-})();
-
-</script>
+<script src="game-card-access.js"></script>
 </body>
-<!-- Netlify redeploy check -->
 </html>
