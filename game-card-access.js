@@ -1,39 +1,40 @@
-// Fail-closed visibility gate for the two administrator-only game cards.
+// Show the two restricted game cards only after the site's auth check succeeds
+// and Supabase confirms an administrator role. Fail closed on every error.
 (async function applyGameCardAccess() {
-  const protectedCards = [
-    { selector: 'a.play[href="game-glaz-boga.html"]', name: 'Glaz Boga' },
-    { selector: 'a.play[href="game-airplanes2.html"]', name: 'Airplanes 2' }
+  const selectors = [
+    'a.play[href="game-glaz-boga.html"]',
+    'a.play[href="game-airplanes2.html"]'
   ];
+  const cards = selectors
+    .map(selector => document.querySelector(selector)?.closest('.game-card'))
+    .filter(Boolean);
 
-  // Cards carry the HTML hidden attribute, so they remain hidden if this check
-  // fails, Supabase is unavailable, or this script cannot complete.
-  const cards = protectedCards.map(item => ({
-    ...item,
-    card: document.querySelector(item.selector)?.closest('.game-card')
-  })).filter(item => item.card);
-
+  // The HTML hidden attribute is the safe default for logged-out/unverified users.
   try {
-    if (!window.supabaseClient) {
-      console.warn('Game access check: Supabase client is unavailable; restricted cards stay hidden.');
-      return;
+    if (typeof window.checkAuth === 'function') {
+      // auth-check.js also loads/validates the current approved session.
+      await window.checkAuth();
     }
 
-    const { data: { user } = {}, error: userError } = await window.supabaseClient.auth.getUser();
-    if (userError || !user) return;
+    const client = window.supabaseClient;
+    if (!client) return;
 
-    const { data: profile, error: profileError } = await window.supabaseClient
+    const { data: sessionData, error: sessionError } = await client.auth.getSession();
+    const user = sessionData && sessionData.session && sessionData.session.user;
+    if (sessionError || !user || !user.id) return;
+
+    const { data: profile, error: profileError } = await client
       .from('profiles')
-      .select('approved,role')
+      .select('role')
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile || profile.approved !== true ||
-        !['admin', 'superadmin'].includes(profile.role)) {
-      return;
-    }
+    if (profileError || !profile) return;
+    const role = String(profile.role || '').trim().toLowerCase();
+    if (role !== 'admin' && role !== 'superadmin') return;
 
-    for (const item of cards) item.card.hidden = false;
+    cards.forEach(card => { card.hidden = false; });
   } catch (error) {
-    console.warn('Game access check failed; restricted cards stay hidden.', error);
+    console.warn('Restricted game cards remain hidden because access could not be verified.', error);
   }
 })();
