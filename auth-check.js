@@ -83,7 +83,7 @@ async function checkAuth() {
         const pageName = (window.location.pathname.split("/").pop() || "").toLowerCase();
         const pageRoute = pageName.replace(/\.html$/i, "");
         const inAirplanesFolder = window.location.pathname.toLowerCase().includes("/airplanes5/");
-        if ((pageRoute === "game-glaz-boga" || pageRoute === "game-airplanes2" || (inAirplanesFolder && pageRoute === "index")) && !["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
+        if (window.location.hostname !== "brut-chat.netlify.app" && (pageRoute === "game-glaz-boga" || pageRoute === "game-airplanes2" || (inAirplanesFolder && pageRoute === "index")) && !["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
             window.location.replace(inAirplanesFolder ? "../games.html" : "games.html");
             return;
         }
