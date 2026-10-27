@@ -85,6 +85,21 @@ async function checkAuth() {
             window.location.replace(window.location.pathname.includes("/airplanes5/") ? "../games.html" : "games.html");
             return;
         }
+        // Reveal restricted game cards only after this auth flow verifies the
+        // current session and approved profile. Do not run a second auth check.
+        if (pageName === "games.html" && ["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
+            const revealCards = () => {
+                document.querySelectorAll('a.play[href="game-glaz-boga.html"], a.play[href="game-airplanes2.html"]').forEach(link => {
+                    const card = link.closest(".game-card");
+                    if (card) card.hidden = false;
+                });
+            };
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", revealCards, { once: true });
+            } else {
+                revealCards();
+            }
+        }
         installOsintAuthFetch();
         // RAM/scan UI is managed by glaz-ram.js on the Glaz Boga page.
     } catch (error) {
