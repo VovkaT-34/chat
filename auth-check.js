@@ -80,14 +80,17 @@ async function checkAuth() {
         if (!session || !session.user || !session.user.id) { window.location.replace(loginPath); return; }
         const { data: profile, error: profileError } = await supabaseClient.from("profiles").select("approved,role").eq("id", session.user.id).single();
         if (profileError || !profile || profile.approved !== true) { window.location.replace(loginPath); return; }
-        const pageName = window.location.pathname.split("/").pop() || "";
-        if ((pageName === "game-glaz-boga.html" || pageName === "game-airplanes2.html" || (window.location.pathname.includes("/airplanes5/") && pageName === "index.html")) && !["admin", "superadmin"].includes(profile.role)) {
-            window.location.replace(window.location.pathname.includes("/airplanes5/") ? "../games.html" : "games.html");
+        const pageName = (window.location.pathname.split("/").pop() || "").toLowerCase();
+        const pageRoute = pageName.replace(/\\.html$/i, "");
+        const inAirplanesFolder = window.location.pathname.toLowerCase().includes("/airplanes5/");
+        if ((pageRoute === "game-glaz-boga" || pageRoute === "game-airplanes2" || (inAirplanesFolder && pageRoute === "index")) && !["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
+            window.location.replace(inAirplanesFolder ? "../games.html" : "games.html");
             return;
         }
-        // Reveal restricted game cards only after this auth flow verifies the
-        // current session and approved profile. Do not run a second auth check.
-        if (pageName === "games.html" && ["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
+        // Support both /games.html and extensionless /games routes (some hosts
+        // rewrite pretty URLs). Reveal only after this auth flow verifies the
+        // current session and approved profile.
+        if (pageRoute === "games" && ["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
             const revealCards = () => {
                 document.querySelectorAll('a.play[href="game-glaz-boga.html"], a.play[href="game-airplanes2.html"]').forEach(link => {
                     const card = link.closest(".game-card");
