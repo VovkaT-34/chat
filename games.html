@@ -90,6 +90,9 @@
 <script>
 /* Netlify fallback: reveal the two restricted cards only after Supabase verifies an approved admin role. */
 (async function revealAdminGameCards() {
+  // This fallback is strictly for Netlify. Other hosts keep their existing
+  // card-reveal behavior in auth-check.js.
+  if (window.location.hostname !== "brut-chat.netlify.app") return;
   try {
     const client = window.supabaseClient;
     if (!client) return;
