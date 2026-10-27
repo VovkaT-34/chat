@@ -81,7 +81,7 @@ async function checkAuth() {
         const { data: profile, error: profileError } = await supabaseClient.from("profiles").select("approved,role").eq("id", session.user.id).single();
         if (profileError || !profile || profile.approved !== true) { window.location.replace(loginPath); return; }
         const pageName = (window.location.pathname.split("/").pop() || "").toLowerCase();
-        const pageRoute = pageName.replace(/\\.html$/i, "");
+        const pageRoute = pageName.replace(/\.html$/i, "");
         const inAirplanesFolder = window.location.pathname.toLowerCase().includes("/airplanes5/");
         if ((pageRoute === "game-glaz-boga" || pageRoute === "game-airplanes2" || (inAirplanesFolder && pageRoute === "index")) && !["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
             window.location.replace(inAirplanesFolder ? "../games.html" : "games.html");
