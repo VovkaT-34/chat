@@ -1,16 +1,113 @@
 package main
 import (
-		"github.com/gorilla/websocket"
+	"github.com/gorilla/websocket"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
 
+
 const maxPlayers = 2
+
+// Public Supabase project settings; the publishable key is intentionally public.
+// Access is granted only after Supabase Auth and the profiles table confirm an approved admin.
+const supabaseURL = "https://sxkukrqjtgkxmzuzondm.supabase.co"
+const supabasePublishableKey = "sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3N"
+
+type authTicket struct {
+	userID string
+	expires time.Time
+}
+var ticketMu sync.Mutex
+var tickets = map[string]authTicket{}
+type attemptWindow struct { start time.Time; count int }
+var attemptMu sync.Mutex
+var authAttempts = map[string]attemptWindow{}
+
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil { return r.RemoteAddr }
+	return host
+}
+func allowTicketAttempt(ip string) bool {
+	attemptMu.Lock()
+	defer attemptMu.Unlock()
+	now := time.Now()
+	w := authAttempts[ip]
+	if now.Sub(w.start) >= time.Minute { w = attemptWindow{start: now} }
+	if w.count >= 20 { authAttempts[ip] = w; return false }
+	w.count++
+	authAttempts[ip] = w
+	return true
+}
+func verifyAdminToken(token string) (string, bool) {
+	client := &http.Client{Timeout: 5 * time.Second}
+	req, err := http.NewRequest(http.MethodGet, supabaseURL+"/auth/v1/user", nil)
+	if err != nil { return "", false }
+	req.Header.Set("apikey", supabasePublishableKey)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := client.Do(req)
+	if err != nil { return "", false }
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK { return "", false }
+	var user struct { ID string `json:"id"` }
+	if json.NewDecoder(resp.Body).Decode(&user) != nil || user.ID == "" { return "", false }
+
+	endpoint := supabaseURL + "/rest/v1/profiles?id=eq." + url.QueryEscape(user.ID) + "&select=approved,role"
+	profileReq, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	if err != nil { return "", false }
+	profileReq.Header.Set("apikey", supabasePublishableKey)
+	profileReq.Header.Set("Authorization", "Bearer "+token)
+	profileResp, err := client.Do(profileReq)
+	if err != nil { return "", false }
+	defer profileResp.Body.Close()
+	if profileResp.StatusCode != http.StatusOK { return "", false }
+	var profiles []struct { Approved bool `json:"approved"`; Role string `json:"role"` }
+	if json.NewDecoder(profileResp.Body).Decode(&profiles) != nil || len(profiles) != 1 { return "", false }
+	p := profiles[0]
+	return user.ID, p.Approved && (p.Role == "admin" || p.Role == "superadmin")
+}
+func issueAuthTicket(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+	w.Header().Set("Cache-Control", "no-store")
+	if r.Method == http.MethodOptions { w.WriteHeader(http.StatusNoContent); return }
+	if r.Method != http.MethodPost { http.Error(w, "method not allowed", http.StatusMethodNotAllowed); return }
+	if !allowTicketAttempt(clientIP(r)) { http.Error(w, "too many attempts", http.StatusTooManyRequests); return }
+	auth := strings.TrimSpace(r.Header.Get("Authorization"))
+	if !strings.HasPrefix(auth, "Bearer ") { http.Error(w, "unauthorized", http.StatusUnauthorized); return }
+	userID, ok := verifyAdminToken(strings.TrimSpace(strings.TrimPrefix(auth, "Bearer ")))
+	if !ok { http.Error(w, "forbidden: approved admins only", http.StatusForbidden); return }
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil { http.Error(w, "ticket error", http.StatusInternalServerError); return }
+	ticket := hex.EncodeToString(buf)
+	ticketMu.Lock()
+	now := time.Now()
+	for key, value := range tickets { if now.After(value.expires) { delete(tickets, key) } }
+	tickets[ticket] = authTicket{userID: userID, expires: now.Add(30 * time.Second)}
+	ticketMu.Unlock()
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{"ticket": ticket})
+}
+func consumeAuthTicket(ticket string) bool {
+	if len(ticket) != 64 { return false }
+	ticketMu.Lock()
+	defer ticketMu.Unlock()
+	entry, ok := tickets[ticket]
+	delete(tickets, ticket)
+	return ok && time.Now().Before(entry.expires) && entry.userID != ""
+}
+
 
 type Input struct {
 	Seq uint64  `json:"seq"`
@@ -400,8 +497,14 @@ func writeText(c *Client, p []byte) error {
 func handleWS(w http.ResponseWriter, req *http.Request) {
 	code := req.URL.Query().Get("room")
 	session := req.URL.Query().Get("session")
+	ticket := req.URL.Query().Get("ticket")
 	if len(code) < 4 || len(code) > 8 {
 		http.Error(w, "invalid room", http.StatusBadRequest)
+		return
+	}
+	// Tickets are random, short-lived, and single-use; raw Supabase tokens never enter the WS URL.
+	if !consumeAuthTicket(ticket) {
+		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -457,6 +560,7 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 	http.HandleFunc("/ws", handleWS)
+	http.HandleFunc("/auth-ticket", issueAuthTicket)
 
 	port := os.Getenv("PORT")
 	if port == "" {
