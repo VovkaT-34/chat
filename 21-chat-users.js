@@ -75,7 +75,7 @@
         var shown = member.nickname || member.username;
         var extra = member.nickname ? " (" + member.username + ")" : "";
         button.innerHTML = "<div style=\"font-weight:600\">" + escapeHtml(shown) + "</div>" +
-            "<div style=\"font-size:13px;color:#aaa;margin-top:3px\">@" + escapeHtml(member.public_id || member.username) +
+            "<div style=\"font-size:13px;color:#d0d0d0;margin-top:4px;font-weight:500\">@" + escapeHtml(member.public_id || member.username) +
             (member.role === "admin" ? " · администратор" : "") + "</div>";
         if (extra) button.firstChild.title = member.username;
         button.addEventListener("click", function () { onClick(member); });
@@ -257,7 +257,20 @@
             users.forEach(function (user) {
                 var item = document.createElement("button"); item.type = "button";
                 item.style.cssText = "width:100%;display:flex;align-items:center;text-align:left;border:0;background:transparent;padding:11px 10px;border-radius:10px;cursor:pointer;font-size:16px;touch-action:manipulation;-webkit-tap-highlight-color:transparent";
-                item.textContent = user.username + "  @" + (user.public_id || "");
+                item.style.minHeight = "58px";
+                item.style.flexDirection = "column";
+                item.style.alignItems = "flex-start";
+                item.style.justifyContent = "center";
+                item.style.gap = "3px";
+                var userName = document.createElement("span");
+                userName.textContent = user.username || "Пользователь";
+                userName.style.cssText = "font-weight:600;line-height:1.25";
+                var userPublicId = document.createElement("span");
+                userPublicId.textContent = "@" + (user.public_id || "ID не назначен");
+                userPublicId.style.cssText = "font-size:13px;color:#666;line-height:1.25";
+                item.appendChild(userName);
+                item.appendChild(userPublicId);
+                item.setAttribute("aria-label", (user.username || "Пользователь") + ", @" + (user.public_id || "ID не назначен"));
                 item.addEventListener("mouseenter", function () { item.style.background = "#f1f1f1"; });
                 item.addEventListener("mouseleave", function () { item.style.background = "transparent"; });
                 item.addEventListener("click", async function () {

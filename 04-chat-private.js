@@ -281,16 +281,23 @@ async function openNewPrivateChatDialog() {
                 font-size: 16px;
             `;
 
-            const name = document.createElement("span");
-            name.textContent = (user.username || "Пользователь") + "  @" + (user.public_id || "");
-            name.style.cssText = `
-                min-width: 0;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            `;
+            row.style.cssText += "min-height:58px;gap:10px;";
 
-            row.appendChild(name);
+            const identity = document.createElement("span");
+            identity.style.cssText = "display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;flex:1;white-space:normal;";
+
+            const name = document.createElement("span");
+            name.textContent = user.username || "Пользователь";
+            name.style.cssText = "font-size:16px;font-weight:600;line-height:1.25;";
+
+            const publicId = document.createElement("span");
+            publicId.textContent = "@" + (user.public_id || "ID не назначен");
+            publicId.style.cssText = "font-size:13px;color:#666;line-height:1.25;";
+
+            identity.appendChild(name);
+            identity.appendChild(publicId);
+            row.appendChild(identity);
+            row.setAttribute("aria-label", (user.username || "Пользователь") + ", @" + (user.public_id || "ID не назначен"));
             row.addEventListener("mouseenter", function () {
                 row.style.background = "#f1f1f1";
             });
