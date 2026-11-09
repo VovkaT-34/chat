@@ -154,6 +154,8 @@ async function downloadVoiceLanguage(code) {
 }
 
 $("usernameToggle").onclick = () => $("usernameField").classList.toggle("open");
+$("publicIdToggle").onclick = () => $("publicIdField").classList.toggle("open");
+$("publicIdSave").onclick = async () => { const publicId = $("publicIdInput").value.trim().replace(/^@/, "").toLowerCase(); if (!/^[a-z0-9_]{3,24}$/.test(publicId)) return showMessage("Уникальный ник: 3–24 символа, только латинские буквы, цифры и _.", true); const { error } = await supabaseClient.rpc("update_my_public_id", { p_public_id: publicId }); if (error) return showMessage("Не удалось изменить уникальный ник: " + error.message, true); $("publicIdCurrent").textContent = "@" + publicId; $("publicIdInput").value = publicId; $("publicIdField").classList.remove("open"); showMessage("Уникальный ник изменён."); };
 $("passwordToggle").onclick = () => $("passwordField").classList.toggle("open");
 const themeToggle = $("themeToggle");
 if (themeToggle) themeToggle.onclick = () => { if (typeof window.openChatSettings === "function") window.openChatSettings(); };
@@ -168,7 +170,8 @@ async function loadSettings() {
     const { data: { user }, error } = await supabaseClient.auth.getUser(); if (error || !user) { window.location.replace("./login.html"); return; }
     window.currentUser = user;
     $("email").textContent = user.email || "";
-    const { data: profile, error: profileError } = await supabaseClient.rpc("get_my_profile"); if (!profileError && profile && profile[0]) { const name = profile[0].username || "Пользователь"; $("username").textContent = name; $("usernameInput").value = name; }
+    const { data: profile, error: profileError } = await supabaseClient.rpc("get_my_profile"); if (!profileError && profile && profile[0]) { const name = profile[0].username || "Пользователь"; $("username").textContent = name; $("usernameInput").value = name; $("usernameLabel").textContent = "Ник (" + name + ")"; }
+    const { data: ownProfile, error: ownProfileError } = await supabaseClient.from("profiles").select("public_id").eq("id", user.id).maybeSingle(); if (!ownProfileError && ownProfile && ownProfile.public_id) { $("publicIdCurrent").textContent = "@" + ownProfile.public_id; $("publicIdInput").value = ownProfile.public_id; } else { $("publicIdCurrent").textContent = "Уникальный ник не загружен"; }
     const soundEnabled = localStorage.getItem("chat-sound-enabled"); $("soundToggle").textContent = soundEnabled === "false" ? "Выкл." : "Вкл."; updateNotificationUi(); updateVoiceLanguageButtons();
     if (location.hash === "#voice-language" && voiceLanguageToggle) { const box = $("voiceLanguages"); if (box) box.classList.add("open"); voiceLanguageToggle.textContent = "Скрыть"; }
 }
