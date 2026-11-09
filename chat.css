@@ -314,6 +314,42 @@ body {
 
 
 /* =========================================
+ПОЛЗУНОК ПРОКРУТКИ СООБЩЕНИЙ
+========================================= */
+
+#messages {
+    scrollbar-width: thin;
+    scrollbar-color: #000000 transparent;
+}
+
+#messages::-webkit-scrollbar {
+    width: 10px;
+}
+
+#messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#messages::-webkit-scrollbar-thumb {
+    background: #000000;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 10px;
+}
+
+#messages::-webkit-scrollbar-thumb:hover {
+    background: #292929;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+#messages::-webkit-scrollbar-thumb:active {
+    background: #3a3a3a;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+/* =========================================
 СООБЩЕНИЯ
 ========================================= */
 
