@@ -8,7 +8,7 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="../supabase.js"></script>
-<script src="../auth-check.js?v=20261027-admin-only-games"></script>
+<script src="../auth-check.js?v=20261109-public-games"></script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;overscroll-behavior:none}
@@ -122,7 +122,7 @@ async function mpJoin(room,isReconnect=false){
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + accessToken }
     });
-    if (!ticketResponse.ok) throw new Error('Доступ разрешён только admin/superadmin');
+    if (!ticketResponse.ok) throw new Error('Не удалось авторизовать подключение');
     const ticketData = await ticketResponse.json();
     if (!ticketData.ticket) throw new Error('Не удалось получить билет подключения');
     const wsUrl=scheme+'//airplanes5-multiplayer.onrender.com/ws?room='+encodeURIComponent(room)+'&session='+encodeURIComponent(mpKey)+'&ticket='+encodeURIComponent(ticketData.ticket);
