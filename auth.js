@@ -176,6 +176,60 @@
         }
     }
 
+    function checkApproval(session) {
+        return new Promise(function (resolve) {
+            var xhr = new XMLHttpRequest();
+            var userId = session && session.user && session.user.id
+                ? session.user.id
+                : "";
+
+            if (!userId || !session.access_token) {
+                resolve({ approved: false, checked: false });
+                return;
+            }
+
+            xhr.open(
+                "GET",
+                SUPABASE_URL + "/rest/v1/profiles?select=approved&id=eq." + encodeURIComponent(userId),
+                true
+            );
+            xhr.setRequestHeader("apikey", SUPABASE_KEY);
+            xhr.setRequestHeader("Authorization", "Bearer " + session.access_token);
+            xhr.timeout = 15000;
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== 4) return;
+
+                if (xhr.status < 200 || xhr.status >= 300) {
+                    resolve({ approved: false, checked: false });
+                    return;
+                }
+
+                try {
+                    var profiles = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+                    resolve({
+                        approved: Array.isArray(profiles) &&
+                            profiles.length === 1 &&
+                            profiles[0].approved === true,
+                        checked: true
+                    });
+                } catch (e) {
+                    resolve({ approved: false, checked: false });
+                }
+            };
+
+            xhr.onerror = function () {
+                resolve({ approved: false, checked: false });
+            };
+
+            xhr.ontimeout = function () {
+                resolve({ approved: false, checked: false });
+            };
+
+            xhr.send(null);
+        });
+    }
+
     var loginForm = document.getElementById("loginForm");
 
     if (!loginForm) return;
@@ -269,27 +323,37 @@
 
         loginRequest(email, password, captchaToken)
             .then(function (session) {
-                try {
-                    localStorage.removeItem(key);
-                    // Remove the previous guard as well, so an old failed
-                    // attempt counter cannot affect a successful login.
-                    localStorage.removeItem("chat-login-guard-v2");
-                } catch (e) {}
+                return checkApproval(session).then(function (approval) {
+                    try { if (window.turnstile) window.turnstile.reset(); } catch (e) {}
 
-                if (!saveSession(session)) {
-                    throw {
-                        status: 0,
-                        message: "Не удалось сохранить сессию на устройстве."
-                    };
-                }
+                    if (!approval.approved) {
+                        try {
+                            localStorage.removeItem(STORAGE_KEY);
+                        } catch (e) {}
 
-                try { if (window.turnstile) window.turnstile.reset(); } catch (e) {}
+                        errorBox.textContent = approval.checked
+                            ? "Ваш аккаунт ещё не одобрен администратором. Дождитесь одобрения, после этого сможете войти в чат."
+                            : "Не удалось проверить одобрение аккаунта. Попробуйте войти ещё раз позже.";
+                        return;
+                    }
 
-                // Do not perform another authenticated request here.
-                // The main page will read the saved Supabase session through
-                // the normal Supabase client, avoiding the old Safari network
-                // problem that occurred after login.
-                window.location.replace("index.html");
+                    try {
+                        localStorage.removeItem(key);
+                        // Remove the previous guard as well, so an old failed
+                        // attempt counter cannot affect a successful login.
+                        localStorage.removeItem("chat-login-guard-v2");
+                    } catch (e) {}
+
+                    if (!saveSession(session)) {
+                        throw {
+                            status: 0,
+                            message: "Не удалось сохранить сессию на устройстве."
+                        };
+                    }
+
+                    // The session is saved only after the approval check succeeds.
+                    window.location.replace("index.html");
+                });
             })
             .catch(function (error) {
                 try { if (window.turnstile) window.turnstile.reset(); } catch (e) {}
