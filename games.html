@@ -8,9 +8,9 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
-<script src="auth-check.js?v=20261027-netlify-games-role-check"></script>
+<script src="auth-check.js?v=20261109-public-games"></script>
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:linear-gradient(145deg,#201b19,#49382d 55%,#211b18);color:#fff;overscroll-behavior:none}body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}.page{width:min(900px,100%);margin:auto}.top{display:flex;align-items:center;gap:10px;margin-bottom:18px}.back{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;padding:10px 14px;font-size:15px;cursor:pointer}.title{margin:0;font-size:27px}.games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.game-card[hidden]{display:none!important}.game-card{border:1px solid rgba(255,255,255,.13);border-radius:18px;padding:18px;background:rgba(255,255,255,.08);box-shadow:0 12px 30px rgba(0,0,0,.2)}.game-card h2{margin:0 0 8px}.game-card p{margin:0 0 16px;color:#d9d2cb;font-size:14px;min-height:38px}.play{display:block;width:100%;border:0;border-radius:12px;padding:12px;background:#d29a43;color:#201810;font-weight:800;font-size:15px;cursor:pointer;text-align:center;text-decoration:none}@media(max-width:700px){.games{grid-template-columns:1fr}.game-card p{min-height:0}.title{font-size:24px}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:linear-gradient(145deg,#201b19,#49382d 55%,#211b18);color:#fff;overscroll-behavior:none}body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}.page{width:min(900px,100%);margin:auto}.top{display:flex;align-items:center;gap:10px;margin-bottom:18px}.back{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;padding:10px 14px;font-size:15px;cursor:pointer}.title{margin:0;font-size:27px}.games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.game-card{border:1px solid rgba(255,255,255,.13);border-radius:18px;padding:18px;background:rgba(255,255,255,.08);box-shadow:0 12px 30px rgba(0,0,0,.2)}.game-card h2{margin:0 0 8px}.game-card p{margin:0 0 16px;color:#d9d2cb;font-size:14px;min-height:38px}.play{display:block;width:100%;border:0;border-radius:12px;padding:12px;background:#d29a43;color:#201810;font-weight:800;font-size:15px;cursor:pointer;text-align:center;text-decoration:none}@media(max-width:700px){.games{grid-template-columns:1fr}.game-card p{min-height:0}.title{font-size:24px}}
 </style>
 </head>
 <body>
@@ -20,12 +20,12 @@
     <h1 class="title">Игры</h1>
   </div>
   <section class="games">
-    <article class="game-card" hidden>
+    <article class="game-card">
       <h2>👁️ Глаз Бога — OSINT</h2>
       <p>Публичный OSINT-поиск: быстрый поиск и отдельный глубокий Python-поиск.</p>
       <a class="play" href="game-glaz-boga.html">Открыть</a>
     </article>
-    <article class="game-card" hidden>
+    <article class="game-card">
       <h2>✈️ Airplanes 2 — Самолётики 5</h2>
       <p>Оригинальный проект m110: Go, Ebitengine, ECS, уровни и бонусы.</p>
       <a class="play" href="game-airplanes2.html">Играть</a>
@@ -87,34 +87,5 @@
     </article>
   </section>
 </div>
-<script>
-/* Netlify fallback: reveal the two restricted cards only after Supabase verifies an approved admin role. */
-(async function revealAdminGameCards() {
-  // This fallback is strictly for Netlify. Other hosts keep their existing
-  // card-reveal behavior in auth-check.js.
-  if (window.location.hostname !== "brut-chat.netlify.app") return;
-  try {
-    const client = window.supabaseClient;
-    if (!client) return;
-    const { data: userData, error: userError } = await client.auth.getUser();
-    const user = userData && userData.user;
-    if (userError || !user || !user.id) return;
-    const { data: profile, error: profileError } = await client
-      .from("profiles")
-      .select("approved,role")
-      .eq("id", user.id)
-      .single();
-    if (profileError || !profile || profile.approved !== true) return;
-    const role = String(profile.role || "").trim().toLowerCase();
-    if (role !== "admin" && role !== "superadmin") return;
-    document.querySelectorAll('a.play[href="game-glaz-boga.html"], a.play[href="game-airplanes2.html"]').forEach(link => {
-      const card = link.closest(".game-card");
-      if (card) card.hidden = false;
-    });
-  } catch (error) {
-    console.warn("Admin game cards remain hidden because role verification failed.", error);
-  }
-})();
-</script>
 </body>
 </html>
