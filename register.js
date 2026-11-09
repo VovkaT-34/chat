@@ -69,11 +69,8 @@
         });
     }
 
-    var registrationComplete = false;
-
     document.getElementById("registerForm").addEventListener("submit", function (e) {
         e.preventDefault();
-        if (registrationComplete) return;
 
         var username = document.getElementById("username").value.trim();
         var email = document.getElementById("email").value.trim().toLowerCase();
@@ -155,31 +152,24 @@
                 return;
             }
 
-            if (
-                !data ||
-                !data.user ||
-                !data.user.id ||
-                !data.session ||
-                !data.session.access_token
-            ) {
-                var identities = data && data.user && Array.isArray(data.user.identities)
-                    ? data.user.identities
-                    : null;
-
-                if (identities && identities.length === 0) {
-                    message.textContent =
-                        "Этот e-mail уже зарегистрирован. Перейдите ко входу.";
-                } else {
-                    message.textContent =
-                        "Supabase не подтвердил создание аккаунта. Попробуйте ещё раз. Если ошибка повторится, проверьте журнал регистрации.";
-                }
+            if (!data || !data.user) {
+                message.textContent = "Пользователь не создан.";
                 return;
             }
 
-            registrationComplete = true;
             message.style.color = "green";
-            message.textContent =
-                "Аккаунт создан и отправлен на проверку. Доступ к чату появится после одобрения администратора или суперадминистратора. Подтверждать e-mail не нужно.";
+
+            // Не показываем и не требуем подтверждение e-mail на стороне сайта.
+            // Если проект Supabase настроен без обязательного подтверждения,
+            // signup вернёт готовую session, после чего пользователя отправляем
+            // на обычную страницу входа.
+            message.textContent = data.session
+                ? "Регистрация успешна. Переходим ко входу..."
+                : "Регистрация успешна. Переходим ко входу...";
+
+            setTimeout(function () {
+                window.location.href = "login.html";
+            }, 1200);
         }).catch(function (error) {
             try { if (window.turnstile) window.turnstile.reset(); } catch (e) {}
             console.error("Неожиданная ошибка регистрации:", error);
@@ -187,10 +177,8 @@
                 "Не удалось выполнить регистрацию. Проверьте интернет-соединение и попробуйте ещё раз позже.";
         }).then(function () {
             if (submitButton) {
-                submitButton.disabled = registrationComplete;
-                submitButton.textContent = registrationComplete
-                    ? "Заявка отправлена"
-                    : "Зарегистрироваться";
+                submitButton.disabled = false;
+                submitButton.textContent = "Зарегистрироваться";
             }
         });
     });
