@@ -75,6 +75,85 @@
                 shadow: "rgba(35,105,117,.10)"
             }
         }
+        ,
+        {
+            id: "aurora",
+            name: "Северное сияние",
+            preview: "linear-gradient(135deg,#102f3b,#287c78,#8bc9ad)",
+            vars: {
+                bg: "#244f55",
+                pattern: "radial-gradient(ellipse at 18% 22%,rgba(150,255,218,.20),transparent 42%),radial-gradient(ellipse at 82% 76%,rgba(111,177,255,.18),transparent 45%),linear-gradient(135deg,rgba(255,255,255,.05),rgba(8,35,48,.12))",
+                size: "100% 100%,100% 100%,100% 100%",
+                bubble: "rgba(239,251,245,.96)",
+                border: "rgba(179,239,216,.34)",
+                shadow: "rgba(5,35,42,.20)"
+            }
+        },
+        {
+            id: "sakura",
+            name: "Сакура",
+            preview: "linear-gradient(135deg,#f6c9d5,#fff0e9,#d99bad)",
+            vars: {
+                bg: "#f1d5dc",
+                pattern: "radial-gradient(circle at 22px 24px,rgba(255,255,255,.60) 0 3px,transparent 3.5px),radial-gradient(circle at 78px 68px,rgba(190,102,132,.13) 0 7px,transparent 7.5px),linear-gradient(135deg,rgba(255,255,255,.24),rgba(210,139,160,.08))",
+                size: "110px 100px,145px 130px,100% 100%",
+                bubble: "rgba(255,250,248,.97)",
+                border: "rgba(174,104,128,.17)",
+                shadow: "rgba(112,62,79,.10)"
+            }
+        },
+        {
+            id: "ocean",
+            name: "Глубокий океан",
+            preview: "linear-gradient(135deg,#12344b,#26718a,#83c4cf)",
+            vars: {
+                bg: "#316d7d",
+                pattern: "radial-gradient(ellipse at 15% 25%,rgba(180,235,245,.18),transparent 38%),radial-gradient(ellipse at 85% 80%,rgba(9,48,79,.20),transparent 42%),repeating-linear-gradient(155deg,transparent 0 34px,rgba(255,255,255,.045) 35px 36px)",
+                size: "100% 100%,100% 100%,180px 150px",
+                bubble: "rgba(239,249,252,.97)",
+                border: "rgba(151,218,231,.30)",
+                shadow: "rgba(8,38,55,.20)"
+            }
+        },
+        {
+            id: "lavender-mist",
+            name: "Лавандовый туман",
+            preview: "linear-gradient(135deg,#b8a9df,#eee7fa,#c5c8ef)",
+            vars: {
+                bg: "#d2c8e8",
+                pattern: "radial-gradient(circle at 20% 25%,rgba(255,255,255,.48),transparent 34%),radial-gradient(circle at 80% 75%,rgba(117,99,169,.13),transparent 38%),linear-gradient(125deg,rgba(255,255,255,.20),rgba(135,119,184,.08))",
+                size: "100% 100%,100% 100%,100% 100%",
+                bubble: "rgba(250,248,255,.97)",
+                border: "rgba(123,103,166,.18)",
+                shadow: "rgba(74,57,111,.12)"
+            }
+        },
+        {
+            id: "mint-garden",
+            name: "Мятный сад",
+            preview: "linear-gradient(135deg,#9bcdb8,#e5f5e9,#7eb9a2)",
+            vars: {
+                bg: "#c2e0d1",
+                pattern: "radial-gradient(circle at 25px 25px,rgba(255,255,255,.50) 0 2px,transparent 2.5px),radial-gradient(ellipse at 80% 70%,rgba(58,133,99,.12),transparent 42%),linear-gradient(135deg,rgba(255,255,255,.18),rgba(70,145,107,.06))",
+                size: "120px 110px,100% 100%,100% 100%",
+                bubble: "rgba(247,253,248,.97)",
+                border: "rgba(70,137,102,.17)",
+                shadow: "rgba(40,91,66,.11)"
+            }
+        },
+        {
+            id: "coral-sunset",
+            name: "Коралловый закат",
+            preview: "linear-gradient(135deg,#e58c79,#f4c19c,#f6dfb8)",
+            vars: {
+                bg: "#e9b49d",
+                pattern: "radial-gradient(ellipse at 20% 18%,rgba(255,245,218,.38),transparent 38%),radial-gradient(ellipse at 85% 82%,rgba(177,78,79,.15),transparent 42%),linear-gradient(145deg,rgba(255,255,255,.12),rgba(157,72,65,.07))",
+                size: "100% 100%,100% 100%,100% 100%",
+                bubble: "rgba(255,249,240,.97)",
+                border: "rgba(166,91,74,.19)",
+                shadow: "rgba(112,57,48,.12)"
+            }
+        }
     ];
 
     var TEXT_COLORS = [
