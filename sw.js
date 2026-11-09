@@ -51,7 +51,7 @@ self.addEventListener("notificationclick",function(event){
     var action=event.action||"";
     notification.close();
 
-    var targetUrl=data.url||"./index.html";
+    var targetUrl=new URL(data.url||"./index.html",self.registration.scope).href;
     if(data.type==="incoming-call"&&data.callId){
         var separator=targetUrl.indexOf("?")!==-1?"&":"?";
         targetUrl+=""+separator+"incomingCall=1&callAction="+encodeURIComponent(action||"open");
