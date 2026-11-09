@@ -172,6 +172,14 @@ async def require_authenticated_user(request: Request):
             if not profile or profile.get("approved") is not True:
                 raise HTTPException(status_code=403, detail="Требуется одобренный аккаунт")
 
+            permission_response = await client.post(
+                "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/rpc/has_app_access",
+                json={"p_app_id": "glaz-boga"},
+                headers={**headers, "Content-Type": "application/json", "Accept": "application/json"},
+            )
+            if permission_response.status_code != 200 or permission_response.json() is not True:
+                raise HTTPException(status_code=403, detail="Нет разрешения на приложение «Глаз Бога»")
+
             return user
     except HTTPException:
         raise

@@ -79,7 +79,20 @@ async function checkAuth() {
         if (!session || !session.user || !session.user.id) { window.location.replace(loginPath); return; }
         const { data: profile, error: profileError } = await supabaseClient.from("profiles").select("approved,role").eq("id", session.user.id).single();
         if (profileError || !profile || profile.approved !== true) { window.location.replace(loginPath); return; }
-        // Legacy role-based game restrictions were removed; per-user game permissions will be added separately.
+        const currentPath = window.location.pathname.toLowerCase();
+        const requiredApp = currentPath.endsWith("/game-glaz-boga.html")
+            ? "glaz-boga"
+            : (currentPath.endsWith("/game-airplanes2.html") || currentPath.includes("/airplanes5/"))
+                ? "airplanes5"
+                : null;
+        if (requiredApp) {
+            const { data: hasAccess, error: accessError } = await supabaseClient.rpc("has_app_access", { p_app_id: requiredApp });
+            if (accessError || hasAccess !== true) {
+                const gamesPath = currentPath.includes("/airplanes5/") ? "../games.html" : "./games.html";
+                window.location.replace(gamesPath);
+                return;
+            }
+        }
         installOsintAuthFetch();
         // RAM/scan UI is managed by glaz-ram.js on the Glaz Boga page.
     } catch (error) {

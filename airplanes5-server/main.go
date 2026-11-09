@@ -74,7 +74,26 @@ func verifyApprovedUserToken(token string) (string, bool) {
 	var profiles []struct { Approved bool `json:"approved"` }
 	if json.NewDecoder(profileResp.Body).Decode(&profiles) != nil || len(profiles) != 1 { return "", false }
 	p := profiles[0]
-	return user.ID, p.Approved
+	if !p.Approved { return user.ID, false }
+
+	permissionReq, err := http.NewRequest(
+		http.MethodPost,
+		supabaseURL+"/rest/v1/rpc/has_app_access",
+		strings.NewReader(`{"p_app_id":"airplanes5"}`),
+	)
+	if err != nil { return "", false }
+	permissionReq.Header.Set("apikey", supabasePublishableKey)
+	permissionReq.Header.Set("Authorization", "Bearer "+token)
+	permissionReq.Header.Set("Content-Type", "application/json")
+	permissionResp, err := client.Do(permissionReq)
+	if err != nil { return "", false }
+	defer permissionResp.Body.Close()
+	if permissionResp.StatusCode != http.StatusOK { return user.ID, false }
+	var hasAccess bool
+	if json.NewDecoder(permissionResp.Body).Decode(&hasAccess) != nil || !hasAccess {
+		return user.ID, false
+	}
+	return user.ID, true
 }
 func issueAuthTicket(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")

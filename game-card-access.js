@@ -1,31 +1,18 @@
-// Restrict the two special game cards to approved admin accounts.
+// Show only applications explicitly allowed for the signed-in, approved user.
 (async function applyGameCardAccess() {
-  const cards = [
-    'a.play[href="game-glaz-boga.html"]',
-    'a.play[href="game-airplanes2.html"]'
-  ].map(selector => document.querySelector(selector)?.closest('.game-card')).filter(Boolean);
-
-  // HTML marks these cards hidden by default; keep them hidden on any failure.
+  const links = [...document.querySelectorAll('a.play[data-app-id]')];
+  if (!links.length) return;
   try {
     const client = window.supabaseClient;
     if (!client) return;
-
-    const { data: userData, error: userError } = await client.auth.getUser();
-    const user = userData && userData.user;
-    if (userError || !user || !user.id) return;
-
-    const { data: profile, error: profileError } = await client
-      .from('profiles')
-      .select('approved,role')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile || profile.approved !== true) return;
-    const role = String(profile.role || '').trim().toLowerCase();
-    if (role !== 'admin' && role !== 'superadmin') return;
-
-    cards.forEach(card => { card.hidden = false; });
+    const { data, error } = await client.rpc('get_my_app_permissions');
+    if (error || !Array.isArray(data)) return;
+    const permissions = new Map(data.map(item => [item.app_id, item.allowed === true]));
+    links.forEach(link => {
+      const card = link.closest('.game-card');
+      if (card) card.hidden = permissions.get(link.dataset.appId) !== true;
+    });
   } catch (error) {
-    console.warn('Game card access verification failed; restricted cards remain hidden.', error);
+    console.warn('Application access verification failed; restricted cards remain hidden.', error);
   }
 })();
