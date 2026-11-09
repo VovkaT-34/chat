@@ -5,14 +5,13 @@
 
 (function () {
     var SUPABASE_URL = "https://sxkukrqjtgkxmzuzondm.supabase.co";
-    var SUPABASE_KEY = "sb_publishable_bepvJNr4yp-TUIK4Wnig_5qEhej3N";
+    var SUPABASE_KEY = "sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3N";
 
     function requestJson(method, url, body) {
         return new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
             xhr.open(method, url, true);
             xhr.setRequestHeader("apikey", SUPABASE_KEY);
-            xhr.setRequestHeader("Authorization", "Bearer " + SUPABASE_KEY);
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.timeout = 20000;
 
