@@ -166,9 +166,6 @@
             message.textContent =
                 "Регистрация успешна. Ожидайте одобрения администратора. После одобрения вы сможете войти в чат.";
 
-            setTimeout(function () {
-                window.location.href = "login.html";
-            }, 1200);
         }).catch(function (error) {
             try { if (window.turnstile) window.turnstile.reset(); } catch (e) {}
             console.error("Неожиданная ошибка регистрации:", error);
