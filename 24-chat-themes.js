@@ -26,12 +26,12 @@
         {
             id: "gold-shine",
             name: "Gold Shine",
-            preview: "linear-gradient(135deg,#8a641e,#f7d774,#fff3bd,#b17a1f)",
+            preview: "linear-gradient(125deg,#fff0a8,#f4bd45,#fff7cf,#d99a2d,#ffe9a0)",
             vars: {
                 bg: "#d9bd70",
-                pattern: "radial-gradient(circle at 20% 30%,rgba(255,255,255,.34) 0 2px,transparent 3px),linear-gradient(115deg,rgba(255,255,255,.10),rgba(255,255,255,.42),rgba(255,255,255,.08),rgba(112,70,0,.08))",
-                size: "95px 95px,220px 220px",
-                bubble: "rgba(255,249,225,.94)",
+                pattern: "radial-gradient(ellipse at 18% 22%,rgba(255,255,255,.48),transparent 38%),radial-gradient(ellipse at 82% 28%,rgba(255,190,55,.38),transparent 42%),radial-gradient(ellipse at 60% 88%,rgba(255,245,180,.48),transparent 44%),linear-gradient(125deg,rgba(255,244,176,.30),rgba(193,119,25,.20),rgba(255,226,122,.32))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,rgba(255,250,220,.98),rgba(255,226,151,.96),rgba(255,248,211,.98),rgba(255,218,132,.96))",
                 border: "rgba(135,94,22,.18)",
                 shadow: "rgba(104,72,15,.14)"
             }
@@ -39,12 +39,12 @@
         {
             id: "royal-violet",
             name: "Royal Violet",
-            preview: "linear-gradient(135deg,#34204e,#74519a,#d6b76a)",
+            preview: "linear-gradient(125deg,#51306f,#d36bb5,#648ee5,#e4b86a,#8a62bd)",
             vars: {
                 bg: "#57406f",
-                pattern: "radial-gradient(circle at 22px 22px,rgba(255,255,255,.12) 0 2px,transparent 2.5px),linear-gradient(135deg,rgba(255,255,255,.07),rgba(48,24,75,.16))",
-                size: "120px 100px,100% 100%",
-                bubble: "rgba(250,245,255,.94)",
+                pattern: "radial-gradient(ellipse at 15% 18%,rgba(255,104,190,.62),transparent 46%),radial-gradient(ellipse at 82% 22%,rgba(90,190,255,.56),transparent 44%),radial-gradient(ellipse at 72% 88%,rgba(255,205,92,.48),transparent 48%),linear-gradient(135deg,rgba(116,68,180,.46),rgba(43,28,88,.28))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#fff0fb,#f0e8ff,#e5f1ff,#fff0e2)",
                 border: "rgba(226,204,255,.26)",
                 shadow: "rgba(35,18,54,.18)"
             }
@@ -52,12 +52,12 @@
         {
             id: "midnight-gold",
             name: "Midnight Gold",
-            preview: "linear-gradient(135deg,#151b29,#27334b,#c49a42)",
+            preview: "linear-gradient(125deg,#172b4d,#3b7eaa,#ad78bd,#d0a34b,#243047)",
             vars: {
                 bg: "#202a3d",
-                pattern: "radial-gradient(circle at 25px 25px,rgba(255,218,130,.13) 0 1.5px,transparent 2px),linear-gradient(145deg,rgba(255,255,255,.04),rgba(0,0,0,.12))",
-                size: "115px 95px,100% 100%",
-                bubble: "rgba(241,239,232,.96)",
+                pattern: "radial-gradient(ellipse at 18% 20%,rgba(44,145,220,.62),transparent 45%),radial-gradient(ellipse at 82% 30%,rgba(210,151,67,.52),transparent 42%),radial-gradient(ellipse at 55% 92%,rgba(179,105,198,.42),transparent 48%),linear-gradient(135deg,rgba(14,28,53,.38),rgba(63,46,78,.30))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#f4f5f8,#e5eff9,#f5e8d5,#e9e4f5)",
                 border: "rgba(255,214,125,.22)",
                 shadow: "rgba(0,0,0,.22)"
             }
@@ -65,12 +65,12 @@
         {
             id: "aqua-pearl",
             name: "Aqua Pearl",
-            preview: "linear-gradient(135deg,#8acfd0,#e7fbf5,#86b9c8)",
+            preview: "linear-gradient(125deg,#38bdb1,#d5fff0,#70b9e9,#c4f2dc,#4f9cae)",
             vars: {
                 bg: "#bfe5e1",
-                pattern: "radial-gradient(circle at 20px 20px,rgba(255,255,255,.46) 0 2px,transparent 2.5px),radial-gradient(circle at 82px 55px,rgba(70,145,157,.10) 0 2px,transparent 2.5px),linear-gradient(135deg,rgba(255,255,255,.22),rgba(66,155,165,.08))",
-                size: "110px 90px,140px 120px,100% 100%",
-                bubble: "rgba(246,253,251,.95)",
+                pattern: "radial-gradient(ellipse at 15% 20%,rgba(57,205,190,.62),transparent 48%),radial-gradient(ellipse at 82% 28%,rgba(91,174,235,.56),transparent 46%),radial-gradient(ellipse at 58% 90%,rgba(179,237,211,.72),transparent 48%),linear-gradient(135deg,rgba(255,255,255,.28),rgba(66,155,165,.20))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#f2fffb,#d9fff1,#e2f5ff,#f5ffed)",
                 border: "rgba(51,132,145,.16)",
                 shadow: "rgba(35,105,117,.10)"
             }
@@ -79,12 +79,12 @@
         {
             id: "aurora",
             name: "Северное сияние",
-            preview: "linear-gradient(135deg,#102f3b,#287c78,#8bc9ad)",
+            preview: "linear-gradient(125deg,#073e4d,#32c79a,#4d9df2,#b36bdb,#b4edbd)",
             vars: {
                 bg: "#244f55",
-                pattern: "radial-gradient(ellipse at 18% 22%,rgba(150,255,218,.20),transparent 42%),radial-gradient(ellipse at 82% 76%,rgba(111,177,255,.18),transparent 45%),linear-gradient(135deg,rgba(255,255,255,.05),rgba(8,35,48,.12))",
-                size: "100% 100%,100% 100%,100% 100%",
-                bubble: "rgba(239,251,245,.96)",
+                pattern: "radial-gradient(ellipse at 12% 18%,rgba(71,235,176,.72),transparent 48%),radial-gradient(ellipse at 82% 22%,rgba(75,166,255,.66),transparent 46%),radial-gradient(ellipse at 65% 88%,rgba(194,91,226,.54),transparent 48%),linear-gradient(135deg,rgba(7,47,69,.32),rgba(14,112,103,.30))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#effff7,#d9fff0,#e2f4ff,#f7eaff)",
                 border: "rgba(179,239,216,.34)",
                 shadow: "rgba(5,35,42,.20)"
             }
@@ -92,12 +92,12 @@
         {
             id: "sakura",
             name: "Сакура",
-            preview: "linear-gradient(135deg,#f6c9d5,#fff0e9,#d99bad)",
+            preview: "linear-gradient(125deg,#f49cbd,#fff0d9,#d9a4f0,#f6c6b0,#e7a0c0)",
             vars: {
                 bg: "#f1d5dc",
-                pattern: "radial-gradient(circle at 22px 24px,rgba(255,255,255,.60) 0 3px,transparent 3.5px),radial-gradient(circle at 78px 68px,rgba(190,102,132,.13) 0 7px,transparent 7.5px),linear-gradient(135deg,rgba(255,255,255,.24),rgba(210,139,160,.08))",
-                size: "110px 100px,145px 130px,100% 100%",
-                bubble: "rgba(255,250,248,.97)",
+                pattern: "radial-gradient(ellipse at 15% 18%,rgba(255,160,192,.76),transparent 46%),radial-gradient(ellipse at 82% 24%,rgba(255,218,160,.72),transparent 45%),radial-gradient(ellipse at 62% 88%,rgba(195,135,224,.50),transparent 48%),linear-gradient(135deg,rgba(255,255,255,.30),rgba(210,108,151,.22))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#fff5f8,#ffe5ed,#fff1dc,#f5eaff)",
                 border: "rgba(174,104,128,.17)",
                 shadow: "rgba(112,62,79,.10)"
             }
@@ -105,12 +105,12 @@
         {
             id: "ocean",
             name: "Глубокий океан",
-            preview: "linear-gradient(135deg,#12344b,#26718a,#83c4cf)",
+            preview: "linear-gradient(125deg,#07506b,#27c4c1,#4a9be8,#9be5c7,#176d91)",
             vars: {
                 bg: "#316d7d",
-                pattern: "radial-gradient(ellipse at 15% 25%,rgba(180,235,245,.18),transparent 38%),radial-gradient(ellipse at 85% 80%,rgba(9,48,79,.20),transparent 42%),repeating-linear-gradient(155deg,transparent 0 34px,rgba(255,255,255,.045) 35px 36px)",
-                size: "100% 100%,100% 100%,180px 150px",
-                bubble: "rgba(239,249,252,.97)",
+                pattern: "radial-gradient(ellipse at 15% 18%,rgba(38,202,205,.68),transparent 46%),radial-gradient(ellipse at 82% 24%,rgba(54,140,235,.66),transparent 46%),radial-gradient(ellipse at 62% 88%,rgba(115,221,191,.54),transparent 48%),repeating-linear-gradient(155deg,transparent 0 34px,rgba(255,255,255,.14) 35px 37px)",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#edffff,#d9f8ff,#e3efff,#e0fff4)",
                 border: "rgba(151,218,231,.30)",
                 shadow: "rgba(8,38,55,.20)"
             }
@@ -118,12 +118,12 @@
         {
             id: "lavender-mist",
             name: "Лавандовый туман",
-            preview: "linear-gradient(135deg,#b8a9df,#eee7fa,#c5c8ef)",
+            preview: "linear-gradient(125deg,#a57be7,#d7b8ff,#86b9f4,#f0b4dc,#b4a7ef)",
             vars: {
                 bg: "#d2c8e8",
-                pattern: "radial-gradient(circle at 20% 25%,rgba(255,255,255,.48),transparent 34%),radial-gradient(circle at 80% 75%,rgba(117,99,169,.13),transparent 38%),linear-gradient(125deg,rgba(255,255,255,.20),rgba(135,119,184,.08))",
-                size: "100% 100%,100% 100%,100% 100%",
-                bubble: "rgba(250,248,255,.97)",
+                pattern: "radial-gradient(ellipse at 14% 20%,rgba(190,127,255,.68),transparent 46%),radial-gradient(ellipse at 82% 25%,rgba(116,167,255,.62),transparent 46%),radial-gradient(ellipse at 60% 88%,rgba(255,157,208,.58),transparent 48%),linear-gradient(125deg,rgba(255,255,255,.34),rgba(135,119,184,.20))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#fbf4ff,#eee4ff,#e7f0ff,#fff0f7)",
                 border: "rgba(123,103,166,.18)",
                 shadow: "rgba(74,57,111,.12)"
             }
@@ -131,12 +131,12 @@
         {
             id: "mint-garden",
             name: "Мятный сад",
-            preview: "linear-gradient(135deg,#9bcdb8,#e5f5e9,#7eb9a2)",
+            preview: "linear-gradient(125deg,#62c88f,#c5f1d1,#8bd9e5,#e1e99a,#69bda6)",
             vars: {
                 bg: "#c2e0d1",
-                pattern: "radial-gradient(circle at 25px 25px,rgba(255,255,255,.50) 0 2px,transparent 2.5px),radial-gradient(ellipse at 80% 70%,rgba(58,133,99,.12),transparent 42%),linear-gradient(135deg,rgba(255,255,255,.18),rgba(70,145,107,.06))",
-                size: "120px 110px,100% 100%,100% 100%",
-                bubble: "rgba(247,253,248,.97)",
+                pattern: "radial-gradient(ellipse at 15% 18%,rgba(90,205,145,.68),transparent 46%),radial-gradient(ellipse at 82% 25%,rgba(118,207,226,.62),transparent 46%),radial-gradient(ellipse at 60% 88%,rgba(220,231,120,.54),transparent 48%),linear-gradient(135deg,rgba(255,255,255,.30),rgba(70,145,107,.18))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#f2fff6,#ddf9e8,#e2fbff,#f9ffe5)",
                 border: "rgba(70,137,102,.17)",
                 shadow: "rgba(40,91,66,.11)"
             }
@@ -144,12 +144,12 @@
         {
             id: "coral-sunset",
             name: "Коралловый закат",
-            preview: "linear-gradient(135deg,#e58c79,#f4c19c,#f6dfb8)",
+            preview: "linear-gradient(125deg,#ed786e,#ffc16e,#f7a6a8,#c98bd5,#f4d18b)",
             vars: {
                 bg: "#e9b49d",
-                pattern: "radial-gradient(ellipse at 20% 18%,rgba(255,245,218,.38),transparent 38%),radial-gradient(ellipse at 85% 82%,rgba(177,78,79,.15),transparent 42%),linear-gradient(145deg,rgba(255,255,255,.12),rgba(157,72,65,.07))",
-                size: "100% 100%,100% 100%,100% 100%",
-                bubble: "rgba(255,249,240,.97)",
+                pattern: "radial-gradient(ellipse at 15% 18%,rgba(255,119,112,.72),transparent 46%),radial-gradient(ellipse at 82% 22%,rgba(255,190,92,.74),transparent 46%),radial-gradient(ellipse at 60% 88%,rgba(207,107,157,.56),transparent 48%),linear-gradient(145deg,rgba(255,244,202,.34),rgba(157,72,65,.18))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#fff4e9,#ffe2d5,#fff0d9,#fce7f3)",
                 border: "rgba(166,91,74,.19)",
                 shadow: "rgba(112,57,48,.12)"
             }
@@ -209,9 +209,12 @@
         var style = document.createElement("style");
         style.id = "chatThemesCSS";
         style.textContent = `
-#messages[data-chat-theme]{background-color:var(--chat-theme-bg)!important;background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;transition:background-color .28s ease,background-image .28s ease}
-#messages[data-chat-theme] .message{background:var(--chat-message-bg)!important;border-color:var(--chat-message-border)!important;box-shadow:0 2px 8px var(--chat-message-shadow)!important}
+@keyframes chatThemeIridescence{0%{background-position:0% 50%,100% 0%,0% 100%,50% 50%}50%{background-position:100% 50%,0% 100%,100% 0%,50% 50%}100%{background-position:0% 50%,100% 0%,0% 100%,50% 50%}}
+@keyframes chatBubbleIridescence{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+#messages[data-chat-theme]{background-color:var(--chat-theme-bg)!important;background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;background-position:0% 50%,100% 0%,0% 100%,50% 50%;animation:chatThemeIridescence 34s ease-in-out infinite;transition:background-color .28s ease}
+#messages[data-chat-theme] .message{background:var(--chat-message-bg)!important;background-size:240% 240%!important;animation:chatBubbleIridescence 18s ease-in-out infinite alternate;border-color:var(--chat-message-border)!important;box-shadow:0 2px 8px var(--chat-message-shadow)!important}
 #messages[data-chat-theme] .message-text{color:var(--chat-message-text)!important}
+@media(prefers-reduced-motion:reduce){#messages[data-chat-theme],#messages[data-chat-theme] .message{animation:none!important}}
 .chat-theme-settings{width:min(520px,calc(100vw - 28px));max-height:min(82vh,720px);overflow:auto;background:#fff;color:#222;border-radius:16px;box-shadow:0 18px 55px rgba(0,0,0,.30);padding:18px;font-family:Arial,sans-serif}
 .chat-theme-settings h3{margin:0 0 14px;font-size:20px}.chat-theme-section{margin-top:16px}.chat-theme-section-title{font-weight:700;margin-bottom:9px}.chat-theme-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.chat-theme-option{border:2px solid #ddd;background:#fafafa;border-radius:11px;padding:8px;text-align:left;cursor:pointer;font:inherit}.chat-theme-option.selected{border-color:#8b5a3c;box-shadow:0 0 0 2px rgba(139,90,60,.12)}.chat-theme-preview{height:52px;border-radius:8px;margin-bottom:6px;border:1px solid rgba(0,0,0,.10)}.chat-theme-name{font-size:14px;font-weight:700}.chat-text-grid{display:flex;flex-wrap:wrap;gap:7px}.chat-text-option{border:1px solid #d5d5d5;background:#fff;border-radius:9px;padding:8px 10px;cursor:pointer;font:13px Arial,sans-serif}.chat-text-option.selected{border-color:#8b5a3c;box-shadow:0 0 0 2px rgba(139,90,60,.10)}.chat-text-dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px;border:1px solid rgba(0,0,0,.16)}.chat-theme-footer{display:flex;justify-content:flex-end;margin-top:18px}.chat-theme-close{border:0;background:#8b5a3c;color:#fff;padding:9px 15px;border-radius:9px;font-weight:700;cursor:pointer}
 @media(max-width:520px){.chat-theme-grid{grid-template-columns:1fr}.chat-theme-settings{padding:15px}}
