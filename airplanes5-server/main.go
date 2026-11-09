@@ -49,7 +49,7 @@ func allowTicketAttempt(ip string) bool {
 	authAttempts[ip] = w
 	return true
 }
-func verifyAdminToken(token string) (string, bool) {
+func verifyApprovedUserToken(token string) (string, bool) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	req, err := http.NewRequest(http.MethodGet, supabaseURL+"/auth/v1/user", nil)
 	if err != nil { return "", false }
@@ -62,7 +62,7 @@ func verifyAdminToken(token string) (string, bool) {
 	var user struct { ID string `json:"id"` }
 	if json.NewDecoder(resp.Body).Decode(&user) != nil || user.ID == "" { return "", false }
 
-	endpoint := supabaseURL + "/rest/v1/profiles?id=eq." + url.QueryEscape(user.ID) + "&select=approved,role"
+	endpoint := supabaseURL + "/rest/v1/profiles?id=eq." + url.QueryEscape(user.ID) + "&select=approved"
 	profileReq, err := http.NewRequest(http.MethodGet, endpoint, nil)
 	if err != nil { return "", false }
 	profileReq.Header.Set("apikey", supabasePublishableKey)
@@ -71,10 +71,10 @@ func verifyAdminToken(token string) (string, bool) {
 	if err != nil { return "", false }
 	defer profileResp.Body.Close()
 	if profileResp.StatusCode != http.StatusOK { return "", false }
-	var profiles []struct { Approved bool `json:"approved"`; Role string `json:"role"` }
+	var profiles []struct { Approved bool `json:"approved"` }
 	if json.NewDecoder(profileResp.Body).Decode(&profiles) != nil || len(profiles) != 1 { return "", false }
 	p := profiles[0]
-	return user.ID, p.Approved && (p.Role == "admin" || p.Role == "superadmin")
+	return user.ID, p.Approved
 }
 func issueAuthTicket(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -86,8 +86,8 @@ func issueAuthTicket(w http.ResponseWriter, r *http.Request) {
 	if !allowTicketAttempt(clientIP(r)) { http.Error(w, "too many attempts", http.StatusTooManyRequests); return }
 	auth := strings.TrimSpace(r.Header.Get("Authorization"))
 	if !strings.HasPrefix(auth, "Bearer ") { http.Error(w, "unauthorized", http.StatusUnauthorized); return }
-	userID, ok := verifyAdminToken(strings.TrimSpace(strings.TrimPrefix(auth, "Bearer ")))
-	if !ok { http.Error(w, "forbidden: approved admins only", http.StatusForbidden); return }
+	userID, ok := verifyApprovedUserToken(strings.TrimSpace(strings.TrimPrefix(auth, "Bearer ")))
+	if !ok { http.Error(w, "forbidden: approved users only", http.StatusForbidden); return }
 	buf := make([]byte, 32)
 	if _, err := rand.Read(buf); err != nil { http.Error(w, "ticket error", http.StatusInternalServerError); return }
 	ticket := hex.EncodeToString(buf)
