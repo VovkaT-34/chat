@@ -63,6 +63,25 @@ async function subscribeToMessages() {
         .on(
             "postgres_changes",
             {
+                event: "DELETE",
+                schema: "public",
+                table: "messages"
+            },
+            function (payload) {
+                const deletedId = Number(payload && payload.old ? payload.old.id : 0);
+                if (!deletedId) return;
+                const messageElement = document.querySelector(
+                    '.message[data-message-id="' + deletedId + '"]'
+                );
+                if (messageElement) messageElement.remove();
+                if (typeof updatePinnedMessagesBar === "function") {
+                    updatePinnedMessagesBar();
+                }
+            }
+        )
+        .on(
+            "postgres_changes",
+            {
                 event: "INSERT",
                 schema: "public",
                 table: "messages"
