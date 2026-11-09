@@ -133,7 +133,7 @@ def health():
 
 
 async def require_authenticated_user(request: Request):
-    """Validate the Supabase session and require an approved admin profile."""
+    """Validate the Supabase session and require an approved profile."""
     authorization = request.headers.get("authorization", "")
     if not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Требуется авторизация")
@@ -161,20 +161,16 @@ async def require_authenticated_user(request: Request):
 
             profile_response = await client.get(
                 "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/profiles",
-                params={"id": "eq." + user_id, "select": "role,approved"},
+                params={"id": "eq." + user_id, "select": "approved"},
                 headers={**headers, "Accept": "application/json"},
             )
             if profile_response.status_code != 200:
-                raise HTTPException(status_code=403, detail="Не удалось проверить права администратора")
+                raise HTTPException(status_code=403, detail="Не удалось проверить одобрение аккаунта")
 
             profiles = profile_response.json()
             profile = profiles[0] if isinstance(profiles, list) and profiles else None
-            if (
-                not profile
-                or profile.get("approved") is not True
-                or profile.get("role") not in {"admin", "superadmin"}
-            ):
-                raise HTTPException(status_code=403, detail="Доступ разрешён только администраторам")
+            if not profile or profile.get("approved") is not True:
+                raise HTTPException(status_code=403, detail="Требуется одобренный аккаунт")
 
             return user
     except HTTPException:
