@@ -70,7 +70,7 @@ window.openNewGroupChatDialog = async function () {
     input.autocomplete = "off";
     input.autocapitalize = "none";
     input.spellcheck = false;
-    input.placeholder = "Введите имя пользователя через запятую";
+    input.placeholder = "Имя или @ID; выберите нужного пользователя";
     input.style.cssText = `
         width: 100%;
         box-sizing: border-box;
@@ -187,7 +187,7 @@ window.openNewGroupChatDialog = async function () {
             `;
 
             const name = document.createElement("span");
-            name.textContent = user.username || "Пользователь";
+            name.textContent = (user.username || "Пользователь") + "  @" + (user.public_id || "");
             name.style.cssText = `
                 max-width: 250px;
                 overflow: hidden;
@@ -292,7 +292,7 @@ window.openNewGroupChatDialog = async function () {
             `;
 
             const name = document.createElement("span");
-            name.textContent = user.username || "Пользователь";
+            name.textContent = (user.username || "Пользователь") + "  @" + (user.public_id || "");
             name.style.cssText = `
                 min-width: 0;
                 overflow: hidden;

@@ -180,7 +180,7 @@ async function openNewPrivateChatDialog() {
     input.autocomplete = "off";
     input.autocapitalize = "none";
     input.spellcheck = false;
-    input.placeholder = "Введите имя пользователя";
+    input.placeholder = "Имя или @уникальный ID";
     input.style.cssText = `
         width: 100%;
         box-sizing: border-box;
@@ -282,7 +282,7 @@ async function openNewPrivateChatDialog() {
             `;
 
             const name = document.createElement("span");
-            name.textContent = user.username || "Пользователь";
+            name.textContent = (user.username || "Пользователь") + "  @" + (user.public_id || "");
             name.style.cssText = `
                 min-width: 0;
                 overflow: hidden;

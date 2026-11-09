@@ -75,7 +75,7 @@
         var shown = member.nickname || member.username;
         var extra = member.nickname ? " (" + member.username + ")" : "";
         button.innerHTML = "<div style=\"font-weight:600\">" + escapeHtml(shown) + "</div>" +
-            "<div style=\"font-size:13px;color:#aaa;margin-top:3px\">@" + escapeHtml(member.username) +
+            "<div style=\"font-size:13px;color:#aaa;margin-top:3px\">@" + escapeHtml(member.public_id || member.username) +
             (member.role === "admin" ? " · администратор" : "") + "</div>";
         if (extra) button.firstChild.title = member.username;
         button.addEventListener("click", function () { onClick(member); });
@@ -155,7 +155,7 @@
         var box = panel("Профиль пользователя");
         var shown = document.createElement("div");
         shown.innerHTML = "<div style=\"font-size:22px;font-weight:700\">" + escapeHtml(member.nickname || member.username) + "</div>" +
-            "<div style=\"color:#aaa;margin-top:5px\">@" + escapeHtml(member.username) + "</div>";
+            "<div style=\"color:#aaa;margin-top:5px\">@" + escapeHtml(member.public_id || member.username) + "</div>";
         box.appendChild(shown);
         var self = window.currentUser && String(window.currentUser.id) === String(member.user_id);
         var action = document.createElement("button");
@@ -164,6 +164,14 @@
         action.style.cssText = "display:block;width:100%;margin-top:20px;padding:12px;border:1px solid #444;border-radius:10px;background:#222;color:#fff;font:inherit;cursor:pointer";
         action.addEventListener("click", function () { if (self) editOwnUsername(member); else editLocalNickname(member); });
         box.appendChild(action);
+        if (self) {
+            var publicIdAction = document.createElement("button");
+            publicIdAction.type = "button";
+            publicIdAction.textContent = "Изменить публичный ID";
+            publicIdAction.style.cssText = "display:block;width:100%;margin-top:8px;padding:12px;border:1px solid #444;border-radius:10px;background:#222;color:#fff;font:inherit;cursor:pointer";
+            publicIdAction.addEventListener("click", function () { editOwnPublicId(member); });
+            box.appendChild(publicIdAction);
+        }
         var back = document.createElement("button");
         back.type = "button"; back.textContent = "← Назад к пользователям";
         back.style.cssText = "display:block;width:100%;margin-top:8px;padding:10px;border:0;background:none;color:#aaa;font:inherit;cursor:pointer";
@@ -191,6 +199,25 @@
         if (typeof window.loadChats === "function") await window.loadChats();
     }
 
+    async function editOwnPublicId(member) {
+        var currentId = member.public_id || "";
+        var value = window.prompt("Ваш уникальный ID (3–24 латинских буквы, цифры или _):", currentId);
+        if (value === null) return;
+        value = value.trim().replace(/^@/, "").toLowerCase();
+        if (!/^[a-z0-9_]{3,24}$/.test(value)) {
+            alert("ID должен содержать от 3 до 24 латинских букв, цифр или символов подчёркивания.");
+            return;
+        }
+        if (value === currentId) return;
+        var result = await window.supabaseClient.rpc("update_my_public_id", { p_public_id: value });
+        if (result.error) {
+            console.error("Не удалось изменить публичный ID:", result.error);
+            alert(result.error.message || "Не удалось изменить публичный ID. Возможно, он уже занят.");
+            return;
+        }
+        await showMembers();
+    }
+
     async function showAddUser(chatId) {
         var root = document.getElementById("chatUsersOverlay");
         if (!root) return;
@@ -200,7 +227,7 @@
         var title = document.createElement("div"); title.textContent = "Добавить пользователя";
         title.style.cssText = "padding:16px 18px 10px;font-size:19px;font-weight:700"; box.appendChild(title);
         var inputWrap = document.createElement("div"); inputWrap.style.cssText = "padding:0 14px 8px";
-        var input = document.createElement("input"); input.type = "text"; input.placeholder = "Введите имя пользователя";
+        var input = document.createElement("input"); input.type = "text"; input.placeholder = "Имя или @уникальный ID";
         input.autocomplete = "off"; input.autocapitalize = "none"; input.spellcheck = false;
         input.style.cssText = "width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #ccc;border-radius:10px;font-size:16px;outline:none";
         inputWrap.appendChild(input); box.appendChild(inputWrap);
@@ -230,7 +257,7 @@
             users.forEach(function (user) {
                 var item = document.createElement("button"); item.type = "button";
                 item.style.cssText = "width:100%;display:flex;align-items:center;text-align:left;border:0;background:transparent;padding:11px 10px;border-radius:10px;cursor:pointer;font-size:16px;touch-action:manipulation;-webkit-tap-highlight-color:transparent";
-                item.textContent = user.username;
+                item.textContent = user.username + "  @" + (user.public_id || "");
                 item.addEventListener("mouseenter", function () { item.style.background = "#f1f1f1"; });
                 item.addEventListener("mouseleave", function () { item.style.background = "transparent"; });
                 item.addEventListener("click", async function () {
