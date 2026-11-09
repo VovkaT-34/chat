@@ -64,10 +64,6 @@ function installOsintAuthFetch() {
 
 async function checkAuth() {
     const loginPath = window.location.pathname.includes("/airplanes5/") ? "../login.html" : "./login.html";
-    const initialPageName = (window.location.pathname.split("/").pop() || "").toLowerCase();
-    const initialPageRoute = initialPageName.replace(/\.html$/i, "");
-    // Netlify uses the page-level Supabase check for these two cards only.
-    // Continue the normal authentication and approval checks for the page itself.
     try {
         try { await loadSupabaseIfNeeded(); } catch (error) {}
         if (!window.supabaseClient) { window.location.replace(loginPath); return; }
@@ -83,27 +79,7 @@ async function checkAuth() {
         if (!session || !session.user || !session.user.id) { window.location.replace(loginPath); return; }
         const { data: profile, error: profileError } = await supabaseClient.from("profiles").select("approved,role").eq("id", session.user.id).single();
         if (profileError || !profile || profile.approved !== true) { window.location.replace(loginPath); return; }
-        const pageName = (window.location.pathname.split("/").pop() || "").toLowerCase();
-        const pageRoute = pageName.replace(/\.html$/i, "");
-        const inAirplanesFolder = window.location.pathname.toLowerCase().includes("/airplanes5/");
-        if ((pageRoute === "game-glaz-boga" || pageRoute === "game-airplanes2" || (inAirplanesFolder && pageRoute === "index")) && !["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
-            window.location.replace(inAirplanesFolder ? "../games.html" : "games.html");
-            return;
-        }
-        const isNetlifyGamesPage = window.location.hostname === "brut-chat.netlify.app" && initialPageRoute === "games";
-        if (!isNetlifyGamesPage && ["admin", "superadmin"].includes(String(profile.role || "").trim().toLowerCase())) {
-            const revealCards = () => {
-                document.querySelectorAll('a.play[href="game-glaz-boga.html"], a.play[href="game-airplanes2.html"]').forEach(link => {
-                    const card = link.closest(".game-card");
-                    if (card) card.hidden = false;
-                });
-            };
-            if (document.readyState === "loading") {
-                document.addEventListener("DOMContentLoaded", revealCards, { once: true });
-            } else {
-                revealCards();
-            }
-        }
+        // Legacy role-based game restrictions were removed; per-user game permissions will be added separately.
         installOsintAuthFetch();
         // RAM/scan UI is managed by glaz-ram.js on the Glaz Boga page.
     } catch (error) {
