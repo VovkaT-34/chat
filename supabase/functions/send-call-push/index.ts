@@ -96,7 +96,7 @@ Deno.serve(async (req: Request) => {
       .from("call_signals")
       .select("signal_type, created_at, sender_id, recipient_id, chat_id")
       .eq("call_id", callId)
-      .in("signal_type", ["offer", "hangup", "reject"])
+      .in("signal_type", ["offer", "answer", "hangup", "reject"])
       .order("created_at", { ascending: true });
     if (callSignalsError) return json({ error: callSignalsError.message }, 500, origin);
 
@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
 
     const offerTime = Date.parse(offerSignal.created_at);
     const callAlreadyEnded = (callSignals || []).some(signal =>
-      (signal.signal_type === "hangup" || signal.signal_type === "reject") &&
+      (signal.signal_type === "answer" || signal.signal_type === "hangup" || signal.signal_type === "reject") &&
       Number.isFinite(offerTime) &&
       Date.parse(signal.created_at) >= offerTime
     );
