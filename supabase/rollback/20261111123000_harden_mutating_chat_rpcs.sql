@@ -1,5 +1,6 @@
 -- Emergency rollback for 20261111123000_harden_mutating_chat_rpcs.
--- Restores the original RPC bodies from CHAT-SECURITY-BASE-20261111.
+-- Run this rollback BEFORE CHAT-SECURITY-BASE-20261111_profiles.sql because it uses is_approved_user().
+-- Restores the original RPC bodies from the saved baseline.
 
 begin;
 
