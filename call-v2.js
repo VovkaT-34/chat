@@ -202,7 +202,7 @@
         const reasons = {
             NotAllowedError: "браузер или операционная система запретили доступ",
             NotFoundError: "устройство не найдено",
-            NotReadableError: "устройство занято другой программой или драйвер не отвечает",
+            NotReadableError: "браузер не смог запустить камеру",
             OverconstrainedError: "устройство не поддерживает запрошенные параметры",
             SecurityError: "доступ заблокирован настройками безопасности страницы",
             AbortError: "операция доступа к устройству была прервана",
@@ -246,8 +246,7 @@
             const offer=await pc.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:true});
             await pc.setLocalDescription(offer);
             const ok=await send("video-offer",{description:pc.localDescription?.toJSON()});
-            if(!ok) throw new Error("video-offer не записан");
-        } finally { makingOffer=false; renegotiationBusy=false; }
+            if(!ok) throw new Error("video-offer не записан");        } finally { makingOffer=false; renegotiationBusy=false; }
     }
 
     function buildPeer() {
@@ -452,7 +451,7 @@
         if(!peer?.user_id){alert("Звонки доступны только в личном чате один-на-один.");return;}
         await end(false);mediaWarning="";chatId=activeChatId;peerId=peer.user_id;peerName=peer.username||"Пользователь";mode=modeArg==="video"?"video":"audio";role="caller";callId=createCallId();
         try{
-            ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";$("cv2Remote").style.display="none";updateVideoUi(mode==="video");setStatus("Запрашиваем доступ к "+(mode==="video"?"камере и микрофону":"микрофону")+"…");show(true);
+            ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";$("cv2Remote").style.display="none";updateVideoUi(mode==="video");setStatus("Вызов…");show(true);
             await getMedia();await loadTurnIceServers();buildPeer();
             const offer=await pc.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:mode==="video"});makingOffer=true;await pc.setLocalDescription(offer);makingOffer=false;
             if(!await send("offer",{description:pc.localDescription?.toJSON(),mode,callerName:window.currentUsername||peerName||"Пользователь"}))throw new Error("offer не записан");
@@ -464,7 +463,7 @@
         if(!pendingOffer||!callId)return;
         mediaWarning="";
         try{
-            $("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";setStatus("Запрашиваем доступ…");
+            $("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";setStatus("Соединение…");
             await getMedia();await loadTurnIceServers();buildPeer();await pc.setRemoteDescription(pendingOffer);await flushIce();
             const answer=await pc.createAnswer();await pc.setLocalDescription(answer);setStatus("Соединение…");if(!await send("answer",{description:pc.localDescription?.toJSON()}))throw new Error("Сигнал ответа не записан в Supabase");void resumeRemoteAudio();
         }catch(error){console.error("Ошибка принятия звонка:",error);setStatus("Не удалось принять звонок: "+describeMediaError(error));setTimeout(()=>void end(true),3500);}
