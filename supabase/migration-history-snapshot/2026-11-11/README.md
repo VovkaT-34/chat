@@ -11,7 +11,7 @@ This directory is a read-only recovery archive reconstructed from
 
 Why this archive exists:
 - The live database reports 52 applied migrations.
-- The repository's active `supabase/migrations/` directory currently contains 13 files.
+- At capture time, the repository's active `supabase/migrations/` directory contained 13 files. It now contains 16: those 13 plus three later migrations whose filenames match their applied database versions.
 - A comparison of all 13 active files against the recorded SQL statements found content differences in all 13. Some differences are explainable by the DB journal storing expanded SQL (for example, a dynamic migration is recorded as the resulting CREATE FUNCTION statements), but this means the active chain cannot safely be assumed to be a byte-for-byte source of truth.
 
 The archive preserves the SQL recorded by Supabase for forensic review and disaster recovery planning. It is not a substitute for a database backup or a tested restore.
