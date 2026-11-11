@@ -49,6 +49,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         pendingCallActionIntent = getIntent();
+        configureCallScreen(pendingCallActionIntent);
         createNotificationChannel();
         setupWebView();
         // Do not reuse a stale WebView HTTP cache after a GitHub Pages deploy.
@@ -148,11 +149,21 @@ public class MainActivity extends Activity {
         ));
     }
 
+    private void configureCallScreen(Intent intent) {
+        if (intent == null) return;
+        String action = intent.getStringExtra("callAction");
+        if (!("open".equals(action) || "answer".equals(action) || "reject".equals(action))) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true);
+            setTurnScreenOn(true);
+        }
+    }
+
     private void dispatchPendingCallAction() {
         if (!webPageReady || webView == null || pendingCallActionIntent == null) return;
         String action = pendingCallActionIntent.getStringExtra("callAction");
         String callId = pendingCallActionIntent.getStringExtra("callId");
-        if (!("answer".equals(action) || "reject".equals(action)) || callId == null || callId.trim().isEmpty()) {
+        if (!("open".equals(action) || "answer".equals(action) || "reject".equals(action)) || callId == null || callId.trim().isEmpty()) {
             pendingCallActionIntent = null;
             return;
         }
@@ -173,6 +184,7 @@ public class MainActivity extends Activity {
         super.onNewIntent(intent);
         setIntent(intent);
         pendingCallActionIntent = intent;
+        configureCallScreen(intent);
         dispatchPendingCallAction();
     }
 
@@ -410,6 +422,15 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void showMessageNotification(String title, String body) {
             runOnUiThread(() -> showMessageNotification(title, body));
+        }
+
+        @JavascriptInterface
+        public void cancelIncomingCallNotification(String callId) {
+            if (callId == null || callId.trim().isEmpty()) return;
+            runOnUiThread(() -> {
+                NotificationManager manager = getSystemService(NotificationManager.class);
+                if (manager != null) manager.cancel(callId.hashCode() & 0x7fffffff);
+            });
         }
     }
 
