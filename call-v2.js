@@ -385,7 +385,7 @@
         const {data,error}=await window.supabaseClient.from("call_signals")
             .select("signal_type,created_at")
             .eq("call_id",signal.call_id)
-            .in("signal_type",["hangup","reject"])
+            .in("signal_type",["answer","hangup","reject"])
             .order("created_at",{ascending:false})
             .limit(1);
         if(error){
