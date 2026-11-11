@@ -7,6 +7,53 @@ begin;
 drop function if exists public.admin_list_profiles();
 drop function if exists public.get_my_access_status();
 
+-- Remove approval-only RLS policies before restoring the original profile policy.
+do $
+declare
+  table_name text;
+begin
+  foreach table_name in array array[
+    'android_push_tokens',
+    'call_signals',
+    'chat_members',
+    'chat_notification_settings',
+    'chats',
+    'contact_nicknames',
+    'message_deliveries',
+    'messages',
+    'user_chat_reads',
+    'web_push_subscriptions'
+  ]
+  loop
+    execute format('drop policy if exists approved_users_only on public.%I', table_name);
+  end loop;
+end;
+$;
+
+create or replace function public.search_users(p_search text)
+returns table(id uuid, username text, public_id text)
+language sql
+security definer
+set search_path = public
+as $
+  select p.id, p.username, p.public_id
+  from public.profiles p
+  where auth.uid() is not null
+    and p.approved = true
+    and p.id <> auth.uid()
+    and p.username is not null
+    and (
+      p.username ilike '%' || ltrim(trim(coalesce(p_search, '')), '@') || '%'
+      or p.public_id ilike '%' || ltrim(trim(coalesce(p_search, '')), '@') || '%'
+    )
+  order by
+    case when lower(p.public_id) = lower(ltrim(trim(coalesce(p_search, '')), '@')) then 0 else 1 end,
+    p.username
+  limit 20;
+$;
+
+drop function if exists public.is_approved_user();
+
 create or replace function public.create_private_chat(p_other_user_id uuid)
 returns bigint
 language plpgsql
