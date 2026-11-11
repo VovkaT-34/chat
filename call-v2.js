@@ -10,6 +10,22 @@
         { urls: "stun:stun.cloudflare.com:3478" },
         ...(Array.isArray(window.CALL_TURN_SERVERS) ? window.CALL_TURN_SERVERS : [])
     ];
+    let activeIceServers = ICE_SERVERS;
+
+    async function loadTurnIceServers() {
+        activeIceServers = ICE_SERVERS;
+        if (!window.supabaseClient?.functions?.invoke) return false;
+        try {
+            const { data, error } = await window.supabaseClient.functions.invoke("get-turn-credentials");
+            if (error) throw error;
+            if (!Array.isArray(data?.iceServers) || !data.iceServers.length) throw new Error("TURN credentials are empty");
+            activeIceServers = [...ICE_SERVERS, ...data.iceServers];
+            return true;
+        } catch (error) {
+            console.warn("Не удалось получить временные TURN-данные; используем STUN:", error);
+            return false;
+        }
+    }
 
     let channel = null;
     let pc = null;
@@ -218,7 +234,7 @@
     function buildPeer() {
         if(pc){try{pc.close();}catch{}}
         remoteStream=new MediaStream();
-        pc=new RTCPeerConnection({iceServers:ICE_SERVERS,iceCandidatePoolSize:4});
+        pc=new RTCPeerConnection({iceServers:activeIceServers,iceCandidatePoolSize:4});
         pc.onicecandidate=event=>{if(event.candidate) void send("ice",{candidate:event.candidate.toJSON()});};
         pc.ontrack=event=>{if(!remoteStream.getTracks().some(track=>track.id===event.track.id)) remoteStream.addTrack(event.track);attachTrackRecovery(event.track);if(event.track.kind==="video"){mode="video";updateVideoUi(true);}setRemoteMedia();};
         pc.onconnectionstatechange=()=>{const state=pc?.connectionState;if(state==="connected"){if(callTimeout)clearTimeout(callTimeout);callTimeout=null;setStatus(mode==="video"?"Видеозвонок":"Звонок");startTimer();void resumeRemoteAudio();}else if(state==="failed"){setStatus("Не удалось установить соединение");setTimeout(()=>void end(false),1500);}else if(state==="disconnected"){setStatus("Соединение потеряно");setTimeout(()=>{if(pc?.connectionState==="disconnected")void end(false);},3000);}};
@@ -350,7 +366,7 @@
         await end(false);chatId=activeChatId;peerId=peer.user_id;peerName=peer.username||"Пользователь";mode=modeArg==="video"?"video":"audio";role="caller";callId=createCallId();
         try{
             ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";$("cv2Remote").style.display="none";updateVideoUi(mode==="video");setStatus("Запрашиваем доступ к "+(mode==="video"?"камере и микрофону":"микрофону")+"…");show(true);
-            await getMedia();buildPeer();
+            await getMedia();await loadTurnIceServers();buildPeer();
             const offer=await pc.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:mode==="video"});makingOffer=true;await pc.setLocalDescription(offer);makingOffer=false;
             if(!await send("offer",{description:pc.localDescription?.toJSON(),mode,callerName:window.currentUsername||peerName||"Пользователь"}))throw new Error("offer не записан");
             setStatus("Вызов…");armCallTimeout();await sendCallPush();
@@ -361,7 +377,7 @@
         if(!pendingOffer||!callId)return;
         try{
             $("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";setStatus("Запрашиваем доступ…");
-            await getMedia();buildPeer();await pc.setRemoteDescription(pendingOffer);await flushIce();
+            await getMedia();await loadTurnIceServers();buildPeer();await pc.setRemoteDescription(pendingOffer);await flushIce();
             const answer=await pc.createAnswer();await pc.setLocalDescription(answer);setStatus("Соединение…");if(!await send("answer",{description:pc.localDescription?.toJSON()}))throw new Error("Сигнал ответа не записан в Supabase");void resumeRemoteAudio();
         }catch(error){console.error("Ошибка принятия звонка:",error);const message=error?.name==="NotAllowedError"?"Разрешите микрофон/камеру для сайта в настройках браузера.":"Не удалось принять звонок.";setStatus(message);setTimeout(()=>void end(true),1800);}
     }
