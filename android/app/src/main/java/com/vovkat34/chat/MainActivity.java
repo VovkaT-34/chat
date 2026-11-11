@@ -96,6 +96,7 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 webPageReady = true;
+                requestNotificationPermissionOnce();
                 dispatchFcmTokenToWeb();
                 dispatchPendingCallAction();
             }
@@ -237,6 +238,20 @@ public class MainActivity extends Activity {
                 .edit()
                 .putBoolean(PREF_NOTIFICATION_REQUESTED, true)
                 .apply();
+    }
+
+    private void requestNotificationPermissionOnce() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+                && !wasNotificationPermissionRequested()) {
+            markNotificationPermissionRequested();
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    NOTIFICATION_PERMISSION_REQUEST
+            );
+        }
     }
 
     private void requestNotificationPermission() {
