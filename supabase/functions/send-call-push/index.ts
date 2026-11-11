@@ -7,6 +7,9 @@ const serviceRoleKey = Deno.env.get("MY_SERVICE_ROLE_KEY") || Deno.env.get("SUPA
 const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY")!;
 const vapidSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:admin@example.com";
+const fcmProjectId = Deno.env.get("FCM_PROJECT_ID") || "chat-d3bed";
+const fcmClientEmail = Deno.env.get("FCM_CLIENT_EMAIL") || "";
+const fcmPrivateKey = (Deno.env.get("FCM_PRIVATE_KEY") || "").replace(/\\n/g, "\n");
 
 const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
 webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
@@ -17,6 +20,21 @@ const allowedOrigins = [
   "https://brut-chat.vercel.app",
   "https://brut-chat.netlify.app"
 ];
+
+function b64u(bytes: Uint8Array) { let value=""; for(const byte of bytes)value+=String.fromCharCode(byte); return btoa(value).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,""); }
+function pemToBytes(pem: string) { const base64=pem.replace(/-----BEGIN PRIVATE KEY-----/g,"").replace(/-----END PRIVATE KEY-----/g,"").replace(/\s/g,""); const binary=atob(base64); const bytes=new Uint8Array(binary.length); for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i); return bytes; }
+async function createFcmAccessToken() {
+  if(!fcmClientEmail||!fcmPrivateKey)return null;
+  const now=Math.floor(Date.now()/1000);
+  const header=b64u(new TextEncoder().encode(JSON.stringify({alg:"RS256",typ:"JWT"})));
+  const payload=b64u(new TextEncoder().encode(JSON.stringify({iss:fcmClientEmail,scope:"https://www.googleapis.com/auth/firebase.messaging",aud:"https://oauth2.googleapis.com/token",iat:now,exp:now+3600})));
+  const unsigned=header+"."+payload;
+  const key=await crypto.subtle.importKey("pkcs8",pemToBytes(fcmPrivateKey),{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["sign"]);
+  const signature=b64u(new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5",key,new TextEncoder().encode(unsigned))));
+  const response=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({grant_type:"urn:ietf:params:oauth:grant-type:jwt-bearer",assertion:unsigned+"."+signature})});
+  if(!response.ok){console.error("FCM OAuth error:",await response.text());return null;}
+  const data=await response.json(); return data.access_token||null;
+}
 
 function corsHeaders(origin: string | null) {
   return {
@@ -83,6 +101,8 @@ Deno.serve(async (req: Request) => {
 
     let sent = 0;
     let removed = 0;
+    let fcmSent = 0;
+    let fcmRemoved = 0;
     for (const subscription of subscriptions || []) {
       try {
         await webpush.sendNotification(
@@ -111,7 +131,36 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return json({ ok: true, sent, removed }, 200, origin);
+    const { data: androidTokens, error: androidTokensError } = await admin.from("android_push_tokens").select("id, token").eq("user_id", recipientId);
+    if (androidTokensError) return json({ error: androidTokensError.message }, 500, origin);
+    if (androidTokens?.length && fcmClientEmail && fcmPrivateKey) {
+      const accessToken = await createFcmAccessToken();
+      if (accessToken) {
+        for (const row of androidTokens) {
+          try {
+            const response = await fetch("https://fcm.googleapis.com/v1/projects/" + encodeURIComponent(fcmProjectId) + "/messages:send", {
+              method: "POST",
+              headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+              body: JSON.stringify({ message: {
+                token: row.token,
+                data: { type: "incoming_call", title: mode === "video" ? "Входящий видеозвонок" : "Входящий звонок", body: callerName, callerName, callId, chatId: String(chatId), mode },
+                android: { priority: "high", ttl: "45s" }
+              } })
+            });
+            if (response.ok) fcmSent++;
+            else {
+              const errorText = await response.text();
+              if (/UNREGISTERED|registration-token-not-registered|INVALID_ARGUMENT/.test(errorText)) {
+                await admin.from("android_push_tokens").delete().eq("id", row.id);
+                fcmRemoved++;
+              } else console.error("FCM call push error:", errorText);
+            }
+          } catch (error) { console.error("FCM call push exception:", error); }
+        }
+      }
+    }
+
+    return json({ ok: true, sent, removed, fcmSent, fcmRemoved }, 200, origin);
   } catch (error) {
     console.error("send-call-push error:", error);
     return json({ error: "Internal server error" }, 500, origin);

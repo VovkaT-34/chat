@@ -41,11 +41,14 @@ public class MainActivity extends Activity {
 
     private WebView webView;
     private PermissionRequest pendingWebPermission;
+    private Intent pendingCallActionIntent;
+    private boolean webPageReady = false;
     private String fcmToken;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        pendingCallActionIntent = getIntent();
         createNotificationChannel();
         setupWebView();
         // Do not reuse a stale WebView HTTP cache after a GitHub Pages deploy.
@@ -91,7 +94,9 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                webPageReady = true;
                 dispatchFcmTokenToWeb();
+                dispatchPendingCallAction();
             }
         });
 
@@ -141,6 +146,34 @@ public class MainActivity extends Activity {
                 "window.dispatchEvent(new CustomEvent('androidfcmtoken',{detail:{token:" + tokenJson + "}}));",
                 null
         ));
+    }
+
+    private void dispatchPendingCallAction() {
+        if (!webPageReady || webView == null || pendingCallActionIntent == null) return;
+        String action = pendingCallActionIntent.getStringExtra("callAction");
+        String callId = pendingCallActionIntent.getStringExtra("callId");
+        if (!("answer".equals(action) || "reject".equals(action)) || callId == null || callId.trim().isEmpty()) {
+            pendingCallActionIntent = null;
+            return;
+        }
+        String chatId = pendingCallActionIntent.getStringExtra("chatId");
+        String callerName = pendingCallActionIntent.getStringExtra("callerName");
+        String mode = pendingCallActionIntent.getStringExtra("mode");
+        String script = "window.dispatchEvent(new CustomEvent('androidincomingcall',{detail:{action:"
+                + org.json.JSONObject.quote(action) + ",callId:" + org.json.JSONObject.quote(callId)
+                + ",chatId:" + org.json.JSONObject.quote(chatId == null ? "" : chatId)
+                + ",callerName:" + org.json.JSONObject.quote(callerName == null ? "" : callerName)
+                + ",mode:" + org.json.JSONObject.quote(mode == null ? "audio" : mode) + "}}));";
+        pendingCallActionIntent = null;
+        webView.post(() -> webView.evaluateJavascript(script, null));
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        pendingCallActionIntent = intent;
+        dispatchPendingCallAction();
     }
 
     private void createNotificationChannel() {
@@ -412,6 +445,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        webPageReady = false;
         if (webView != null) {
             webView.stopLoading();
             webView.setWebChromeClient(null);

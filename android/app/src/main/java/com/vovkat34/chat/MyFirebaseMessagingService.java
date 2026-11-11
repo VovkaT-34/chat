@@ -4,10 +4,11 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.Person;
 import android.content.Intent;
 import android.graphics.Color;
 import android.media.AudioAttributes;
-import android.net.Uri;
+import android.media.RingtoneManager;
 import android.os.Build;
 import android.provider.Settings;
 
@@ -18,10 +19,8 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
-    // v3 is intentional: Android notification-channel sound/importance cannot
-    // be changed after a channel has already been created. A new channel ID
-    // guarantees that an updated APK gets a fresh sound-enabled channel.
     private static final String CHANNEL_ID = "chat_messages_v3";
+    private static final String CALL_CHANNEL_ID = "chat_calls_v1";
 
     @Override
     public void onNewToken(@NonNull String token) {
@@ -33,71 +32,116 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
-        RemoteMessage.Notification notification = message.getNotification();
-        String title = notification != null
-                ? notification.getTitle()
-                : message.getData().get("title");
-        String body = notification != null
-                ? notification.getBody()
-                : message.getData().get("body");
+        if ("incoming_call".equals(message.getData().get("type"))) {
+            showIncomingCall(message.getData());
+            return;
+        }
 
+        RemoteMessage.Notification notification = message.getNotification();
+        String title = notification != null ? notification.getTitle() : message.getData().get("title");
+        String body = notification != null ? notification.getBody() : message.getData().get("body");
         if (title == null || title.trim().isEmpty()) title = "Новое сообщение";
         if (body == null) body = "";
-
-        showNotification(title, body);
+        showMessageNotification(title, body);
     }
 
-    private void ensureNotificationChannel(NotificationManager manager) {
+    private void ensureCallChannel(NotificationManager manager) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
-
         NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID,
-                "Сообщения",
-                NotificationManager.IMPORTANCE_HIGH
-        );
-        channel.setDescription("Уведомления о новых сообщениях и звонках");
-        channel.enableLights(true);
-        channel.setLightColor(Color.WHITE);
-
-        AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                CALL_CHANNEL_ID, "Входящие звонки", NotificationManager.IMPORTANCE_HIGH);
+        channel.setDescription("Входящие аудио- и видеозвонки");
+        channel.enableVibration(true);
+        channel.setVibrationPattern(new long[]{0, 300, 150, 300, 150, 500});
+        channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        AudioAttributes audio = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build();
-
-        channel.setSound(
-                Settings.System.DEFAULT_NOTIFICATION_URI,
-                audioAttributes
-        );
-
+        channel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE), audio);
         manager.createNotificationChannel(channel);
     }
 
-    private void showNotification(String title, String body) {
+    private PendingIntent callPendingIntent(String action, String callId, String chatId,
+                                             String callerName, String mode, int requestCode) {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setAction("com.vovkat34.chat." + action.toUpperCase());
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.putExtra("callAction", action);
+        intent.putExtra("callId", callId);
+        intent.putExtra("chatId", chatId);
+        intent.putExtra("callerName", callerName);
+        intent.putExtra("mode", mode);
+        return PendingIntent.getActivity(this, requestCode, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT |
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0));
+    }
+
+    private void showIncomingCall(java.util.Map<String, String> data) {
+        String callId = data.get("callId");
+        if (callId == null || callId.trim().isEmpty()) return;
+        String chatId = data.get("chatId");
+        String callerName = data.get("callerName");
+        if (callerName == null || callerName.trim().isEmpty()) callerName = "Входящий звонок";
+        String mode = "video".equals(data.get("mode")) ? "video" : "audio";
+
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager == null) return;
+        ensureCallChannel(manager);
 
-        ensureNotificationChannel(manager);
+        int notificationId = callId.hashCode() & 0x7fffffff;
+        PendingIntent answer = callPendingIntent("answer", callId, chatId, callerName, mode, notificationId + 1);
+        PendingIntent decline = callPendingIntent("reject", callId, chatId, callerName, mode, notificationId + 2);
+        PendingIntent open = callPendingIntent("open", callId, chatId, callerName, mode, notificationId + 3);
+
+        Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? new Notification.Builder(this, CALL_CHANNEL_ID)
+                : new Notification.Builder(this);
+        builder.setSmallIcon(R.drawable.ic_launcher)
+                .setContentTitle("video".equals(mode) ? "Входящий видеозвонок" : "Входящий звонок")
+                .setContentText(callerName)
+                .setCategory(Notification.CATEGORY_CALL)
+                .setPriority(Notification.PRIORITY_MAX)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setOngoing(true)
+                .setAutoCancel(true)
+                .setContentIntent(open);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Person person = new Person.Builder().setName(callerName).build();
+            builder.setStyle(Notification.CallStyle.forIncomingCall(person, decline, answer));
+        } else {
+            builder.addAction(new Notification.Action.Builder(R.drawable.ic_launcher, "Отклонить", decline).build());
+            builder.addAction(new Notification.Action.Builder(R.drawable.ic_launcher, "Принять", answer).build());
+        }
+
+        manager.notify(notificationId, builder.build());
+    }
+
+    private void showMessageNotification(String title, String body) {
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID, "Сообщения", NotificationManager.IMPORTANCE_HIGH);
+            channel.setDescription("Уведомления о новых сообщениях и звонках");
+            channel.enableLights(true);
+            channel.setLightColor(Color.WHITE);
+            AudioAttributes audio = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+            channel.setSound(Settings.System.DEFAULT_NOTIFICATION_URI, audio);
+            manager.createNotificationChannel(channel);
+        }
 
         Intent intent = new Intent(this, MainActivity.class);
-        intent.addFlags(
-                Intent.FLAG_ACTIVITY_CLEAR_TOP |
-                Intent.FLAG_ACTIVITY_SINGLE_TOP
-        );
-
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this,
-                0,
-                intent,
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT |
-                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                        ? PendingIntent.FLAG_IMMUTABLE
-                        : 0)
-        );
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0));
 
-        Notification notification;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notification = new Notification.Builder(this, CHANNEL_ID)
+        Notification notification = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? new Notification.Builder(this, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher)
                     .setContentTitle(title)
                     .setContentText(body)
@@ -105,9 +149,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     .setContentIntent(pendingIntent)
                     .setAutoCancel(true)
                     .setPriority(Notification.PRIORITY_HIGH)
-                    .build();
-        } else {
-            notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .build()
+                : new NotificationCompat.Builder(this, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher)
                     .setContentTitle(title)
                     .setContentText(body)
@@ -116,9 +159,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
                     .build();
-        }
 
-        int notificationId = (int) (System.currentTimeMillis() & 0x7fffffff);
-        manager.notify(notificationId, notification);
+        manager.notify((int) (System.currentTimeMillis() & 0x7fffffff), notification);
     }
 }

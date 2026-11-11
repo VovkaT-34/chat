@@ -29,6 +29,7 @@
     let makingOffer = false;
     let renegotiationBusy = false;
     let pageVisible = !document.hidden;
+    let pendingNativeCallAction = null;
 
     const $ = id => document.getElementById(id);
 
@@ -303,7 +304,7 @@
             if(callId===signal.call_id&&role==="callee")return;
             callId=signal.call_id;chatId=Number(signal.chat_id);peerId=signal.sender_id;mode=signal.payload?.mode==="video"?"video":"audio";role="callee";pendingOffer=signal.payload?.description||null;setActiveChatId(chatId);
             peerName=await resolveIncomingPeerName();
-            ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="flex";$("cv2Controls").style.display="none";$("cv2Remote").style.display="none";updateVideoUi(false);setStatus(mode==="video"?"Входящий видеозвонок":"Входящий звонок");show(true);return;
+            ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="flex";$("cv2Controls").style.display="none";$("cv2Remote").style.display="none";updateVideoUi(false);setStatus(mode==="video"?"Входящий видеозвонок":"Входящий звонок");show(true);processNativeCallAction();return;
         }
         if(signal.signal_type==="ice"){await addIce(signal.call_id,signal.payload?.candidate);return;}
         if(signal.call_id!==callId)return;
@@ -351,6 +352,20 @@
         }catch(error){console.error("Ошибка принятия звонка:",error);const message=error?.name==="NotAllowedError"?"Разрешите микрофон/камеру для сайта в настройках браузера.":"Не удалось принять звонок.";setStatus(message);setTimeout(()=>void end(true),1800);}
     }
 
+    function processNativeCallAction(){
+        if(!pendingNativeCallAction||!callId||role!=="callee"||callId!==pendingNativeCallAction.callId||!pendingOffer||!document.getElementById("cv2Incoming"))return;
+        const action=pendingNativeCallAction.action;
+        pendingNativeCallAction=null;
+        if(action==="answer")void acceptIncoming();
+        else if(action==="reject")void rejectIncoming();
+    }
+    window.addEventListener("androidincomingcall",event=>{
+        const detail=event?.detail||{};
+        if(!detail.callId||!["answer","reject"].includes(detail.action))return;
+        pendingNativeCallAction={action:detail.action,callId:String(detail.callId)};
+        processNativeCallAction();
+        if(pendingNativeCallAction)setTimeout(()=>{if(pendingNativeCallAction?.callId===String(detail.callId))void recoverOffer();},1200);
+    });
     async function rejectIncoming(){await send("reject");await end(false);}
     async function end(notify){
         if(notify&&callId&&peerId)await send("hangup");clearTimer();try{pc?.close();}catch{}pc=null;localStream?.getTracks().forEach(track=>track.stop());localStream=null;remoteStream=null;pendingOffer=null;pendingIce.clear();callId=null;peerId=null;role=null;chatId=null;makingOffer=false;renegotiationBusy=false;
