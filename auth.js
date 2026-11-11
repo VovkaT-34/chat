@@ -189,12 +189,13 @@
             }
 
             xhr.open(
-                "GET",
-                SUPABASE_URL + "/rest/v1/profiles?select=approved&id=eq." + encodeURIComponent(userId),
+                "POST",
+                SUPABASE_URL + "/rest/v1/rpc/get_my_access_status",
                 true
             );
             xhr.setRequestHeader("apikey", SUPABASE_KEY);
             xhr.setRequestHeader("Authorization", "Bearer " + session.access_token);
+            xhr.setRequestHeader("Content-Type", "application/json");
             xhr.timeout = 15000;
 
             xhr.onreadystatechange = function () {
@@ -206,11 +207,11 @@
                 }
 
                 try {
-                    var profiles = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+                    var access = xhr.responseText ? JSON.parse(xhr.responseText) : null;
                     resolve({
-                        approved: Array.isArray(profiles) &&
-                            profiles.length === 1 &&
-                            profiles[0].approved === true,
+                        approved: Array.isArray(access) &&
+                            access.length === 1 &&
+                            access[0].approved === true,
                         checked: true
                     });
                 } catch (e) {
@@ -226,7 +227,7 @@
                 resolve({ approved: false, checked: false });
             };
 
-            xhr.send(null);
+            xhr.send("{}");
         });
     }
 
