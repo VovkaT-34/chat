@@ -322,8 +322,11 @@
 
     async function recoverOffer(){
         if(!window.currentUser?.id||callId||!window.supabaseClient)return;
-        const since=new Date(Date.now()-60000).toISOString();
-        const {data,error}=await window.supabaseClient.from("call_signals").select("chat_id,sender_id,recipient_id,call_id,signal_type,payload,created_at").eq("recipient_id",window.currentUser.id).eq("signal_type","offer").gte("created_at",since).order("created_at",{ascending:false}).limit(1);
+        const requestedCallId=new URLSearchParams(window.location.search).get("call");
+        let query=window.supabaseClient.from("call_signals").select("chat_id,sender_id,recipient_id,call_id,signal_type,payload,created_at").eq("recipient_id",window.currentUser.id).eq("signal_type","offer").order("created_at",{ascending:false});
+        if(requestedCallId)query=query.eq("call_id",requestedCallId);
+        else query=query.gte("created_at",new Date(Date.now()-60000).toISOString());
+        const {data,error}=await query.limit(1);
         if(!error&&data?.[0])await handleSignal(data[0]);
     }
 
