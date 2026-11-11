@@ -188,13 +188,16 @@
                 return;
             }
 
+            // Read approval through the existing SECURITY DEFINER RPC.
+            // Direct SELECT of profiles.approved is intentionally revoked.
             xhr.open(
-                "GET",
-                SUPABASE_URL + "/rest/v1/profiles?select=approved&id=eq." + encodeURIComponent(userId),
+                "POST",
+                SUPABASE_URL + "/rest/v1/rpc/check_my_profile",
                 true
             );
             xhr.setRequestHeader("apikey", SUPABASE_KEY);
             xhr.setRequestHeader("Authorization", "Bearer " + session.access_token);
+            xhr.setRequestHeader("Content-Type", "application/json");
             xhr.timeout = 15000;
 
             xhr.onreadystatechange = function () {
@@ -211,7 +214,7 @@
                         approved: Array.isArray(profiles) &&
                             profiles.length === 1 &&
                             profiles[0].approved === true,
-                        checked: true
+                        checked: Array.isArray(profiles) && profiles.length === 1
                     });
                 } catch (e) {
                     resolve({ approved: false, checked: false });
@@ -226,7 +229,7 @@
                 resolve({ approved: false, checked: false });
             };
 
-            xhr.send(null);
+            xhr.send("{}");
         });
     }
 
