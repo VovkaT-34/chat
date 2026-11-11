@@ -22,7 +22,7 @@
     let mode = "audio";
     let role = null;
     let pendingOffer = null;
-    let pendingIce = [];
+    let pendingIce = new Map();
     let timer = null;
     let callTimeout = null;
     let startedAt = 0;
@@ -210,7 +210,7 @@
 
     function buildPeer() {
         if(pc){try{pc.close();}catch{}}
-        remoteStream=new MediaStream(); pendingIce=[];
+        remoteStream=new MediaStream();
         pc=new RTCPeerConnection({iceServers:ICE_SERVERS,iceCandidatePoolSize:4});
         pc.onicecandidate=event=>{if(event.candidate) void send("ice",{candidate:event.candidate.toJSON()});};
         pc.ontrack=event=>{if(!remoteStream.getTracks().some(track=>track.id===event.track.id)) remoteStream.addTrack(event.track);attachTrackRecovery(event.track);if(event.track.kind==="video"){mode="video";updateVideoUi(true);}setRemoteMedia();};
@@ -227,8 +227,48 @@
         if(video){video.srcObject=localStream;video.style.display=mode==="video"?"block":"none";if(mode==="video")void video.play().catch(()=>{});}
     }
 
-    async function addIce(candidate){if(!pc||!candidate)return;if(pc.remoteDescription){try{await pc.addIceCandidate(new RTCIceCandidate(candidate));}catch(error){console.warn("ICE:",error);}}else pendingIce.push(candidate);}
-    async function flushIce(){if(!pc)return;for(const candidate of pendingIce.splice(0)){try{await pc.addIceCandidate(new RTCIceCandidate(candidate));}catch(error){console.warn("ICE:",error);}}}
+    function candidateKey(candidate){
+        return JSON.stringify([
+            candidate?.candidate || "",
+            candidate?.sdpMid || null,
+            candidate?.sdpMLineIndex ?? null,
+            candidate?.usernameFragment || null
+        ]);
+    }
+
+    function rememberIce(signalCallId,candidate){
+        if(!signalCallId||!candidate)return;
+        if(!pendingIce.has(signalCallId))pendingIce.set(signalCallId,new Map());
+        const candidates=pendingIce.get(signalCallId);
+        candidates.set(candidateKey(candidate),candidate);
+        while(candidates.size>64)candidates.delete(candidates.keys().next().value);
+        while(pendingIce.size>8){
+            const oldest=[...pendingIce.keys()].find(id=>id!==callId);
+            if(!oldest)break;
+            pendingIce.delete(oldest);
+        }
+    }
+
+    async function addIce(signalCallId,candidate){
+        if(!signalCallId||!candidate)return;
+        if(pc&&signalCallId===callId&&pc.remoteDescription){
+            try{await pc.addIceCandidate(new RTCIceCandidate(candidate));}
+            catch(error){console.warn("ICE:",error);}
+            return;
+        }
+        rememberIce(signalCallId,candidate);
+    }
+
+    async function flushIce(){
+        if(!pc||!callId)return;
+        const candidates=pendingIce.get(callId);
+        if(!candidates?.size)return;
+        for(const candidate of candidates.values()){
+            try{await pc.addIceCandidate(new RTCIceCandidate(candidate));}
+            catch(error){console.warn("ICE:",error);}
+        }
+        pendingIce.delete(callId);
+    }
 
     async function handleVideoOffer(signal){
         if(!pc||signal.call_id!==callId||!signal.payload?.description)return;
@@ -259,7 +299,7 @@
         if(signal.signal_type==="answer"&&pc){await pc.setRemoteDescription(signal.payload.description);await flushIce();}
         else if(signal.signal_type==="video-offer")await handleVideoOffer(signal);
         else if(signal.signal_type==="video-answer"&&pc){if(pc.signalingState!=="have-local-offer")return;await pc.setRemoteDescription(signal.payload.description);await flushIce();mode="video";updateVideoUi(true);setRemoteMedia();setStatus("Видеозвонок");}
-        else if(signal.signal_type==="ice")await addIce(signal.payload?.candidate);
+        else if(signal.signal_type==="ice")await addIce(signal.call_id,signal.payload?.candidate);
         else if(signal.signal_type==="reject"){setStatus("Звонок отклонён");setTimeout(()=>void end(false),700);}
         else if(signal.signal_type==="hangup"){setStatus("Собеседник завершил звонок");setTimeout(()=>void end(false),700);}
     }
@@ -303,7 +343,7 @@
 
     async function rejectIncoming(){await send("reject");await end(false);}
     async function end(notify){
-        if(notify&&callId&&peerId)await send("hangup");clearTimer();try{pc?.close();}catch{}pc=null;localStream?.getTracks().forEach(track=>track.stop());localStream=null;remoteStream=null;pendingOffer=null;pendingIce=[];callId=null;peerId=null;role=null;chatId=null;makingOffer=false;renegotiationBusy=false;
+        if(notify&&callId&&peerId)await send("hangup");clearTimer();try{pc?.close();}catch{}pc=null;localStream?.getTracks().forEach(track=>track.stop());localStream=null;remoteStream=null;pendingOffer=null;pendingIce.clear();callId=null;peerId=null;role=null;chatId=null;makingOffer=false;renegotiationBusy=false;
         if($("chatCallV2"))$("chatCallV2").classList.remove("open");if($("cv2Remote"))$("cv2Remote").srcObject=null;if($("cv2RemoteAudio"))$("cv2RemoteAudio").srcObject=null;if($("cv2Local"))$("cv2Local").srcObject=null;
     }
 
