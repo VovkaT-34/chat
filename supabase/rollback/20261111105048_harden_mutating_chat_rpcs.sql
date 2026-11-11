@@ -1,5 +1,5 @@
--- Emergency rollback for 20261111123000_harden_mutating_chat_rpcs.
--- Roll back 20261111130000_lock_profile_access.sql first; then run this; then stage 1 rollback.
+-- Emergency rollback for 20261111105048_harden_mutating_chat_rpcs.
+-- Roll back 20261111105100_lock_profile_access.sql first; then run this; then stage 1 rollback.
 -- Restores the original RPC bodies from the saved baseline.
 
 begin;
