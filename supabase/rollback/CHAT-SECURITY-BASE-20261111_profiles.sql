@@ -1,4 +1,5 @@
 -- Emergency rollback for CHAT-SECURITY-BASE-20261111.
+-- Roll back later migrations first (including 20261111123000_harden_mutating_chat_rpcs.sql).
 -- This restores the original grants and policies, including the original profile exposure.
 -- Use only if the application cannot operate after the security migration.
 
