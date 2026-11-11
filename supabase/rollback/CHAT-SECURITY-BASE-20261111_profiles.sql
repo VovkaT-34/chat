@@ -1,15 +1,14 @@
 -- Emergency rollback for CHAT-SECURITY-BASE-20261111.
--- Roll back later migrations first (including 20261111123000_harden_mutating_chat_rpcs.sql).
--- This restores the original grants and policies, including the original profile exposure.
--- Use only if the application cannot operate after the security migration.
+-- Run later rollback scripts first: 20261111130000, then 20261111123000.
+-- This restores the original pre-audit profile grants and policies.
 
 begin;
 
 drop function if exists public.admin_list_profiles();
 drop function if exists public.get_my_access_status();
 
--- Remove approval-only RLS policies before restoring the original profile policy.
-do $
+-- Remove approval-only RLS policies before removing their helper.
+do $$
 declare
   table_name text;
 begin
@@ -29,14 +28,15 @@ begin
     execute format('drop policy if exists approved_users_only on public.%I', table_name);
   end loop;
 end;
-$;
+$$;
 
+-- Restore the original SQL functions before dropping the helper they were guarded by.
 create or replace function public.search_users(p_search text)
 returns table(id uuid, username text, public_id text)
 language sql
 security definer
 set search_path = public
-as $
+as $$
   select p.id, p.username, p.public_id
   from public.profiles p
   where auth.uid() is not null
@@ -51,9 +51,7 @@ as $
     case when lower(p.public_id) = lower(ltrim(trim(coalesce(p_search, '')), '@')) then 0 else 1 end,
     p.username
   limit 20;
-$;
-
-drop function if exists public.is_approved_user();
+$$;
 
 create or replace function public.create_private_chat(p_other_user_id uuid)
 returns bigint
@@ -84,10 +82,14 @@ begin
 end;
 $$;
 
+drop policy if exists authenticated_select_profiles on public.profiles;
+drop policy if exists authenticated_insert_profiles on public.profiles;
+drop policy if exists admin_update_profiles on public.profiles;
+drop function if exists public.is_approved_user();
+
 grant all privileges on table public.profiles to authenticated;
 grant truncate, references, trigger, maintain on table public.profiles to anon;
 
-drop policy if exists authenticated_select_profiles on public.profiles;
 create policy authenticated_select_profiles
 on public.profiles
 for select
@@ -121,7 +123,7 @@ with check (
   )
 );
 
--- Restore PUBLIC execution only for the functions that had it before this migration.
+-- Restore PUBLIC execution only for functions that had it before this project baseline.
 grant execute on function public.check_my_profile() to public;
 grant execute on function public.create_private_chat(uuid) to public;
 grant execute on function public.delete_group_chat(bigint) to public;
@@ -146,7 +148,7 @@ grant execute on function public.mark_message_delivered(bigint) to public;
 grant execute on function public.rls_auto_enable() to public;
 grant execute on function public.search_users(text) to public;
 
--- Remove explicit authenticated grants added by the migration where the baseline ACL was NULL.
+-- Restore the baseline ACL state for functions whose original ACL was NULL.
 revoke execute on function public.check_my_profile() from authenticated;
 revoke execute on function public.create_private_chat(uuid) from authenticated;
 revoke execute on function public.get_message_read_status(bigint) from authenticated;
