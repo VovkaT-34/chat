@@ -246,7 +246,8 @@
             const offer=await pc.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:true});
             await pc.setLocalDescription(offer);
             const ok=await send("video-offer",{description:pc.localDescription?.toJSON()});
-            if(!ok) throw new Error("video-offer не записан");        } finally { makingOffer=false; renegotiationBusy=false; }
+            if(!ok) throw new Error("video-offer не записан");
+        } finally { makingOffer=false; renegotiationBusy=false; }
     }
 
     function buildPeer() {
