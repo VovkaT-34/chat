@@ -39,7 +39,7 @@ self.addEventListener("push",function(event){
         data:{url:data.url||"./index.html",chatId:data.chatId||null,messageId:data.messageId||null,callId:data.callId||null,type:data.type||"message",userId:data.userId||null,exp:data.exp||null,deliveryToken:data.deliveryToken||null}
     };
     if(!isCall&&count>1)options.body=(data.body||"Новое сообщение")+"\nНепрочитанных: "+count;
-    if(isCall){options.requireInteraction=true;options.vibrate=[300,150,300,150,500];options.actions=[{action:"answer",title:"Ответить"},{action:"reject",title:"Отклонить"}];}
+    if(isCall){options.requireInteraction=true;options.vibrate=[300,150,300,150,500];}
     var work=[self.registration.showNotification(title,options)];
     if(data.type==="message")work.push(confirmPushDelivery(data));
     event.waitUntil(Promise.all(work));
@@ -48,13 +48,12 @@ self.addEventListener("push",function(event){
 self.addEventListener("notificationclick",function(event){
     var notification=event.notification;
     var data=notification&&notification.data?notification.data:{};
-    var action=event.action||"";
     notification.close();
 
     var targetUrl=new URL(data.url||"./index.html",self.registration.scope).href;
     if(data.type==="incoming-call"&&data.callId){
         var separator=targetUrl.indexOf("?")!==-1?"&":"?";
-        targetUrl+=""+separator+"incomingCall=1&callAction="+encodeURIComponent(action||"open");
+            targetUrl+=""+separator+"incomingCall=1";
     }
 
     event.waitUntil((async function(){
