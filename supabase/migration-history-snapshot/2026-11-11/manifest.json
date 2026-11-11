@@ -1,0 +1,319 @@
+{
+  "project_id": "sxkukrqjtgkxmzuzondm",
+  "captured_on": "2026-11-11",
+  "count": 52,
+  "migrations": [
+    {
+      "version": "20260902164500",
+      "name": "add_leave_chat_rpc",
+      "statement_count": 1,
+      "bytes": 801
+    },
+    {
+      "version": "20260902165258",
+      "name": "create_web_push_subscriptions",
+      "statement_count": 1,
+      "bytes": 1233
+    },
+    {
+      "version": "20260903124107",
+      "name": "grant_service_role_push_function_access",
+      "statement_count": 1,
+      "bytes": 278
+    },
+    {
+      "version": "20260903130517",
+      "name": "grant_push_subscription_data_api_access",
+      "statement_count": 1,
+      "bytes": 94
+    },
+    {
+      "version": "20260903142012",
+      "name": "add_one_to_one_call_signals",
+      "statement_count": 1,
+      "bytes": 1917
+    },
+    {
+      "version": "20260903142153",
+      "name": "add_private_chat_peer_rpc",
+      "statement_count": 1,
+      "bytes": 758
+    },
+    {
+      "version": "20260903151002",
+      "name": "fix_profiles_private_chat_order_and_call_realtime_v2",
+      "statement_count": 1,
+      "bytes": 2743
+    },
+    {
+      "version": "20260903151222",
+      "name": "fix_call_signal_membership_policy",
+      "statement_count": 1,
+      "bytes": 769
+    },
+    {
+      "version": "20260903151235",
+      "name": "allow_push_delivery_confirmation",
+      "statement_count": 1,
+      "bytes": 67
+    },
+    {
+      "version": "20260903154712",
+      "name": "fix_group_chat_activity_order",
+      "statement_count": 1,
+      "bytes": 767
+    },
+    {
+      "version": "20260903163547",
+      "name": "ensure_read_marks_delivery",
+      "statement_count": 1,
+      "bytes": 1628
+    },
+    {
+      "version": "20260904095210",
+      "name": "add_update_my_profile",
+      "statement_count": 1,
+      "bytes": 844
+    },
+    {
+      "version": "20260904095220",
+      "name": "harden_update_my_profile",
+      "statement_count": 1,
+      "bytes": 84
+    },
+    {
+      "version": "20260904095228",
+      "name": "secure_update_my_profile_search_path",
+      "statement_count": 1,
+      "bytes": 142
+    },
+    {
+      "version": "20260904095237",
+      "name": "finalize_profile_update_function",
+      "statement_count": 1,
+      "bytes": 164
+    },
+    {
+      "version": "20260906110617",
+      "name": "add_get_my_unread_counts",
+      "statement_count": 1,
+      "bytes": 695
+    },
+    {
+      "version": "20260906140958",
+      "name": "add_batch_chat_list_data",
+      "statement_count": 1,
+      "bytes": 1779
+    },
+    {
+      "version": "20260906141025",
+      "name": "secure_batch_chat_list_data",
+      "statement_count": 1,
+      "bytes": 1984
+    },
+    {
+      "version": "20260906142804",
+      "name": "add_batch_unread_counts",
+      "statement_count": 1,
+      "bytes": 1230
+    },
+    {
+      "version": "20260909124813",
+      "name": "add_chat_notification_settings",
+      "statement_count": 1,
+      "bytes": 1111
+    },
+    {
+      "version": "20260910103049",
+      "name": "chat_user_nicknames_and_members",
+      "statement_count": 1,
+      "bytes": 4307
+    },
+    {
+      "version": "20260910103133",
+      "name": "restrict_chat_user_rpc_execution",
+      "statement_count": 1,
+      "bytes": 472
+    },
+    {
+      "version": "20260910105200",
+      "name": "add_remove_chat_member_rpc",
+      "statement_count": 1,
+      "bytes": 912
+    },
+    {
+      "version": "20260910115153",
+      "name": "admin_role_hierarchy",
+      "statement_count": 1,
+      "bytes": 609
+    },
+    {
+      "version": "20260910115739",
+      "name": "global_admin_chat_member_permissions",
+      "statement_count": 1,
+      "bytes": 2767
+    },
+    {
+      "version": "20260910134528",
+      "name": "add_rename_group_chat_function",
+      "statement_count": 1,
+      "bytes": 918
+    },
+    {
+      "version": "20260910134856",
+      "name": "restrict_group_chat_creation_to_admins",
+      "statement_count": 1,
+      "bytes": 1626
+    },
+    {
+      "version": "20260910140515",
+      "name": "superadmin_manage_all_groups_v2",
+      "statement_count": 1,
+      "bytes": 3399
+    },
+    {
+      "version": "20260910140812",
+      "name": "superadmin_rename_all_groups",
+      "statement_count": 1,
+      "bytes": 734
+    },
+    {
+      "version": "20260910141356",
+      "name": "superadmin_read_all_group_messages",
+      "statement_count": 1,
+      "bytes": 1480
+    },
+    {
+      "version": "20260914095443",
+      "name": "revoke_cleanup_old_messages_execute",
+      "statement_count": 1,
+      "bytes": 91
+    },
+    {
+      "version": "20260914095906",
+      "name": "harden_is_chat_member_user_lookup",
+      "statement_count": 1,
+      "bytes": 97
+    },
+    {
+      "version": "20260914102052",
+      "name": "restore_call_signals_member_check",
+      "statement_count": 1,
+      "bytes": 629
+    },
+    {
+      "version": "20261109162407",
+      "name": "allow_approved_users_to_create_group_chats",
+      "statement_count": 1,
+      "bytes": 2067
+    },
+    {
+      "version": "20261109163828",
+      "name": "add_superadmin_app_permissions",
+      "statement_count": 1,
+      "bytes": 4328
+    },
+    {
+      "version": "20261109163846",
+      "name": "add_current_user_app_permissions_rpc",
+      "statement_count": 1,
+      "bytes": 697
+    },
+    {
+      "version": "20261109173114",
+      "name": "add_unique_public_user_ids",
+      "statement_count": 1,
+      "bytes": 4347
+    },
+    {
+      "version": "20261109183923",
+      "name": "public_chat_retention_150_messages_and_private_7_days",
+      "statement_count": 1,
+      "bytes": 3047
+    },
+    {
+      "version": "20261109183928",
+      "name": "serialize_public_chat_message_pruning",
+      "statement_count": 1,
+      "bytes": 1398
+    },
+    {
+      "version": "20261111105022",
+      "name": "harden_profile_access",
+      "statement_count": 1,
+      "bytes": 6334
+    },
+    {
+      "version": "20261111105048",
+      "name": "harden_mutating_chat_rpcs",
+      "statement_count": 1,
+      "bytes": 6966
+    },
+    {
+      "version": "20261111112416",
+      "name": "restrict_profile_sensitive_column_access",
+      "statement_count": 1,
+      "bytes": 741
+    },
+    {
+      "version": "20261111112703",
+      "name": "require_approved_user_for_all_chat_policies",
+      "statement_count": 1,
+      "bytes": 1228
+    },
+    {
+      "version": "20261111112743",
+      "name": "restrict_security_definer_rpcs_to_authenticated",
+      "statement_count": 1,
+      "bytes": 528
+    },
+    {
+      "version": "20261111112934",
+      "name": "require_approved_users_for_sensitive_chat_rpcs",
+      "statement_count": 1,
+      "bytes": 13026
+    },
+    {
+      "version": "20261111113158",
+      "name": "merge_overlapping_chat_read_policies",
+      "statement_count": 1,
+      "bytes": 838
+    },
+    {
+      "version": "20261111113442",
+      "name": "index_uncovered_foreign_keys",
+      "statement_count": 1,
+      "bytes": 996
+    },
+    {
+      "version": "20261111113528",
+      "name": "optimize_rls_auth_uid_initplans",
+      "statement_count": 1,
+      "bytes": 3955
+    },
+    {
+      "version": "20261111113817",
+      "name": "harden_security_definer_search_paths_and_trigger_grants",
+      "statement_count": 1,
+      "bytes": 2196
+    },
+    {
+      "version": "20261111114145",
+      "name": "remove_direct_profile_inserts",
+      "statement_count": 1,
+      "bytes": 241
+    },
+    {
+      "version": "20261111114334",
+      "name": "remove_broad_approved_users_only_policies",
+      "statement_count": 1,
+      "bytes": 394
+    },
+    {
+      "version": "20261111114339",
+      "name": "grant_rls_scoped_message_delivery_reads",
+      "statement_count": 1,
+      "bytes": 66
+    }
+  ]
+}
