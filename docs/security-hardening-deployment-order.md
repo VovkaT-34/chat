@@ -7,7 +7,7 @@ This plan is intentionally staged so the existing production frontend does not l
 
 ## Stage 1 — compatibility foundation
 
-Apply `20261111120000_harden_profile_access.sql`.
+Apply `20261111105022_harden_profile_access.sql`.
 
 This stage:
 - Adds `is_approved_user()`, `get_my_access_status()`, and `admin_list_profiles()`.
@@ -21,7 +21,7 @@ The old frontend remains compatible during this stage.
 
 ## Stage 2 — mutation RPC guards
 
-Apply `20261111123000_harden_mutating_chat_rpcs.sql`.
+Apply `20261111105048_harden_mutating_chat_rpcs.sql`.
 
 This stage requires `is_approved_user()` and adds an approved-account check to chat membership, group rename/leave, delivery and read-state mutation RPCs.
 
@@ -44,7 +44,7 @@ Do not proceed to stage 3 until every host is running the new client code and th
 
 ## Stage 3 — final profile/API lockdown
 
-Apply `20261111130000_lock_profile_access.sql`.
+Apply `20261111105100_lock_profile_access.sql`.
 
 This stage:
 - Removes direct browser access to private profile columns (email, approval and role).
@@ -61,8 +61,8 @@ Then rerun Supabase Security Advisor. The expected result is no anon-executable 
 ## Rollback order
 
 Rollback must be performed in reverse migration order:
-1. `supabase/rollback/20261111130000_lock_profile_access.sql`
-2. `supabase/rollback/20261111123000_harden_mutating_chat_rpcs.sql`
+1. `supabase/rollback/20261111105100_lock_profile_access.sql`
+2. `supabase/rollback/20261111105048_harden_mutating_chat_rpcs.sql`
 3. `supabase/rollback/CHAT-SECURITY-BASE-20261111_profiles.sql`
 
 For source rollback, use the backup branch `backup/security-before-20261111` at the baseline commit above.
