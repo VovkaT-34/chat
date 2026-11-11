@@ -34,3 +34,22 @@ where n.nspname = 'public'
   and p.prosecdef
   and has_function_privilege('anon', p.oid, 'EXECUTE')
 order by 1;
+
+select
+  has_function_privilege('anon', 'public.is_approved_user()', 'EXECUTE') as anon_can_check_approval,
+  has_function_privilege('authenticated', 'public.is_approved_user()', 'EXECUTE') as authenticated_can_check_own_approval;
+
+select count(*) as approved_user_restrictive_policies
+from pg_policies
+where schemaname = 'public'
+  and policyname = 'approved_users_only'
+  and permissive = 'RESTRICTIVE';
+
+-- Expected: zero rows. Any returned function still has anon EXECUTE.
+select p.oid::regprocedure::text as function_name
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.prosecdef
+  and has_function_privilege('anon', p.oid, 'EXECUTE')
+order by 1;
