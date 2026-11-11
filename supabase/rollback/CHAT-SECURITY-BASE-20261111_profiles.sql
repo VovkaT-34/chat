@@ -1,6 +1,6 @@
--- Emergency rollback for migration CHAT-SECURITY-BASE-20261111.
--- WARNING: restores the pre-change profile exposure and grants. Use only to recover
--- application compatibility, then re-apply a corrected security migration.
+-- Emergency rollback for CHAT-SECURITY-BASE-20261111.
+-- This restores the original grants and policies, including the original profile exposure.
+-- Use only if the application cannot operate after the security migration.
 
 begin;
 
@@ -36,8 +36,8 @@ begin
 end;
 $$;
 
-grant select, insert, update on table public.profiles to authenticated;
-grant references on table public.profiles to authenticated;
+grant all privileges on table public.profiles to authenticated;
+grant truncate, references, trigger, maintain on table public.profiles to anon;
 
 drop policy if exists authenticated_select_profiles on public.profiles;
 create policy authenticated_select_profiles
@@ -58,8 +58,7 @@ for update
 to authenticated
 using (
   exists (
-    select 1
-    from public.profiles admin_profile
+    select 1 from public.profiles admin_profile
     where admin_profile.id = auth.uid()
       and admin_profile.role = 'admin'
       and admin_profile.approved = true
@@ -67,12 +66,53 @@ using (
 )
 with check (
   exists (
-    select 1
-    from public.profiles admin_profile
+    select 1 from public.profiles admin_profile
     where admin_profile.id = auth.uid()
       and admin_profile.role = 'admin'
       and admin_profile.approved = true
   )
 );
+
+-- Restore PUBLIC execution only for the functions that had it before this migration.
+grant execute on function public.check_my_profile() to public;
+grant execute on function public.create_private_chat(uuid) to public;
+grant execute on function public.delete_group_chat(bigint) to public;
+grant execute on function public.get_chat_members(bigint) to public;
+grant execute on function public.get_group_messages_for_superadmin(bigint,bigint,integer) to public;
+grant execute on function public.get_message_read_status(bigint) to public;
+grant execute on function public.get_message_status(bigint) to public;
+grant execute on function public.get_my_chat_list_data(bigint[]) to public;
+grant execute on function public.get_my_group_chats() to public;
+grant execute on function public.get_my_private_chats() to public;
+grant execute on function public.get_my_profile() to public;
+grant execute on function public.get_my_unread_counts(bigint[]) to public;
+grant execute on function public.get_my_unread_counts() to public;
+grant execute on function public.get_public_chats() to public;
+grant execute on function public.get_unread_messages_count(uuid,bigint) to public;
+grant execute on function public.handle_new_user_profile() to public;
+grant execute on function public.is_admin() to public;
+grant execute on function public.is_chat_member(bigint) to public;
+grant execute on function public.is_public_chat(bigint) to public;
+grant execute on function public.leave_chat(bigint) to public;
+grant execute on function public.mark_message_delivered(bigint) to public;
+grant execute on function public.rls_auto_enable() to public;
+grant execute on function public.search_users(text) to public;
+
+-- Remove explicit authenticated grants added by the migration where the baseline ACL was NULL.
+revoke execute on function public.check_my_profile() from authenticated;
+revoke execute on function public.create_private_chat(uuid) from authenticated;
+revoke execute on function public.get_message_read_status(bigint) from authenticated;
+revoke execute on function public.get_message_status(bigint) from authenticated;
+revoke execute on function public.get_my_chat_list_data(bigint[]) from authenticated;
+revoke execute on function public.get_my_private_chats() from authenticated;
+revoke execute on function public.get_my_profile() from authenticated;
+revoke execute on function public.get_my_unread_counts(bigint[]) from authenticated;
+revoke execute on function public.get_my_unread_counts() from authenticated;
+revoke execute on function public.get_public_chats() from authenticated;
+revoke execute on function public.get_unread_messages_count(uuid,bigint) from authenticated;
+revoke execute on function public.is_admin() from authenticated;
+revoke execute on function public.is_chat_member(bigint) from authenticated;
+revoke execute on function public.is_public_chat(bigint) from authenticated;
+revoke execute on function public.mark_message_delivered(bigint) from authenticated;
 
 commit;
