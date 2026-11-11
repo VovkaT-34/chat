@@ -53,7 +53,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: approvedProfiles, error: profileError } = await admin
       .from("profiles")
-      .select("id, approved")
+      .select("id, approved, username")
       .in("id", [callerId, recipientId]);
 
     if (profileError || !approvedProfiles || approvedProfiles.length !== 2 || approvedProfiles.some(profile => profile.approved !== true)) {
@@ -67,9 +67,7 @@ Deno.serve(async (req: Request) => {
       .eq("user_id", recipientId);
     if (subscriptionsError) return json({ error: subscriptionsError.message }, 500);
 
-    const callerName = callerProfile?.id
-      ? (await admin.from("profiles").select("username").eq("id", callerId).maybeSingle()).data?.username || "Входящий звонок"
-      : "Входящий звонок";
+    const callerName = callerProfile?.username || "Входящий звонок";
 
     let sent = 0;
     let removed = 0;
