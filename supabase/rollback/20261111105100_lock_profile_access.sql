@@ -1,4 +1,4 @@
--- Emergency rollback for 20261111130000_lock_profile_access.
+-- Emergency rollback for 20261111105100_lock_profile_access.
 -- Run this BEFORE rolling back 20261111123000 and 20261111120000.
 -- Restores the stage-1 compatibility state, not the original pre-audit state.
 
