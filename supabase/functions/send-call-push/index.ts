@@ -98,6 +98,8 @@ Deno.serve(async (req: Request) => {
     if (subscriptionsError) return json({ error: subscriptionsError.message }, 500, origin);
 
     const callerName = callerProfile?.username || "Входящий звонок";
+    const callCreatedAt = Date.now();
+    const callExpiresAt = callCreatedAt + 45_000;
 
     let sent = 0;
     let removed = 0;
@@ -117,9 +119,12 @@ Deno.serve(async (req: Request) => {
             callId,
             chatId,
             callerName,
+            createdAt: callCreatedAt,
+            expiresAt: callExpiresAt,
             mode,
             url: `./index.html?chat=${encodeURIComponent(chatId)}&call=${encodeURIComponent(callId)}`
-          })
+          }),
+          { TTL: 45, urgency: "high" }
         );
         sent++;
       } catch (error) {
