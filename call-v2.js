@@ -424,11 +424,11 @@
         channel=window.supabaseClient.channel(`call-v2-${window.currentUser.id}`).on("postgres_changes",{event:"INSERT",schema:"public",table:"call_signals",filter:`recipient_id=eq.${window.currentUser.id}`},payload=>void handleSignal(payload.new)).subscribe(status=>{if(status==="SUBSCRIBED"){void recoverOffer();}else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){channel=null;setTimeout(subscribe,2000);}});
     }
 
-    async function recoverOffer(){
+    async function recoverOffer(requestedCallIdOverride){
         if(!window.currentUser?.id||callId||recoveringOffer||!window.supabaseClient)return;
         recoveringOffer=true;
         try{
-            const requestedCallId=new URLSearchParams(window.location.search).get("call");
+            const requestedCallId=requestedCallIdOverride||new URLSearchParams(window.location.search).get("call");
             let query=window.supabaseClient.from("call_signals").select("chat_id,sender_id,recipient_id,call_id,signal_type,payload,created_at").eq("recipient_id",window.currentUser.id).eq("signal_type","offer").gte("created_at",new Date(Date.now()-60000).toISOString()).order("created_at",{ascending:false});
             if(requestedCallId)query=query.eq("call_id",requestedCallId);
             const {data,error}=await query.limit(10);
@@ -476,17 +476,21 @@
         pendingNativeCallAction=null;
         if(action==="answer")void acceptIncoming();
         else if(action==="reject")void rejectIncoming();
+        else if(action==="open")show(true);
     }
     window.addEventListener("androidincomingcall",event=>{
         const detail=event?.detail||{};
-        if(!detail.callId||!["answer","reject"].includes(detail.action))return;
+        if(!detail.callId||!["answer","reject","open"].includes(detail.action))return;
+        if(detail.action==="open"){void recoverOffer(String(detail.callId));return;}
         pendingNativeCallAction={action:detail.action,callId:String(detail.callId)};
         processNativeCallAction();
-        if(pendingNativeCallAction)setTimeout(()=>{if(pendingNativeCallAction?.callId===String(detail.callId))void recoverOffer();},1200);
+        if(pendingNativeCallAction)setTimeout(()=>{if(pendingNativeCallAction?.callId===String(detail.callId))void recoverOffer(String(detail.callId));},1200);
     });
     async function rejectIncoming(){await send("reject");await end(false);}
     async function end(notify){
-        if(notify&&callId&&peerId)await send("hangup");clearTimer();try{pc?.close();}catch{}pc=null;localStream?.getTracks().forEach(track=>track.stop());localStream=null;remoteStream=null;pendingOffer=null;pendingIce.clear();callId=null;peerId=null;role=null;chatId=null;makingOffer=false;renegotiationBusy=false;
+        if(notify&&callId&&peerId)await send("hangup");
+        try{if(callId&&window.AndroidNotifications?.cancelIncomingCallNotification)window.AndroidNotifications.cancelIncomingCallNotification(callId);}catch(error){console.warn("Не удалось закрыть системное уведомление звонка:",error);}
+        clearTimer();try{pc?.close();}catch{}pc=null;localStream?.getTracks().forEach(track=>track.stop());localStream=null;remoteStream=null;pendingOffer=null;pendingIce.clear();callId=null;peerId=null;role=null;chatId=null;makingOffer=false;renegotiationBusy=false;
         if($("chatCallV2"))$("chatCallV2").classList.remove("open");if($("cv2Remote"))$("cv2Remote").srcObject=null;if($("cv2RemoteAudio"))$("cv2RemoteAudio").srcObject=null;if($("cv2Local"))$("cv2Local").srcObject=null;
     }
 
