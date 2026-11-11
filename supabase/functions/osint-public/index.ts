@@ -349,14 +349,16 @@ async function checkAuth(req: Request) {
 
     // Authenticate and require an approved account for OSINT access.
     const profileResponse = await fetch(
-      `${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=approved`,
+      `${supabaseUrl}/rest/v1/rpc/get_my_access_status`,
       {
-        method: "GET",
+        method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
           "apikey": supabaseKey,
+          "Content-Type": "application/json",
           "Accept": "application/json"
-        }
+        },
+        body: "{}"
       }
     );
 
@@ -365,10 +367,10 @@ async function checkAuth(req: Request) {
       return false;
     }
 
-    const profiles = await profileResponse.json();
-    const profile = Array.isArray(profiles) ? profiles[0] : null;
+    const accessRows = await profileResponse.json();
+    const access = Array.isArray(accessRows) ? accessRows[0] : null;
 
-    if (!profile || profile.approved !== true) return false;
+    if (!access || access.approved !== true) return false;
 
     const permissionResponse = await fetch(
       `${supabaseUrl}/rest/v1/rpc/has_app_access`,
