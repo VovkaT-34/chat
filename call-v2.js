@@ -222,7 +222,17 @@
 
     async function getMedia() {
         if(!navigator.mediaDevices?.getUserMedia) throw new Error("getUserMedia недоступен");
-        localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:mode==="video"?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30},facingMode:"user"}:false});
+        const audioConstraints={echoCancellation:true,noiseSuppression:true,autoGainControl:true};
+        const videoConstraints=mode==="video"?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30},facingMode:"user"}:false;
+        try {
+            localStream=await navigator.mediaDevices.getUserMedia({audio:audioConstraints,video:videoConstraints});
+        } catch(error) {
+            if(mode!=="video") throw error;
+            console.warn("Камера недоступна, пробуем продолжить звонок только со звуком:",error);
+            localStream=await navigator.mediaDevices.getUserMedia({audio:audioConstraints,video:false});
+            mode="audio";
+            setStatus("Камера недоступна — продолжаем аудиозвонок");
+        }
         const video=$("cv2Local");
         if(video){video.srcObject=localStream;video.style.display=mode==="video"?"block":"none";if(mode==="video")void video.play().catch(()=>{});}
     }
@@ -337,7 +347,7 @@
         try{
             $("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";setStatus("Запрашиваем доступ…");
             await getMedia();buildPeer();await pc.setRemoteDescription(pendingOffer);await flushIce();
-            const answer=await pc.createAnswer();await pc.setLocalDescription(answer);setStatus("Соединение…");await send("answer",{description:pc.localDescription?.toJSON()});void resumeRemoteAudio();
+            const answer=await pc.createAnswer();await pc.setLocalDescription(answer);setStatus("Соединение…");if(!await send("answer",{description:pc.localDescription?.toJSON()}))throw new Error("Сигнал ответа не записан в Supabase");void resumeRemoteAudio();
         }catch(error){console.error("Ошибка принятия звонка:",error);const message=error?.name==="NotAllowedError"?"Разрешите микрофон/камеру для сайта в настройках браузера.":"Не удалось принять звонок.";setStatus(message);setTimeout(()=>void end(true),1800);}
     }
 
