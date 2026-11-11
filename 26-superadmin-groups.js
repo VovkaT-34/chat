@@ -13,8 +13,9 @@
     function isSA() {
         var u = window.currentUser;
         if (!u || !u.id || !window.supabaseClient) return Promise.resolve(false);
-        return window.supabaseClient.from("profiles").select("role,approved").eq("id", u.id).maybeSingle().then(function (r) {
-            return !r.error && r.data && r.data.approved === true && r.data.role === "superadmin";
+        return window.supabaseClient.rpc("check_my_profile").then(function (r) {
+            var profile = r.data && r.data[0] ? r.data[0] : null;
+            return !r.error && profile && profile.approved === true && profile.role === "superadmin";
         });
     }
 
