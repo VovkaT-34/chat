@@ -104,7 +104,13 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setOngoing(true)
                 .setAutoCancel(true)
-                .setContentIntent(open);
+                .setContentIntent(open)
+                .setFullScreenIntent(open, true);
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE))
+                    .setVibrate(new long[]{0, 300, 150, 300, 150, 500});
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Person person = new Person.Builder().setName(callerName).build();
