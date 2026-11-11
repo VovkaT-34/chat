@@ -1,4 +1,4 @@
--- Read-only verification queries for migration 20261111120000_harden_profile_access.sql.
+-- Read-only verification queries for migration 20261111105100_lock_profile_access.sql.
 -- Run only after the migration has been applied to the intended project.
 
 select
