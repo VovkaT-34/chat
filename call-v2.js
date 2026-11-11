@@ -384,7 +384,6 @@
         if(!signal?.call_id||!Number.isFinite(offerTime)||Date.now()-offerTime>60000||offerTime-Date.now()>30000)return false;
         const {data,error}=await window.supabaseClient.from("call_signals")
             .select("signal_type,created_at")
-            .eq("recipient_id",window.currentUser.id)
             .eq("call_id",signal.call_id)
             .in("signal_type",["hangup","reject"])
             .order("created_at",{ascending:false})
