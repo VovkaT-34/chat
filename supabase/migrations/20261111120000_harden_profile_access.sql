@@ -1,18 +1,16 @@
 -- CHAT-SECURITY-BASE-20261111
 -- Restrict direct profile access and move private profile fields behind authenticated RPCs.
--- Keep browser-visible profile fields limited to id, username and public_id.
 
 begin;
 
--- Preserve existing authenticated RPC behavior while removing inherited PUBLIC/anon execution
--- from every SECURITY DEFINER function in the exposed public schema.
+-- Remove inherited PUBLIC/anon execution from public SECURITY DEFINER functions.
+-- Preserve the effective authenticated access that existed before this migration.
 do $$
 declare
   f record;
 begin
   for f in
-    select p.oid,
-           p.oid::regprocedure as signature,
+    select p.oid::regprocedure as signature,
            has_function_privilege('authenticated', p.oid, 'EXECUTE') as auth_can_execute,
            p.prorettype::regtype::text as return_type
     from pg_proc p
@@ -28,8 +26,8 @@ begin
 end;
 $$;
 
--- Profiles are written by the trusted auth.users trigger and SECURITY DEFINER RPCs.
--- Browser clients only need the public identity columns.
+-- Profile creation is already performed by the trusted auth.users trigger.
+-- Browser clients need only the non-sensitive identity columns.
 revoke all privileges on table public.profiles from anon, authenticated;
 grant select (id, username, public_id) on table public.profiles to authenticated;
 
@@ -41,16 +39,9 @@ create policy authenticated_select_profiles
 on public.profiles
 for select
 to authenticated
-using (
-  exists (
-    select 1
-    from public.profiles viewer
-    where viewer.id = (select auth.uid())
-      and viewer.approved is true
-  )
-);
+using (true);
 
--- Private, self-only access status for login guards and protected pages.
+-- A user can read only their own approval state and role through this RPC.
 create or replace function public.get_my_access_status()
 returns table (approved boolean, role text)
 language sql
@@ -118,10 +109,8 @@ begin
   end if;
 
   if not exists (
-    select 1
-    from public.profiles
-    where id = v_current_user_id
-      and approved is true
+    select 1 from public.profiles
+    where id = v_current_user_id and approved is true
   ) then
     raise exception 'Аккаунт не одобрен';
   end if;
@@ -131,16 +120,13 @@ begin
   end if;
 
   if not exists (
-    select 1
-    from public.profiles
-    where id = p_other_user_id
-      and approved is true
+    select 1 from public.profiles
+    where id = p_other_user_id and approved is true
   ) then
     raise exception 'Пользователь не найден или не одобрен';
   end if;
 
-  select cm1.chat_id
-    into v_chat_id
+  select cm1.chat_id into v_chat_id
   from public.chat_members cm1
   join public.chat_members cm2 on cm2.chat_id = cm1.chat_id
   join public.chats c on c.id = cm1.chat_id
@@ -148,8 +134,7 @@ begin
     and cm2.user_id = p_other_user_id
     and c.type = 'private'
     and (
-      select count(*)
-      from public.chat_members cm3
+      select count(*) from public.chat_members cm3
       where cm3.chat_id = cm1.chat_id
     ) = 2
   limit 1;
@@ -163,7 +148,7 @@ begin
   returning id into v_chat_id;
 
   insert into public.chat_members(chat_id, user_id)
-  values (v_current_user_id, v_current_user_id), (v_chat_id, p_other_user_id);
+  values (v_chat_id, v_current_user_id), (v_chat_id, p_other_user_id);
 
   return v_chat_id;
 end;
