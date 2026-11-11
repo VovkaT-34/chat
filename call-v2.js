@@ -404,6 +404,7 @@
             if(callId===signal.call_id&&role==="callee")return;
             if(handledIncomingCallIds.has(signal.call_id))return;
             if(!(await isOfferActive(signal)))return;
+            if(callId||handledIncomingCallIds.has(signal.call_id))return;
             handledIncomingCallIds.add(signal.call_id);
             while(handledIncomingCallIds.size>32)handledIncomingCallIds.delete(handledIncomingCallIds.values().next().value);
             mediaWarning="";callId=signal.call_id;chatId=Number(signal.chat_id);peerId=signal.sender_id;mode=signal.payload?.mode==="video"?"video":"audio";role="callee";pendingOffer=signal.payload?.description||null;setActiveChatId(chatId);
