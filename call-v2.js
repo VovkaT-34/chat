@@ -135,7 +135,7 @@
     function setStatus(text) { if ($("cv2Status")) $("cv2Status").textContent = text; }
     function show(value) { ensureUi(); $("chatCallV2")?.classList.toggle("open", Boolean(value)); }
     function clearTimer() { if (timer) clearInterval(timer); timer = null; if (callTimeout) clearTimeout(callTimeout); callTimeout = null; startedAt = 0; }
-    function startTimer() { clearTimer(); startedAt = Date.now(); timer = setInterval(() => { const seconds = Math.floor((Date.now() - startedAt) / 1000); setStatus(`${mode === "video" ? "Видеозвонок" : "Звонок"} • ${String(Math.floor(seconds / 60)).padStart(2,"0")}:${String(seconds % 60).padStart(2,"0")}`); }, 1000); }
+    function startTimer() { clearTimer(); startedAt = Date.now(); timer = setInterval(() => { const seconds = Math.floor((Date.now() - startedAt) / 1000); const label=mode === "video" ? "Видеозвонок" : "Звонок"; setStatus(label+(mediaWarning ? " • " + mediaWarning : "")+" • "+String(Math.floor(seconds / 60)).padStart(2,"0")+":"+String(seconds % 60).padStart(2,"0")); }, 1000); }
     function armCallTimeout() { if (callTimeout) clearTimeout(callTimeout); callTimeout = setTimeout(() => { if (callId && role === "caller") { setStatus("Собеседник не ответил"); setTimeout(() => void end(false), 1200); } }, 45000); }
 
     async function send(type, payload = {}) {
@@ -256,7 +256,7 @@
         pc=new RTCPeerConnection({iceServers:activeIceServers,iceCandidatePoolSize:4});
         pc.onicecandidate=event=>{if(event.candidate) void send("ice",{candidate:event.candidate.toJSON()});};
         pc.ontrack=event=>{if(!remoteStream.getTracks().some(track=>track.id===event.track.id)) remoteStream.addTrack(event.track);attachTrackRecovery(event.track);if(event.track.kind==="video"){mode="video";updateVideoUi(true);}setRemoteMedia();};
-        pc.onconnectionstatechange=()=>{const state=pc?.connectionState;if(state==="connected"){if(callTimeout)clearTimeout(callTimeout);callTimeout=null;setStatus(mode==="video"?"Видеозвонок":"Звонок");startTimer();void resumeRemoteAudio();}else if(state==="failed"){setStatus("Не удалось установить соединение");setTimeout(()=>void end(false),1500);}else if(state==="disconnected"){setStatus("Соединение потеряно");setTimeout(()=>{if(pc?.connectionState==="disconnected")void end(false);},3000);}};
+        pc.onconnectionstatechange=()=>{const state=pc?.connectionState;if(state==="connected"){if(callTimeout)clearTimeout(callTimeout);callTimeout=null;const label=mode==="video"?"Видеозвонок":"Звонок";setStatus(mediaWarning?label+" • "+mediaWarning:label);startTimer();void resumeRemoteAudio();}else if(state==="failed"){setStatus("Не удалось установить соединение");setTimeout(()=>void end(false),1500);}else if(state==="disconnected"){setStatus("Соединение потеряно");setTimeout(()=>{if(pc?.connectionState==="disconnected")void end(false);},3000);}};
         pc.oniceconnectionstatechange=()=>{if(pc?.iceConnectionState==="failed")setStatus("Не удалось соединиться через WebRTC");};
         pc.onnegotiationneeded=()=>{if(role==="caller"&&!makingOffer&&mode==="video")void sendVideoOffer();};
         localStream?.getTracks().forEach(track=>pc.addTrack(track,localStream));
@@ -406,7 +406,7 @@
             if(!(await isOfferActive(signal)))return;
             handledIncomingCallIds.add(signal.call_id);
             while(handledIncomingCallIds.size>32)handledIncomingCallIds.delete(handledIncomingCallIds.values().next().value);
-            callId=signal.call_id;chatId=Number(signal.chat_id);peerId=signal.sender_id;mode=signal.payload?.mode==="video"?"video":"audio";role="callee";pendingOffer=signal.payload?.description||null;setActiveChatId(chatId);
+            mediaWarning="";callId=signal.call_id;chatId=Number(signal.chat_id);peerId=signal.sender_id;mode=signal.payload?.mode==="video"?"video":"audio";role="callee";pendingOffer=signal.payload?.description||null;setActiveChatId(chatId);
             peerName=await resolveIncomingPeerName();
             ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="flex";$("cv2Controls").style.display="none";$("cv2Remote").style.display="none";updateVideoUi(false);setStatus(mode==="video"?"Входящий видеозвонок":"Входящий звонок");show(true);processNativeCallAction();return;
         }
@@ -462,6 +462,7 @@
 
     async function acceptIncoming(){
         if(!pendingOffer||!callId)return;
+        mediaWarning="";
         try{
             $("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";setStatus("Запрашиваем доступ…");
             await getMedia();await loadTurnIceServers();buildPeer();await pc.setRemoteDescription(pendingOffer);await flushIce();
