@@ -396,6 +396,25 @@
         return !Number.isFinite(terminalTime)||terminalTime<offerTime;
     }
 
+    async function recoverIceCandidates(signal){
+        if(!signal?.call_id||!signal?.sender_id||!window.currentUser?.id)return;
+        const {data,error}=await window.supabaseClient.from("call_signals")
+            .select("payload")
+            .eq("call_id",signal.call_id)
+            .eq("sender_id",signal.sender_id)
+            .eq("recipient_id",window.currentUser.id)
+            .eq("signal_type","ice")
+            .order("created_at",{ascending:true})
+            .limit(64);
+        if(error){
+            console.warn("Не удалось восстановить ICE-кандидаты входящего вызова:",error);
+            return;
+        }
+        for(const row of data||[]){
+            if(row.payload?.candidate)rememberIce(signal.call_id,row.payload.candidate);
+        }
+    }
+
     async function handleSignal(signal){
         if(!signal||!window.currentUser?.id||signal.recipient_id!==window.currentUser.id)return;
         if(signal.signal_type==="offer"){
@@ -407,6 +426,7 @@
             handledIncomingCallIds.add(signal.call_id);
             while(handledIncomingCallIds.size>32)handledIncomingCallIds.delete(handledIncomingCallIds.values().next().value);
             mediaWarning="";callId=signal.call_id;chatId=Number(signal.chat_id);peerId=signal.sender_id;mode=signal.payload?.mode==="video"?"video":"audio";role="callee";pendingOffer=signal.payload?.description||null;setActiveChatId(chatId);
+            await recoverIceCandidates(signal);
             peerName=await resolveIncomingPeerName();
             ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="flex";$("cv2Controls").style.display="none";$("cv2Remote").style.display="none";updateVideoUi(false);setStatus(mode==="video"?"Входящий видеозвонок":"Входящий звонок");show(true);processNativeCallAction();return;
         }
