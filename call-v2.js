@@ -181,7 +181,13 @@
 
     async function requestVideoTrack() {
         if(!navigator.mediaDevices?.getUserMedia) throw new Error("Камера недоступна");
-        const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30},facingMode:"user"}});
+        let stream;
+        try {
+            stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30},facingMode:"user"}});
+        } catch(error) {
+            console.warn("Не удалось открыть камеру с рекомендуемыми параметрами, пробуем стандартный режим:",error);
+            stream=await navigator.mediaDevices.getUserMedia({video:true});
+        }
         const videoTrack=stream.getVideoTracks()[0];
         if(!videoTrack){stream.getTracks().forEach(track=>track.stop());throw new Error("Видеотрек не получен");}
         if(!localStream) localStream=new MediaStream();
@@ -229,10 +235,15 @@
             localStream=await navigator.mediaDevices.getUserMedia({audio:audioConstraints,video:videoConstraints});
         } catch(error) {
             if(mode!=="video") throw error;
-            console.warn("Камера недоступна, пробуем продолжить звонок только со звуком:",error);
-            localStream=await navigator.mediaDevices.getUserMedia({audio:audioConstraints,video:false});
-            mode="audio";
-            setStatus("Камера недоступна — продолжаем аудиозвонок");
+            console.warn("Не удалось открыть камеру с рекомендуемыми параметрами, пробуем стандартный режим:",error);
+            try {
+                localStream=await navigator.mediaDevices.getUserMedia({audio:audioConstraints,video:true});
+            } catch(videoError) {
+                console.warn("Камера недоступна, пробуем продолжить звонок только со звуком:",videoError);
+                localStream=await navigator.mediaDevices.getUserMedia({audio:audioConstraints,video:false});
+                mode="audio";
+                setStatus("Камера недоступна — продолжаем аудиозвонок");
+            }
         }
         const video=$("cv2Local");
         if(video){video.srcObject=localStream;video.style.display=mode==="video"?"block":"none";if(mode==="video")void video.play().catch(()=>{});}
