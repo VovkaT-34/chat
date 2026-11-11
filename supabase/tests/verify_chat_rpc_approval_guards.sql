@@ -1,4 +1,4 @@
--- Read-only verification for 20261111123000_harden_mutating_chat_rpcs.
+-- Read-only verification for 20261111105048_harden_mutating_chat_rpcs.
 -- Expected: all six functions below contain the approval guard.
 
 select
