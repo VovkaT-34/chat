@@ -35,11 +35,57 @@ drop policy if exists authenticated_insert_profiles on public.profiles;
 drop policy if exists admin_update_profiles on public.profiles;
 drop policy if exists authenticated_select_profiles on public.profiles;
 
+-- This helper is used by RLS policies without exposing private profile columns.
+create or replace function public.is_approved_user()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = (select auth.uid())
+      and p.approved is true
+  );
+$;
+
+revoke all on function public.is_approved_user() from public, anon;
+grant execute on function public.is_approved_user() to authenticated;
+
 create policy authenticated_select_profiles
 on public.profiles
 for select
 to authenticated
-using (true);
+using (public.is_approved_user());
+
+-- Defense in depth: unapproved accounts cannot access chat data through direct Data API calls.
+do $
+declare
+  table_name text;
+begin
+  foreach table_name in array array[
+    'android_push_tokens',
+    'call_signals',
+    'chat_members',
+    'chat_notification_settings',
+    'chats',
+    'contact_nicknames',
+    'message_deliveries',
+    'messages',
+    'user_chat_reads',
+    'web_push_subscriptions'
+  ]
+  loop
+    execute format('drop policy if exists approved_users_only on public.%I', table_name);
+    execute format(
+      'create policy approved_users_only on public.%I as restrictive for all to authenticated using (public.is_approved_user()) with check (public.is_approved_user())',
+      table_name
+    );
+  end loop;
+end;
+$;
 
 -- A user can read only their own approval state and role through this RPC.
 create or replace function public.get_my_access_status()
@@ -153,5 +199,29 @@ begin
   return v_chat_id;
 end;
 $$;
+
+-- User search is also restricted to approved accounts.
+create or replace function public.search_users(p_search text)
+returns table (id uuid, username text, public_id text)
+language sql
+security definer
+set search_path = ''
+as $
+  select p.id, p.username, p.public_id
+  from public.profiles p
+  where (select auth.uid()) is not null
+    and public.is_approved_user()
+    and p.approved is true
+    and p.id <> (select auth.uid())
+    and p.username is not null
+    and (
+      p.username ilike '%' || ltrim(trim(coalesce(p_search, '')), '@') || '%'
+      or p.public_id ilike '%' || ltrim(trim(coalesce(p_search, '')), '@') || '%'
+    )
+  order by
+    case when lower(p.public_id) = lower(ltrim(trim(coalesce(p_search, '')), '@')) then 0 else 1 end,
+    p.username
+  limit 20;
+$;
 
 commit;
