@@ -317,7 +317,7 @@
 
     async function subscribe(){
         if(channel||!window.supabaseClient||!window.currentUser?.id)return;
-        channel=window.supabaseClient.channel(`call-v2-${window.currentUser.id}`).on("postgres_changes",{event:"INSERT",schema:"public",table:"call_signals",filter:`recipient_id=eq.${window.currentUser.id}`},payload=>void handleSignal(payload.new)).subscribe(status=>{if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){channel=null;setTimeout(subscribe,2000);}});
+        channel=window.supabaseClient.channel(`call-v2-${window.currentUser.id}`).on("postgres_changes",{event:"INSERT",schema:"public",table:"call_signals",filter:`recipient_id=eq.${window.currentUser.id}`},payload=>void handleSignal(payload.new)).subscribe(status=>{if(status==="SUBSCRIBED"){void recoverOffer();}else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"){channel=null;setTimeout(subscribe,2000);}});
     }
 
     async function recoverOffer(){
