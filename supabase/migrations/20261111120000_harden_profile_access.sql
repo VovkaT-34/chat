@@ -1,67 +1,58 @@
--- CHAT-SECURITY-BASE-20261111
--- Restrict direct profile access and move private profile fields behind authenticated RPCs.
+-- CHAT-SECURITY-BASE-20261111 — stage 1 (backward-compatible foundation).
+-- Adds private access RPCs and approved-user RLS guards while retaining the
+-- existing profile SELECT contract for already-approved clients.
+-- Stage 3 removes broad profile column access only after all clients are updated.
 
 begin;
 
--- Remove inherited PUBLIC/anon execution from public SECURITY DEFINER functions.
--- Preserve the effective authenticated access that existed before this migration.
-do $$
-declare
-  f record;
-begin
-  for f in
-    select p.oid::regprocedure as signature,
-           has_function_privilege('authenticated', p.oid, 'EXECUTE') as auth_can_execute,
-           p.prorettype::regtype::text as return_type
-    from pg_proc p
-    join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public'
-      and p.prosecdef
-  loop
-    execute format('revoke execute on function %s from public, anon', f.signature);
-    if f.auth_can_execute and f.return_type not in ('trigger', 'event_trigger') then
-      execute format('grant execute on function %s to authenticated', f.signature);
-    end if;
-  end loop;
-end;
-$$;
-
--- Profile creation is already performed by the trusted auth.users trigger.
--- Browser clients need only the non-sensitive identity columns.
-revoke all privileges on table public.profiles from anon, authenticated;
-grant select (id, username, public_id) on table public.profiles to authenticated;
-
-drop policy if exists authenticated_insert_profiles on public.profiles;
-drop policy if exists admin_update_profiles on public.profiles;
-drop policy if exists authenticated_select_profiles on public.profiles;
-
--- This helper is used by RLS policies without exposing private profile columns.
+-- Private helper used by RLS policies. It exposes only the caller's approval state.
 create or replace function public.is_approved_user()
 returns boolean
 language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select exists (
     select 1
     from public.profiles p
     where p.id = (select auth.uid())
       and p.approved is true
   );
-$;
+$$;
 
 revoke all on function public.is_approved_user() from public, anon;
 grant execute on function public.is_approved_user() to authenticated;
 
+-- Approved users retain the current profile SELECT behavior during the
+-- compatibility window. Pending users cannot read profile rows.
+drop policy if exists authenticated_select_profiles on public.profiles;
 create policy authenticated_select_profiles
 on public.profiles
 for select
 to authenticated
 using (public.is_approved_user());
 
+-- Keep signup/profile provisioning compatible, but do not permit a browser
+-- client to insert itself as approved or as any elevated role.
+drop policy if exists authenticated_insert_profiles on public.profiles;
+create policy authenticated_insert_profiles
+on public.profiles
+for insert
+to authenticated
+with check (
+  id = (select auth.uid())
+  and role = 'user'
+  and approved is false
+);
+
+-- Profile edits and administrative changes already use SECURITY DEFINER RPCs.
+-- Remove direct UPDATE so an ordinary admin cannot bypass the role hierarchy.
+revoke update on table public.profiles from authenticated;
+drop policy if exists admin_update_profiles on public.profiles;
+
 -- Defense in depth: unapproved accounts cannot access chat data through direct Data API calls.
-do $
+do $$
 declare
   table_name text;
 begin
@@ -85,7 +76,7 @@ begin
     );
   end loop;
 end;
-$;
+$$;
 
 -- A user can read only their own approval state and role through this RPC.
 create or replace function public.get_my_access_status()
@@ -104,7 +95,8 @@ $$;
 revoke all on function public.get_my_access_status() from public, anon;
 grant execute on function public.get_my_access_status() to authenticated;
 
--- Administrative profile listing replaces direct SELECT * from profiles.
+-- Administrative profile listing replaces direct SELECT * during the final
+-- column-privilege lockdown. Only an approved admin or superadmin can call it.
 create or replace function public.admin_list_profiles()
 returns table (
   id uuid,
@@ -200,13 +192,13 @@ begin
 end;
 $$;
 
--- User search is also restricted to approved accounts.
+-- User search is not available to pending or unapproved accounts.
 create or replace function public.search_users(p_search text)
 returns table (id uuid, username text, public_id text)
 language sql
 security definer
 set search_path = ''
-as $
+as $$
   select p.id, p.username, p.public_id
   from public.profiles p
   where (select auth.uid()) is not null
@@ -222,6 +214,6 @@ as $
     case when lower(p.public_id) = lower(ltrim(trim(coalesce(p_search, '')), '@')) then 0 else 1 end,
     p.username
   limit 20;
-$;
+$$;
 
 commit;
