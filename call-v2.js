@@ -46,6 +46,9 @@
     let renegotiationBusy = false;
     let pageVisible = !document.hidden;
     let pendingNativeCallAction = null;
+    let recoveringOffer = false;
+    let handledIncomingCallIds = new Set();
+    let mediaWarning = "";
 
     const $ = id => document.getElementById(id);
 
@@ -195,6 +198,22 @@
         if(localVideo) localVideo.style.display=enabled ? "block":"none";
     }
 
+    function describeMediaError(error) {
+        const reasons = {
+            NotAllowedError: "браузер или операционная система запретили доступ",
+            NotFoundError: "устройство не найдено",
+            NotReadableError: "устройство занято другой программой или драйвер не отвечает",
+            OverconstrainedError: "устройство не поддерживает запрошенные параметры",
+            SecurityError: "доступ заблокирован настройками безопасности страницы",
+            AbortError: "операция доступа к устройству была прервана",
+            TypeError: "браузер отклонил параметры запроса к устройству"
+        };
+        const name = error?.name || "Error";
+        const reason = reasons[name] || "ошибка доступа к устройству";
+        const details = String(error?.message || "").trim();
+        return name + ": " + reason + (details ? " — " + details : "");
+    }
+
     async function requestVideoTrack() {
         if(!navigator.mediaDevices?.getUserMedia) throw new Error("Камера недоступна");
         let stream;
@@ -246,23 +265,59 @@
     async function getMedia() {
         if(!navigator.mediaDevices?.getUserMedia) throw new Error("getUserMedia недоступен");
         const audioConstraints={echoCancellation:true,noiseSuppression:true,autoGainControl:true};
-        const videoConstraints=mode==="video"?{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30},facingMode:"user"}:false;
-        try {
-            localStream=await navigator.mediaDevices.getUserMedia({audio:audioConstraints,video:videoConstraints});
-        } catch(error) {
-            if(mode!=="video") throw error;
-            console.warn("Не удалось открыть камеру с рекомендуемыми параметрами, пробуем стандартный режим:",error);
+        let audioStream=null;
+        let videoStream=null;
+        let videoError=null;
+
+        // Получаем камеру отдельно: ошибка микрофона больше не маскируется под
+        // ошибку камеры и не заставляет звонок переходить в аудиорежим.
+        if(mode==="video") {
             try {
-                localStream=await navigator.mediaDevices.getUserMedia({audio:audioConstraints,video:true});
-            } catch(videoError) {
-                console.warn("Камера недоступна, пробуем продолжить звонок только со звуком:",videoError);
-                localStream=await navigator.mediaDevices.getUserMedia({audio:audioConstraints,video:false});
-                mode="audio";
-                setStatus("Камера недоступна — продолжаем аудиозвонок");
+                videoStream=await navigator.mediaDevices.getUserMedia({
+                    audio:false,
+                    video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30,max:30},facingMode:"user"}
+                });
+            } catch(firstVideoError) {
+                console.warn("Камера не открылась с рекомендуемыми параметрами; пробуем video:true:",firstVideoError);
+                try {
+                    videoStream=await navigator.mediaDevices.getUserMedia({audio:false,video:true});
+                } catch(secondVideoError) {
+                    videoError=secondVideoError;
+                    console.error("Не удалось получить видеопоток:",secondVideoError);
+                }
             }
         }
+
+        try {
+            audioStream=await navigator.mediaDevices.getUserMedia({audio:audioConstraints,video:false});
+        } catch(audioError) {
+            if(mode!=="video" || !videoStream) throw audioError;
+            mediaWarning="микрофон не подключён: "+describeMediaError(audioError);
+            console.error("Видео доступно, но микрофон не открылся:",audioError);
+        }
+
+        if(mode==="video" && !videoStream) {
+            if(!audioStream) throw videoError || new Error("Не удалось получить камеру и микрофон");
+            mode="audio";
+            mediaWarning="камера не подключилась: "+describeMediaError(videoError);
+            console.error("Продолжаем аудиозвонок без камеры:",videoError);
+        }
+
+        const tracks=[
+            ...(audioStream?.getTracks?.()||[]),
+            ...(videoStream?.getTracks?.()||[])
+        ];
+        if(!tracks.length) throw new Error("Браузер не вернул аудио- или видеотреки");
+        localStream=new MediaStream(tracks);
+
         const video=$("cv2Local");
-        if(video){video.srcObject=localStream;video.style.display=mode==="video"?"block":"none";if(mode==="video")void video.play().catch(()=>{});}
+        const hasVideo=Boolean(videoStream?.getVideoTracks?.().length);
+        if(video){
+            video.srcObject=localStream;
+            video.style.display=hasVideo?"block":"none";
+            if(hasVideo)void video.play().catch(error=>console.warn("Не удалось показать локальное видео:",error));
+        }
+        updateVideoUi(hasVideo);
     }
 
     function candidateKey(candidate){
@@ -324,11 +379,33 @@
         }catch(error){console.error("Ошибка переключения на видео:",error);setStatus("Не удалось включить видео");}
     }
 
+    async function isOfferActive(signal) {
+        const offerTime=Date.parse(signal?.created_at||"");
+        if(!signal?.call_id||!Number.isFinite(offerTime)||Date.now()-offerTime>60000||offerTime-Date.now()>30000)return false;
+        const {data,error}=await window.supabaseClient.from("call_signals")
+            .select("signal_type,created_at")
+            .eq("recipient_id",window.currentUser.id)
+            .eq("call_id",signal.call_id)
+            .in("signal_type",["hangup","reject"])
+            .order("created_at",{ascending:false})
+            .limit(1);
+        if(error){
+            console.warn("Не удалось проверить, завершён ли входящий вызов; отклоняем восстановление:",error);
+            return false;
+        }
+        const terminalTime=Date.parse(data?.[0]?.created_at||"");
+        return !Number.isFinite(terminalTime)||terminalTime<offerTime;
+    }
+
     async function handleSignal(signal){
         if(!signal||!window.currentUser?.id||signal.recipient_id!==window.currentUser.id)return;
         if(signal.signal_type==="offer"){
             if(callId&&callId!==signal.call_id)return;
             if(callId===signal.call_id&&role==="callee")return;
+            if(handledIncomingCallIds.has(signal.call_id))return;
+            if(!(await isOfferActive(signal)))return;
+            handledIncomingCallIds.add(signal.call_id);
+            while(handledIncomingCallIds.size>32)handledIncomingCallIds.delete(handledIncomingCallIds.values().next().value);
             callId=signal.call_id;chatId=Number(signal.chat_id);peerId=signal.sender_id;mode=signal.payload?.mode==="video"?"video":"audio";role="callee";pendingOffer=signal.payload?.description||null;setActiveChatId(chatId);
             peerName=await resolveIncomingPeerName();
             ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="flex";$("cv2Controls").style.display="none";$("cv2Remote").style.display="none";updateVideoUi(false);setStatus(mode==="video"?"Входящий видеозвонок":"Входящий звонок");show(true);processNativeCallAction();return;
@@ -348,13 +425,23 @@
     }
 
     async function recoverOffer(){
-        if(!window.currentUser?.id||callId||!window.supabaseClient)return;
-        const requestedCallId=new URLSearchParams(window.location.search).get("call");
-        let query=window.supabaseClient.from("call_signals").select("chat_id,sender_id,recipient_id,call_id,signal_type,payload,created_at").eq("recipient_id",window.currentUser.id).eq("signal_type","offer").order("created_at",{ascending:false});
-        if(requestedCallId)query=query.eq("call_id",requestedCallId);
-        else query=query.gte("created_at",new Date(Date.now()-60000).toISOString());
-        const {data,error}=await query.limit(1);
-        if(!error&&data?.[0])await handleSignal(data[0]);
+        if(!window.currentUser?.id||callId||recoveringOffer||!window.supabaseClient)return;
+        recoveringOffer=true;
+        try{
+            const requestedCallId=new URLSearchParams(window.location.search).get("call");
+            let query=window.supabaseClient.from("call_signals").select("chat_id,sender_id,recipient_id,call_id,signal_type,payload,created_at").eq("recipient_id",window.currentUser.id).eq("signal_type","offer").gte("created_at",new Date(Date.now()-60000).toISOString()).order("created_at",{ascending:false});
+            if(requestedCallId)query=query.eq("call_id",requestedCallId);
+            const {data,error}=await query.limit(10);
+            if(error){console.warn("Не удалось восстановить входящий вызов:",error);return;}
+            for(const offer of data||[]){
+                if(await isOfferActive(offer)){
+                    await handleSignal(offer);
+                    return;
+                }
+            }
+        }finally{
+            recoveringOffer=false;
+        }
     }
 
     async function startCall(modeArg){
@@ -363,14 +450,14 @@
         if(!window.currentUser?.id||!activeChatId){alert("Сначала откройте личный чат.");return;}
         setActiveChatId(activeChatId);const peer=await peerForChat(activeChatId);
         if(!peer?.user_id){alert("Звонки доступны только в личном чате один-на-один.");return;}
-        await end(false);chatId=activeChatId;peerId=peer.user_id;peerName=peer.username||"Пользователь";mode=modeArg==="video"?"video":"audio";role="caller";callId=createCallId();
+        await end(false);mediaWarning="";chatId=activeChatId;peerId=peer.user_id;peerName=peer.username||"Пользователь";mode=modeArg==="video"?"video":"audio";role="caller";callId=createCallId();
         try{
             ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";$("cv2Remote").style.display="none";updateVideoUi(mode==="video");setStatus("Запрашиваем доступ к "+(mode==="video"?"камере и микрофону":"микрофону")+"…");show(true);
             await getMedia();await loadTurnIceServers();buildPeer();
             const offer=await pc.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:mode==="video"});makingOffer=true;await pc.setLocalDescription(offer);makingOffer=false;
             if(!await send("offer",{description:pc.localDescription?.toJSON(),mode,callerName:window.currentUsername||peerName||"Пользователь"}))throw new Error("offer не записан");
-            setStatus("Вызов…");armCallTimeout();await sendCallPush();
-        }catch(error){makingOffer=false;console.error("Ошибка начала звонка:",error);const message=error?.name==="NotAllowedError"?"Разрешите микрофон/камеру для сайта в настройках браузера.":error?.name==="NotFoundError"?"Камера или микрофон не найдены.":"Не удалось начать звонок.";setStatus(message);setTimeout(()=>void end(false),2200);}
+            setStatus(mediaWarning?"Вызов… • "+mediaWarning:"Вызов…");armCallTimeout();await sendCallPush();
+        }catch(error){makingOffer=false;console.error("Ошибка начала звонка:",error);setStatus("Не удалось начать звонок: "+describeMediaError(error));setTimeout(()=>void end(false),3500);}
     }
 
     async function acceptIncoming(){
@@ -379,7 +466,7 @@
             $("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";setStatus("Запрашиваем доступ…");
             await getMedia();await loadTurnIceServers();buildPeer();await pc.setRemoteDescription(pendingOffer);await flushIce();
             const answer=await pc.createAnswer();await pc.setLocalDescription(answer);setStatus("Соединение…");if(!await send("answer",{description:pc.localDescription?.toJSON()}))throw new Error("Сигнал ответа не записан в Supabase");void resumeRemoteAudio();
-        }catch(error){console.error("Ошибка принятия звонка:",error);const message=error?.name==="NotAllowedError"?"Разрешите микрофон/камеру для сайта в настройках браузера.":"Не удалось принять звонок.";setStatus(message);setTimeout(()=>void end(true),1800);}
+        }catch(error){console.error("Ошибка принятия звонка:",error);setStatus("Не удалось принять звонок: "+describeMediaError(error));setTimeout(()=>void end(true),3500);}
     }
 
     function processNativeCallAction(){
@@ -412,7 +499,7 @@
             setStatus("Запрашиваем доступ к камере…");
             await requestVideoTrack();mode="video";updateVideoUi(true);setRemoteMedia();
             if(pc.signalingState==="stable") await sendVideoOffer(); else setStatus("Подготавливаем видео…");
-        }catch(error){console.error("Ошибка включения камеры:",error);const message=error?.name==="NotAllowedError"?"Разрешите камеру для сайта в настройках браузера.":error?.name==="NotFoundError"?"Камера не найдена.":"Не удалось включить камеру.";setStatus(message);updateVideoUi(false);}
+        }catch(error){console.error("Ошибка включения камеры:",error);setStatus("Не удалось включить камеру: "+describeMediaError(error));updateVideoUi(false);}
     }
 
     async function toggleSpeaker(){
