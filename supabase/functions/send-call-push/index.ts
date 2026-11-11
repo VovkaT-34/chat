@@ -27,7 +27,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const authHeader = req.headers.get("Authorization") || "";
-    const token = authHeader.replace(/^Bearer\\s+/i, "").trim();
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
     if (!token) return json({ error: "Missing authorization" }, 401);
 
     const { data: authData, error: authError } = await admin.auth.getUser(token);
