@@ -223,7 +223,8 @@
     if(!adminButton)return;
     const {data:{user},error:userError}=await supabaseClient.auth.getUser();
     if(userError||!user)return;
-    const {data:profile,error:profileError}=await supabaseClient.from("profiles").select("role, approved").eq("id",user.id).maybeSingle();
+    const {data:profiles,error:profileError}=await supabaseClient.rpc("check_my_profile");
+    const profile=profiles&&profiles[0]?profiles[0]:null;
     if(profileError||!profile||(profile.role!=="admin"&&profile.role!=="superadmin")||profile.approved!==true)return;
     adminButton.style.display="inline-flex";
 })();
