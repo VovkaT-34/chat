@@ -25,3 +25,12 @@ from pg_policies
 where schemaname = 'public'
   and tablename = 'profiles'
 order by policyname;
+
+-- All SECURITY DEFINER functions in public must be non-callable by anon.
+select p.oid::regprocedure::text as function_name
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.prosecdef
+  and has_function_privilege('anon', p.oid, 'EXECUTE')
+order by 1;
