@@ -91,6 +91,33 @@ Deno.serve(async (req: Request) => {
     }
 
     const callerProfile = approvedProfiles.find(profile => profile.id === callerId);
+
+    const { data: callSignals, error: callSignalsError } = await admin
+      .from("call_signals")
+      .select("signal_type, created_at, sender_id, recipient_id, chat_id")
+      .eq("call_id", callId)
+      .in("signal_type", ["offer", "hangup", "reject"])
+      .order("created_at", { ascending: true });
+    if (callSignalsError) return json({ error: callSignalsError.message }, 500, origin);
+
+    const offerSignal = (callSignals || []).find(signal =>
+      signal.signal_type === "offer" &&
+      signal.sender_id === callerId &&
+      signal.recipient_id === recipientId &&
+      Number(signal.chat_id) === chatId
+    );
+    if (!offerSignal) return json({ error: "Call offer not found" }, 404, origin);
+
+    const offerTime = Date.parse(offerSignal.created_at);
+    const callAlreadyEnded = (callSignals || []).some(signal =>
+      (signal.signal_type === "hangup" || signal.signal_type === "reject") &&
+      Number.isFinite(offerTime) &&
+      Date.parse(signal.created_at) >= offerTime
+    );
+    if (callAlreadyEnded) {
+      return json({ ok: true, sent: 0, removed: 0, fcmSent: 0, fcmRemoved: 0, skipped: "call-ended" }, 200, origin);
+    }
+
     const { data: subscriptions, error: subscriptionsError } = await admin
       .from("web_push_subscriptions")
       .select("id, endpoint, p256dh, auth")
