@@ -77,7 +77,8 @@ async function checkAuth() {
             if (storedSession && storedSession.access_token && storedSession.user) session = storedSession;
         }
         if (!session || !session.user || !session.user.id) { window.location.replace(loginPath); return; }
-        const { data: profile, error: profileError } = await supabaseClient.from("profiles").select("approved,role").eq("id", session.user.id).single();
+        const { data: access, error: profileError } = await supabaseClient.rpc("get_my_access_status");
+        const profile = Array.isArray(access) ? access[0] : null;
         if (profileError || !profile || profile.approved !== true) { window.location.replace(loginPath); return; }
         const currentPath = window.location.pathname.toLowerCase();
         const requiredApp = currentPath.endsWith("/game-glaz-boga.html")
