@@ -10,6 +10,7 @@ async function loadMessages(){
     if(!currentChatId||!currentUser)return;
     if(typeof window.applyChatAppearance==="function")window.applyChatAppearance();
     const chatIdAtLoad=Number(currentChatId),loadToken=++messagesLoadToken;
+    const box=document.getElementById("messages");if(!box)return;box.replaceChildren();
     olderMessagesLoading=false;
     olderMessagesDone=false;
     olderMessagesChatId=chatIdAtLoad;
