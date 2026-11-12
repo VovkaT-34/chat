@@ -285,10 +285,11 @@
             if (!raw) return Object.assign({}, DEFAULTS);
             var saved = JSON.parse(raw);
             return {
-                theme: THEMES.some(function (t) { return t.id === saved.theme; }) ? saved.theme : DEFAULTS.theme,
+                theme: (THEMES.some(function (t) { return t.id === saved.theme; }) || (saved.theme === "custom-photo-theme" && typeof saved.customThemeImage === "string" && saved.customThemeImage.indexOf("data:image/") === 0)) ? saved.theme : DEFAULTS.theme,
                 text: TEXT_COLORS.some(function (c) { return c[1] === saved.text; }) ? saved.text : DEFAULTS.text,
                 messageStyle: (MESSAGE_STYLES.some(function (style) { return style.id === saved.messageStyle; }) || (saved.messageStyle === "custom-photo" && typeof saved.customMessageImage === "string" && saved.customMessageImage.indexOf("data:image/") === 0)) ? saved.messageStyle : DEFAULTS.messageStyle,
-                customMessageImage: typeof saved.customMessageImage === "string" && saved.customMessageImage.indexOf("data:image/") === 0 ? saved.customMessageImage : ""
+                customMessageImage: typeof saved.customMessageImage === "string" && saved.customMessageImage.indexOf("data:image/") === 0 ? saved.customMessageImage : "",
+                customThemeImage: typeof saved.customThemeImage === "string" && saved.customThemeImage.indexOf("data:image/") === 0 ? saved.customThemeImage : ""
             };
         } catch (e) {
             return scope === "chat" ? loadSettings("all") : Object.assign({}, DEFAULTS);
@@ -313,6 +314,19 @@
         box.dataset.chatTheme = theme.id;
         var messageStyle = MESSAGE_STYLES.find(function (style) { return style.id === messageStyleId; }) || MESSAGE_STYLES[0];
         var activeSettings = loadSettings(Number(window.currentChatId || 0) > 0 ? "chat" : "all");
+        if (themeId === "custom-photo-theme" && activeSettings.customThemeImage) {
+            theme = {
+                id: "custom-photo-theme",
+                vars: {
+                    bg: "#34404a",
+                    pattern: 'url("' + activeSettings.customThemeImage + '")',
+                    size: "cover",
+                    bubble: "rgba(255,250,243,.88)",
+                    border: "rgba(255,255,255,.28)",
+                    shadow: "rgba(0,0,0,.22)"
+                }
+            };
+        }
         if (messageStyleId === "custom-photo" && (!activeSettings.customMessageImage || activeSettings.messageStyle !== "custom-photo")) {
             var globalSettings = loadSettings("all");
             if (globalSettings.messageStyle === "custom-photo" && globalSettings.customMessageImage) activeSettings = globalSettings;
@@ -398,6 +412,108 @@
 
         var themeGrid = document.createElement("div");
         themeGrid.className = "chat-theme-grid";
+        var themeUploadButton = document.createElement("button");
+        themeUploadButton.type = "button";
+        themeUploadButton.className = "chat-theme-option";
+        themeUploadButton.style.borderStyle = "dashed";
+        var themeUploadPreview = document.createElement("div");
+        themeUploadPreview.className = "chat-theme-preview";
+        themeUploadPreview.style.cssText = "display:flex;align-items:center;justify-content:center;background:#f3f4f6;color:#555;font-size:30px";
+        themeUploadPreview.textContent = "+";
+        var themeUploadName = document.createElement("div");
+        themeUploadName.className = "chat-theme-name";
+        themeUploadName.textContent = settings.customThemeImage ? "Заменить свою тему" : "Добавить свою тему";
+        themeUploadButton.appendChild(themeUploadPreview);
+        themeUploadButton.appendChild(themeUploadName);
+        var themeImageInput = document.createElement("input");
+        themeImageInput.type = "file";
+        themeImageInput.accept = "image/*";
+        themeImageInput.style.display = "none";
+        themeImageInput.addEventListener("change", function () {
+            var file = themeImageInput.files && themeImageInput.files[0];
+            if (!file) return;
+            if (!/^image\\//i.test(file.type)) {
+                alert("Выберите файл изображения.");
+                themeImageInput.value = "";
+                return;
+            }
+            if (file.size > 12 * 1024 * 1024) {
+                alert("Размер фотографии не должен превышать 12 МБ.");
+                themeImageInput.value = "";
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function () {
+                var image = new Image();
+                image.onload = function () {
+                    var maxSide = 1600;
+                    var scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+                    var canvas = document.createElement("canvas");
+                    canvas.width = Math.max(1, Math.round(image.width * scale));
+                    canvas.height = Math.max(1, Math.round(image.height * scale));
+                    var context = canvas.getContext("2d");
+                    if (!context) {
+                        alert("Не удалось обработать фотографию на этом устройстве.");
+                        return;
+                    }
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                    try {
+                        settings.customThemeImage = canvas.toDataURL("image/jpeg", 0.82);
+                        settings.theme = "custom-photo-theme";
+                        saveSettings(settings, scope);
+                        applyTheme(settings.theme, settings.text, settings.messageStyle);
+                        openSettings("theme", scope);
+                    } catch (error) {
+                        alert("Не удалось сохранить тему. Возможно, в памяти браузера недостаточно места.");
+                    }
+                };
+                image.onerror = function () { alert("Не удалось открыть выбранное изображение."); };
+                image.src = reader.result;
+            };
+            reader.onerror = function () { alert("Не удалось прочитать файл изображения."); };
+            reader.readAsDataURL(file);
+        });
+        themeUploadButton.addEventListener("click", function () { themeImageInput.click(); });
+        themeGrid.appendChild(themeUploadButton);
+        themeGrid.appendChild(themeImageInput);
+
+        if (settings.customThemeImage) {
+            var personalThemeButton = document.createElement("button");
+            personalThemeButton.type = "button";
+            personalThemeButton.className = "chat-theme-option" + (settings.theme === "custom-photo-theme" ? " selected" : "");
+            personalThemeButton.style.position = "relative";
+            var personalThemePreview = document.createElement("div");
+            personalThemePreview.className = "chat-theme-preview";
+            personalThemePreview.style.background = 'linear-gradient(135deg,rgba(0,0,0,.12),rgba(0,0,0,.18)),url("' + settings.customThemeImage + '") center/cover';
+            var personalThemeName = document.createElement("div");
+            personalThemeName.className = "chat-theme-name";
+            personalThemeName.textContent = "Моя тема";
+            personalThemeButton.appendChild(personalThemePreview);
+            personalThemeButton.appendChild(personalThemeName);
+            personalThemeButton.addEventListener("click", function () {
+                settings.theme = "custom-photo-theme";
+                saveSettings(settings, scope);
+                applyTheme(settings.theme, settings.text, settings.messageStyle);
+                themeGrid.querySelectorAll(".chat-theme-option").forEach(function (item) { item.classList.remove("selected"); });
+                personalThemeButton.classList.add("selected");
+            });
+            var deleteThemeButton = document.createElement("button");
+            deleteThemeButton.type = "button";
+            deleteThemeButton.textContent = "Удалить";
+            deleteThemeButton.style.cssText = "position:absolute;right:12px;bottom:38px;padding:4px 8px;border:0;border-radius:6px;background:#f3e5e5;color:#9b3030;font:12px Arial,sans-serif;cursor:pointer;z-index:1";
+            deleteThemeButton.addEventListener("click", function (event) {
+                event.stopPropagation();
+                if (!confirm("Вы точно хотите удалить эту фотографию?")) return;
+                settings.customThemeImage = "";
+                if (settings.theme === "custom-photo-theme") settings.theme = "classic";
+                saveSettings(settings, scope);
+                applyTheme(settings.theme, settings.text, settings.messageStyle);
+                openSettings("theme", scope);
+            });
+            personalThemeButton.appendChild(deleteThemeButton);
+            themeGrid.appendChild(personalThemeButton);
+        }
+
         THEMES.forEach(function (theme) {
             var button = document.createElement("button");
             button.type = "button";
