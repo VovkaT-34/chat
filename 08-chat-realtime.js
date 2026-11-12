@@ -282,7 +282,7 @@ function cacheAndApplyMessageStatus(id, status) {
 }
 
 async function refreshOwnMessageStatuses() {
-    if (!currentUser || !supabaseClient) return;
+    if (messageStatusRefreshBusy || !currentUser || !supabaseClient) return;
     const chatId = Number(currentChatId || 0);
     if (!chatId || typeof refreshChatMessageStatuses !== "function") return;
     const box = document.getElementById("messages");
@@ -290,7 +290,13 @@ async function refreshOwnMessageStatuses() {
     const ids = Array.prototype.slice.call(
         box.querySelectorAll('.message[data-message-id][data-user-id="' + currentUser.id + '"]')
     ).map(function (el) { return Number(el.dataset.messageId); }).filter(Boolean);
-    if (ids.length) await refreshChatMessageStatuses(chatId, ids);
+    if (!ids.length) return;
+    messageStatusRefreshBusy = true;
+    try {
+        await refreshChatMessageStatuses(chatId, ids);
+    } finally {
+        messageStatusRefreshBusy = false;
+    }
 }
 
 // ===============================
@@ -450,17 +456,21 @@ document.addEventListener("visibilitychange", function () {
     if (!document.hidden) {
         void reconnectChatRealtime();
         void syncCurrentChatMessages();
+    void refreshOwnMessageStatuses();
+        void refreshOwnMessageStatuses();
     }
 });
 
 window.addEventListener("online", function () {
     void reconnectChatRealtime();
     void syncCurrentChatMessages();
+    void refreshOwnMessageStatuses();
 });
 
 window.addEventListener("androidresume", function () {
     void reconnectChatRealtime();
     void syncCurrentChatMessages();
+    void refreshOwnMessageStatuses();
 });
 
 // ===============================
