@@ -29,7 +29,112 @@ function sortChatListItems(){var list=document.getElementById("chatList");if(!li
 window.sortChatListItems=sortChatListItems;window.moveChatToTop=moveChatToTop;
 function moveChatToTop(chatId,lastActivity){var item=document.querySelector('.chat-item[data-chat-id="'+Number(chatId)+'"]');if(!item)return;if((item.dataset.chatType||"public")==="public")return;var activity=getEffectiveChatActivity(chatId,lastActivity||new Date().toISOString());item.dataset.lastActivity=activity;rememberChatActivity(chatId,activity);sortChatListItems();}
 async function loadChats(){var list=document.getElementById("chatList");if(!list)return;var selectedChatId=Number(window.currentChatId||0);list.innerHTML="";var hidden=readChatMenuMap(CHAT_MENU_HIDDEN_KEY);
-function addChatToList(chatId,chatName,icon,extraClass,chatType,lastActivity){if(list.querySelector('[data-chat-id="'+chatId+'"]')||hidden[String(chatId)])return;var div=document.createElement("div"),activity=getEffectiveChatActivity(chatId,lastActivity);div.className="chat-item "+(extraClass||"");div.dataset.chatId=chatId;div.dataset.chatType=chatType||"public";div.dataset.lastActivity=activity;var pinMap=readChatMenuMap(CHAT_MENU_PIN_KEY);var pinIcon=pinMap[String(chatId)]?'<span class="chat-pin-indicator" title="Прикреплено" aria-label="Прикреплено">'+CHAT_ICON_SVG.pin+'</span>':"";div.innerHTML='<span class="chat-item-main"><span class="chat-item-icon">'+(icon||getChatIcon(chatType))+'</span><span class="chat-item-name" title="'+chatName+'">'+chatName+'</span><span class="chat-message-status" data-chat-status-id="'+chatId+'"></span></span><span class="chat-item-actions"><span class="chat-unread-badge-wrap"><span id="count-'+chatId+'" class="chat-unread-badge"></span></span><button type="button" class="chat-sound-button" data-sound-chat-id="'+chatId+'" onclick="event.stopPropagation();toggleChatSound('+chatId+')" title="Звук" aria-label="Звук">'+CHAT_ICON_SVG.soundOn+'</button>'+pinIcon+'</span>';var longPressTimer=null;var longPressTriggered=false;function cancelLongPress(){if(longPressTimer!==null){clearTimeout(longPressTimer);longPressTimer=null;}}function startLongPress(event){if(event.pointerType==="mouse")return;longPressTriggered=false;cancelLongPress();longPressTimer=setTimeout(function(){longPressTimer=null;longPressTriggered=true;showChatActionMenu(chatId,div);},500);}function finishLongPress(){cancelLongPress();}div.addEventListener("pointerdown",startLongPress,{passive:true});div.addEventListener("pointerup",finishLongPress);div.addEventListener("pointercancel",finishLongPress);div.addEventListener("contextmenu",function(event){event.preventDefault();event.stopPropagation();cancelLongPress();showChatActionMenu(chatId,div);});div.onclick=async function(){if(longPressTriggered){longPressTriggered=false;return;}if(document.getElementById("chatActionMenu"))return;currentChatId=Number(chatId);var messagesPromise=loadMessages();document.querySelectorAll(".chat-item.active").forEach(function(item){item.classList.remove("active")});div.classList.add("active");var title=document.getElementById("chatTitle");if(title)title.textContent=chatName;updateCallButtonsForChat(chatId,chatType);openMobileChatView();await messagesPromise;await updateUnreadCount(Number(chatId));updateCallButtonsForChat(chatId,chatType);if(typeof updateChatCallButtonVisibility==="function")setTimeout(updateChatCallButtonVisibility,50);if(typeof updateChatCallButton==="function")setTimeout(updateChatCallButton,50);if(isWindowsDesktop()){var input=document.getElementById("messageInput");if(input){setTimeout(function(){try{input.focus();}catch(error){}} ,0);}}};list.appendChild(div);updateChatSoundButton(Number(chatId));updateUnreadCount(Number(chatId));updateChatListMessageStatus(Number(chatId));}
+function addChatToList(chatId,chatName,icon,extraClass,chatType,lastActivity){
+    if(list.querySelector('[data-chat-id="' + Number(chatId) + '"]') || hidden[String(chatId)]) return;
+    var div=document.createElement("div"),activity=getEffectiveChatActivity(chatId,lastActivity);
+    var safeChatName=String(chatName==null?"":chatName);
+    div.className="chat-item "+(extraClass||"");
+    div.dataset.chatId=String(chatId);
+    div.dataset.chatType=chatType||"public";
+    div.dataset.lastActivity=activity;
+
+    var main=document.createElement("span");
+    main.className="chat-item-main";
+    var iconElement=document.createElement("span");
+    iconElement.className="chat-item-icon";
+    var iconMarkup=icon||getChatIcon(chatType);
+    var parsedIcon=new DOMParser().parseFromString(iconMarkup,"image/svg+xml");
+    if(parsedIcon.documentElement&&parsedIcon.documentElement.localName==="svg"){
+        iconElement.appendChild(document.importNode(parsedIcon.documentElement,true));
+    }
+    var nameElement=document.createElement("span");
+    nameElement.className="chat-item-name";
+    nameElement.title=safeChatName;
+    nameElement.textContent=safeChatName;
+    var messageStatus=document.createElement("span");
+    messageStatus.className="chat-message-status";
+    messageStatus.dataset.chatStatusId=String(chatId);
+    main.appendChild(iconElement);
+    main.appendChild(nameElement);
+    main.appendChild(messageStatus);
+
+    var actions=document.createElement("span");
+    actions.className="chat-item-actions";
+    var unreadWrap=document.createElement("span");
+    unreadWrap.className="chat-unread-badge-wrap";
+    var unreadBadge=document.createElement("span");
+    unreadBadge.id="count-"+String(chatId);
+    unreadBadge.className="chat-unread-badge";
+    unreadWrap.appendChild(unreadBadge);
+    var soundButton=document.createElement("button");
+    soundButton.type="button";
+    soundButton.className="chat-sound-button";
+    soundButton.dataset.soundChatId=String(chatId);
+    soundButton.title="Звук";
+    soundButton.setAttribute("aria-label","Звук");
+    var soundIconMarkup=CHAT_ICON_SVG.soundOn;
+    var parsedSoundIcon=new DOMParser().parseFromString(soundIconMarkup,"image/svg+xml");
+    if(parsedSoundIcon.documentElement&&parsedSoundIcon.documentElement.localName==="svg"){
+        soundButton.appendChild(document.importNode(parsedSoundIcon.documentElement,true));
+    }
+    soundButton.addEventListener("click",function(event){
+        event.stopPropagation();
+        toggleChatSound(Number(chatId));
+    });
+    actions.appendChild(unreadWrap);
+    actions.appendChild(soundButton);
+
+    var pinMap=readChatMenuMap(CHAT_MENU_PIN_KEY);
+    if(pinMap[String(chatId)]){
+        var pinElement=document.createElement("span");
+        pinElement.className="chat-pin-indicator";
+        pinElement.title="Прикреплено";
+        pinElement.setAttribute("aria-label","Прикреплено");
+        var parsedPinIcon=new DOMParser().parseFromString(CHAT_ICON_SVG.pin,"image/svg+xml");
+        if(parsedPinIcon.documentElement&&parsedPinIcon.documentElement.localName==="svg"){
+            pinElement.appendChild(document.importNode(parsedPinIcon.documentElement,true));
+        }
+        actions.appendChild(pinElement);
+    }
+
+    div.appendChild(main);
+    div.appendChild(actions);
+
+    var longPressTimer=null;
+    var longPressTriggered=false;
+    function cancelLongPress(){if(longPressTimer!==null){clearTimeout(longPressTimer);longPressTimer=null;}}
+    function startLongPress(event){if(event.pointerType==="mouse")return;longPressTriggered=false;cancelLongPress();longPressTimer=setTimeout(function(){longPressTimer=null;longPressTriggered=true;showChatActionMenu(chatId,div);},500);}
+    function finishLongPress(){cancelLongPress();}
+    div.addEventListener("pointerdown",startLongPress,{passive:true});
+    div.addEventListener("pointerup",finishLongPress);
+    div.addEventListener("pointercancel",finishLongPress);
+    div.addEventListener("contextmenu",function(event){event.preventDefault();event.stopPropagation();cancelLongPress();showChatActionMenu(chatId,div);});
+    div.addEventListener("click",async function(){
+        if(longPressTriggered){longPressTriggered=false;return;}
+        if(document.getElementById("chatActionMenu"))return;
+        currentChatId=Number(chatId);
+        var messagesPromise=loadMessages();
+        document.querySelectorAll(".chat-item.active").forEach(function(item){item.classList.remove("active");});
+        div.classList.add("active");
+        var title=document.getElementById("chatTitle");
+        if(title)title.textContent=safeChatName;
+        updateCallButtonsForChat(chatId,chatType);
+        openMobileChatView();
+        await messagesPromise;
+        await updateUnreadCount(Number(chatId));
+        updateCallButtonsForChat(chatId,chatType);
+        if(typeof updateChatCallButtonVisibility==="function")setTimeout(updateChatCallButtonVisibility,50);
+        if(typeof updateChatCallButton==="function")setTimeout(updateChatCallButton,50);
+        if(isWindowsDesktop()){
+            var input=document.getElementById("messageInput");
+            if(input)setTimeout(function(){try{input.focus();}catch(error){}},0);
+        }
+    });
+    list.appendChild(div);
+    updateChatSoundButton(Number(chatId));
+    updateUnreadCount(Number(chatId));
+    updateChatListMessageStatus(Number(chatId));
+}
 var r1=await supabaseClient.rpc("get_my_private_chats"),p=r1?r1.data:null,e1=r1?r1.error:null;if(e1)console.error("Ошибка загрузки личных чатов:",e1);(p||[]).forEach(function(c){addChatToList(c.chat_id,c.chat_name||"Личный чат",getChatIcon("private"),"private-chat","private",c.last_message_at);});
 var r2=await supabaseClient.rpc("get_my_group_chats"),g=r2?r2.data:null,e2=r2?r2.error:null;if(e2)console.error("Ошибка загрузки групповых чатов:",e2);(g||[]).forEach(function(c){if(c.is_member!==false)addChatToList(c.chat_id,c.chat_name||"Групповой чат",getChatIcon("group"),"group-chat","group",c.last_message_at);});
 var r3=await supabaseClient.from("chats").select("id,name,type").eq("type","public").order("id",{ascending:true}),pub=r3?r3.data:null,e3=r3?r3.error:null;if(e3){console.error("Ошибка загрузки общих чатов:",e3);return;}(pub||[]).forEach(function(c){addChatToList(c.id,c.name,getChatIcon("public"),"","public",null);});sortChatListItems();if(selectedChatId){var selected=list.querySelector('[data-chat-id="'+selectedChatId+'"]');if(selected)selected.classList.add("active");if(selected)updateCallButtonsForChat(selected.dataset.chatId,selected.dataset.chatType);}else updateCallButtonsForChat(0,"public");}
