@@ -43,7 +43,7 @@ function addChatToList(chatId,chatName,icon,extraClass,chatType,lastActivity){
     var iconElement=document.createElement("span");
     iconElement.className="chat-item-icon";
     var iconMarkup=icon||getChatIcon(chatType);
-    var parsedIcon=new DOMParser().parseFromString(String(iconMarkup).replace(/^<svg(?=\\s|>)/, '<svg xmlns="http://www.w3.org/2000/svg"'),"image/svg+xml");
+    var parsedIcon=new DOMParser().parseFromString(String(iconMarkup).replace(/^<svg(?=\s|>)/, '<svg xmlns="http://www.w3.org/2000/svg"'),"image/svg+xml");
     if(parsedIcon.documentElement&&parsedIcon.documentElement.localName==="svg"){
         iconElement.appendChild(document.importNode(parsedIcon.documentElement,true));
     }
@@ -73,7 +73,7 @@ function addChatToList(chatId,chatName,icon,extraClass,chatType,lastActivity){
     soundButton.title="Звук";
     soundButton.setAttribute("aria-label","Звук");
     var soundIconMarkup=CHAT_ICON_SVG.soundOn;
-    var parsedSoundIcon=new DOMParser().parseFromString(String(soundIconMarkup).replace(/^<svg(?=\\s|>)/, '<svg xmlns="http://www.w3.org/2000/svg"'),"image/svg+xml");
+    var parsedSoundIcon=new DOMParser().parseFromString(String(soundIconMarkup).replace(/^<svg(?=\s|>)/, '<svg xmlns="http://www.w3.org/2000/svg"'),"image/svg+xml");
     if(parsedSoundIcon.documentElement&&parsedSoundIcon.documentElement.localName==="svg"){
         soundButton.appendChild(document.importNode(parsedSoundIcon.documentElement,true));
     }
@@ -90,7 +90,7 @@ function addChatToList(chatId,chatName,icon,extraClass,chatType,lastActivity){
         pinElement.className="chat-pin-indicator";
         pinElement.title="Прикреплено";
         pinElement.setAttribute("aria-label","Прикреплено");
-        var parsedPinIcon=new DOMParser().parseFromString(String(CHAT_ICON_SVG.pin).replace(/^<svg(?=\\s|>)/, '<svg xmlns="http://www.w3.org/2000/svg"'),"image/svg+xml");
+        var parsedPinIcon=new DOMParser().parseFromString(String(CHAT_ICON_SVG.pin).replace(/^<svg(?=\s|>)/, '<svg xmlns="http://www.w3.org/2000/svg"'),"image/svg+xml");
         if(parsedPinIcon.documentElement&&parsedPinIcon.documentElement.localName==="svg"){
             pinElement.appendChild(document.importNode(parsedPinIcon.documentElement,true));
         }
