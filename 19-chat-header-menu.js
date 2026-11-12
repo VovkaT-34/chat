@@ -16,7 +16,7 @@
     function closeSettingsChoice() { var overlay = document.getElementById("chatSettingsChoiceOverlay"); if (overlay) overlay.remove(); }
 
     function openAppearanceChoice() {
-        if (typeof window.openChatAppearanceChoice === "function") window.openChatAppearanceChoice();
+        if (typeof window.openChatAppearanceChoice === "function") window.openChatAppearanceChoice("chat");
         else console.error("Общие настройки оформления не загружены.");
     }
 
@@ -74,7 +74,7 @@
         if (getCurrentChatType() === "group") {
             addChoice("Изменить ник группы", openGroupRename);
         }
-        addChoice("Настройка оформления", openAppearanceChoice);
+        addChoice("Настройка оформления данного чата", openAppearanceChoice);
         addChoice("Исчезающие сообщения", function () {
             if (typeof window.openChatDisappearingSettings === "function") window.openChatDisappearingSettings();
         });
