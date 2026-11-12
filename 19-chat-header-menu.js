@@ -15,38 +15,9 @@
     function closeMenu() { var menu = document.getElementById("chatHeaderMenu"); if (menu) menu.remove(); }
     function closeSettingsChoice() { var overlay = document.getElementById("chatSettingsChoiceOverlay"); if (overlay) overlay.remove(); }
 
-    function closeAppearanceChoice() { var overlay = document.getElementById("chatAppearanceChoiceOverlay"); if (overlay) overlay.remove(); }
-
     function openAppearanceChoice() {
-        closeAppearanceChoice();
-        var overlay = document.createElement("div");
-        overlay.id = "chatAppearanceChoiceOverlay";
-        overlay.style.cssText = "position:fixed;inset:0;z-index:100002;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box;pointer-events:auto";
-
-        var panel = document.createElement("div");
-        panel.style.cssText = "width:min(300px,calc(100vw - 28px));background:#000;color:#fff;border:1px solid #333;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.45);padding:6px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:auto";
-
-        function addChoice(text, section) {
-            var button = document.createElement("button");
-            button.type = "button";
-            button.textContent = text;
-            button.style.cssText = "display:block;width:100%;border:0;background:none;color:#fff;text-align:left;padding:12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:auto";
-            button.addEventListener("click", function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-                closeAppearanceChoice();
-                if (typeof window.openChatSettings === "function") window.openChatSettings(section);
-            });
-            panel.appendChild(button);
-        }
-
-        addChoice("Настройка темы", "theme");
-        addChoice("Цвет текста сообщений", "text");
-        addChoice("Оформление карточек сообщений", "cards");
-
-        overlay.appendChild(panel);
-        document.body.appendChild(overlay);
-        overlay.addEventListener("click", function (event) { if (event.target === overlay) closeAppearanceChoice(); });
+        if (typeof window.openChatAppearanceChoice === "function") window.openChatAppearanceChoice();
+        else console.error("Общие настройки оформления не загружены.");
     }
 
     function openGroupRename() {
