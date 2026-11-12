@@ -31,7 +31,7 @@
                     var lastReadId=Number(info.last_read_message_id);
                     if(!chatId||!lastReadId)return;
 
-                    chatReadBoundaryCache.set(chatId,lastReadId);
+                    chatReadBoundaryCache.set(chatId,Math.max(Number(chatReadBoundaryCache.get(chatId)||0),lastReadId));
 
                     var box=document.getElementById("messages");
                     if(box&&Number(currentChatId)===chatId){
