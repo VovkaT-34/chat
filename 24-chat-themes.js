@@ -337,7 +337,7 @@
         if (overlay) overlay.remove();
     }
 
-    function openSettings() {
+    function openSettings(section) {
         closeSettings();
         injectCSS();
 
@@ -352,9 +352,10 @@
         panel.setAttribute("aria-modal", "true");
 
         var title = document.createElement("h3");
-        title.textContent = "Настройки оформления";
+        title.textContent = section === "theme" ? "Настройка темы" : section === "text" ? "Цвет текста сообщений" : section === "cards" ? "Оформление карточек сообщений" : "Настройки оформления";
         panel.appendChild(title);
 
+        if (!section || section === "theme") {
         var themeSection = document.createElement("div");
         themeSection.className = "chat-theme-section";
         var themeTitle = document.createElement("div");
@@ -387,7 +388,9 @@
         });
         themeSection.appendChild(themeGrid);
         panel.appendChild(themeSection);
+        }
 
+        if (!section || section === "text") {
         var textSection = document.createElement("div");
         textSection.className = "chat-theme-section";
         var textTitle = document.createElement("div");
@@ -413,7 +416,9 @@
         });
         textSection.appendChild(textGrid);
         panel.appendChild(textSection);
+        }
 
+        if (!section || section === "cards") {
         var cardSection = document.createElement("div");
         cardSection.className = "chat-theme-section";
         var cardTitle = document.createElement("div");
@@ -448,6 +453,7 @@
         });
         cardSection.appendChild(cardGrid);
         panel.appendChild(cardSection);
+        }
 
         var footer = document.createElement("div");
         footer.className = "chat-theme-footer";
