@@ -361,7 +361,7 @@
         var themeTitle = document.createElement("div");
         themeTitle.className = "chat-theme-section-title";
         themeTitle.textContent = "Тема сообщений";
-        themeSection.appendChild(themeTitle);
+        if (!section) themeSection.appendChild(themeTitle);
 
         var themeGrid = document.createElement("div");
         themeGrid.className = "chat-theme-grid";
@@ -396,7 +396,7 @@
         var textTitle = document.createElement("div");
         textTitle.className = "chat-theme-section-title";
         textTitle.textContent = "Цвет текста сообщений";
-        textSection.appendChild(textTitle);
+        if (!section) textSection.appendChild(textTitle);
 
         var textGrid = document.createElement("div");
         textGrid.className = "chat-text-grid";
@@ -424,7 +424,7 @@
         var cardTitle = document.createElement("div");
         cardTitle.className = "chat-theme-section-title";
         cardTitle.textContent = "Оформление карточек сообщений";
-        cardSection.appendChild(cardTitle);
+        if (!section) cardSection.appendChild(cardTitle);
         var cardGrid = document.createElement("div");
         cardGrid.className = "chat-theme-grid";
         MESSAGE_STYLES.forEach(function (messageStyle) {
