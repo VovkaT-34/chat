@@ -68,10 +68,10 @@ Deno.serve(async(req:Request)=>{
    let unreadQuery=admin.from("messages").select("id",{count:"exact",head:true}).eq("chat_id",message.chat_id).neq("user_id",member.user_id);
    if(readRow?.last_read_message_id){const {data:lastRead}=await admin.from("messages").select("created_at").eq("id",readRow.last_read_message_id).maybeSingle();if(lastRead?.created_at)unreadQuery=unreadQuery.gt("created_at",lastRead.created_at);}
    const {count}=await unreadQuery; const unreadCount=Math.max(1,count||1);
+   const exp=Date.now()+10*60*1000;
+   const deliveryToken=await sign(`${id}.${member.user_id}.${exp}`);
    const {data:subscriptions,error:subscriptionError}=await admin.from("web_push_subscriptions").select("id,endpoint,p256dh,auth").eq("user_id",member.user_id);
    if(!subscriptionError){
-    const exp=Date.now()+10*60*1000;
-    const deliveryToken=await sign(`${id}.${member.user_id}.${exp}`);
     for(const subscription of subscriptions||[]){
      try{
       await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:senderName,body:message.text||"Новое сообщение",icon:"https://vovkat-34.github.io/chat/favicon.svg",badge:"https://vovkat-34.github.io/chat/favicon.svg",tag:`chat-${message.chat_id}`,chatId:message.chat_id,messageId:message.id,count:unreadCount,userId:member.user_id,exp,deliveryToken,url:`./index.html?chat=${encodeURIComponent(message.chat_id)}`}));
