@@ -268,14 +268,20 @@
         ["Светло-голубой", "#d9edff"]
     ];
 
-    function storageKey() {
+    function storageKey(scope) {
         var id = window.currentUser && window.currentUser.id ? window.currentUser.id : "guest";
-        return STORAGE_PREFIX + id;
+        var key = STORAGE_PREFIX + id;
+        if (scope === "chat") {
+            var chatId = Number(window.currentChatId || 0);
+            if (chatId) return key + ":chat:" + chatId;
+        }
+        return key;
     }
 
-    function loadSettings() {
+    function loadSettings(scope) {
         try {
-            var raw = localStorage.getItem(storageKey());
+            var raw = localStorage.getItem(storageKey(scope));
+            if (!raw && scope === "chat") return loadSettings("all");
             if (!raw) return Object.assign({}, DEFAULTS);
             var saved = JSON.parse(raw);
             return {
@@ -284,12 +290,12 @@
                 messageStyle: MESSAGE_STYLES.some(function (style) { return style.id === saved.messageStyle; }) ? saved.messageStyle : DEFAULTS.messageStyle
             };
         } catch (e) {
-            return Object.assign({}, DEFAULTS);
+            return scope === "chat" ? loadSettings("all") : Object.assign({}, DEFAULTS);
         }
     }
 
-    function saveSettings(settings) {
-        localStorage.setItem(storageKey(), JSON.stringify(settings));
+    function saveSettings(settings, scope) {
+        localStorage.setItem(storageKey(scope), JSON.stringify(settings));
     }
 
     function applyTheme(themeId, textColor, messageStyleId) {
@@ -337,11 +343,12 @@
         if (overlay) overlay.remove();
     }
 
-    function openSettings(section) {
+    function openSettings(section, scope) {
         closeSettings();
         injectCSS();
+        scope = scope || "all";
 
-        var settings = loadSettings();
+        var settings = loadSettings(scope);
         var overlay = document.createElement("div");
         overlay.id = "chatThemeSettingsOverlay";
         overlay.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
@@ -379,7 +386,7 @@
             button.appendChild(name);
             button.addEventListener("click", function () {
                 settings.theme = theme.id;
-                saveSettings(settings);
+                saveSettings(settings, scope);
                 applyTheme(settings.theme, settings.text, settings.messageStyle);
                 themeGrid.querySelectorAll(".chat-theme-option").forEach(function (item) { item.classList.remove("selected"); });
                 button.classList.add("selected");
@@ -407,7 +414,7 @@
             button.innerHTML = '<span class="chat-text-dot" style="background:' + color[1] + '"></span>' + color[0];
             button.addEventListener("click", function () {
                 settings.text = color[1];
-                saveSettings(settings);
+                saveSettings(settings, scope);
                 applyTheme(settings.theme, settings.text, settings.messageStyle);
                 textGrid.querySelectorAll(".chat-text-option").forEach(function (item) { item.classList.remove("selected"); });
                 button.classList.add("selected");
@@ -444,7 +451,7 @@
             button.appendChild(name);
             button.addEventListener("click", function () {
                 settings.messageStyle = messageStyle.id;
-                saveSettings(settings);
+                saveSettings(settings, scope);
                 applyTheme(settings.theme, settings.text, settings.messageStyle);
                 cardGrid.querySelectorAll(".chat-theme-option").forEach(function (item) { item.classList.remove("selected"); });
                 button.classList.add("selected");
@@ -462,6 +469,20 @@
         closeButton.className = "chat-theme-close";
         closeButton.textContent = "Готово";
         closeButton.addEventListener("click", closeSettings);
+        if (scope === "chat") {
+            var resetButton = document.createElement("button");
+            resetButton.type = "button";
+            resetButton.className = "chat-theme-close";
+            resetButton.style.marginRight = "auto";
+            resetButton.style.background = "#555";
+            resetButton.textContent = "Использовать оформление всех чатов";
+            resetButton.addEventListener("click", function () {
+                localStorage.removeItem(storageKey("chat"));
+                closeSettings();
+                applySaved();
+            });
+            footer.appendChild(resetButton);
+        }
         footer.appendChild(closeButton);
         panel.appendChild(footer);
 
@@ -477,11 +498,17 @@
     }
 
     function applySaved() {
-        var settings = loadSettings();
+        var scope = Number(window.currentChatId || 0) > 0 ? "chat" : "all";
+        var settings = loadSettings(scope);
         applyTheme(settings.theme, settings.text, settings.messageStyle);
     }
 
-    function openAppearanceChoice() {
+    function openAppearanceChoice(scope) {
+        scope = scope || "all";
+        if (scope === "chat" && !Number(window.currentChatId || 0)) {
+            console.warn("Нельзя открыть индивидуальное оформление без выбранного чата.");
+            return;
+        }
         var existing = document.getElementById("chatAppearanceChoiceOverlay");
         if (existing) existing.remove();
 
@@ -500,7 +527,7 @@
                 event.preventDefault();
                 event.stopPropagation();
                 overlay.remove();
-                openSettings(choice[1]);
+                openSettings(choice[1], scope);
             });
             panel.appendChild(button);
         });
