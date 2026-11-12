@@ -550,19 +550,214 @@ function updatePinnedMessagesBar(){
 }
 function toggleMessagePin(messageId){var map=getPinnedMessages(),key=String(messageId),pinned=!map[key];if(pinned)map[key]=Date.now();else delete map[key];savePinnedMessages(map);closeMessageActionMenu();var message=document.querySelector('.message[data-message-id="'+Number(messageId)+'"]');if(message)applyPinnedMessageStyle(message,pinned);updatePinnedMessagesBar();}
 function closeMessageActionMenu(){var menu=document.getElementById("messageActionMenu");if(menu)menu.remove();}
-function showMessageActionMenu(message,anchor){closeMessageActionMenu();var menu=document.createElement("div");menu.id="messageActionMenu";menu.style.cssText="position:fixed;z-index:99999;min-width:190px;background:#000;border:1px solid #333;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:6px;font-size:15px;color:#fff;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;";menu.addEventListener("contextmenu",function(e){e.preventDefault();e.stopPropagation();});menu.addEventListener("selectstart",function(e){e.preventDefault();e.stopPropagation();});function add(text,icon,handler){var b=document.createElement("button");b.type="button";b.innerHTML=icon+'<span>'+text+'</span>';b.style.cssText="display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;color:#fff;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;";b.addEventListener("contextmenu",function(e){e.preventDefault();e.stopPropagation();});b.addEventListener("click",function(e){e.stopPropagation();handler();});menu.appendChild(b);}var username=message.profiles&&message.profiles.username?message.profiles.username:"Пользователь",text=message.text||"";add("Ответить",MESSAGE_ACTION_ICON_SVG.reply,function(){closeMessageActionMenu();replyToMessage(message.id,username,text);});add("Копировать",MESSAGE_ACTION_ICON_SVG.copy,async function(){try{await navigator.clipboard.writeText(text);}catch(error){var area=document.createElement("textarea");area.value=text;area.style.position="fixed";area.style.opacity="0";document.body.appendChild(area);area.focus();area.select();try{document.execCommand("copy");}catch(copyError){}area.remove();}closeMessageActionMenu();});var pinned=!!getPinnedMessages()[String(message.id)];add(pinned?"Открепить":"Прикрепить",MESSAGE_ACTION_ICON_SVG.pin,function(){toggleMessagePin(message.id);});if(currentUser&&message.user_id===currentUser.id){add("Удалить сообщение",'<svg class="message-action-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>',async function(){closeMessageActionMenu();if(!currentUser||message.user_id!==currentUser.id)return;if(!window.confirm("Удалить это сообщение для всех участников чата?"))return;try{var result=await supabaseClient.from("messages").delete().eq("id",message.id).eq("user_id",currentUser.id).select("id").maybeSingle();if(result.error)throw result.error;if(!result.data){alert("Сообщение не найдено или уже удалено.");return;}var el=document.querySelector('.message[data-message-id="'+Number(message.id)+'"]');if(el)el.remove();var pins=getPinnedMessages();delete pins[String(message.id)];savePinnedMessages(pins);updatePinnedMessagesBar();}catch(error){console.error("Ошибка удаления сообщения:",error);alert("Не удалось удалить сообщение. Проверьте подключение и права доступа.");}});}document.body.appendChild(menu);var r=anchor.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(r.left,window.innerWidth-205))+"px";menu.style.top=Math.max(8,Math.min(r.bottom+4,window.innerHeight-180))+"px";setTimeout(function(){document.addEventListener("click",closeMessageActionMenu,{once:true});},0);}
+function appendTrustedMessageIcon(target, markup) {
+    // markup is selected only from the fixed MESSAGE_ACTION_ICON_SVG constants.
+    var parsed = new DOMParser().parseFromString(markup, "image/svg+xml");
+    if (parsed.documentElement && parsed.documentElement.localName === "svg") {
+        target.appendChild(document.importNode(parsed.documentElement, true));
+    }
+}
 
-function renderMessage(message){
-    if(!message||!currentUser)return null;
-    var div=document.createElement("div");div.className="message";div.dataset.messageId=message.id;div.dataset.userId=message.user_id;div.style.setProperty("-webkit-user-select","none");div.style.setProperty("user-select","none");div.style.setProperty("-webkit-touch-callout","none");
-    var username=message.profiles&&message.profiles.username?message.profiles.username:"Пользователь",date=new Date(message.created_at),dateText=date.toLocaleDateString("ru-RU"),timeText=date.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
-    var messageStatus=message.user_id===currentUser.id?'<span class="message-status" data-status-message-id="'+message.id+'" data-message-status="sent" style="margin-left:6px;font-size:13px;font-weight:bold;white-space:nowrap;color:#999999" title="Отправлено">✓</span>':"";
-    var reply=message.reply_message?'<div style="background:#eeeeee;padding:8px;border-left:4px solid #8E44AD;border-radius:6px;margin-bottom:8px;font-size:14px;overflow-wrap:anywhere;word-break:break-word">↩ '+(message.reply_message.profiles&&message.reply_message.profiles.username?message.reply_message.profiles.username:"Пользователь")+'<br>'+(message.reply_message.text||"")+'</div>':"";
-    div.innerHTML='<div><span class="message-user">'+username+'</span><span class="message-time">'+dateText+' '+timeText+'</span>'+messageStatus+'</div>'+reply+'<div class="message-text">'+(message.text||"")+'</div><button onclick=\'replyToMessage('+message.id+', '+JSON.stringify(username)+', '+JSON.stringify(message.text||"")+')\' style="margin-top:6px;padding:3px 8px;border:none;border-radius:7px;background:#9B7AC2;color:white;cursor:pointer;font-size:12px">↩ Ответить</button>';
-    var pinned=!!getPinnedMessages()[String(message.id)];applyPinnedMessageStyle(div,pinned);schedulePinnedMessagesBarUpdate();
-    var longPressTimer=null,longPressTriggered=false;function cancelLongPress(){if(longPressTimer!==null){clearTimeout(longPressTimer);longPressTimer=null;}}function startLongPress(event){if(event.pointerType==="mouse")return;longPressTriggered=false;cancelLongPress();longPressTimer=setTimeout(function(){longPressTimer=null;longPressTriggered=true;showMessageActionMenu(message,div);},500);}function finishLongPress(){cancelLongPress();}div.addEventListener("pointerdown",startLongPress,{passive:true});div.addEventListener("pointerup",finishLongPress);div.addEventListener("pointercancel",finishLongPress);div.addEventListener("contextmenu",function(event){event.preventDefault();event.stopPropagation();cancelLongPress();showMessageActionMenu(message,div);});div.addEventListener("click",function(event){if(longPressTriggered){longPressTriggered=false;event.preventDefault();event.stopPropagation();}});
+function showMessageActionMenu(message, anchor) {
+    closeMessageActionMenu();
+    var menu = document.createElement("div");
+    menu.id = "messageActionMenu";
+    menu.style.cssText = "position:fixed;z-index:99999;min-width:190px;background:#000;border:1px solid #333;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:6px;font-size:15px;color:#fff;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;";
+    menu.addEventListener("contextmenu", function (e) { e.preventDefault(); e.stopPropagation(); });
+    menu.addEventListener("selectstart", function (e) { e.preventDefault(); e.stopPropagation(); });
+
+    function add(text, icon, handler) {
+        var b = document.createElement("button");
+        b.type = "button";
+        var iconElement = document.createElement("span");
+        iconElement.className = "message-action-icon-wrap";
+        appendTrustedMessageIcon(iconElement, icon);
+        var label = document.createElement("span");
+        label.textContent = text;
+        b.appendChild(iconElement);
+        b.appendChild(label);
+        b.style.cssText = "display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;color:#fff;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;";
+        b.addEventListener("contextmenu", function (e) { e.preventDefault(); e.stopPropagation(); });
+        b.addEventListener("click", function (e) { e.stopPropagation(); handler(); });
+        menu.appendChild(b);
+    }
+
+    var username = message.profiles && message.profiles.username ? String(message.profiles.username) : "Пользователь";
+    var text = message.text == null ? "" : String(message.text);
+    add("Ответить", MESSAGE_ACTION_ICON_SVG.reply, function () {
+        closeMessageActionMenu();
+        replyToMessage(message.id, username, text);
+    });
+    add("Копировать", MESSAGE_ACTION_ICON_SVG.copy, async function () {
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch (error) {
+            var area = document.createElement("textarea");
+            area.value = text;
+            area.style.position = "fixed";
+            area.style.opacity = "0";
+            document.body.appendChild(area);
+            area.focus();
+            area.select();
+            try { document.execCommand("copy"); } catch (copyError) {}
+            area.remove();
+        }
+        closeMessageActionMenu();
+    });
+
+    var pinned = !!getPinnedMessages()[String(message.id)];
+    add(pinned ? "Открепить" : "Прикрепить", MESSAGE_ACTION_ICON_SVG.pin, function () {
+        toggleMessagePin(message.id);
+    });
+
+    if (currentUser && message.user_id === currentUser.id) {
+        var deleteIcon = '<svg class="message-action-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>';
+        add("Удалить сообщение", deleteIcon, async function () {
+            closeMessageActionMenu();
+            if (!currentUser || message.user_id !== currentUser.id) return;
+            if (!window.confirm("Удалить это сообщение для всех участников чата?")) return;
+            try {
+                var result = await supabaseClient.from("messages").delete()
+                    .eq("id", message.id).eq("user_id", currentUser.id)
+                    .select("id").maybeSingle();
+                if (result.error) throw result.error;
+                if (!result.data) {
+                    alert("Сообщение не найдено или уже удалено.");
+                    return;
+                }
+                var el = document.querySelector('.message[data-message-id="' + Number(message.id) + '"]');
+                if (el) el.remove();
+                var pins = getPinnedMessages();
+                delete pins[String(message.id)];
+                savePinnedMessages(pins);
+                updatePinnedMessagesBar();
+            } catch (error) {
+                console.error("Ошибка удаления сообщения:", error);
+                alert("Не удалось удалить сообщение. Проверьте подключение и права доступа.");
+            }
+        });
+    }
+
+    document.body.appendChild(menu);
+    var r = anchor.getBoundingClientRect();
+    menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 205)) + "px";
+    menu.style.top = Math.max(8, Math.min(r.bottom + 4, window.innerHeight - 180)) + "px";
+    setTimeout(function () {
+        document.addEventListener("click", closeMessageActionMenu, { once: true });
+    }, 0);
+}
+
+function renderMessage(message) {
+    if (!message || !currentUser) return null;
+
+    var div = document.createElement("div");
+    div.className = "message";
+    div.dataset.messageId = message.id;
+    div.dataset.userId = message.user_id;
+    div.style.setProperty("-webkit-user-select", "none");
+    div.style.setProperty("user-select", "none");
+    div.style.setProperty("-webkit-touch-callout", "none");
+
+    var username = message.profiles && message.profiles.username
+        ? String(message.profiles.username)
+        : "Пользователь";
+    var messageText = message.text == null ? "" : String(message.text);
+    var date = new Date(message.created_at);
+    var dateText = date.toLocaleDateString("ru-RU");
+    var timeText = date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+
+    var header = document.createElement("div");
+    var userElement = document.createElement("span");
+    userElement.className = "message-user";
+    userElement.textContent = username;
+    header.appendChild(userElement);
+
+    var timeElement = document.createElement("span");
+    timeElement.className = "message-time";
+    timeElement.textContent = dateText + " " + timeText;
+    header.appendChild(timeElement);
+
+    if (message.user_id === currentUser.id) {
+        var status = document.createElement("span");
+        status.className = "message-status";
+        status.dataset.statusMessageId = String(message.id);
+        status.dataset.messageStatus = "sent";
+        status.style.cssText = "margin-left:6px;font-size:13px;font-weight:bold;white-space:nowrap;color:#999999";
+        status.title = "Отправлено";
+        status.textContent = "✓";
+        header.appendChild(status);
+    }
+    div.appendChild(header);
+
+    if (message.reply_message) {
+        var reply = document.createElement("div");
+        reply.style.cssText = "background:#eeeeee;padding:8px;border-left:4px solid #8E44AD;border-radius:6px;margin-bottom:8px;font-size:14px;overflow-wrap:anywhere;word-break:break-word";
+        var replyUsername = message.reply_message.profiles && message.reply_message.profiles.username
+            ? String(message.reply_message.profiles.username)
+            : "Пользователь";
+        var replyText = message.reply_message.text == null ? "" : String(message.reply_message.text);
+        reply.appendChild(document.createTextNode("↩ " + replyUsername));
+        reply.appendChild(document.createElement("br"));
+        reply.appendChild(document.createTextNode(replyText));
+        div.appendChild(reply);
+    }
+
+    var body = document.createElement("div");
+    body.className = "message-text";
+    body.textContent = messageText;
+    div.appendChild(body);
+
+    var replyButton = document.createElement("button");
+    replyButton.type = "button";
+    replyButton.style.cssText = "margin-top:6px;padding:3px 8px;border:none;border-radius:7px;background:#9B7AC2;color:white;cursor:pointer;font-size:12px";
+    replyButton.textContent = "↩ Ответить";
+    replyButton.addEventListener("click", function () {
+        replyToMessage(message.id, username, messageText);
+    });
+    div.appendChild(replyButton);
+
+    var pinned = !!getPinnedMessages()[String(message.id)];
+    applyPinnedMessageStyle(div, pinned);
+    schedulePinnedMessagesBarUpdate();
+
+    var longPressTimer = null;
+    var longPressTriggered = false;
+    function cancelLongPress() {
+        if (longPressTimer !== null) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    }
+    function startLongPress(event) {
+        if (event.pointerType === "mouse") return;
+        longPressTriggered = false;
+        cancelLongPress();
+        longPressTimer = setTimeout(function () {
+            longPressTimer = null;
+            longPressTriggered = true;
+            showMessageActionMenu(message, div);
+        }, 500);
+    }
+    function finishLongPress() { cancelLongPress(); }
+    div.addEventListener("pointerdown", startLongPress, { passive: true });
+    div.addEventListener("pointerup", finishLongPress);
+    div.addEventListener("pointercancel", finishLongPress);
+    div.addEventListener("contextmenu", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        cancelLongPress();
+        showMessageActionMenu(message, div);
+    });
+    div.addEventListener("click", function (event) {
+        if (longPressTriggered) {
+            longPressTriggered = false;
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    });
     return div;
 }
+
 function getMessageStatusOrder(status){return {sent:1,delivered:2,read:3}[status]||0;}
 function setMessageStatus(el,status){if(!el)return;status=String(status||"").toLowerCase();if(!status||status==="none")return;var current=String(el.dataset.messageStatus||"sent").toLowerCase(),currentOrder=getMessageStatusOrder(current),newOrder=getMessageStatusOrder(status);if(!newOrder||newOrder<currentOrder)return;el.dataset.messageStatus=status;if(status==="read"){el.textContent="✓✓";el.title="Прочитано";el.style.setProperty("color","#00C853","important");}else if(status==="delivered"){el.textContent="✓";el.title="Доставлено";el.style.setProperty("color","#00C853","important");}else{el.textContent="✓";el.title="Отправлено";el.style.setProperty("color","#999999","important");}}
 
