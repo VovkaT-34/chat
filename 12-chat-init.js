@@ -21,8 +21,14 @@ async function startChat() {
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="15-chat-list-batch.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
     await loadChats();
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="16-message-status-batch.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
-    await new Promise(function (resolve) { var script=document.createElement("script"); script.src="17-message-read-realtime-optimized.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
+    // Сначала устанавливаем фильтр, чтобы все последующие каналы
+    // создавались уже с ограничениями по чатам и текущему пользователю.
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="13-realtime-filter.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
+    subscribeToMessageDeliveries();
+    subscribeToMessageReads();
+    // Оптимизированная подписка заменяет резервную, сохраняя её
+    // на случай ошибки загрузки этого скрипта.
+    await new Promise(function (resolve) { var script=document.createElement("script"); script.src="17-message-read-realtime-optimized.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
     await subscribeToMessages();
     await subscribeToTyping();
 }
