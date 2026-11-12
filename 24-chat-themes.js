@@ -432,7 +432,7 @@
         themeImageInput.addEventListener("change", function () {
             var file = themeImageInput.files && themeImageInput.files[0];
             if (!file) return;
-            if (typeof file.type !== "string" || file.type.indexOf("image/") !== 0) {
+            if (file.type && file.type.indexOf("image/") !== 0) {
                 alert("Выберите файл изображения.");
                 themeImageInput.value = "";
                 return;
