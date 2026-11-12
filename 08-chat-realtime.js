@@ -552,7 +552,7 @@ function toggleMessagePin(messageId){var map=getPinnedMessages(),key=String(mess
 function closeMessageActionMenu(){var menu=document.getElementById("messageActionMenu");if(menu)menu.remove();}
 function appendTrustedMessageIcon(target, markup) {
     // markup is selected only from the fixed MESSAGE_ACTION_ICON_SVG constants.
-    var parsed = new DOMParser().parseFromString(String(markup).replace(/^<svg(?=\\s|>)/, '<svg xmlns="http://www.w3.org/2000/svg"'), "image/svg+xml");
+    var parsed = new DOMParser().parseFromString(String(markup).replace(/^<svg(?=\s|>)/, '<svg xmlns="http://www.w3.org/2000/svg"'), "image/svg+xml");
     if (parsed.documentElement && parsed.documentElement.localName === "svg") {
         target.appendChild(document.importNode(parsed.documentElement, true));
     }
