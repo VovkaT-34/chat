@@ -39,6 +39,10 @@ async function loadMessages(){
     const fragment=document.createDocumentFragment();
     loadedData.forEach(function(message){var isUnread=Number(message.id)>lastReadId&&message.user_id!==currentUser.id;if(isUnread&&!unreadDivider){unreadDivider=document.createElement("div");unreadDivider.className="unread-divider";unreadDivider.textContent="Непрочитанные сообщения";fragment.appendChild(unreadDivider);}var div=renderMessage(message);if(!div)return;fragment.appendChild(div);if(isUnread&&!firstUnreadMessage)firstUnreadMessage=div;});
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
+    box.querySelectorAll("[data-message-id]").forEach(function(existing){
+        var id=existing.getAttribute("data-message-id");
+        if(id&&!fragment.querySelector('[data-message-id="'+id+'"]'))fragment.appendChild(existing);
+    });
     box.replaceChildren(fragment);
     const centerUnreadDivider=function(){if(!unreadDivider)return;if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;var br=box.getBoundingClientRect(),dr=unreadDivider.getBoundingClientRect(),delta=(dr.top+dr.height/2)-(br.top+box.clientHeight/2);if(Math.abs(delta)>0.5)box.scrollTop+=delta;};
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
