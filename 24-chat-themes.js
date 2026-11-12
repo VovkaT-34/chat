@@ -7,7 +7,7 @@
     "use strict";
 
     var STORAGE_PREFIX = "chatAppearance:";
-    var DEFAULTS = { theme: "classic", text: "#111111" };
+    var DEFAULTS = { theme: "classic", text: "#111111", messageStyle: "classic" };
 
     var THEMES = [
         {
@@ -207,6 +207,20 @@
         }
     ];
 
+
+    var MESSAGE_STYLES = [
+        {id:"classic",name:"Классика",preview:"linear-gradient(135deg,#fffaf3,#f1e4d4)",vars:{bg:"rgba(255,250,243,.96)",pattern:"none",size:"auto",border:"rgba(117,82,50,.12)",shadow:"rgba(76,53,35,.08)",userBg:"rgba(255,255,255,.62)",userColor:"#55705e",userBorder:"#d49a62",time:"#88786a",replyBg:"rgba(238,238,238,.92)",replyBorder:"#8E44AD",buttonBg:"#9B7AC2",buttonColor:"#ffffff"}},
+        {id:"mushrooms",name:"Грибная поляна",preview:"linear-gradient(135deg,#f0e4d0,#a8b98a)",vars:{bg:"#f0e4d0",pattern:"radial-gradient(ellipse at 16% 22%,rgba(160,92,55,.30) 0 5px,transparent 6px),radial-gradient(ellipse at 16% 17%,rgba(225,190,139,.92) 0 10px,transparent 11px),radial-gradient(ellipse at 76% 72%,rgba(177,104,62,.24) 0 6px,transparent 7px),radial-gradient(ellipse at 76% 66%,rgba(245,213,163,.90) 0 12px,transparent 13px),radial-gradient(circle at 48% 38%,rgba(94,132,78,.22) 0 2px,transparent 3px)",size:"110px 100px",border:"rgba(115,92,61,.24)",shadow:"rgba(76,83,48,.13)",userBg:"rgba(255,248,231,.88)",userColor:"#665038",userBorder:"#b18a5d",time:"#786b55",replyBg:"rgba(225,235,210,.94)",replyBorder:"#78945f",buttonBg:"#718b5c",buttonColor:"#ffffff"}},
+        {id:"strawberry",name:"Лесная земляника",preview:"linear-gradient(135deg,#ffe0df,#f3a5a5)",vars:{bg:"#ffe9e4",pattern:"radial-gradient(ellipse at 20% 24%,rgba(205,45,68,.82) 0 5px,transparent 6px),radial-gradient(ellipse at 20% 19%,rgba(91,142,65,.78) 0 3px,transparent 4px),radial-gradient(ellipse at 74% 70%,rgba(210,55,75,.72) 0 6px,transparent 7px),radial-gradient(ellipse at 74% 64%,rgba(83,145,66,.78) 0 3px,transparent 4px),radial-gradient(circle,rgba(255,255,255,.55) 0 1px,transparent 1.8px)",size:"92px 82px,92px 82px,122px 104px,122px 104px,18px 18px",border:"rgba(177,68,79,.22)",shadow:"rgba(151,57,66,.13)",userBg:"rgba(255,248,247,.90)",userColor:"#9b3448",userBorder:"#df9aa0",time:"#986c70",replyBg:"rgba(255,214,215,.88)",replyBorder:"#d45c70",buttonBg:"#c94f65",buttonColor:"#ffffff"}},
+        {id:"meadow-grass",name:"Луговая трава",preview:"linear-gradient(135deg,#dff1d5,#82b77b)",vars:{bg:"#e4f1dc",pattern:"repeating-linear-gradient(78deg,transparent 0 13px,rgba(75,139,74,.16) 14px 16px,transparent 17px 29px),radial-gradient(ellipse at 30% 100%,rgba(91,151,78,.22),transparent 58%),radial-gradient(circle at 82% 20%,rgba(255,255,255,.52) 0 2px,transparent 3px)",size:"90px 90px,100% 100%,60px 60px",border:"rgba(74,126,68,.22)",shadow:"rgba(53,105,54,.12)",userBg:"rgba(247,255,242,.86)",userColor:"#376b3d",userBorder:"#9abf8b",time:"#698368",replyBg:"rgba(207,231,197,.90)",replyBorder:"#6b9b62",buttonBg:"#5d9258",buttonColor:"#ffffff"}},
+        {id:"hemp-leaves",name:"Листья конопли",preview:"linear-gradient(135deg,#d8edc7,#5f9b69)",vars:{bg:"#dcebcf",pattern:"repeating-conic-gradient(from 8deg at 22% 45%,transparent 0deg 8deg,rgba(49,111,63,.20) 9deg 11deg,transparent 12deg 22deg),radial-gradient(ellipse at 22% 45%,rgba(74,139,78,.26) 0 4px,transparent 5px),repeating-conic-gradient(from 18deg at 78% 60%,transparent 0deg 9deg,rgba(48,105,59,.16) 10deg 12deg,transparent 13deg 23deg)",size:"90px 90px,90px 90px,120px 110px",border:"rgba(58,112,65,.24)",shadow:"rgba(43,91,49,.14)",userBg:"rgba(246,255,239,.88)",userColor:"#35653d",userBorder:"#8bb58a",time:"#66806a",replyBg:"rgba(198,224,190,.92)",replyBorder:"#54875b",buttonBg:"#4f8758",buttonColor:"#ffffff"}},
+        {id:"fern",name:"Папоротник",preview:"linear-gradient(135deg,#d6e5c9,#6f9675)",vars:{bg:"#e2ead8",pattern:"repeating-linear-gradient(145deg,transparent 0 12px,rgba(62,112,72,.18) 13px 15px,transparent 16px 26px),repeating-linear-gradient(35deg,transparent 0 18px,rgba(103,145,91,.12) 19px 21px,transparent 22px 36px)",size:"100px 90px,130px 120px",border:"rgba(75,112,76,.22)",shadow:"rgba(53,82,53,.13)",userBg:"rgba(248,252,241,.88)",userColor:"#496b4a",userBorder:"#9ab18d",time:"#71806b",replyBg:"rgba(211,226,199,.92)",replyBorder:"#71936c",buttonBg:"#66865f",buttonColor:"#ffffff"}},
+        {id:"blueberry",name:"Черничный сад",preview:"linear-gradient(135deg,#e3e0f4,#8d83bb)",vars:{bg:"#e8e4f3",pattern:"radial-gradient(circle at 18% 25%,rgba(70,67,139,.72) 0 5px,transparent 6px),radial-gradient(circle at 20% 22%,rgba(174,190,224,.8) 0 2px,transparent 3px),radial-gradient(circle at 76% 72%,rgba(91,81,157,.68) 0 6px,transparent 7px),radial-gradient(circle at 78% 69%,rgba(191,202,230,.8) 0 2px,transparent 3px)",size:"100px 92px,100px 92px,130px 115px,130px 115px",border:"rgba(91,79,143,.22)",shadow:"rgba(66,55,119,.13)",userBg:"rgba(250,248,255,.90)",userColor:"#5c5289",userBorder:"#aaa1d1",time:"#77708f",replyBg:"rgba(218,215,240,.92)",replyBorder:"#8278b8",buttonBg:"#786eae",buttonColor:"#ffffff"}},
+        {id:"raspberry",name:"Малиновый куст",preview:"linear-gradient(135deg,#ffe0e9,#c65c83)",vars:{bg:"#f8e2e8",pattern:"radial-gradient(circle at 18% 22%,rgba(190,40,91,.72) 0 4px,transparent 5px),radial-gradient(circle at 22% 18%,rgba(76,133,72,.55) 0 5px,transparent 6px),radial-gradient(circle at 75% 75%,rgba(207,57,103,.68) 0 5px,transparent 6px),radial-gradient(circle at 79% 70%,rgba(80,140,75,.55) 0 4px,transparent 5px)",size:"85px 80px,85px 80px,115px 105px,115px 105px",border:"rgba(169,61,98,.22)",shadow:"rgba(140,48,83,.12)",userBg:"rgba(255,247,250,.90)",userColor:"#963d62",userBorder:"#d99aaf",time:"#966d7d",replyBg:"rgba(246,207,220,.90)",replyBorder:"#c45a80",buttonBg:"#b94f78",buttonColor:"#ffffff"}},
+        {id:"eucalyptus",name:"Эвкалипт",preview:"linear-gradient(135deg,#e2eee8,#8bb6a6)",vars:{bg:"#e5efeb",pattern:"radial-gradient(ellipse at 18% 25%,rgba(93,145,126,.28) 0 5px,transparent 6px),radial-gradient(ellipse at 25% 18%,rgba(125,174,153,.24) 0 5px,transparent 6px),radial-gradient(ellipse at 76% 72%,rgba(91,143,124,.24) 0 6px,transparent 7px),linear-gradient(135deg,rgba(255,255,255,.25),transparent)",size:"92px 82px,92px 82px,125px 110px,100% 100%",border:"rgba(79,126,108,.20)",shadow:"rgba(56,100,84,.11)",userBg:"rgba(248,255,251,.90)",userColor:"#4e7868",userBorder:"#a2c2b4",time:"#728b80",replyBg:"rgba(210,231,221,.92)",replyBorder:"#6d9b87",buttonBg:"#648f7c",buttonColor:"#ffffff"}},
+        {id:"tropical",name:"Тропические листья",preview:"linear-gradient(135deg,#d9f0d5,#6db9a1,#f0d78b)",vars:{bg:"#e1f0df",pattern:"repeating-linear-gradient(125deg,transparent 0 17px,rgba(42,133,92,.18) 18px 21px,transparent 22px 38px),radial-gradient(ellipse at 15% 85%,rgba(236,196,93,.24),transparent 45%),radial-gradient(ellipse at 85% 15%,rgba(83,177,142,.22),transparent 48%)",size:"105px 95px,100% 100%,100% 100%",border:"rgba(53,132,99,.22)",shadow:"rgba(40,108,79,.13)",userBg:"rgba(247,255,244,.90)",userColor:"#36765b",userBorder:"#9cc9ad",time:"#6d8b79",replyBg:"rgba(207,234,214,.92)",replyBorder:"#58a47c",buttonBg:"#4e9875",buttonColor:"#ffffff"}}
+    ];
+
     var TEXT_COLORS = [
         ["Чёрный", "#111111"],
         ["Графитовый", "#30343b"],
@@ -230,7 +244,8 @@
             var saved = JSON.parse(raw);
             return {
                 theme: THEMES.some(function (t) { return t.id === saved.theme; }) ? saved.theme : DEFAULTS.theme,
-                text: TEXT_COLORS.some(function (c) { return c[1] === saved.text; }) ? saved.text : DEFAULTS.text
+                text: TEXT_COLORS.some(function (c) { return c[1] === saved.text; }) ? saved.text : DEFAULTS.text,
+                messageStyle: MESSAGE_STYLES.some(function (style) { return style.id === saved.messageStyle; }) ? saved.messageStyle : DEFAULTS.messageStyle
             };
         } catch (e) {
             return Object.assign({}, DEFAULTS);
@@ -241,7 +256,7 @@
         localStorage.setItem(storageKey(), JSON.stringify(settings));
     }
 
-    function applyTheme(themeId, textColor) {
+    function applyTheme(themeId, textColor, messageStyleId) {
         var box = document.getElementById("messages");
         if (!box) return;
         var theme = THEMES.find(function (t) { return t.id === themeId; }) || THEMES[0];
@@ -253,6 +268,9 @@
         box.style.setProperty("--chat-message-shadow", theme.vars.shadow);
         box.style.setProperty("--chat-message-text", textColor || DEFAULTS.text);
         box.dataset.chatTheme = theme.id;
+        var messageStyle = MESSAGE_STYLES.find(function (style) { return style.id === messageStyleId; }) || MESSAGE_STYLES[0];
+        Object.keys(messageStyle.vars).forEach(function (key) { box.style.setProperty("--chat-card-" + key.replace(/[A-Z]/g, function (letter) { return "-" + letter.toLowerCase(); }), messageStyle.vars[key]); });
+        box.dataset.messageStyle = messageStyle.id;
     }
 
     function injectCSS() {
@@ -265,6 +283,11 @@
 #messages[data-chat-theme]{background-color:var(--chat-theme-bg)!important;background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;background-position:0% 50%,100% 0%,0% 100%,50% 50%;animation:chatThemeIridescence 34s ease-in-out infinite;transition:background-color .28s ease}
 #messages[data-chat-theme] .message{background:var(--chat-message-bg)!important;background-size:240% 240%!important;animation:chatBubbleIridescence 18s ease-in-out infinite alternate;border-color:var(--chat-message-border)!important;box-shadow:0 2px 8px var(--chat-message-shadow)!important}
 #messages[data-chat-theme] .message-text{color:var(--chat-message-text)!important}
+#messages[data-message-style] .message{background:var(--chat-card-bg)!important;background-image:var(--chat-card-pattern)!important;background-size:var(--chat-card-size)!important;animation:none!important;border-color:var(--chat-card-border)!important;box-shadow:0 2px 8px var(--chat-card-shadow)!important}
+#messages[data-message-style] .message-user{background:var(--chat-card-user-bg)!important;color:var(--chat-card-user-color)!important;border-color:var(--chat-card-user-border)!important}
+#messages[data-message-style] .message-time{color:var(--chat-card-time)!important}
+#messages[data-message-style] .message > div[style*="background:#eeeeee"]{background:var(--chat-card-reply-bg)!important;border-left-color:var(--chat-card-reply-border)!important}
+#messages[data-message-style] .message > button{background:var(--chat-card-button-bg)!important;color:var(--chat-card-button-color)!important}
 @media(prefers-reduced-motion:reduce){#messages[data-chat-theme],#messages[data-chat-theme] .message{animation:none!important}}
 .chat-theme-settings{width:min(520px,calc(100vw - 28px));max-height:min(82vh,720px);overflow:auto;background:#fff;color:#222;border-radius:16px;box-shadow:0 18px 55px rgba(0,0,0,.30);padding:18px;font-family:Arial,sans-serif}
 .chat-theme-settings h3{margin:0 0 14px;font-size:20px}.chat-theme-section{margin-top:16px}.chat-theme-section-title{font-weight:700;margin-bottom:9px}.chat-theme-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.chat-theme-option{border:2px solid #ddd;background:#fafafa;border-radius:11px;padding:8px;text-align:left;cursor:pointer;font:inherit}.chat-theme-option.selected{border-color:#8b5a3c;box-shadow:0 0 0 2px rgba(139,90,60,.12)}.chat-theme-preview{height:52px;border-radius:8px;margin-bottom:6px;border:1px solid rgba(0,0,0,.10)}.chat-theme-name{font-size:14px;font-weight:700}.chat-text-grid{display:flex;flex-wrap:wrap;gap:7px}.chat-text-option{border:1px solid #d5d5d5;background:#fff;border-radius:9px;padding:8px 10px;cursor:pointer;font:13px Arial,sans-serif}.chat-text-option.selected{border-color:#8b5a3c;box-shadow:0 0 0 2px rgba(139,90,60,.10)}.chat-text-dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px;border:1px solid rgba(0,0,0,.16)}.chat-theme-footer{display:flex;justify-content:flex-end;margin-top:18px}.chat-theme-close{border:0;background:#8b5a3c;color:#fff;padding:9px 15px;border-radius:9px;font-weight:700;cursor:pointer}
@@ -320,7 +343,7 @@
             button.addEventListener("click", function () {
                 settings.theme = theme.id;
                 saveSettings(settings);
-                applyTheme(settings.theme, settings.text);
+                applyTheme(settings.theme, settings.text, settings.messageStyle);
                 themeGrid.querySelectorAll(".chat-theme-option").forEach(function (item) { item.classList.remove("selected"); });
                 button.classList.add("selected");
             });
@@ -346,7 +369,7 @@
             button.addEventListener("click", function () {
                 settings.text = color[1];
                 saveSettings(settings);
-                applyTheme(settings.theme, settings.text);
+                applyTheme(settings.theme, settings.text, settings.messageStyle);
                 textGrid.querySelectorAll(".chat-text-option").forEach(function (item) { item.classList.remove("selected"); });
                 button.classList.add("selected");
             });
@@ -354,6 +377,41 @@
         });
         textSection.appendChild(textGrid);
         panel.appendChild(textSection);
+
+        var cardSection = document.createElement("div");
+        cardSection.className = "chat-theme-section";
+        var cardTitle = document.createElement("div");
+        cardTitle.className = "chat-theme-section-title";
+        cardTitle.textContent = "Оформление карточек сообщений";
+        cardSection.appendChild(cardTitle);
+        var cardGrid = document.createElement("div");
+        cardGrid.className = "chat-theme-grid";
+        MESSAGE_STYLES.forEach(function (messageStyle) {
+            var button = document.createElement("button");
+            button.type = "button";
+            button.className = "chat-theme-option" + (settings.messageStyle === messageStyle.id ? " selected" : "");
+            var preview = document.createElement("div");
+            preview.className = "chat-theme-preview";
+            preview.style.backgroundColor = messageStyle.vars.bg;
+            preview.style.backgroundImage = messageStyle.vars.pattern;
+            preview.style.backgroundSize = messageStyle.vars.size;
+            preview.style.borderColor = messageStyle.vars.border;
+            var name = document.createElement("div");
+            name.className = "chat-theme-name";
+            name.textContent = messageStyle.name;
+            button.appendChild(preview);
+            button.appendChild(name);
+            button.addEventListener("click", function () {
+                settings.messageStyle = messageStyle.id;
+                saveSettings(settings);
+                applyTheme(settings.theme, settings.text, settings.messageStyle);
+                cardGrid.querySelectorAll(".chat-theme-option").forEach(function (item) { item.classList.remove("selected"); });
+                button.classList.add("selected");
+            });
+            cardGrid.appendChild(button);
+        });
+        cardSection.appendChild(cardGrid);
+        panel.appendChild(cardSection);
 
         var footer = document.createElement("div");
         footer.className = "chat-theme-footer";
@@ -373,12 +431,12 @@
             if (!document.getElementById("chatThemeSettingsOverlay")) document.removeEventListener("keydown", onKey);
         });
 
-        applyTheme(settings.theme, settings.text);
+        applyTheme(settings.theme, settings.text, settings.messageStyle);
     }
 
     function applySaved() {
         var settings = loadSettings();
-        applyTheme(settings.theme, settings.text);
+        applyTheme(settings.theme, settings.text, settings.messageStyle);
     }
 
     window.openChatSettings = openSettings;
