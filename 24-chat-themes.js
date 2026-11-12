@@ -287,7 +287,8 @@
             return {
                 theme: THEMES.some(function (t) { return t.id === saved.theme; }) ? saved.theme : DEFAULTS.theme,
                 text: TEXT_COLORS.some(function (c) { return c[1] === saved.text; }) ? saved.text : DEFAULTS.text,
-                messageStyle: MESSAGE_STYLES.some(function (style) { return style.id === saved.messageStyle; }) ? saved.messageStyle : DEFAULTS.messageStyle
+                messageStyle: (MESSAGE_STYLES.some(function (style) { return style.id === saved.messageStyle; }) || (saved.messageStyle === "custom-photo" && typeof saved.customMessageImage === "string" && saved.customMessageImage.indexOf("data:image/") === 0)) ? saved.messageStyle : DEFAULTS.messageStyle,
+                customMessageImage: typeof saved.customMessageImage === "string" && saved.customMessageImage.indexOf("data:image/") === 0 ? saved.customMessageImage : ""
             };
         } catch (e) {
             return scope === "chat" ? loadSettings("all") : Object.assign({}, DEFAULTS);
@@ -311,6 +312,27 @@
         box.style.setProperty("--chat-message-text", textColor || DEFAULTS.text);
         box.dataset.chatTheme = theme.id;
         var messageStyle = MESSAGE_STYLES.find(function (style) { return style.id === messageStyleId; }) || MESSAGE_STYLES[0];
+        var activeSettings = loadSettings(Number(window.currentChatId || 0) > 0 ? "chat" : "all");
+        if (messageStyleId === "custom-photo" && activeSettings.customMessageImage) {
+            messageStyle = {
+                id: "custom-photo",
+                vars: {
+                    bg: "#34404a",
+                    pattern: 'linear-gradient(135deg,rgba(0,0,0,.18),rgba(0,0,0,.28)),url("' + activeSettings.customMessageImage + '")',
+                    size: "cover",
+                    border: "rgba(255,255,255,.28)",
+                    shadow: "rgba(0,0,0,.22)",
+                    userBg: "rgba(255,255,255,.88)",
+                    userColor: "#263238",
+                    userBorder: "rgba(255,255,255,.55)",
+                    time: "#ffffff",
+                    replyBg: "rgba(255,255,255,.86)",
+                    replyBorder: "#718096",
+                    buttonBg: "#455a64",
+                    buttonColor: "#ffffff"
+                }
+            };
+        }
         Object.keys(messageStyle.vars).forEach(function (key) { box.style.setProperty("--chat-card-" + key.replace(/[A-Z]/g, function (letter) { return "-" + letter.toLowerCase(); }), messageStyle.vars[key]); });
         box.dataset.messageStyle = messageStyle.id;
     }
@@ -434,6 +456,107 @@
         if (!section) cardSection.appendChild(cardTitle);
         var cardGrid = document.createElement("div");
         cardGrid.className = "chat-theme-grid";
+        function selectCardStyle(messageStyle, button) {
+            settings.messageStyle = messageStyle.id;
+            saveSettings(settings, scope);
+            applyTheme(settings.theme, settings.text, settings.messageStyle);
+            cardGrid.querySelectorAll(".chat-theme-option").forEach(function (item) { item.classList.remove("selected"); });
+            button.classList.add("selected");
+        }
+
+        var uploadButton = document.createElement("button");
+        uploadButton.type = "button";
+        uploadButton.className = "chat-theme-option";
+        uploadButton.style.borderStyle = "dashed";
+        uploadButton.style.textAlign = "center";
+        var uploadPreview = document.createElement("div");
+        uploadPreview.className = "chat-theme-preview";
+        uploadPreview.style.cssText = "display:flex;align-items:center;justify-content:center;background:#f3f4f6;color:#555;font-size:30px";
+        uploadPreview.textContent = "+";
+        var uploadName = document.createElement("div");
+        uploadName.className = "chat-theme-name";
+        uploadName.textContent = settings.customMessageImage ? "Заменить своё фото" : "Добавить своё фото";
+        uploadButton.appendChild(uploadPreview);
+        uploadButton.appendChild(uploadName);
+        var imageInput = document.createElement("input");
+        imageInput.type = "file";
+        imageInput.accept = "image/*";
+        imageInput.style.display = "none";
+        imageInput.addEventListener("change", function () {
+            var file = imageInput.files && imageInput.files[0];
+            if (!file) return;
+            if (!/^image\//i.test(file.type)) {
+                alert("Выберите файл изображения.");
+                imageInput.value = "";
+                return;
+            }
+            if (file.size > 12 * 1024 * 1024) {
+                alert("Размер фотографии не должен превышать 12 МБ.");
+                imageInput.value = "";
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function () {
+                var image = new Image();
+                image.onload = function () {
+                    var maxSide = 1200;
+                    var scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+                    var canvas = document.createElement("canvas");
+                    canvas.width = Math.max(1, Math.round(image.width * scale));
+                    canvas.height = Math.max(1, Math.round(image.height * scale));
+                    var context = canvas.getContext("2d");
+                    if (!context) {
+                        alert("Не удалось обработать фотографию на этом устройстве.");
+                        return;
+                    }
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                    try {
+                        settings.customMessageImage = canvas.toDataURL("image/jpeg", 0.82);
+                        settings.messageStyle = "custom-photo";
+                        saveSettings(settings, scope);
+                        openSettings("cards", scope);
+                    } catch (error) {
+                        alert("Не удалось сохранить фотографию. Возможно, в памяти браузера недостаточно места.");
+                    }
+                };
+                image.onerror = function () { alert("Не удалось открыть выбранное изображение."); };
+                image.src = reader.result;
+            };
+            reader.onerror = function () { alert("Не удалось прочитать файл изображения."); };
+            reader.readAsDataURL(file);
+        });
+        uploadButton.addEventListener("click", function () { imageInput.click(); });
+        cardGrid.appendChild(uploadButton);
+        cardGrid.appendChild(imageInput);
+
+        if (settings.customMessageImage) {
+            var personalStyle = {
+                id: "custom-photo",
+                name: "Моя карточка",
+                vars: {
+                    bg: "#34404a",
+                    pattern: 'linear-gradient(135deg,rgba(0,0,0,.18),rgba(0,0,0,.28)),url("' + settings.customMessageImage + '")',
+                    size: "cover",
+                    border: "rgba(255,255,255,.28)"
+                }
+            };
+            var personalButton = document.createElement("button");
+            personalButton.type = "button";
+            personalButton.className = "chat-theme-option" + (settings.messageStyle === "custom-photo" ? " selected" : "");
+            var personalPreview = document.createElement("div");
+            personalPreview.className = "chat-theme-preview";
+            personalPreview.style.backgroundColor = personalStyle.vars.bg;
+            personalPreview.style.backgroundImage = personalStyle.vars.pattern;
+            personalPreview.style.backgroundSize = personalStyle.vars.size;
+            var personalName = document.createElement("div");
+            personalName.className = "chat-theme-name";
+            personalName.textContent = personalStyle.name;
+            personalButton.appendChild(personalPreview);
+            personalButton.appendChild(personalName);
+            personalButton.addEventListener("click", function () { selectCardStyle(personalStyle, personalButton); });
+            cardGrid.appendChild(personalButton);
+        }
+
         MESSAGE_STYLES.forEach(function (messageStyle) {
             var button = document.createElement("button");
             button.type = "button";
@@ -449,13 +572,7 @@
             name.textContent = messageStyle.name;
             button.appendChild(preview);
             button.appendChild(name);
-            button.addEventListener("click", function () {
-                settings.messageStyle = messageStyle.id;
-                saveSettings(settings, scope);
-                applyTheme(settings.theme, settings.text, settings.messageStyle);
-                cardGrid.querySelectorAll(".chat-theme-option").forEach(function (item) { item.classList.remove("selected"); });
-                button.classList.add("selected");
-            });
+            button.addEventListener("click", function () { selectCardStyle(messageStyle, button); });
             cardGrid.appendChild(button);
         });
         cardSection.appendChild(cardGrid);
