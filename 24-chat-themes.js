@@ -304,15 +304,6 @@
         var box = document.getElementById("messages");
         if (!box) return;
         var theme = THEMES.find(function (t) { return t.id === themeId; }) || THEMES[0];
-        box.style.setProperty("--chat-theme-bg", theme.vars.bg);
-        box.style.setProperty("--chat-theme-pattern", theme.vars.pattern);
-        box.style.setProperty("--chat-theme-size", theme.vars.size);
-        box.style.setProperty("--chat-message-bg", theme.vars.bubble);
-        box.style.setProperty("--chat-message-border", theme.vars.border);
-        box.style.setProperty("--chat-message-shadow", theme.vars.shadow);
-        box.style.setProperty("--chat-message-text", textColor || DEFAULTS.text);
-        box.dataset.chatTheme = theme.id;
-        var messageStyle = MESSAGE_STYLES.find(function (style) { return style.id === messageStyleId; }) || MESSAGE_STYLES[0];
         var activeSettings = loadSettings(Number(window.currentChatId || 0) > 0 ? "chat" : "all");
         if (themeId === "custom-photo-theme" && activeSettings.customThemeImage) {
             theme = {
@@ -327,6 +318,15 @@
                 }
             };
         }
+        box.style.setProperty("--chat-theme-bg", theme.vars.bg);
+        box.style.setProperty("--chat-theme-pattern", theme.vars.pattern);
+        box.style.setProperty("--chat-theme-size", theme.vars.size);
+        box.style.setProperty("--chat-message-bg", theme.vars.bubble);
+        box.style.setProperty("--chat-message-border", theme.vars.border);
+        box.style.setProperty("--chat-message-shadow", theme.vars.shadow);
+        box.style.setProperty("--chat-message-text", textColor || DEFAULTS.text);
+        box.dataset.chatTheme = theme.id;
+        var messageStyle = MESSAGE_STYLES.find(function (style) { return style.id === messageStyleId; }) || MESSAGE_STYLES[0];
         if (messageStyleId === "custom-photo" && (!activeSettings.customMessageImage || activeSettings.messageStyle !== "custom-photo")) {
             var globalSettings = loadSettings("all");
             if (globalSettings.messageStyle === "custom-photo" && globalSettings.customMessageImage) activeSettings = globalSettings;
@@ -432,7 +432,7 @@
         themeImageInput.addEventListener("change", function () {
             var file = themeImageInput.files && themeImageInput.files[0];
             if (!file) return;
-            if (!/^image\\//i.test(file.type)) {
+            if (typeof file.type !== "string" || file.type.indexOf("image/") !== 0) {
                 alert("Выберите файл изображения.");
                 themeImageInput.value = "";
                 return;
