@@ -109,11 +109,11 @@
             return start("incoming");
         }
 
-        const status = document.getElementById("cv2Status")?.textContent || "";
+        const status = document.getElementById("cv2HeaderCanvas")?.getAttribute("aria-label") || "";
         if (
             controls &&
             getComputedStyle(controls).display !== "none" &&
-            status === "Вызов…"
+            status.includes("Вызов…")
         ) {
             return start("outgoing");
         }
