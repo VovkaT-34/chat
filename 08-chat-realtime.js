@@ -98,7 +98,21 @@ async function subscribeToMessages() {
                     const isCurrentChat =
                         Number(newMessage.chat_id) === Number(currentChatId);
 
-                    if (isIncoming) {
+                    const messageAlreadyInDom = isCurrentChat && !!document.querySelector(
+                        '.message[data-message-id="' + newMessage.id + '"]'
+                    );
+
+                    // Для нового сообщения текущего чата подтверждение выполняет
+                    // appendMessage(). В остальных случаях подтверждаем здесь.
+                    if (
+                        isIncoming &&
+                        (
+                            !isCurrentChat ||
+                            messageAlreadyInDom ||
+                            typeof appendMessage !== "function" ||
+                            !document.getElementById("messages")
+                        )
+                    ) {
                         try {
                             const delivery = await supabaseClient.rpc(
                                 "mark_message_delivered",
@@ -443,8 +457,7 @@ function subscribeToMessageReads() {
         .subscribe();
 }
 
-subscribeToMessageDeliveries();
-subscribeToMessageReads();
+// Подписки создаются после установки Realtime-фильтра в startChat().
 
 document.addEventListener("visibilitychange", function () {
     if (!document.hidden) {
