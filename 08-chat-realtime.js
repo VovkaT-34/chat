@@ -456,7 +456,6 @@ document.addEventListener("visibilitychange", function () {
     if (!document.hidden) {
         void reconnectChatRealtime();
         void syncCurrentChatMessages();
-    void refreshOwnMessageStatuses();
         void refreshOwnMessageStatuses();
     }
 });
