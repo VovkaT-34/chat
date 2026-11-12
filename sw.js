@@ -18,8 +18,18 @@ self.addEventListener("fetch",function(event){
 
 async function confirmPushDelivery(data){
     if(!data||!data.messageId||!data.deliveryToken||!data.userId||!data.exp)return;
-    try{await fetch(CONFIRM_DELIVERY_URL,{method:"POST",headers:{"Content-Type":"application/json","x-delivery-token":data.deliveryToken},body:JSON.stringify({messageId:data.messageId,userId:data.userId,exp:data.exp})});}
-    catch(error){console.warn("Не удалось подтвердить доставку push:",error);}
+    var payload=JSON.stringify({messageId:data.messageId,userId:data.userId,exp:data.exp});
+    for(var attempt=0;attempt<3;attempt++){
+        try{
+            var response=await fetch(CONFIRM_DELIVERY_URL,{method:"POST",headers:{"Content-Type":"application/json","x-delivery-token":data.deliveryToken},body:payload,cache:"no-store"});
+            if(response.ok)return;
+            console.warn("Подтверждение доставки push отклонено: HTTP",response.status);
+            if(response.status>=400&&response.status<500)return;
+        }catch(error){
+            console.warn("Ошибка подтверждения доставки push:",error);
+        }
+        if(attempt<2)await new Promise(function(resolve){setTimeout(resolve,500*(attempt+1));});
+    }
 }
 
 self.addEventListener("push",function(event){
