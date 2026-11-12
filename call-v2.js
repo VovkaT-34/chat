@@ -104,7 +104,7 @@
         style.textContent = `
         #chatCallV2{position:fixed;inset:0;z-index:30000;background:rgba(10,8,7,.96);display:none;align-items:center;justify-content:center;padding:16px;color:#fff}
         #chatCallV2.open{display:flex}.cv2-card{width:min(560px,100%);height:min(760px,100%);background:linear-gradient(160deg,#211813,#523726);border-radius:24px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.55)}
-        .cv2-head{text-align:center;padding:25px 18px 14px}.cv2-name{font-size:22px;font-weight:800}.cv2-status{margin-top:7px;color:#eadbce;font-size:14px}
+        .cv2-head{text-align:center;padding:25px 18px 14px}.cv2-header-canvas{display:block;width:100%;height:50px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
         .cv2-media{flex:1;min-height:230px;background:#0c0b0a;position:relative;display:flex;align-items:center;justify-content:center}.cv2-avatar{font-size:78px}.cv2-remote{display:none;width:100%;height:100%;object-fit:cover}.cv2-remote-audio{display:none}
         .cv2-local{display:none;position:absolute;right:14px;top:14px;width:115px;height:165px;object-fit:cover;border-radius:14px;background:#111;border:1px solid rgba(255,255,255,.3)}
         .cv2-incoming{display:none;justify-content:center;gap:18px;padding:20px}.cv2-incoming button{border:0;border-radius:999px;padding:14px 25px;font-weight:800;font-size:15px;cursor:pointer}.cv2-accept{background:#21ef62;color:#062b11}.cv2-reject{background:#e33d3d;color:#fff}
@@ -121,13 +121,13 @@
         root.id = "chatCallV2";
         root.innerHTML = `
             <div class="cv2-card">
-                <div class="cv2-head"><div class="cv2-name" id="cv2Name">Пользователь</div><div class="cv2-status" id="cv2Status">Подключение...</div></div>
+                <div class="cv2-head"><canvas id="cv2HeaderCanvas" class="cv2-header-canvas" role="img" aria-label="Пользователь. Подключение..."></canvas></div>
                 <div class="cv2-media"><div class="cv2-avatar" id="cv2Avatar">📞</div><video class="cv2-remote" id="cv2Remote" autoplay playsinline></video><audio class="cv2-remote-audio" id="cv2RemoteAudio" autoplay></audio><video class="cv2-local" id="cv2Local" autoplay playsinline muted></video></div>
                 <div class="cv2-incoming" id="cv2Incoming"><button class="cv2-reject" id="cv2Reject">Отклонить</button><button class="cv2-accept" id="cv2Accept">Принять</button></div>
                 <div class="cv2-controls" id="cv2Controls"><button class="cv2-btn" id="cv2Mute" title="Микрофон">🎙️</button><button class="cv2-btn" id="cv2VideoControl" title="Камера">📹</button><button class="cv2-btn" id="cv2Speaker" title="Динамик">🔊</button><button class="cv2-btn red" id="cv2Hangup" title="Завершить">📞</button></div>
             </div>`;
         document.body.appendChild(root);
-        const callHeader = root.querySelector(".cv2-head");
+        renderCallHeader();\n        window.addEventListener("resize", renderCallHeader);\n        const callHeader = root.querySelector(".cv2-head");
         ["selectstart", "contextmenu", "copy"].forEach(type => {
             callHeader.addEventListener(type, event => event.preventDefault(), true);
         });
@@ -139,7 +139,48 @@
         $("cv2Speaker").onclick = () => void toggleSpeaker();
     }
 
-    function setStatus(text) { if ($("cv2Status")) $("cv2Status").textContent = text; }
+    let callHeaderName = "Пользователь";
+    let callHeaderStatus = "Подключение...";
+    function renderCallHeader() {
+        const canvas = $("cv2HeaderCanvas");
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const scale = window.devicePixelRatio || 1;
+        const width = Math.round(rect.width * scale);
+        const height = Math.round(rect.height * scale);
+        if (canvas.width !== width || canvas.height !== height) {
+            canvas.width = width;
+            canvas.height = height;
+        }
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = "#fff";
+        let nameSize = 22;
+        ctx.font = `800 ${nameSize}px system-ui, -apple-system, sans-serif`;
+        const maxWidth = Math.max(40, rect.width - 12);
+        while (ctx.measureText(callHeaderName).width > maxWidth && nameSize > 14) {
+            nameSize--;
+            ctx.font = `800 ${nameSize}px system-ui, -apple-system, sans-serif`;
+        }
+        ctx.fillText(callHeaderName, rect.width / 2, 21, maxWidth);
+        ctx.fillStyle = "#eadbce";
+        ctx.font = "14px system-ui, -apple-system, sans-serif";
+        ctx.fillText(callHeaderStatus, rect.width / 2, 44, maxWidth);
+        canvas.setAttribute("aria-label", callHeaderName + ". " + callHeaderStatus);
+    }
+    function setCallHeaderName(name) {
+        callHeaderName = String(name || "Пользователь");
+        renderCallHeader();
+    }
+    function setStatus(text) {
+        callHeaderStatus = String(text || "");
+        renderCallHeader();
+    }
     function show(value) { ensureUi(); $("chatCallV2")?.classList.toggle("open", Boolean(value)); }
     function clearTimer() { if (timer) clearInterval(timer); timer = null; if (callTimeout) clearTimeout(callTimeout); callTimeout = null; startedAt = 0; }
     function startTimer() { clearTimer(); startedAt = Date.now(); timer = setInterval(() => { const seconds = Math.floor((Date.now() - startedAt) / 1000); const label=mode === "video" ? "Видеозвонок" : "Звонок"; setStatus(label+(mediaWarning ? " • " + mediaWarning : "")+" • "+String(Math.floor(seconds / 60)).padStart(2,"0")+":"+String(seconds % 60).padStart(2,"0")); }, 1000); }
@@ -435,7 +476,7 @@
             mediaWarning="";callId=signal.call_id;chatId=Number(signal.chat_id);peerId=signal.sender_id;mode=signal.payload?.mode==="video"?"video":"audio";role="callee";pendingOffer=signal.payload?.description||null;setActiveChatId(chatId);
             await recoverIceCandidates(signal);
             peerName=await resolveIncomingPeerName();
-            ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="flex";$("cv2Controls").style.display="none";$("cv2Remote").style.display="none";updateVideoUi(false);setStatus(mode==="video"?"Входящий видеозвонок":"Входящий звонок");show(true);processNativeCallAction();return;
+            ensureUi();setCallHeaderName(peerName);$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="flex";$("cv2Controls").style.display="none";$("cv2Remote").style.display="none";updateVideoUi(false);setStatus(mode==="video"?"Входящий видеозвонок":"Входящий звонок");show(true);processNativeCallAction();return;
         }
         if(signal.signal_type==="ice"){await addIce(signal.call_id,signal.payload?.candidate);return;}
         if(signal.call_id!==callId)return;
@@ -479,7 +520,7 @@
         if(!peer?.user_id){alert("Звонки доступны только в личном чате один-на-один.");return;}
         await end(false);mediaWarning="";chatId=activeChatId;peerId=peer.user_id;peerName=peer.username||"Пользователь";mode=modeArg==="video"?"video":"audio";role="caller";callId=createCallId();
         try{
-            ensureUi();$("cv2Name").textContent=peerName;$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";$("cv2Remote").style.display="none";updateVideoUi(mode==="video");setStatus("Вызов…");show(true);
+            ensureUi();setCallHeaderName(peerName);$("cv2Avatar").textContent=mode==="video"?"📹":"📞";$("cv2Incoming").style.display="none";$("cv2Controls").style.display="flex";$("cv2Remote").style.display="none";updateVideoUi(mode==="video");setStatus("Вызов…");show(true);
             await getMedia();await loadTurnIceServers();buildPeer();
             const offer=await pc.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:mode==="video"});makingOffer=true;await pc.setLocalDescription(offer);makingOffer=false;
             if(!await send("offer",{description:pc.localDescription?.toJSON(),mode,callerName:window.currentUsername||peerName||"Пользователь"}))throw new Error("offer не записан");
