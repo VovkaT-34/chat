@@ -10,7 +10,6 @@ async function loadMessages(){
     if(!currentChatId||!currentUser)return;
     if(typeof window.applyChatAppearance==="function")window.applyChatAppearance();
     const chatIdAtLoad=Number(currentChatId),loadToken=++messagesLoadToken;
-    const box=document.getElementById("messages");if(!box)return;box.replaceChildren();
     olderMessagesLoading=false;
     olderMessagesDone=false;
     olderMessagesChatId=chatIdAtLoad;
@@ -27,6 +26,7 @@ async function loadMessages(){
     const unique={};data.forEach(function(message){unique[Number(message.id)]=message;});
     const loadedData=Object.keys(unique).map(function(id){return unique[id];}).sort(function(a,b){return Number(a.id)-Number(b.id);});
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
+    const box=document.getElementById("messages");if(!box)return;box.replaceChildren();
     let unreadDivider=null,firstUnreadMessage=null;
     loadedData.forEach(function(message){var isUnread=Number(message.id)>lastReadId&&message.user_id!==currentUser.id;if(isUnread&&!unreadDivider){unreadDivider=document.createElement("div");unreadDivider.className="unread-divider";unreadDivider.textContent="Непрочитанные сообщения";box.appendChild(unreadDivider);}var div=renderMessage(message);if(!div)return;box.appendChild(div);if(isUnread&&!firstUnreadMessage)firstUnreadMessage=div;});
     const centerUnreadDivider=function(){if(!unreadDivider)return;if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;var br=box.getBoundingClientRect(),dr=unreadDivider.getBoundingClientRect(),delta=(dr.top+dr.height/2)-(br.top+box.clientHeight/2);if(Math.abs(delta)>0.5)box.scrollTop+=delta;};
