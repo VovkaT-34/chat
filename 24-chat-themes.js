@@ -313,6 +313,10 @@
         box.dataset.chatTheme = theme.id;
         var messageStyle = MESSAGE_STYLES.find(function (style) { return style.id === messageStyleId; }) || MESSAGE_STYLES[0];
         var activeSettings = loadSettings(Number(window.currentChatId || 0) > 0 ? "chat" : "all");
+        if (messageStyleId === "custom-photo" && (!activeSettings.customMessageImage || activeSettings.messageStyle !== "custom-photo")) {
+            var globalSettings = loadSettings("all");
+            if (globalSettings.messageStyle === "custom-photo" && globalSettings.customMessageImage) activeSettings = globalSettings;
+        }
         if (messageStyleId === "custom-photo" && activeSettings.customMessageImage) {
             messageStyle = {
                 id: "custom-photo",
