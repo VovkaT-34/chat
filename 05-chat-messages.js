@@ -8,18 +8,26 @@ let olderMessagesChatId = 0;
 
 async function loadMessages(){
     if(!currentChatId||!currentUser)return;
-    if(typeof window.applyChatAppearance==="function")window.applyChatAppearance();
     const chatIdAtLoad=Number(currentChatId),loadToken=++messagesLoadToken;
-    const box=document.getElementById("messages");if(!box)return;box.replaceChildren();
+    const box=document.getElementById("messages");if(!box)return;
+    box.replaceChildren();
+    const loading=document.createElement("div");
+    loading.className="messages-loading";
+    loading.textContent="Загрузка сообщений…";
+    loading.style.cssText="padding:18px;text-align:center;color:var(--chat-message-text,#777)";
+    box.appendChild(loading);
+    if(typeof window.applyChatAppearance==="function")window.applyChatAppearance();
     olderMessagesLoading=false;
     olderMessagesDone=false;
     olderMessagesChatId=chatIdAtLoad;
-    const readResult=await supabaseClient.from("user_chat_reads").select("last_read_message_id").eq("user_id",currentUser.id).eq("chat_id",chatIdAtLoad).maybeSingle();
+    const [readResult,result]=await Promise.all([
+        supabaseClient.from("user_chat_reads").select("last_read_message_id").eq("user_id",currentUser.id).eq("chat_id",chatIdAtLoad).maybeSingle(),
+        supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`).eq("chat_id",chatIdAtLoad).order("id",{ascending:false}).limit(10)
+    ]);
     if(readResult.error)console.log(readResult.error);
     const readInfo=readResult.data;
     const lastReadId=readInfo&&readInfo.last_read_message_id?Number(readInfo.last_read_message_id):0;
     localLastReadMessageId=lastReadId;
-    const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))`).eq("chat_id",chatIdAtLoad).order("id",{ascending:false}).limit(10);
     let data=result.data||[],error=result.error;
     if(error){console.log(error);return;}
     if(data.length<10)olderMessagesDone=true;
@@ -28,7 +36,10 @@ async function loadMessages(){
     const loadedData=Object.keys(unique).map(function(id){return unique[id];}).sort(function(a,b){return Number(a.id)-Number(b.id);});
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
     let unreadDivider=null,firstUnreadMessage=null;
-    loadedData.forEach(function(message){var isUnread=Number(message.id)>lastReadId&&message.user_id!==currentUser.id;if(isUnread&&!unreadDivider){unreadDivider=document.createElement("div");unreadDivider.className="unread-divider";unreadDivider.textContent="Непрочитанные сообщения";box.appendChild(unreadDivider);}var div=renderMessage(message);if(!div)return;box.appendChild(div);if(isUnread&&!firstUnreadMessage)firstUnreadMessage=div;});
+    const fragment=document.createDocumentFragment();
+    loadedData.forEach(function(message){var isUnread=Number(message.id)>lastReadId&&message.user_id!==currentUser.id;if(isUnread&&!unreadDivider){unreadDivider=document.createElement("div");unreadDivider.className="unread-divider";unreadDivider.textContent="Непрочитанные сообщения";fragment.appendChild(unreadDivider);}var div=renderMessage(message);if(!div)return;fragment.appendChild(div);if(isUnread&&!firstUnreadMessage)firstUnreadMessage=div;});
+    if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
+    box.replaceChildren(fragment);
     const centerUnreadDivider=function(){if(!unreadDivider)return;if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;var br=box.getBoundingClientRect(),dr=unreadDivider.getBoundingClientRect(),delta=(dr.top+dr.height/2)-(br.top+box.clientHeight/2);if(Math.abs(delta)>0.5)box.scrollTop+=delta;};
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
     if(unreadDivider){centerUnreadDivider();}else if(typeof scrollMessagesToBottom==="function"){scrollMessagesToBottom();}else{box.scrollTop=box.scrollHeight;}
