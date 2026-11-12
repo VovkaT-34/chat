@@ -11,7 +11,7 @@
 
     var THEMES = [
         {
-            id: "classic",
+            id: "classic-original",
             name: "Classic",
             preview: "linear-gradient(135deg,#eadcc8,#f4eadc)",
             vars: {
@@ -24,61 +24,60 @@
             }
         },
         {
-            id: "gold-shine",
+            id: "gold-shine-original",
             name: "Gold Shine",
-            preview: "linear-gradient(125deg,#fff0a8,#f4bd45,#fff7cf,#d99a2d,#ffe9a0)",
+            preview: "linear-gradient(135deg,#8a641e,#f7d774,#fff3bd,#b17a1f)",
             vars: {
                 bg: "#d9bd70",
-                pattern: "radial-gradient(ellipse at 18% 22%,rgba(255,255,255,.48),transparent 38%),radial-gradient(ellipse at 82% 28%,rgba(255,190,55,.38),transparent 42%),radial-gradient(ellipse at 60% 88%,rgba(255,245,180,.48),transparent 44%),linear-gradient(125deg,rgba(255,244,176,.30),rgba(193,119,25,.20),rgba(255,226,122,.32))",
-                size: "220% 220%,220% 220%,220% 220%,220% 220%",
-                bubble: "linear-gradient(125deg,rgba(255,250,220,.98),rgba(255,226,151,.96),rgba(255,248,211,.98),rgba(255,218,132,.96))",
+                pattern: "radial-gradient(circle at 20% 30%,rgba(255,255,255,.34) 0 2px,transparent 3px),linear-gradient(115deg,rgba(255,255,255,.10),rgba(255,255,255,.42),rgba(255,255,255,.08),rgba(112,70,0,.08))",
+                size: "95px 95px,220px 220px",
+                bubble: "rgba(255,249,225,.94)",
                 border: "rgba(135,94,22,.18)",
                 shadow: "rgba(104,72,15,.14)"
             }
         },
         {
-            id: "royal-violet",
+            id: "royal-violet-original",
             name: "Royal Violet",
-            preview: "linear-gradient(125deg,#51306f,#d36bb5,#648ee5,#e4b86a,#8a62bd)",
+            preview: "linear-gradient(135deg,#34204e,#74519a,#d6b76a)",
             vars: {
                 bg: "#57406f",
-                pattern: "radial-gradient(ellipse at 15% 18%,rgba(255,104,190,.62),transparent 46%),radial-gradient(ellipse at 82% 22%,rgba(90,190,255,.56),transparent 44%),radial-gradient(ellipse at 72% 88%,rgba(255,205,92,.48),transparent 48%),linear-gradient(135deg,rgba(116,68,180,.46),rgba(43,28,88,.28))",
-                size: "220% 220%,220% 220%,220% 220%,220% 220%",
-                bubble: "linear-gradient(125deg,#fff0fb,#f0e8ff,#e5f1ff,#fff0e2)",
+                pattern: "radial-gradient(circle at 22px 22px,rgba(255,255,255,.12) 0 2px,transparent 2.5px),linear-gradient(135deg,rgba(255,255,255,.07),rgba(48,24,75,.16))",
+                size: "120px 100px,100% 100%",
+                bubble: "rgba(250,245,255,.94)",
                 border: "rgba(226,204,255,.26)",
                 shadow: "rgba(35,18,54,.18)"
             }
         },
         {
-            id: "midnight-gold",
+            id: "midnight-gold-original",
             name: "Midnight Gold",
-            preview: "linear-gradient(125deg,#172b4d,#3b7eaa,#ad78bd,#d0a34b,#243047)",
+            preview: "linear-gradient(135deg,#151b29,#27334b,#c49a42)",
             vars: {
                 bg: "#202a3d",
-                pattern: "radial-gradient(ellipse at 18% 20%,rgba(44,145,220,.62),transparent 45%),radial-gradient(ellipse at 82% 30%,rgba(210,151,67,.52),transparent 42%),radial-gradient(ellipse at 55% 92%,rgba(179,105,198,.42),transparent 48%),linear-gradient(135deg,rgba(14,28,53,.38),rgba(63,46,78,.30))",
-                size: "220% 220%,220% 220%,220% 220%,220% 220%",
-                bubble: "linear-gradient(125deg,#f4f5f8,#e5eff9,#f5e8d5,#e9e4f5)",
+                pattern: "radial-gradient(circle at 25px 25px,rgba(255,218,130,.13) 0 1.5px,transparent 2px),linear-gradient(145deg,rgba(255,255,255,.04),rgba(0,0,0,.12))",
+                size: "115px 95px,100% 100%",
+                bubble: "rgba(241,239,232,.96)",
                 border: "rgba(255,214,125,.22)",
                 shadow: "rgba(0,0,0,.22)"
             }
         },
         {
-            id: "aqua-pearl",
+            id: "aqua-pearl-original",
             name: "Aqua Pearl",
-            preview: "linear-gradient(125deg,#38bdb1,#d5fff0,#70b9e9,#c4f2dc,#4f9cae)",
+            preview: "linear-gradient(135deg,#8acfd0,#e7fbf5,#86b9c8)",
             vars: {
                 bg: "#bfe5e1",
-                pattern: "radial-gradient(ellipse at 15% 20%,rgba(57,205,190,.62),transparent 48%),radial-gradient(ellipse at 82% 28%,rgba(91,174,235,.56),transparent 46%),radial-gradient(ellipse at 58% 90%,rgba(179,237,211,.72),transparent 48%),linear-gradient(135deg,rgba(255,255,255,.28),rgba(66,155,165,.20))",
-                size: "220% 220%,220% 220%,220% 220%,220% 220%",
-                bubble: "linear-gradient(125deg,#f2fffb,#d9fff1,#e2f5ff,#f5ffed)",
+                pattern: "radial-gradient(circle at 20px 20px,rgba(255,255,255,.46) 0 2px,transparent 2.5px),radial-gradient(circle at 82px 55px,rgba(70,145,157,.10) 0 2px,transparent 2.5px),linear-gradient(135deg,rgba(255,255,255,.22),rgba(66,155,165,.08))",
+                size: "110px 90px,140px 120px,100% 100%",
+                bubble: "rgba(246,253,251,.95)",
                 border: "rgba(51,132,145,.16)",
                 shadow: "rgba(35,105,117,.10)"
             }
-        }
-        ,
+        },
         {
             id: "aurora",
-            name: "Северное сияние",
+            name: "Северное сияние Iris",
             preview: "linear-gradient(125deg,#073e4d,#32c79a,#4d9df2,#b36bdb,#b4edbd)",
             vars: {
                 bg: "#244f55",
@@ -91,7 +90,7 @@
         },
         {
             id: "sakura",
-            name: "Сакура",
+            name: "Сакура Iris",
             preview: "linear-gradient(125deg,#f49cbd,#fff0d9,#d9a4f0,#f6c6b0,#e7a0c0)",
             vars: {
                 bg: "#f1d5dc",
@@ -104,7 +103,7 @@
         },
         {
             id: "ocean",
-            name: "Глубокий океан",
+            name: "Глубокий океан Iris",
             preview: "linear-gradient(125deg,#07506b,#27c4c1,#4a9be8,#9be5c7,#176d91)",
             vars: {
                 bg: "#316d7d",
@@ -117,7 +116,7 @@
         },
         {
             id: "lavender-mist",
-            name: "Лавандовый туман",
+            name: "Лавандовый туман Iris",
             preview: "linear-gradient(125deg,#a57be7,#d7b8ff,#86b9f4,#f0b4dc,#b4a7ef)",
             vars: {
                 bg: "#d2c8e8",
@@ -130,7 +129,7 @@
         },
         {
             id: "mint-garden",
-            name: "Мятный сад",
+            name: "Мятный сад Iris",
             preview: "linear-gradient(125deg,#62c88f,#c5f1d1,#8bd9e5,#e1e99a,#69bda6)",
             vars: {
                 bg: "#c2e0d1",
@@ -143,7 +142,7 @@
         },
         {
             id: "coral-sunset",
-            name: "Коралловый закат",
+            name: "Коралловый закат Iris",
             preview: "linear-gradient(125deg,#ed786e,#ffc16e,#f7a6a8,#c98bd5,#f4d18b)",
             vars: {
                 bg: "#e9b49d",
@@ -154,72 +153,58 @@
                 shadow: "rgba(112,57,48,.12)"
             }
         },
-{
-            id: "classic-original",
-            name: "Classic — прежняя",
-            preview: "linear-gradient(135deg,#eadcc8,#f4eadc)",
-            vars: {
-                bg: "#eadcc8",
-                pattern: "radial-gradient(circle at 18px 18px,rgba(255,255,255,.28) 0 2px,transparent 2.5px),radial-gradient(circle at 70px 42px,transparent 0 8px,rgba(116,82,54,.09) 8.5px 10px,transparent 10.5px),radial-gradient(circle at 118px 76px,rgba(255,255,255,.22) 0 1.5px,transparent 2px),radial-gradient(circle at 42px 88px,transparent 0 6px,rgba(116,82,54,.07) 6.5px 8px,transparent 8.5px)",
-                size: "150px 120px,180px 150px,130px 110px,210px 170px",
-                bubble: "rgba(255,250,243,.88)",
-                border: "rgba(117,82,50,.09)",
-                shadow: "rgba(76,53,35,.06)"
-            }
-        },
-{
-            id: "gold-shine-original",
-            name: "Gold Shine — прежняя",
-            preview: "linear-gradient(135deg,#8a641e,#f7d774,#fff3bd,#b17a1f)",
+        {
+            id: "gold-shine",
+            name: "Gold Shine Iris",
+            preview: "linear-gradient(125deg,#fff0a8,#f4bd45,#fff7cf,#d99a2d,#ffe9a0)",
             vars: {
                 bg: "#d9bd70",
-                pattern: "radial-gradient(circle at 20% 30%,rgba(255,255,255,.34) 0 2px,transparent 3px),linear-gradient(115deg,rgba(255,255,255,.10),rgba(255,255,255,.42),rgba(255,255,255,.08),rgba(112,70,0,.08))",
-                size: "95px 95px,220px 220px",
-                bubble: "rgba(255,249,225,.94)",
+                pattern: "radial-gradient(ellipse at 18% 22%,rgba(255,255,255,.48),transparent 38%),radial-gradient(ellipse at 82% 28%,rgba(255,190,55,.38),transparent 42%),radial-gradient(ellipse at 60% 88%,rgba(255,245,180,.48),transparent 44%),linear-gradient(125deg,rgba(255,244,176,.30),rgba(193,119,25,.20),rgba(255,226,122,.32))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,rgba(255,250,220,.98),rgba(255,226,151,.96),rgba(255,248,211,.98),rgba(255,218,132,.96))",
                 border: "rgba(135,94,22,.18)",
                 shadow: "rgba(104,72,15,.14)"
             }
         },
-{
-            id: "royal-violet-original",
-            name: "Royal Violet — прежняя",
-            preview: "linear-gradient(135deg,#34204e,#74519a,#d6b76a)",
+        {
+            id: "royal-violet",
+            name: "Royal Violet Iris",
+            preview: "linear-gradient(125deg,#51306f,#d36bb5,#648ee5,#e4b86a,#8a62bd)",
             vars: {
                 bg: "#57406f",
-                pattern: "radial-gradient(circle at 22px 22px,rgba(255,255,255,.12) 0 2px,transparent 2.5px),linear-gradient(135deg,rgba(255,255,255,.07),rgba(48,24,75,.16))",
-                size: "120px 100px,100% 100%",
-                bubble: "rgba(250,245,255,.94)",
+                pattern: "radial-gradient(ellipse at 15% 18%,rgba(255,104,190,.62),transparent 46%),radial-gradient(ellipse at 82% 22%,rgba(90,190,255,.56),transparent 44%),radial-gradient(ellipse at 72% 88%,rgba(255,205,92,.48),transparent 48%),linear-gradient(135deg,rgba(116,68,180,.46),rgba(43,28,88,.28))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#fff0fb,#f0e8ff,#e5f1ff,#fff0e2)",
                 border: "rgba(226,204,255,.26)",
                 shadow: "rgba(35,18,54,.18)"
             }
         },
-{
-            id: "midnight-gold-original",
-            name: "Midnight Gold — прежняя",
-            preview: "linear-gradient(135deg,#151b29,#27334b,#c49a42)",
+        {
+            id: "midnight-gold",
+            name: "Midnight Gold Iris",
+            preview: "linear-gradient(125deg,#172b4d,#3b7eaa,#ad78bd,#d0a34b,#243047)",
             vars: {
                 bg: "#202a3d",
-                pattern: "radial-gradient(circle at 25px 25px,rgba(255,218,130,.13) 0 1.5px,transparent 2px),linear-gradient(145deg,rgba(255,255,255,.04),rgba(0,0,0,.12))",
-                size: "115px 95px,100% 100%",
-                bubble: "rgba(241,239,232,.96)",
+                pattern: "radial-gradient(ellipse at 18% 20%,rgba(44,145,220,.62),transparent 45%),radial-gradient(ellipse at 82% 30%,rgba(210,151,67,.52),transparent 42%),radial-gradient(ellipse at 55% 92%,rgba(179,105,198,.42),transparent 48%),linear-gradient(135deg,rgba(14,28,53,.38),rgba(63,46,78,.30))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#f4f5f8,#e5eff9,#f5e8d5,#e9e4f5)",
                 border: "rgba(255,214,125,.22)",
                 shadow: "rgba(0,0,0,.22)"
             }
         },
-{
-            id: "aqua-pearl-original",
-            name: "Aqua Pearl — прежняя",
-            preview: "linear-gradient(135deg,#8acfd0,#e7fbf5,#86b9c8)",
+        {
+            id: "aqua-pearl",
+            name: "Aqua Pearl Iris",
+            preview: "linear-gradient(125deg,#38bdb1,#d5fff0,#70b9e9,#c4f2dc,#4f9cae)",
             vars: {
                 bg: "#bfe5e1",
-                pattern: "radial-gradient(circle at 20px 20px,rgba(255,255,255,.46) 0 2px,transparent 2.5px),radial-gradient(circle at 82px 55px,rgba(70,145,157,.10) 0 2px,transparent 2.5px),linear-gradient(135deg,rgba(255,255,255,.22),rgba(66,155,165,.08))",
-                size: "110px 90px,140px 120px,100% 100%",
-                bubble: "rgba(246,253,251,.95)",
+                pattern: "radial-gradient(ellipse at 15% 20%,rgba(57,205,190,.62),transparent 48%),radial-gradient(ellipse at 82% 28%,rgba(91,174,235,.56),transparent 46%),radial-gradient(ellipse at 58% 90%,rgba(179,237,211,.72),transparent 48%),linear-gradient(135deg,rgba(255,255,255,.28),rgba(66,155,165,.20))",
+                size: "220% 220%,220% 220%,220% 220%,220% 220%",
+                bubble: "linear-gradient(125deg,#f2fffb,#d9fff1,#e2f5ff,#f5ffed)",
                 border: "rgba(51,132,145,.16)",
                 shadow: "rgba(35,105,117,.10)"
             }
         }
-
     ];
 
     var TEXT_COLORS = [
