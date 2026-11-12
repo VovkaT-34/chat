@@ -51,7 +51,7 @@ async function loadMessages(){
     const incomingIds=loadedData.filter(function(m){return m.user_id!==currentUser.id;}).map(function(m){return Number(m.id);}).filter(Boolean);
     if(incomingIds.length){void Promise.all(incomingIds.map(async function(id){try{const r=await supabaseClient.rpc("mark_message_delivered",{p_message_id:id});if(r.error)console.log("Ошибка подтверждения доставки:",r.error);}catch(error){console.warn("Ошибка доставки:",error);}}));}
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
-    const own=loadedData.filter(function(m){return m.user_id===currentUser.id;}),lastOwn=own[own.length-1];if(lastOwn)await updateMessageStatus(lastOwn.id);
+    const own=loadedData.filter(function(m){return m.user_id===currentUser.id;});if(own.length&&typeof refreshChatMessageStatuses==="function"){await refreshChatMessageStatuses(chatIdAtLoad,own.map(function(message){return Number(message.id);}));}if(typeof updateChatListMessageStatus==="function")await updateChatListMessageStatus(chatIdAtLoad);
     if(unreadDivider){if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;centerUnreadDivider();if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();}else if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();
 }
 
