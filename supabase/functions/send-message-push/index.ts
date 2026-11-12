@@ -86,7 +86,7 @@ Deno.serve(async(req:Request)=>{
     if(fcmAccessToken){
      for(const fcmTokenRow of fcmTokens){
       try{
-       const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${fcmAccessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token:fcmTokenRow.token,notification:{title:senderName,body:message.text||"Новое сообщение"},data:{chatId:String(message.chat_id),messageId:String(message.id)},android:{priority:"high",notification:{channel_id:"chat_messages_v3",sound:"default"}}}})});
+       const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${fcmAccessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token:fcmTokenRow.token,data:{type:"message",title:senderName,body:message.text||"Новое сообщение",chatId:String(message.chat_id),messageId:String(message.id),userId:member.user_id,exp:String(exp),deliveryToken},android:{priority:"high"}}})});
        if(response.ok){fcmSent++;}else{const errorText=await response.text();if(/UNREGISTERED|registration-token-not-registered|INVALID_ARGUMENT/.test(errorText)){await admin.from("android_push_tokens").delete().eq("id",fcmTokenRow.id);fcmRemoved++;}else console.error("FCM send error:",errorText);}
       }catch(error){console.error("FCM send exception:",error);}
      }
