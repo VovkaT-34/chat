@@ -58,11 +58,10 @@ Deno.serve(async (req) => {
     const { data: profile, error: profileError } = await admin.from("profiles").select("approved").eq("id", userId).maybeSingle();
     if (profileError || !profile || profile.approved !== true) return json({ error: "Recipient is not approved" }, 403, origin);
 
-    const { error } = await admin.from("message_deliveries").upsert(
-      { message_id: messageId, user_id: userId, delivered_at: new Date().toISOString() },
-      { onConflict: "message_id,user_id" }
+    const { error } = await admin.from("message_deliveries").insert(
+      { message_id: messageId, user_id: userId, delivered_at: new Date().toISOString() }
     );
-    if (error) return json({ error: error.message }, 500, origin);
+    if (error && error.code !== "23505") return json({ error: error.message }, 500, origin);
     return json({ ok: true }, 200, origin);
   } catch (error) {
     console.error("confirm-push-delivery:", error);
