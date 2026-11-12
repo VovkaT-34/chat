@@ -42,7 +42,7 @@ self.addEventListener("push",function(event){
     if(!isCall&&count>1)options.body=(data.body||"Новое сообщение")+"\nНепрочитанных: "+count;
     if(isCall){options.requireInteraction=true;options.vibrate=[300,150,300,150,500];}
     var work=[self.registration.showNotification(title,options)];
-    if(data.type==="message")work.push(confirmPushDelivery(data));
+    if(data.messageId&&data.deliveryToken)work.push(work[0].then(function(){return confirmPushDelivery(data);}));
     event.waitUntil(Promise.all(work));
 });
 
