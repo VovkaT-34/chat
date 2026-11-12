@@ -5,17 +5,47 @@ let messagesLoadToken = 0;
 let olderMessagesLoading = false;
 let olderMessagesDone = false;
 let olderMessagesChatId = 0;
+const messageViewCache = new Map();
+let renderedMessagesChatId = 0;
 
 async function loadMessages(){
     if(!currentChatId||!currentUser)return;
     const chatIdAtLoad=Number(currentChatId),loadToken=++messagesLoadToken;
     const box=document.getElementById("messages");if(!box)return;
-    box.replaceChildren();
-    const loading=document.createElement("div");
-    loading.className="messages-loading";
-    loading.textContent="Загрузка сообщений…";
-    loading.style.cssText="padding:18px;text-align:center;color:var(--chat-message-text,#777)";
-    box.appendChild(loading);
+    const cachedMessageIds=new Set();
+    let restoredCachedView=false;
+    if(renderedMessagesChatId&&renderedMessagesChatId!==chatIdAtLoad){
+        const previousMessages=box.querySelectorAll(".message[data-message-id]");
+        if(previousMessages.length&&previousMessages.length<=100){
+            const previousFragment=document.createDocumentFragment();
+            while(box.firstChild)previousFragment.appendChild(box.firstChild);
+            messageViewCache.set(renderedMessagesChatId,{fragment:previousFragment,scrollTop:box.scrollTop});
+            while(messageViewCache.size>5)messageViewCache.delete(messageViewCache.keys().next().value);
+        }
+    }
+    renderedMessagesChatId=chatIdAtLoad;
+    const cachedView=messageViewCache.get(chatIdAtLoad);
+    if(cachedView){
+        box.replaceChildren(cachedView.fragment);
+        box.scrollTop=cachedView.scrollTop;
+        messageViewCache.delete(chatIdAtLoad);
+        restoredCachedView=true;
+        box.querySelectorAll(".message[data-message-id]").forEach(function(message){
+            cachedMessageIds.add(String(message.dataset.messageId));
+        });
+        if(typeof updateMessageStatus==="function"){
+            box.querySelectorAll(".message-status[data-status-message-id]").forEach(function(status){
+                void updateMessageStatus(status.dataset.statusMessageId);
+            });
+        }
+    }else{
+        box.replaceChildren();
+        const loading=document.createElement("div");
+        loading.className="messages-loading";
+        loading.textContent="Загрузка сообщений…";
+        loading.style.cssText="padding:18px;text-align:center;color:var(--chat-message-text,#777)";
+        box.appendChild(loading);
+    }
     if(typeof window.applyChatAppearance==="function")window.applyChatAppearance();
     olderMessagesLoading=false;
     olderMessagesDone=false;
@@ -41,6 +71,7 @@ async function loadMessages(){
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
     box.querySelectorAll("[data-message-id]").forEach(function(existing){
         var id=existing.getAttribute("data-message-id");
+        if(restoredCachedView&&cachedMessageIds.has(String(id)))return;
         if(id&&!fragment.querySelector('[data-message-id="'+id+'"]'))fragment.appendChild(existing);
     });
     box.replaceChildren(fragment);
