@@ -104,7 +104,7 @@
         style.textContent = `
         #chatCallV2{position:fixed;inset:0;z-index:30000;background:rgba(10,8,7,.96);display:none;align-items:center;justify-content:center;padding:16px;color:#fff}
         #chatCallV2.open{display:flex}.cv2-card{width:min(560px,100%);height:min(760px,100%);background:linear-gradient(160deg,#211813,#523726);border-radius:24px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.55)}
-        .cv2-head{text-align:center;padding:25px 18px 14px}.cv2-header-canvas{display:block;width:100%;height:50px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;pointer-events:none}.cv2-header-source{display:none!important}
+        .cv2-head{text-align:center;padding:25px 18px 14px}.cv2-name{font-size:22px;font-weight:800}.cv2-status{margin-top:7px;color:#eadbce;font-size:14px}
         .cv2-media{flex:1;min-height:230px;background:#0c0b0a;position:relative;display:flex;align-items:center;justify-content:center}.cv2-avatar{font-size:78px}.cv2-remote{display:none;width:100%;height:100%;object-fit:cover}.cv2-remote-audio{display:none}
         .cv2-local{display:none;position:absolute;right:14px;top:14px;width:115px;height:165px;object-fit:cover;border-radius:14px;background:#111;border:1px solid rgba(255,255,255,.3)}
         .cv2-incoming{display:none;justify-content:center;gap:18px;padding:20px}.cv2-incoming button{border:0;border-radius:999px;padding:14px 25px;font-weight:800;font-size:15px;cursor:pointer}.cv2-accept{background:#21ef62;color:#062b11}.cv2-reject{background:#e33d3d;color:#fff}
@@ -120,54 +120,12 @@
         root.id = "chatCallV2";
         root.innerHTML = `
             <div class="cv2-card">
-                <div class="cv2-head"><canvas id="cv2HeaderCanvas" class="cv2-header-canvas" aria-hidden="true"></canvas><div class="cv2-header-source"><div class="cv2-name" id="cv2Name">Пользователь</div><div class="cv2-status" id="cv2Status">Подключение...</div></div></div>
+                <div class="cv2-head"><div class="cv2-name" id="cv2Name">Пользователь</div><div class="cv2-status" id="cv2Status">Подключение...</div></div>
                 <div class="cv2-media"><div class="cv2-avatar" id="cv2Avatar">📞</div><video class="cv2-remote" id="cv2Remote" autoplay playsinline></video><audio class="cv2-remote-audio" id="cv2RemoteAudio" autoplay></audio><video class="cv2-local" id="cv2Local" autoplay playsinline muted></video></div>
                 <div class="cv2-incoming" id="cv2Incoming"><button class="cv2-reject" id="cv2Reject">Отклонить</button><button class="cv2-accept" id="cv2Accept">Принять</button></div>
                 <div class="cv2-controls" id="cv2Controls"><button class="cv2-btn" id="cv2Mute" title="Микрофон">🎙️</button><button class="cv2-btn" id="cv2VideoControl" title="Камера">📹</button><button class="cv2-btn" id="cv2Speaker" title="Динамик">🔊</button><button class="cv2-btn red" id="cv2Hangup" title="Завершить">📞</button></div>
             </div>`;
         document.body.appendChild(root);
-        const callHeader = root.querySelector(".cv2-head");
-        const headerCanvas = $("cv2HeaderCanvas");
-        const renderCallHeader = () => {
-            if (!headerCanvas) return;
-            const rect = headerCanvas.getBoundingClientRect();
-            if (!rect.width || !rect.height) return;
-            const scale = window.devicePixelRatio || 1;
-            const width = Math.round(rect.width * scale);
-            const height = Math.round(rect.height * scale);
-            if (headerCanvas.width !== width || headerCanvas.height !== height) {
-                headerCanvas.width = width;
-                headerCanvas.height = height;
-            }
-            const context = headerCanvas.getContext("2d");
-            if (!context) return;
-            context.setTransform(scale, 0, 0, scale, 0, 0);
-            context.clearRect(0, 0, rect.width, rect.height);
-            const maxWidth = Math.max(40, rect.width - 12);
-            const name = $("cv2Name")?.textContent || "Пользователь";
-            const status = $("cv2Status")?.textContent || "";
-            context.textAlign = "center";
-            context.textBaseline = "alphabetic";
-            context.fillStyle = "#fff";
-            let nameSize = 22;
-            context.font = `800 ${nameSize}px system-ui, -apple-system, sans-serif`;
-            while (context.measureText(name).width > maxWidth && nameSize > 14) {
-                nameSize--;
-                context.font = `800 ${nameSize}px system-ui, -apple-system, sans-serif`;
-            }
-            context.fillText(name, rect.width / 2, 21, maxWidth);
-            context.fillStyle = "#eadbce";
-            context.font = "14px system-ui, -apple-system, sans-serif";
-            context.fillText(status, rect.width / 2, 44, maxWidth);
-        };
-        const headerObserver = new MutationObserver(renderCallHeader);
-        headerObserver.observe(callHeader, {subtree:true, childList:true, characterData:true});
-        if (typeof ResizeObserver !== "undefined") {
-            const headerResizeObserver = new ResizeObserver(renderCallHeader);
-            headerResizeObserver.observe(headerCanvas);
-        }
-        window.addEventListener("resize", renderCallHeader, {passive:true});
-        renderCallHeader();
         $("cv2Reject").onclick = () => void rejectIncoming();
         $("cv2Accept").onclick = () => void acceptIncoming();
         $("cv2Hangup").onclick = () => void end(true);
