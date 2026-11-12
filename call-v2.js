@@ -111,7 +111,9 @@
         .cv2-controls{display:none;justify-content:center;gap:14px;padding:20px;flex-wrap:wrap}.cv2-btn{width:54px;height:54px;border:0;border-radius:50%;background:#6c503d;color:#fff;font-size:22px;cursor:pointer}.cv2-btn.red{background:#e33d3d}.cv2-btn.green{background:#21ef62;color:#062b11}
         .chat-call-button{display:none!important;width:38px;height:38px;min-width:38px;padding:0;border:0;border-radius:50%;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.18);transition:transform .15s ease,filter .15s ease}.chat-call-button:hover{transform:scale(1.06);filter:brightness(1.08)}.chat-call-audio{background:#21ef62;color:#062b11}.chat-call-video{background:#7f1d1d;color:#fff}
         .call-icon-video{position:relative;width:18px;height:14px;border:2px solid currentColor;border-radius:3px;display:block}.call-icon-video:after{content:"";position:absolute;right:-8px;top:2px;border-left:7px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent}.call-icon-phone{display:block;margin:0 auto;transform:rotate(-18deg)}
-        #chatCallV2,#chatCallV2 *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none}\n        #chatCallV2 button,#chatCallV2 svg,#chatCallV2 video{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none}\n        @media(max-width:700px){#chatCallV2{padding:0}.cv2-card{width:100%;height:100%;border-radius:0}.cv2-media{min-height:0}.chat-call-button{width:38px;height:38px;min-width:38px}}
+        #chatCallV2,#chatCallV2 *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none}
+        #chatCallV2 button,#chatCallV2 svg,#chatCallV2 video{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none}
+        @media(max-width:700px){#chatCallV2{padding:0}.cv2-card{width:100%;height:100%;border-radius:0}.cv2-media{min-height:0}.chat-call-button{width:38px;height:38px;min-width:38px}}
         `;
         document.head.appendChild(style);
         const root = document.createElement("div");
