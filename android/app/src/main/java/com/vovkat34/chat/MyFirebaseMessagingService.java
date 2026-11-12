@@ -18,6 +18,12 @@ import androidx.core.app.NotificationCompat;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
+import org.json.JSONObject;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
     private static final String CHANNEL_ID = "chat_messages_v3";
     private static final String CALL_CHANNEL_ID = "chat_calls_v1";
@@ -43,6 +49,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         if (title == null || title.trim().isEmpty()) title = "Новое сообщение";
         if (body == null) body = "";
         showMessageNotification(title, body);
+        confirmPushDelivery(message.getData());
     }
 
     private void ensureCallChannel(NotificationManager manager) {
@@ -121,6 +128,48 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
 
         manager.notify(notificationId, builder.build());
+    }
+
+    private void confirmPushDelivery(java.util.Map<String, String> data) {
+        String messageId = data.get("messageId");
+        String userId = data.get("userId");
+        String exp = data.get("exp");
+        String deliveryToken = data.get("deliveryToken");
+        if (messageId == null || userId == null || exp == null ||
+                deliveryToken == null || deliveryToken.isEmpty()) return;
+        try {
+            Long.parseLong(messageId);
+            Long.parseLong(exp);
+        } catch (NumberFormatException error) {
+            return;
+        }
+
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            try {
+                URL url = new URL("https://sxkukrqjtgkxmzuzondm.supabase.co/functions/v1/confirm-push-delivery");
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setConnectTimeout(8000);
+                connection.setReadTimeout(8000);
+                connection.setDoOutput(true);
+                connection.setRequestProperty("Content-Type", "application/json");
+                connection.setRequestProperty("x-delivery-token", deliveryToken);
+                JSONObject payload = new JSONObject();
+                payload.put("messageId", Long.parseLong(messageId));
+                payload.put("userId", userId);
+                payload.put("exp", Long.parseLong(exp));
+                byte[] bytes = payload.toString().getBytes(StandardCharsets.UTF_8);
+                try (OutputStream output = connection.getOutputStream()) {
+                    output.write(bytes);
+                }
+                connection.getResponseCode();
+            } catch (Exception error) {
+                android.util.Log.w("ChatPush", "Не удалось подтвердить доставку push", error);
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        }).start();
     }
 
     private void showMessageNotification(String title, String body) {
