@@ -157,8 +157,6 @@ $("usernameToggle").onclick = () => $("usernameField").classList.toggle("open");
 $("publicIdToggle").onclick = () => $("publicIdField").classList.toggle("open");
 $("publicIdSave").onclick = async () => { const publicId = $("publicIdInput").value.trim().replace(/^@/, "").toLowerCase(); if (!/^[a-z0-9_]{3,24}$/.test(publicId)) return showMessage("Уникальный ник: 3–24 символа, только латинские буквы, цифры и _.", true); const { error } = await supabaseClient.rpc("update_my_public_id", { p_public_id: publicId }); if (error) return showMessage("Не удалось изменить уникальный ник: " + error.message, true); $("publicIdCurrent").textContent = "@" + publicId; $("publicIdInput").value = publicId; $("publicIdField").classList.remove("open"); showMessage("Уникальный ник изменён."); };
 $("passwordToggle").onclick = () => $("passwordField").classList.toggle("open");
-const themeToggle = $("themeToggle");
-if (themeToggle) themeToggle.onclick = () => { if (typeof window.openChatSettings === "function") window.openChatSettings(); };
 const voiceLanguageToggle = $("voiceLanguageToggle");
 if (voiceLanguageToggle) voiceLanguageToggle.onclick = () => { const box = $("voiceLanguages"); if (!box) return; box.classList.toggle("open"); voiceLanguageToggle.textContent = box.classList.contains("open") ? "Скрыть" : "Открыть"; updateVoiceLanguageButtons(); };
 document.querySelectorAll("[data-voice-language]").forEach(button => { button.onclick = () => void downloadVoiceLanguage(button.getAttribute("data-voice-language")); });
