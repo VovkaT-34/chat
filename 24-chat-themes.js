@@ -544,6 +544,8 @@
                     border: "rgba(255,255,255,.28)"
                 }
             };
+            var personalCard = document.createElement("div");
+            personalCard.style.cssText = "display:flex;flex-direction:column;min-width:0";
             var personalButton = document.createElement("button");
             personalButton.type = "button";
             personalButton.className = "chat-theme-option" + (settings.messageStyle === "custom-photo" ? " selected" : "");
@@ -558,7 +560,21 @@
             personalButton.appendChild(personalPreview);
             personalButton.appendChild(personalName);
             personalButton.addEventListener("click", function () { selectCardStyle(personalStyle, personalButton); });
-            cardGrid.appendChild(personalButton);
+            var deletePhotoButton = document.createElement("button");
+            deletePhotoButton.type = "button";
+            deletePhotoButton.textContent = "Удалить";
+            deletePhotoButton.style.cssText = "align-self:flex-end;margin:4px 2px 0;padding:4px 8px;border:0;border-radius:6px;background:#f3e5e5;color:#9b3030;font:12px Arial,sans-serif;cursor:pointer";
+            deletePhotoButton.addEventListener("click", function () {
+                if (!confirm("Удалить добавленную фотографию из этого оформления?")) return;
+                settings.customMessageImage = "";
+                if (settings.messageStyle === "custom-photo") settings.messageStyle = "classic";
+                saveSettings(settings, scope);
+                applyTheme(settings.theme, settings.text, settings.messageStyle);
+                openSettings("cards", scope);
+            });
+            personalCard.appendChild(personalButton);
+            personalCard.appendChild(deletePhotoButton);
+            cardGrid.appendChild(personalCard);
         }
 
         MESSAGE_STYLES.forEach(function (messageStyle) {
