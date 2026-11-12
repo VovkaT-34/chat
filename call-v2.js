@@ -127,7 +127,9 @@
                 <div class="cv2-controls" id="cv2Controls"><button class="cv2-btn" id="cv2Mute" title="Микрофон">🎙️</button><button class="cv2-btn" id="cv2VideoControl" title="Камера">📹</button><button class="cv2-btn" id="cv2Speaker" title="Динамик">🔊</button><button class="cv2-btn red" id="cv2Hangup" title="Завершить">📞</button></div>
             </div>`;
         document.body.appendChild(root);
-        renderCallHeader();\n        window.addEventListener("resize", renderCallHeader);\n        const callHeader = root.querySelector(".cv2-head");
+        renderCallHeader();
+        window.addEventListener("resize", renderCallHeader);
+        const callHeader = root.querySelector(".cv2-head");
         ["selectstart", "contextmenu", "copy"].forEach(type => {
             callHeader.addEventListener(type, event => event.preventDefault(), true);
         });
