@@ -54,8 +54,9 @@ Deno.serve(async(req:Request)=>{
   const {data:message,error:messageError}=await admin.from("messages").select("id,chat_id,user_id,text,created_at").eq("id",id).single();
   if(messageError||!message)return json({error:"Message not found"},404);
   if(message.user_id!==authData.user.id)return json({error:"Forbidden"},403);
-  const {data:sender}=await admin.from("profiles").select("username").eq("id",message.user_id).maybeSingle();
-  const senderName=sender?.username||"Новое сообщение";
+  const {data:sender}=await admin.from("profiles").select("username,approved").eq("id",message.user_id).maybeSingle();
+  if(!sender||sender.approved!==true)return json({error:"Sender is not approved"},403);
+  const senderName=sender.username||"Новое сообщение";
   const {data:members,error:membersError}=await admin.from("chat_members").select("user_id").eq("chat_id",message.chat_id).neq("user_id",message.user_id);
   if(membersError)return json({error:membersError.message},500);
   let sent=0,removed=0,fcmSent=0,fcmRemoved=0;
@@ -63,7 +64,7 @@ Deno.serve(async(req:Request)=>{
   for(const member of members||[]){
    if(!member.user_id)continue;
    const {data:profile}=await admin.from("profiles").select("approved").eq("id",member.user_id).maybeSingle();
-   if(profile&&profile.approved===false)continue;
+   if(!profile||profile.approved!==true)continue;
    const {data:readRow}=await admin.from("user_chat_reads").select("last_read_message_id").eq("user_id",member.user_id).eq("chat_id",message.chat_id).maybeSingle();
    let unreadQuery=admin.from("messages").select("id",{count:"exact",head:true}).eq("chat_id",message.chat_id).neq("user_id",member.user_id);
    if(readRow?.last_read_message_id){const {data:lastRead}=await admin.from("messages").select("created_at").eq("id",readRow.last_read_message_id).maybeSingle();if(lastRead?.created_at)unreadQuery=unreadQuery.gt("created_at",lastRead.created_at);}
