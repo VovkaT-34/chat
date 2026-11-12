@@ -511,7 +511,10 @@
     }
 
     window.openChatAppearanceChoice = openAppearanceChoice;
-    window.openChatSettings = openSettings;
+    window.openChatSettings = function (section) {
+        if (section) openSettings(section);
+        else openAppearanceChoice();
+    };
     window.applyChatAppearance = applySaved;
 
     injectCSS();
