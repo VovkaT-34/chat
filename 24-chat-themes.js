@@ -481,6 +481,36 @@
         applyTheme(settings.theme, settings.text, settings.messageStyle);
     }
 
+    function openAppearanceChoice() {
+        var existing = document.getElementById("chatAppearanceChoiceOverlay");
+        if (existing) existing.remove();
+
+        var overlay = document.createElement("div");
+        overlay.id = "chatAppearanceChoiceOverlay";
+        overlay.style.cssText = "position:fixed;inset:0;z-index:100002;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
+        var panel = document.createElement("div");
+        panel.style.cssText = "width:min(300px,calc(100vw - 28px));background:#000;color:#fff;border:1px solid #333;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.45);padding:6px;font-family:Arial,sans-serif;box-sizing:border-box";
+
+        [["Настройка темы", "theme"], ["Цвет текста сообщений", "text"], ["Оформление карточек сообщений", "cards"]].forEach(function (choice) {
+            var button = document.createElement("button");
+            button.type = "button";
+            button.textContent = choice[0];
+            button.style.cssText = "display:block;width:100%;border:0;background:none;color:#fff;text-align:left;padding:12px;border-radius:8px;cursor:pointer;font:inherit";
+            button.addEventListener("click", function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                overlay.remove();
+                openSettings(choice[1]);
+            });
+            panel.appendChild(button);
+        });
+
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+        overlay.addEventListener("click", function (event) { if (event.target === overlay) overlay.remove(); });
+    }
+
+    window.openChatAppearanceChoice = openAppearanceChoice;
     window.openChatSettings = openSettings;
     window.applyChatAppearance = applySaved;
 
