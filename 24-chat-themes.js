@@ -153,7 +153,73 @@
                 border: "rgba(166,91,74,.19)",
                 shadow: "rgba(112,57,48,.12)"
             }
+        },
+{
+            id: "classic-original",
+            name: "Classic — прежняя",
+            preview: "linear-gradient(135deg,#eadcc8,#f4eadc)",
+            vars: {
+                bg: "#eadcc8",
+                pattern: "radial-gradient(circle at 18px 18px,rgba(255,255,255,.28) 0 2px,transparent 2.5px),radial-gradient(circle at 70px 42px,transparent 0 8px,rgba(116,82,54,.09) 8.5px 10px,transparent 10.5px),radial-gradient(circle at 118px 76px,rgba(255,255,255,.22) 0 1.5px,transparent 2px),radial-gradient(circle at 42px 88px,transparent 0 6px,rgba(116,82,54,.07) 6.5px 8px,transparent 8.5px)",
+                size: "150px 120px,180px 150px,130px 110px,210px 170px",
+                bubble: "rgba(255,250,243,.88)",
+                border: "rgba(117,82,50,.09)",
+                shadow: "rgba(76,53,35,.06)"
+            }
+        },
+{
+            id: "gold-shine-original",
+            name: "Gold Shine — прежняя",
+            preview: "linear-gradient(135deg,#8a641e,#f7d774,#fff3bd,#b17a1f)",
+            vars: {
+                bg: "#d9bd70",
+                pattern: "radial-gradient(circle at 20% 30%,rgba(255,255,255,.34) 0 2px,transparent 3px),linear-gradient(115deg,rgba(255,255,255,.10),rgba(255,255,255,.42),rgba(255,255,255,.08),rgba(112,70,0,.08))",
+                size: "95px 95px,220px 220px",
+                bubble: "rgba(255,249,225,.94)",
+                border: "rgba(135,94,22,.18)",
+                shadow: "rgba(104,72,15,.14)"
+            }
+        },
+{
+            id: "royal-violet-original",
+            name: "Royal Violet — прежняя",
+            preview: "linear-gradient(135deg,#34204e,#74519a,#d6b76a)",
+            vars: {
+                bg: "#57406f",
+                pattern: "radial-gradient(circle at 22px 22px,rgba(255,255,255,.12) 0 2px,transparent 2.5px),linear-gradient(135deg,rgba(255,255,255,.07),rgba(48,24,75,.16))",
+                size: "120px 100px,100% 100%",
+                bubble: "rgba(250,245,255,.94)",
+                border: "rgba(226,204,255,.26)",
+                shadow: "rgba(35,18,54,.18)"
+            }
+        },
+{
+            id: "midnight-gold-original",
+            name: "Midnight Gold — прежняя",
+            preview: "linear-gradient(135deg,#151b29,#27334b,#c49a42)",
+            vars: {
+                bg: "#202a3d",
+                pattern: "radial-gradient(circle at 25px 25px,rgba(255,218,130,.13) 0 1.5px,transparent 2px),linear-gradient(145deg,rgba(255,255,255,.04),rgba(0,0,0,.12))",
+                size: "115px 95px,100% 100%",
+                bubble: "rgba(241,239,232,.96)",
+                border: "rgba(255,214,125,.22)",
+                shadow: "rgba(0,0,0,.22)"
+            }
+        },
+{
+            id: "aqua-pearl-original",
+            name: "Aqua Pearl — прежняя",
+            preview: "linear-gradient(135deg,#8acfd0,#e7fbf5,#86b9c8)",
+            vars: {
+                bg: "#bfe5e1",
+                pattern: "radial-gradient(circle at 20px 20px,rgba(255,255,255,.46) 0 2px,transparent 2.5px),radial-gradient(circle at 82px 55px,rgba(70,145,157,.10) 0 2px,transparent 2.5px),linear-gradient(135deg,rgba(255,255,255,.22),rgba(66,155,165,.08))",
+                size: "110px 90px,140px 120px,100% 100%",
+                bubble: "rgba(246,253,251,.95)",
+                border: "rgba(51,132,145,.16)",
+                shadow: "rgba(35,105,117,.10)"
+            }
         }
+
     ];
 
     var TEXT_COLORS = [
