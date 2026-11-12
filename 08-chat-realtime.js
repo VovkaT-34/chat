@@ -597,6 +597,11 @@ async function updateChatListMessageStatus(chatId){
     }
     if(!messageId)return;
     var status=messageStatusCache&&messageStatusCache.get?messageStatusCache.get(messageId):null;
+    var readBoundary=Number(chatReadBoundaryCache&&chatReadBoundaryCache.get?chatReadBoundaryCache.get(id):0);
+    if(readBoundary&&messageId<=readBoundary){
+        status="read";
+        if(messageStatusCache&&messageStatusCache.set)messageStatusCache.set(messageId,status);
+    }
     if(!status&&typeof refreshChatMessageStatuses==="function"){
         await refreshChatMessageStatuses(id,[messageId]);
         status=messageStatusCache&&messageStatusCache.get?messageStatusCache.get(messageId):null;
