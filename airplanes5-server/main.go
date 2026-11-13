@@ -62,19 +62,23 @@ func verifyApprovedUserToken(token string) (string, bool) {
 	var user struct { ID string `json:"id"` }
 	if json.NewDecoder(resp.Body).Decode(&user) != nil || user.ID == "" { return "", false }
 
-	endpoint := supabaseURL + "/rest/v1/profiles?id=eq." + url.QueryEscape(user.ID) + "&select=approved"
-	profileReq, err := http.NewRequest(http.MethodGet, endpoint, nil)
+	profileReq, err := http.NewRequest(
+		http.MethodPost,
+		supabaseURL+"/rest/v1/rpc/check_my_profile",
+		strings.NewReader("{}"),
+	)
 	if err != nil { return "", false }
 	profileReq.Header.Set("apikey", supabasePublishableKey)
 	profileReq.Header.Set("Authorization", "Bearer "+token)
+	profileReq.Header.Set("Content-Type", "application/json")
+	profileReq.Header.Set("Accept", "application/json")
 	profileResp, err := client.Do(profileReq)
 	if err != nil { return "", false }
 	defer profileResp.Body.Close()
 	if profileResp.StatusCode != http.StatusOK { return "", false }
 	var profiles []struct { Approved bool `json:"approved"` }
 	if json.NewDecoder(profileResp.Body).Decode(&profiles) != nil || len(profiles) != 1 { return "", false }
-	p := profiles[0]
-	if !p.Approved { return user.ID, false }
+	if !profiles[0].Approved { return user.ID, false }
 
 	permissionReq, err := http.NewRequest(
 		http.MethodPost,
