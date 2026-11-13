@@ -443,25 +443,31 @@ function formatMailAccessDossier(results){
         .filter(Boolean)
         .join('; ');
     }
-    const text=esc(value);
-    return text.replace(
-      /https?:\/\/[^\s<>"']+/gi,
-      match=>{
-        let url=match;
-        let suffix='';
-        while(/[),.;!?]+$/.test(url)){
-          suffix=url.slice(-1)+suffix;
-          url=url.slice(0,-1);
-        }
-        if(linksSeen.has(url)){
-          return suffix;
-        }
+    const raw=String(value);
+    const pattern=/https?:\\/\\/[^\\s<>"']+/gi;
+    let output='';
+    let lastIndex=0;
+    let match;
+    while((match=pattern.exec(raw))!==null){
+      output+=esc(raw.slice(lastIndex,match.index));
+      let url=match[0];
+      let suffix='';
+      while(/[),.;!?]+$/.test(url)){
+        suffix=url.slice(-1)+suffix;
+        url=url.slice(0,-1);
+      }
+      if(linksSeen.has(url)){
+        output+=esc(suffix);
+      }else{
         linksSeen.add(url);
         const safeUrl=safeExternalUrl(url);
-        if(!safeUrl)return match+suffix;
-        return '<a href="'+esc(safeUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(safeUrl)+'</a>'+suffix;
+        output+=safeUrl
+          ?'<a href="'+esc(safeUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(url)+'</a>'+esc(suffix)
+          :esc(url+suffix);
       }
-    );
+      lastIndex=pattern.lastIndex;
+    }
+    return output+esc(raw.slice(lastIndex));
   }
   function normalize(value){
     if(typeof value==='object'){
