@@ -444,7 +444,7 @@ function formatMailAccessDossier(results){
         .join('; ');
     }
     const raw=String(value);
-    const pattern=/https?:\\/\\/[^\\s<>"']+/gi;
+    const pattern=/https?:\/\/[^\s<>"']+/gi;
     let output='';
     let lastIndex=0;
     let match;
