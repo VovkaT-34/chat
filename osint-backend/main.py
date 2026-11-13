@@ -159,16 +159,20 @@ async def require_authenticated_user(request: Request):
             if not user_id:
                 raise HTTPException(status_code=401, detail="Недействительная сессия")
 
-            profile_response = await client.get(
-                "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/profiles",
-                params={"id": "eq." + user_id, "select": "approved"},
-                headers={**headers, "Accept": "application/json"},
+            profile_response = await client.post(
+                "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/rpc/check_my_profile",
+                json={},
+                headers={
+                    **headers,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
             )
             if profile_response.status_code != 200:
                 raise HTTPException(status_code=403, detail="Не удалось проверить одобрение аккаунта")
 
-            profiles = profile_response.json()
-            profile = profiles[0] if isinstance(profiles, list) and profiles else None
+            profile_rows = profile_response.json()
+            profile = profile_rows[0] if isinstance(profile_rows, list) and profile_rows else None
             if not profile or profile.get("approved") is not True:
                 raise HTTPException(status_code=403, detail="Требуется одобренный аккаунт")
 
