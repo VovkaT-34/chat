@@ -49,22 +49,22 @@ async def _check_approved_user(request: Request):
             if not user_id:
                 return False, 401, "Недействительная сессия"
 
-            profile_response = await client.get(
-                f"{supabase_url}/rest/v1/profiles",
-                headers={**headers, "Accept": "application/json"},
-                params={
-                    "select": "approved",
-                    "id": f"eq.{user_id}",
-                    "approved": "eq.true",
-                    "limit": "1",
+            profile_response = await client.post(
+                f"{supabase_url}/rest/v1/rpc/check_my_profile",
+                headers={
+                    **headers,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
                 },
+                json={},
             )
 
             if profile_response.status_code != 200:
                 return False, 403, "Доступ запрещён"
 
-            profiles = profile_response.json()
-            if not profiles or profiles[0].get("approved") is not True:
+            profile_rows = profile_response.json()
+            profile = profile_rows[0] if isinstance(profile_rows, list) and profile_rows else None
+            if not profile or profile.get("approved") is not True:
                 return False, 403, "Пользователь не одобрен"
 
             return True, 200, ""
