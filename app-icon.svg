@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" role="img" aria-label="Chat">
+  <defs>
+    <radialGradient id="violetTopRight" cx="100%" cy="0%" r="78%">
+      <stop offset="0%" stop-color="#7136A0"/>
+      <stop offset="42%" stop-color="#492064"/>
+      <stop offset="100%" stop-color="#050408" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="violetBottomLeft" cx="0%" cy="100%" r="78%">
+      <stop offset="0%" stop-color="#7136A0"/>
+      <stop offset="42%" stop-color="#492064"/>
+      <stop offset="100%" stop-color="#050408" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#050408"/>
+      <stop offset="48%" stop-color="#170D20"/>
+      <stop offset="100%" stop-color="#050408"/>
+    </linearGradient>
+  </defs>
+  <rect width="108" height="108" fill="url(#shade)"/>
+  <rect width="108" height="108" fill="url(#violetTopRight)"/>
+  <rect width="108" height="108" fill="url(#violetBottomLeft)"/>
+  <path d="M25 31.5c0-5.25 4.25-9.5 9.5-9.5h39c5.25 0 9.5 4.25 9.5 9.5v28c0 5.25-4.25 9.5-9.5 9.5H53l-13 10v-10h-5.5c-5.25 0-9.5-4.25-9.5-9.5z" fill="#fff"/>
+  <path d="M38 41h33v5.5H38zM38 53h24v5.5H38z" fill="#542477"/>
+</svg>
