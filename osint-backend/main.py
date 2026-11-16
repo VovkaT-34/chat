@@ -69,6 +69,7 @@ JOB_TTL = 1800
 
 DEEP_JOB_TTL = 1800
 DEEP_JOBS = {}
+DEEP_JOB_OWNERS = {}
 DEEP_TASKS = {}
 ACTIVE_DEEP_JOB_ID = None
 
@@ -101,6 +102,17 @@ def cleanup_deep_jobs():
 
         if job["finished_at"] and job["finished_at"] < cutoff:
             DEEP_JOBS.pop(job_id, None)
+            DEEP_JOB_OWNERS.pop(job_id, None)
+
+
+def get_owned_deep_job(job_id: str, user_id: str):
+    job = DEEP_JOBS.get(job_id)
+    if not job or DEEP_JOB_OWNERS.get(job_id) != user_id:
+        raise HTTPException(
+            status_code=404,
+            detail="Глубокое задание не найдено или уже удалено",
+        )
+    return job
 
 
 @app.get("/health")
@@ -194,7 +206,8 @@ async def enforce_admin_access(request: Request, call_next):
         return await call_next(request)
 
     try:
-        await require_authenticated_user(request)
+        user = await require_authenticated_user(request)
+        request.state.user_id = user["id"]
     except HTTPException as exc:
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
@@ -1198,6 +1211,7 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
 @app.get("/deep")
 async def deep_search(
+    request: Request,
     kind: str = Query(
         pattern=(
             "^(username_sherlock|username|username_wmn|phone|email|"
@@ -1222,6 +1236,7 @@ async def deep_search(
 
     job_id = uuid.uuid4().hex
 
+    DEEP_JOB_OWNERS[job_id] = request.state.user_id
     DEEP_JOBS[job_id] = {
         "type": kind,
         "kind": kind,
@@ -1252,36 +1267,25 @@ async def deep_search(
 
 @app.get("/deep/status")
 def deep_status(
+    request: Request,
     job_id: str = Query(min_length=8, max_length=64),
 ):
     cleanup_deep_jobs()
 
-    job = DEEP_JOBS.get(job_id)
-
-    if not job:
-        raise HTTPException(
-            status_code=404,
-            detail="Глубокое задание не найдено или уже удалено",
-        )
-
+    job = get_owned_deep_job(job_id, request.state.user_id)
     return job
 
 
 @app.get("/deep/cancel")
 async def deep_cancel(
+    request: Request,
     job_id: str = Query(min_length=8, max_length=64),
 ):
     global ACTIVE_DEEP_JOB_ID
 
     cleanup_deep_jobs()
 
-    job = DEEP_JOBS.get(job_id)
-
-    if not job:
-        raise HTTPException(
-            status_code=404,
-            detail="Глубокое задание не найдено или уже удалено",
-        )
+    job = get_owned_deep_job(job_id, request.state.user_id)
 
     if job["status"] in {"done", "error", "cancelled"}:
         return job
