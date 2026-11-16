@@ -57,13 +57,12 @@ function replyToMessage(
         text;
 
 
-    replyText.innerHTML = `
-
-        <b>↩ ${username}</b><br>
-
-        ${shortText}
-
-    `;
+    replyText.replaceChildren();
+    const replyName = document.createElement("b");
+    replyName.textContent = "↩ " + String(username == null ? "" : username);
+    replyText.appendChild(replyName);
+    replyText.appendChild(document.createElement("br"));
+    replyText.appendChild(document.createTextNode(String(shortText == null ? "" : shortText)));
 
 
     replyBox.style.display =
