@@ -312,6 +312,16 @@ deepRunning=document.getElementById('deepRunning');
 let currentType='all',deepTimer=null,deepJobId=null,deepRender=RENDER;
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const enc=v=>encodeURIComponent(v.trim());
+function safeExternalUrl(value){
+  const raw=String(value??'').trim();
+  if(!raw)return '';
+  try{
+    const url=new URL(raw);
+    return url.protocol==='http:'||url.protocol==='https:'?url.href:'';
+  }catch(e){
+    return '';
+  }
+}
 function addResult(html){const row=document.createElement('div');row.className='resultrow';row.innerHTML=html;resultBox.appendChild(row)}
 function validIp(v){const p=v.split('.');return p.length===4&&p.every(x=>/^\d+$/.test(x)&&+x>=0&&+x<=255)}
 function validDomain(v){return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(v)}
@@ -321,18 +331,18 @@ async function api(type,value){const r=await fetch(API+'?type='+encodeURICompone
 async function usernameLookup(value){
   const d=await api('username',value),list=Array.isArray(d.results)?d.results:[],found=list.filter(x=>x&&x.reachable);
   addResult('🕵️ Username: проверено <b>'+Number(d.total||list.length)+'</b> · доступны: <b>'+found.length+'</b>');
-  found.forEach(x=>addResult('✅ <a href="'+esc(x.url)+'" target="_blank" rel="noopener noreferrer">'+esc(x.name||x.url)+'</a> <span class="muted">HTTP '+Number(x.status||0)+'</span>'));
+  found.forEach(x=>{const url=safeExternalUrl(x.url);const title=esc(x.name||x.url);addResult('✅ '+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+title+'</a>':title)+' <span class="muted">HTTP '+Number(x.status||0)+'</span>')});
   if(!found.length)addResult('<span class="muted">Совпадений не обнаружено.</span>');
 }
 async function githubEmail(value){
   const d=await publicJson('https://api.github.com/search/users?q='+encodeURIComponent(value+' in:email')+'&per_page=10'),count=Number(d.total_count||0);
   addResult('🐙 GitHub: найдено совпадений: <b>'+count+'</b>');
-  (d.items||[]).slice(0,10).forEach(x=>addResult('<a href="'+esc(x.html_url)+'" target="_blank" rel="noopener noreferrer">@'+esc(x.login)+'</a>'));
+  (d.items||[]).slice(0,10).forEach(x=>{const url=safeExternalUrl(x.html_url);const title='@'+esc(x.login);addResult(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+title+'</a>':title)});
 }
 async function publicJson(url){const r=await fetch(url);if(!r.ok)throw Error('HTTP '+r.status);return r.json()}
 async function domainLookup(domain){
   const jobs=[publicJson('https://crt.sh/?q='+encodeURIComponent(domain)+'&output=json'),publicJson('https://rdap.org/domain/'+encodeURIComponent(domain)),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=A'),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=AAAA'),publicJson('https://dns.google/resolve?name='+encodeURIComponent(domain)+'&type=MX')],r=await Promise.allSettled(jobs);
-  if(r[0].status==='fulfilled'){const names=[...new Set((r[0].value||[]).flatMap(x=>String(x.name_value||'').split('\n')).map(x=>x.trim().toLowerCase()).filter(Boolean))].slice(0,20);addResult('🌐 crt.sh: сертификатных имён: <b>'+names.length+'</b>');names.forEach(n=>addResult('<a href="https://'+esc(n.replace(/^\*\./,''))+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>'))}
+  if(r[0].status==='fulfilled'){const names=[...new Set((r[0].value||[]).flatMap(x=>String(x.name_value||'').split('\n')).map(x=>x.trim().toLowerCase()).filter(Boolean))].slice(0,20);addResult('🌐 crt.sh: сертификатных имён: <b>'+names.length+'</b>');names.forEach(n=>{const url=safeExternalUrl('https://'+n.replace(/^\*\./,''));if(url)addResult('<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(n)+'</a>');else addResult(esc(n))})}
   if(r[1].status==='fulfilled'){const x=r[1].value;addResult('📜 RDAP: <b>'+esc(x.ldhName||domain)+'</b>');(x.nameservers||[]).slice(0,20).forEach(n=>addResult('NS: <b>'+esc(n.ldhName||'')+'</b>'))}
   ['A','AAAA','MX'].forEach((t,i)=>{const z=r[i+2];if(z.status==='fulfilled')(z.value.Answer||[]).slice(0,20).forEach(a=>addResult('DNS '+t+': <b>'+esc(a.data||'')+'</b> · TTL '+Number(a.TTL||0)))});
 }
@@ -433,23 +443,31 @@ function formatMailAccessDossier(results){
         .filter(Boolean)
         .join('; ');
     }
-    const text=esc(value);
-    return text.replace(
-      /https?:\/\/[^\s<>"']+/gi,
-      match=>{
-        let url=match;
-        let suffix='';
-        while(/[),.;!?]+$/.test(url)){
-          suffix=url.slice(-1)+suffix;
-          url=url.slice(0,-1);
-        }
-        if(linksSeen.has(url)){
-          return suffix;
-        }
-        linksSeen.add(url);
-        return '<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+url+'</a>'+suffix;
+    const raw=String(value);
+    const pattern=/https?:\/\/[^\s<>"']+/gi;
+    let output='';
+    let lastIndex=0;
+    let match;
+    while((match=pattern.exec(raw))!==null){
+      output+=esc(raw.slice(lastIndex,match.index));
+      let url=match[0];
+      let suffix='';
+      while(/[),.;!?]+$/.test(url)){
+        suffix=url.slice(-1)+suffix;
+        url=url.slice(0,-1);
       }
-    );
+      if(linksSeen.has(url)){
+        output+=esc(suffix);
+      }else{
+        linksSeen.add(url);
+        const safeUrl=safeExternalUrl(url);
+        output+=safeUrl
+          ?'<a href="'+esc(safeUrl)+'" target="_blank" rel="noopener noreferrer">'+esc(url)+'</a>'+esc(suffix)
+          :esc(url+suffix);
+      }
+      lastIndex=pattern.lastIndex;
+    }
+    return output+esc(raw.slice(lastIndex));
   }
   function normalize(value){
     if(typeof value==='object'){
@@ -525,7 +543,7 @@ function formatMailAccessDossier(results){
   items.forEach(item=>{
     if(!item||typeof item!=='object'||!item.data||typeof item.data!=='object')return;
     const d=item.data;
-    const url=item.url||item.href||d.profile_url;
+    const url=safeExternalUrl(item.url||item.href||d.profile_url);
     const username=d.username||d.handle||d.login||d.nickname;
     if(!url&&!username)return;
     const signature=String(url||username);
@@ -662,7 +680,7 @@ function renderDeep(d){
   const data=Array.isArray(d.results)?d.results:[];
   if(isMailAccess){
     const sourceLinks=data.map(x=>{
-      const url=x&&typeof x==='object'?(x.url||x.href):'';
+      const url=safeExternalUrl(x&&typeof x==='object'?(x.url||x.href):'');
       const title=x&&typeof x==='object'?(x.name||x.source||url||'Результат'):'Результат';
       if(!url)return '';
       return '<div class="deep-site">✓ <a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(title)+'</a></div>';
@@ -682,7 +700,7 @@ function renderDeep(d){
     )+
     (data.length
       ?data.map(x=>{
-        const url=x.url||x.href;
+        const url=safeExternalUrl(x.url||x.href);
         const title=x.name||x.source||url||'Результат';
         const body=formatDeepData(x.data);
         return '<div class="deep-result">'+
