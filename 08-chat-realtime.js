@@ -554,13 +554,70 @@ function showMessageActionMenu(message,anchor){closeMessageActionMenu();var menu
 
 function renderMessage(message){
     if(!message||!currentUser)return null;
-    var div=document.createElement("div");div.className="message";div.dataset.messageId=message.id;div.dataset.userId=message.user_id;div.style.setProperty("-webkit-user-select","none");div.style.setProperty("user-select","none");div.style.setProperty("-webkit-touch-callout","none");
-    var username=message.profiles&&message.profiles.username?message.profiles.username:"Пользователь",date=new Date(message.created_at),dateText=date.toLocaleDateString("ru-RU"),timeText=date.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
-    var messageStatus=message.user_id===currentUser.id?'<span class="message-status" data-status-message-id="'+message.id+'" data-message-status="sent" style="margin-left:6px;font-size:13px;font-weight:bold;white-space:nowrap;color:#999999" title="Отправлено">✓</span>':"";
-    var reply=message.reply_message?'<div style="background:#eeeeee;padding:8px;border-left:4px solid #8E44AD;border-radius:6px;margin-bottom:8px;font-size:14px;overflow-wrap:anywhere;word-break:break-word">↩ '+(message.reply_message.profiles&&message.reply_message.profiles.username?message.reply_message.profiles.username:"Пользователь")+'<br>'+(message.reply_message.text||"")+'</div>':"";
-    div.innerHTML='<div><span class="message-user">'+username+'</span><span class="message-time">'+dateText+' '+timeText+'</span>'+messageStatus+'</div>'+reply+'<div class="message-text">'+(message.text||"")+'</div><button onclick=\'replyToMessage('+message.id+', '+JSON.stringify(username)+', '+JSON.stringify(message.text||"")+')\' style="margin-top:6px;padding:3px 8px;border:none;border-radius:7px;background:#9B7AC2;color:white;cursor:pointer;font-size:12px">↩ Ответить</button>';
-    var pinned=!!getPinnedMessages()[String(message.id)];applyPinnedMessageStyle(div,pinned);schedulePinnedMessagesBarUpdate();
-    var longPressTimer=null,longPressTriggered=false;function cancelLongPress(){if(longPressTimer!==null){clearTimeout(longPressTimer);longPressTimer=null;}}function startLongPress(event){if(event.pointerType==="mouse")return;longPressTriggered=false;cancelLongPress();longPressTimer=setTimeout(function(){longPressTimer=null;longPressTriggered=true;showMessageActionMenu(message,div);},500);}function finishLongPress(){cancelLongPress();}div.addEventListener("pointerdown",startLongPress,{passive:true});div.addEventListener("pointerup",finishLongPress);div.addEventListener("pointercancel",finishLongPress);div.addEventListener("contextmenu",function(event){event.preventDefault();event.stopPropagation();cancelLongPress();showMessageActionMenu(message,div);});div.addEventListener("click",function(event){if(longPressTriggered){longPressTriggered=false;event.preventDefault();event.stopPropagation();}});
+    var div=document.createElement("div");
+    div.className="message";
+    div.dataset.messageId=message.id;
+    div.dataset.userId=message.user_id;
+    div.style.setProperty("-webkit-user-select","none");
+    div.style.setProperty("user-select","none");
+    div.style.setProperty("-webkit-touch-callout","none");
+    var username=message.profiles&&message.profiles.username?message.profiles.username:"Пользователь";
+    var date=new Date(message.created_at);
+    var header=document.createElement("div");
+    var user=document.createElement("span");
+    user.className="message-user";
+    user.textContent=String(username);
+    header.appendChild(user);
+    var time=document.createElement("span");
+    time.className="message-time";
+    time.textContent=date.toLocaleDateString("ru-RU")+" "+date.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+    header.appendChild(time);
+    if(message.user_id===currentUser.id){
+        var status=document.createElement("span");
+        status.className="message-status";
+        status.dataset.statusMessageId=String(message.id);
+        status.dataset.messageStatus="sent";
+        status.style.cssText="margin-left:6px;font-size:13px;font-weight:bold;white-space:nowrap;color:#999999";
+        status.title="Отправлено";
+        status.textContent="✓";
+        header.appendChild(status);
+    }
+    div.appendChild(header);
+    if(message.reply_message){
+        var reply=document.createElement("div");
+        reply.style.cssText="background:#eeeeee;padding:8px;border-left:4px solid #8E44AD;border-radius:6px;margin-bottom:8px;font-size:14px;overflow-wrap:anywhere;word-break:break-word";
+        var replyUsername=message.reply_message.profiles&&message.reply_message.profiles.username?message.reply_message.profiles.username:"Пользователь";
+        reply.appendChild(document.createTextNode("↩ "+String(replyUsername)));
+        reply.appendChild(document.createElement("br"));
+        reply.appendChild(document.createTextNode(String(message.reply_message.text||"")));
+        div.appendChild(reply);
+    }
+    var body=document.createElement("div");
+    body.className="message-text";
+    body.textContent=String(message.text||"");
+    div.appendChild(body);
+    var replyButton=document.createElement("button");
+    replyButton.type="button";
+    replyButton.textContent="↩ Ответить";
+    replyButton.style.cssText="margin-top:6px;padding:3px 8px;border:none;border-radius:7px;background:#9B7AC2;color:white;cursor:pointer;font-size:12px";
+    replyButton.addEventListener("click",function(event){
+        event.preventDefault();
+        event.stopPropagation();
+        replyToMessage(message.id,username,String(message.text||""));
+    });
+    div.appendChild(replyButton);
+    var pinned=!!getPinnedMessages()[String(message.id)];
+    applyPinnedMessageStyle(div,pinned);
+    schedulePinnedMessagesBarUpdate();
+    var longPressTimer=null,longPressTriggered=false;
+    function cancelLongPress(){if(longPressTimer!==null){clearTimeout(longPressTimer);longPressTimer=null;}}
+    function startLongPress(event){if(event.pointerType==="mouse")return;longPressTriggered=false;cancelLongPress();longPressTimer=setTimeout(function(){longPressTimer=null;longPressTriggered=true;showMessageActionMenu(message,div);},500);}
+    function finishLongPress(){cancelLongPress();}
+    div.addEventListener("pointerdown",startLongPress,{passive:true});
+    div.addEventListener("pointerup",finishLongPress);
+    div.addEventListener("pointercancel",finishLongPress);
+    div.addEventListener("contextmenu",function(event){event.preventDefault();event.stopPropagation();cancelLongPress();showMessageActionMenu(message,div);});
+    div.addEventListener("click",function(event){if(longPressTriggered){longPressTriggered=false;event.preventDefault();event.stopPropagation();}});
     return div;
 }
 function getMessageStatusOrder(status){return {sent:1,delivered:2,read:3}[status]||0;}
