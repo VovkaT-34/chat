@@ -57,8 +57,9 @@ Deno.serve(async(req:Request)=>{
   const {data:sender}=await admin.from("profiles").select("username,approved").eq("id",message.user_id).maybeSingle();
   if(!sender||sender.approved!==true)return json({error:"Sender is not approved"},403);
   const senderName=sender.username||"Новое сообщение";
-  const {data:members,error:membersError}=await admin.from("chat_members").select("user_id").eq("chat_id",message.chat_id).neq("user_id",message.user_id);
+  const {data:members,error:membersError}=await admin.from("chat_members").select("user_id").eq("chat_id",message.chat_id);
   if(membersError)return json({error:membersError.message},500);
+  if(!(members||[]).some(member=>member.user_id===authData.user.id))return json({error:"Sender is not a chat member"},403);
   let sent=0,removed=0,fcmSent=0,fcmRemoved=0;
   let fcmAccessTokenPromise: Promise<string|null>|null = null;
   for(const member of members||[]){
