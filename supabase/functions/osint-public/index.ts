@@ -347,16 +347,19 @@ async function checkAuth(req: Request) {
       return false;
     }
 
-    // Authenticate and require an approved account for OSINT access.
+    // Read approval through the SECURITY DEFINER RPC; direct profile
+    // column access is intentionally restricted.
     const profileResponse = await fetch(
-      `${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=approved`,
+      `${supabaseUrl}/rest/v1/rpc/get_my_access_status`,
       {
-        method: "GET",
+        method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
           "apikey": supabaseKey,
+          "Content-Type": "application/json",
           "Accept": "application/json"
-        }
+        },
+        body: JSON.stringify({})
       }
     );
 
