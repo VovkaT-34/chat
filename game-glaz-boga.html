@@ -31,7 +31,7 @@ body{padding:16px 14px 30px}
 .search{display:flex;gap:8px}
 .search input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.2);border-radius:13px;background:rgba(0,0,0,.3);color:#fff;padding:14px;font-size:16px;outline:none}
 .search button{border:4px solid #000;border-radius:13px;background:linear-gradient(135deg,#755d88 0%,#6a587d 62%,#3a2920 100%);color:#fff;padding:0 18px;font-weight:800;font-size:15px;cursor:pointer}
-.deep-button{background:linear-gradient(135deg,#0d0d0d 0%,#8f00d4 62%,#d97822 100%)!important}
+.deep-button{background:linear-gradient(135deg,#0d0d0d 0%,#8f00d4 62%,#d97822 100%)!important}.deep-button:disabled,.deep-button.deep-button-busy{filter:brightness(.72) saturate(.8);box-shadow:inset 0 3px 8px rgba(0,0,0,.75);transform:translateY(1px);cursor:not-allowed}
 .deep-kind{background:rgba(0,0,0,.3);font-size:15px;min-width:150px}
 .status,.deep-progress,.results{display:none;margin-top:10px;padding:11px 12px;border-radius:12px;background:rgba(255,255,255,.06);color:#d8cfd4;font-size:13px}
 .deep-progress{border:4px solid #39ff14;padding:14px}
@@ -822,7 +822,7 @@ async function deepSearch(){
     );
     const d=await r.json();
     if(deepJobId!==requestJobId)return;
-    if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
+    if(!r.ok){const error=new Error(d.detail||'HTTP '+r.status);error.status=r.status;throw error;}
     renderDeep(d);
     if(d.status!=='done'&&d.status!=='error'&&d.status!=='cancelled'){
       stopDeep.classList.add('active');
@@ -832,6 +832,18 @@ async function deepSearch(){
     }
   }catch(e){
     if(deepJobId!==requestJobId)return;
+    if(e.status===409&&e.message==='Другой глубокий поиск уже выполняется'){
+      deepJobId=null;
+      stopDeep.classList.remove('active');
+      deepRunning.textContent='● Поисковик занят — другой пользователь уже выполняет поиск. Дождитесь завершения.';
+      deepRunning.classList.add('active');
+      deepSearchButton.disabled=true;
+      deepSearchButton.textContent='Поиск · занято';
+      deepSearchButton.classList.add('deep-button-busy');
+      deepSearchButton.setAttribute('aria-pressed','true');
+      deepStatus.textContent='Статус: поисковик занят — дождитесь завершения текущего поиска.';
+      return;
+    }
     stopDeep.classList.add('active');
     stopDeep.disabled=false;
     deepRunning.classList.add('active');
