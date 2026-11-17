@@ -42,7 +42,7 @@ async function updateRam(){
   const el = ramEl();
   if(!el) return;
   try{
-    const r = await fetch(RENDER_MAIN + '/mailaccess/memory?ts=' + Date.now(), {cache:'no-store'});
+    const r = await fetch(RENDER_MAIN + '/mailaccess/memory?ts=' + Date.now(), {cache:'no-store', headers:await authHeaders()});
     if(!r.ok) return;
     const d = await r.json();
     const n = Number(d.ram_mb);
