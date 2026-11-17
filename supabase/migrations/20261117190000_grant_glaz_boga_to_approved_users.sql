@@ -1,6 +1,6 @@
 -- Grant Glaz Boga to every approved account.
--- The existing app-permission checks remain in place; this keeps one access-control
--- chain while making account approval grant this application by default.
+-- Existing app-permission checks remain in place; account approval grants this
+-- application by default, while the super-admin can still revoke it per user.
 
 insert into public.user_app_permissions (user_id, app_id, allowed, updated_at, updated_by)
 select p.id, 'glaz-boga', true, now(), null
@@ -19,16 +19,16 @@ security definer
 set search_path = ''
 as $$
 begin
-    if new.approved is true and
-       (tg_op = 'INSERT' or old.approved is distinct from true) then
-        insert into public.user_app_permissions (user_id, app_id, allowed, updated_at, updated_by)
-        values (new.id, 'glaz-boga', true, now(), null)
-        on conflict (user_id, app_id) do update
-        set allowed = true,
-            updated_at = now(),
-            updated_by = null;
-    elsif new.approved is not true and
-          tg_op = 'UPDATE' and old.approved is distinct from false then
+    if new.approved is true then
+        if tg_op = 'INSERT' or old.approved is distinct from true then
+            insert into public.user_app_permissions (user_id, app_id, allowed, updated_at, updated_by)
+            values (new.id, 'glaz-boga', true, now(), null)
+            on conflict (user_id, app_id) do update
+            set allowed = true,
+                updated_at = now(),
+                updated_by = null;
+        end if;
+    elsif tg_op = 'UPDATE' and old.approved is distinct from false then
         update public.user_app_permissions
         set allowed = false,
             updated_at = now(),
