@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const RENDER_MAIN = 'https://glaz-boga-osint.onrender.com';
+const RENDER_MAIN = 'https://glaz-boga-osint-docker-test.onrender.com';
 const SUPABASE_URL = 'https://sxkukrqjtgkxmzuzondm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3N';
 let supabaseClient = null;
