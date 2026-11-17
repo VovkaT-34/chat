@@ -67,6 +67,7 @@ DEEP_JOBS = {}
 DEEP_JOB_OWNERS = {}
 DEEP_TASKS = {}
 DEEP_CANCEL_REQUESTS = {}
+MAILACCESS_MEMORY_CACHE = {"at": 0.0, "ram_mb": None}
 ACTIVE_DEEP_JOB_ID = None
 
 
@@ -1403,11 +1404,7 @@ async def deep_cancel(
 
     if task and not task.done():
         task.cancel()
-
-    DEEP_TASKS.pop(job_id, None)
-
-    if ACTIVE_DEEP_JOB_ID == job_id:
-        ACTIVE_DEEP_JOB_ID = None
+        await asyncio.gather(task, return_exceptions=True)
 
     return job
 
