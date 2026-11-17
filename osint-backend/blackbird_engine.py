@@ -24,6 +24,7 @@ async def blackbird_search(query: str, is_email: bool = True, progress=None) -> 
 
     cmd += ["--json"]
 
+    proc = None
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -88,5 +89,16 @@ async def blackbird_search(query: str, is_email: bool = True, progress=None) -> 
         if progress:
             progress(0, 0, f"Ошибка: {str(exc)[:80]}", [])
         return [], 0
+    finally:
+        if proc is not None and proc.returncode is None:
+            try:
+                proc.terminate()
+            except ProcessLookupError:
+                pass
+            try:
+                await asyncio.wait_for(proc.wait(), timeout=5)
+            except asyncio.TimeoutError:
+                proc.kill()
+                await proc.wait()
 
     return found, total
