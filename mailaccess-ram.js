@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const RENDER_MAIN = 'https://glaz-boga-osint-docker-test.onrender.com';
+const RENDER_MAIN = 'https://glaz-boga-osint.onrender.com';
 const SUPABASE_URL = 'https://sxkukrqjtgkxmzuzondm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3N';
 let supabaseClient = null;
@@ -43,14 +43,25 @@ async function updateRam(){
   if(!el) return;
   try{
     const r = await fetch(RENDER_MAIN + '/mailaccess/memory?ts=' + Date.now(), {cache:'no-store'});
-    if(!r.ok) return;
+    if(!r.ok){
+      el.textContent = 'ОЗУ: недоступно';
+      el.title = 'MailAccess: HTTP ' + r.status;
+      return;
+    }
     const d = await r.json();
     const n = Number(d.ram_mb);
     if(Number.isFinite(n)){
       el.textContent = 'ОЗУ: ' + n.toFixed(1) + ' MB';
+      el.title = 'Память отдельного сервиса glaz-boga-mailaccess';
       el.classList.toggle('osint-ram-high', n >= 500);
+    }else{
+      el.textContent = 'ОЗУ: нет данных';
+      el.title = 'Render API не вернул значение RAM MailAccess';
     }
-  }catch(e){}
+  }catch(e){
+    el.textContent = 'ОЗУ: нет связи';
+    el.title = 'Не удалось получить RAM MailAccess';
+  }
 }
 
 async function resetRam(){
