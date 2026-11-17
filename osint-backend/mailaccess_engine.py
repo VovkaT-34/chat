@@ -34,16 +34,30 @@ async def _wait_health(
     ) as client:
 
         while asyncio.get_running_loop().time() < deadline:
+            delay = 1.0
             try:
                 response = await client.get("/health")
 
                 if response.status_code == 200:
                     return True
 
-            except Exception:
-                pass
+                if response.status_code == 429:
+                    retry_after = response.headers.get("Retry-After", "")
+                    try:
+                        delay = max(2.0, float(retry_after))
+                    except (TypeError, ValueError):
+                        delay = 3.0
 
-            await asyncio.sleep(0.5)
+                elif 400 <= response.status_code < 500:
+                    return False
+
+            except Exception:
+                delay = 1.0
+
+            remaining = deadline - asyncio.get_running_loop().time()
+            if remaining <= 0:
+                break
+            await asyncio.sleep(min(delay, remaining))
 
     return False
 
