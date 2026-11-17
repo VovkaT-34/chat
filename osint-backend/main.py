@@ -44,13 +44,6 @@ from mosint_engine import mosint_search
 
 
 app = FastAPI(title="Glaz Boga OSINT", version="0.5.2")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("glaz-boga")
 
@@ -234,6 +227,14 @@ async def enforce_admin_access(request: Request, call_next):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
     return await call_next(request)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/scan/state")
