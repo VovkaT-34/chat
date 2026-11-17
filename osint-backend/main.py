@@ -243,71 +243,24 @@ def scan_state():
     cleanup_jobs()
     cleanup_deep_jobs()
     quick_running = bool(ACTIVE_JOB_ID and ACTIVE_JOB_ID in JOBS and JOBS[ACTIVE_JOB_ID].get("status") not in {"done", "error", "cancelled"})
-    deep_running = bool(ACTIVE_DEEP_JOB_ID and ACTIVE_DEEP_JOB_ID in DEEP_JOBS and DEEP_JOBS[ACTIVE_DEEP_JOB_ID].get("status") not in {"done", "error", "cancelled"})
+    deep_running = bool(ACTIVE_DEEP_JOB_ID and ACTIVE_DEEP_JOB_ID in DEEP_JOBS)
     return {"scanning": quick_running or deep_running, "quick": quick_running, "deep": deep_running}
-
-
-def _read_process_rss_mb(pid: int) -> float:
-    try:
-        with open(f"/proc/{pid}/statm", "r", encoding="utf-8") as fh:
-            pages = int(fh.read().split()[1])
-        return pages * resource.getpagesize() / (1024 * 1024)
-    except Exception:
-        return 0.0
-
-
-def _process_tree_pids(root_pid: int) -> set[int]:
-    pids = {root_pid}
-    queue = [root_pid]
-
-    while queue:
-        pid = queue.pop()
-        try:
-            with open(
-                f"/proc/{pid}/task/{pid}/children",
-                "r",
-                encoding="utf-8",
-            ) as fh:
-                children = [
-                    int(value)
-                    for value in fh.read().split()
-                    if value.isdigit()
-                ]
-        except Exception:
-            continue
-
-        for child_pid in children:
-            if child_pid not in pids:
-                pids.add(child_pid)
-                queue.append(child_pid)
-
-    return pids
 
 
 @app.get("/memory")
 def memory():
-    """Return RSS for this service process and its child processes."""
+    """Return the current service-process RSS in megabytes."""
     try:
-        pids = _process_tree_pids(os.getpid())
-        rss_mb = sum(
-            _read_process_rss_mb(pid)
-            for pid in pids
-        )
+        with open("/proc/self/statm", "r", encoding="utf-8") as fh:
+            pages = int(fh.read().split()[1])
+        rss_mb = pages * resource.getpagesize() / (1024 * 1024)
     except Exception:
-        pids = {os.getpid()}
-        rss_mb = 0.0
-
-    if rss_mb <= 0:
-        try:
-            rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-            rss_mb = rss_kb / 1024
-        except Exception:
-            rss_mb = 0.0
+        rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        rss_mb = rss_kb / 1024
 
     return {
         "ram_mb": round(rss_mb, 1),
         "unit": "MB RAM",
-        "processes": len(pids),
     }
 
 
@@ -1097,8 +1050,6 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
             job["checked_items"] = [summary]
 
-            release_process_memory()
-
         elif kind == "email_mailaccess":
 
             def progress(checked, total, current, results):
@@ -1251,6 +1202,12 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
     finally:
         job["finished_at"] = time.time()
+
+        if kind == "email_userscanner":
+            try:
+                release_process_memory()
+            except Exception:
+                logger.exception("Failed to release User Scanner memory")
 
         if ACTIVE_DEEP_JOB_ID == job_id:
             ACTIVE_DEEP_JOB_ID = None
