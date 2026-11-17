@@ -60,6 +60,7 @@ DB = None
 SITES = None
 
 JOBS = {}
+JOB_OWNERS = {}
 ACTIVE_JOB_ID = None
 
 BATCH_SIZE = 5
@@ -92,6 +93,17 @@ def cleanup_jobs():
 
         if job["finished_at"] and job["finished_at"] < cutoff:
             JOBS.pop(job_id, None)
+            JOB_OWNERS.pop(job_id, None)
+
+
+def get_owned_username_job(job_id: str, user_id: str):
+    job = JOBS.get(job_id)
+    if not job or JOB_OWNERS.get(job_id) != user_id:
+        raise HTTPException(
+            status_code=404,
+            detail="Задание не найдено или уже удалено",
+        )
+    return job
 
 
 def cleanup_deep_jobs():
@@ -378,6 +390,29 @@ async def mailaccess_memory():
 @app.post("/mailaccess/memory/reset")
 async def mailaccess_memory_reset(request: Request):
     """Restart the isolated MailAccess Render service after confirming no local deep scan is active."""
+    authorization = request.headers.get("authorization", "")
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            role_response = await client.post(
+                "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/rpc/get_my_access_status",
+                headers={
+                    "Authorization": authorization,
+                    "apikey": "sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3n",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+            )
+        if role_response.status_code != 200:
+            raise HTTPException(status_code=503, detail="Не удалось проверить роль пользователя")
+        role_rows = role_response.json()
+        role = role_rows[0].get("role") if isinstance(role_rows, list) and role_rows else None
+        if role != "superadmin":
+            raise HTTPException(status_code=403, detail="Перезапуск MailAccess доступен только супер-администратору")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=503, detail="Не удалось проверить роль пользователя")
+
     state = scan_state()
     if state["scanning"]:
         raise HTTPException(status_code=409, detail="Нельзя очищать ОЗУ во время сканирования")
@@ -458,13 +493,19 @@ async def run_username_job(job_id: str, username: str, sites):
 
 
 @app.get("/username")
-async def username(q: str = Query(min_length=1, max_length=64)):
+async def username(request: Request, q: str = Query(min_length=1, max_length=64)):
     global ACTIVE_JOB_ID
 
     cleanup_jobs()
 
     if ACTIVE_JOB_ID and ACTIVE_JOB_ID in JOBS:
         active = JOBS[ACTIVE_JOB_ID]
+
+        if JOB_OWNERS.get(ACTIVE_JOB_ID) != request.state.user_id:
+            raise HTTPException(
+                status_code=409,
+                detail="Другой username-поиск уже выполняется",
+            )
 
         if active["query"].lower() == q.strip().lower():
             return {
@@ -488,6 +529,7 @@ async def username(q: str = Query(min_length=1, max_length=64)):
     total = len(sites)
     job_id = uuid.uuid4().hex
 
+    JOB_OWNERS[job_id] = request.state.user_id
     JOBS[job_id] = {
         "query": q.strip(),
         "status": "queued",
@@ -520,17 +562,12 @@ async def username(q: str = Query(min_length=1, max_length=64)):
 
 @app.get("/username/status")
 def username_status(
+    request: Request,
     job_id: str = Query(min_length=8, max_length=64),
 ):
     cleanup_jobs()
 
-    job = JOBS.get(job_id)
-
-    if not job:
-        raise HTTPException(
-            status_code=404,
-            detail="Задание не найдено или уже удалено",
-        )
+    job = get_owned_username_job(job_id, request.state.user_id)
 
     return {
         "type": "username",
