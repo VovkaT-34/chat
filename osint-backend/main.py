@@ -1102,7 +1102,6 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
             job["checked_items"] = [summary]
 
-            release_process_memory()
 
         elif kind == "email_mailaccess":
 
@@ -1255,6 +1254,9 @@ async def run_deep_job(job_id: str, kind: str, query: str):
         job["error"] = str(exc)
 
     finally:
+        if kind == "email_userscanner":
+            release_process_memory()
+
         job["finished_at"] = time.time()
 
         if ACTIVE_DEEP_JOB_ID == job_id:

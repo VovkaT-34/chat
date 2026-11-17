@@ -24,7 +24,7 @@ async def _free_port() -> int:
 
 async def _wait_health(
     base_url: str,
-    timeout: float = 20.0,
+    timeout: float = 90.0,
 ) -> bool:
     deadline = asyncio.get_running_loop().time() + timeout
 
@@ -44,9 +44,9 @@ async def _wait_health(
                 if response.status_code == 429:
                     retry_after = response.headers.get("Retry-After", "")
                     try:
-                        delay = max(2.0, float(retry_after))
+                        delay = max(5.0, float(retry_after))
                     except (TypeError, ValueError):
-                        delay = 3.0
+                        delay = 10.0
 
                 elif 400 <= response.status_code < 500:
                     return False

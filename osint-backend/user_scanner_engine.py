@@ -1,4 +1,5 @@
 import asyncio
+import concurrent.futures
 import json
 import re
 
@@ -11,6 +12,13 @@ from user_scanner.core.result import Result
 BATCH_SIZE = 20
 MAX_CONCURRENCY = 2
 BATCH_PAUSE = 0.10
+
+# Bound the upstream executor: cancelled sync validators can continue in worker
+# threads until their own network timeouts expire.
+engine._shared_executor = concurrent.futures.ThreadPoolExecutor(
+    max_workers=MAX_CONCURRENCY,
+    thread_name_prefix="user-scanner",
+)
 
 
 def _serialize_result(res):
