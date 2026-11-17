@@ -1236,6 +1236,7 @@ async def user_scanner_search(email: str, progress=None):
         if progress:
             progress(0, total, f"Пакет 0/{batch_total} • подготовка", found)
 
+        active_tasks = set()
         for batch_start in range(0, total, BATCH_SIZE):
             batch = modules[batch_start:batch_start + BATCH_SIZE]
             batch_number = batch_start // BATCH_SIZE + 1
@@ -1249,15 +1250,25 @@ async def user_scanner_search(email: str, progress=None):
                     module = batch[batch_index]
                     task = asyncio.create_task(engine.check(module, email))
                     pending.add(task)
+                    active_tasks.add(task)
                     task_modules[task] = module
                     batch_index += 1
 
-                done, pending = await asyncio.wait(
-                    pending,
-                    return_when=asyncio.FIRST_COMPLETED,
-                )
+                try:
+                    done, pending = await asyncio.wait(
+                        pending,
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+                except asyncio.CancelledError:
+                    for task in active_tasks:
+                        if not task.done():
+                            task.cancel()
+                    if active_tasks:
+                        await asyncio.gather(*active_tasks, return_exceptions=True)
+                    raise
 
                 for task in done:
+                    active_tasks.discard(task)
                     module = task_modules.pop(task, None)
                     try:
                         res = task.result()
