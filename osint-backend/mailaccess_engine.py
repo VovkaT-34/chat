@@ -232,7 +232,7 @@ async def mailaccess_search(
 
         healthy = await _wait_health(
             base_url,
-            timeout=20.0,
+            timeout=90.0,
         )
 
         if not healthy:
