@@ -719,8 +719,10 @@ function renderDeep(d){
 }
 async function pollDeep(){
   if(!deepJobId)return;
+  const pollingJobId=deepJobId;
   try{
-    const r=await fetch(deepRender+'/deep/status?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
+    const r=await fetch(deepRender+'/deep/status?job_id='+encodeURIComponent(pollingJobId),{cache:'no-store'});
+    if(deepJobId!==pollingJobId)return;
     if(!r.ok){
       if(r.status===404){
         deepStatus.innerHTML='Статус: <span class="deep-status-done">задание Render потеряно или перезапущено (HTTP 404)</span>';
@@ -743,27 +745,39 @@ async function pollDeep(){
       clearInterval(deepTimer);deepTimer=null;
       stopDeep.classList.remove('active');
       deepRunning.classList.remove('active');
+      deepJobId=null;
+      deepSearchButton.disabled=false;
+      deepSearchButton.textContent='Поиск';
     }
   }catch(e){
-    deepStatus.innerHTML='Статус: <span class="deep-status-waiting">ожидание связи с Render…</span>';
+    if(deepJobId===pollingJobId){
+      deepStatus.innerHTML='Статус: <span class="deep-status-waiting">ожидание связи с Render…</span>';
+    }
   }
 }
 async function stopDeepSearch(){
   if(!deepJobId)return;
+  const stoppingJobId=deepJobId;
   stopDeep.disabled=true;
   deepStatus.textContent='Статус: остановка…';
   try{
-    const r=await fetch(deepRender+'/deep/cancel?job_id='+encodeURIComponent(deepJobId),{cache:'no-store'});
+    const r=await fetch(deepRender+'/deep/cancel?job_id='+encodeURIComponent(stoppingJobId),{cache:'no-store'});
     const d=await r.json();
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
+    if(deepJobId!==stoppingJobId)return;
     clearInterval(deepTimer);deepTimer=null;
     renderDeep(d);
+    deepJobId=null;
     stopDeep.classList.remove('active');
     deepRunning.classList.remove('active');
+    deepSearchButton.disabled=false;
+    deepSearchButton.textContent='Поиск';
   }catch(e){
-    deepStatus.textContent='Статус: ошибка остановки — '+e.message;
+    if(deepJobId===stoppingJobId){
+      deepStatus.textContent='Статус: ошибка остановки — '+e.message;
+    }
   }finally{
-    stopDeep.disabled=false;
+    if(deepJobId===stoppingJobId)stopDeep.disabled=false;
   }
 }
 async function deepSearch(){
@@ -783,34 +797,38 @@ async function deepSearch(){
   deepChecked.textContent='Проверено: 0 / …';
   deepFound.innerHTML='Найдено: <span style="color:#ff4b5c">0</span>';
   deepSites.innerHTML='';
-  stopDeep.classList.add('active');
-  stopDeep.disabled=true;
-  deepRunning.classList.add('active');
   if(kind==='username'&&!validUsername(value)){
     deepStatus.textContent='Статус: username должен содержать латинские буквы, цифры, точку, дефис или подчёркивание.';
+    stopDeep.classList.remove('active');
+    deepRunning.classList.remove('active');
     return;
   }
+  const requestJobId=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
+  deepJobId=requestJobId;
+  stopDeep.classList.add('active');
+  stopDeep.disabled=false;
+  deepRunning.classList.add('active');
   try{
     const r=await fetch(
-      deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value),
+      deepRender+'/deep?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(value)+'&job_id='+encodeURIComponent(requestJobId),
       {cache:'no-store'}
     );
     const d=await r.json();
+    if(deepJobId!==requestJobId)return;
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
-    deepJobId=d.job_id;
-    stopDeep.disabled=false;
     renderDeep(d);
     if(d.status!=='done'&&d.status!=='error'&&d.status!=='cancelled'){
       stopDeep.classList.add('active');
       deepRunning.classList.add('active');
       await pollDeep();
-      deepTimer=setInterval(pollDeep,4000);
+      if(deepJobId===requestJobId)deepTimer=setInterval(pollDeep,4000);
     }
   }catch(e){
-    stopDeep.classList.remove('active');
+    if(deepJobId!==requestJobId)return;
+    stopDeep.classList.add('active');
     stopDeep.disabled=false;
-    deepRunning.classList.remove('active');
-    deepStatus.textContent='Статус: ошибка запуска — '+e.message;
+    deepRunning.classList.add('active');
+    deepStatus.textContent='Статус: ошибка запуска — '+e.message+' (можно нажать Stop для отмены)';
   }
 }
 function updateDeepPlaceholder(){
