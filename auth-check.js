@@ -65,6 +65,7 @@ function installOsintAuthFetch() {
 async function checkAuth() {
     const loginPath = window.location.pathname.includes("/airplanes5/") ? "../login.html" : "./login.html";
     try {
+        installOsintAuthFetch();
         try { await loadSupabaseIfNeeded(); } catch (error) {}
         if (!window.supabaseClient) { window.location.replace(loginPath); return; }
         let session = null;
@@ -94,7 +95,6 @@ async function checkAuth() {
                 return;
             }
         }
-        installOsintAuthFetch();
         // RAM/scan UI is managed by glaz-ram.js on the Glaz Boga page.
     } catch (error) {
         console.error("Ошибка проверки авторизации:", error);
