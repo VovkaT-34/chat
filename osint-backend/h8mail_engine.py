@@ -10,6 +10,7 @@ async def h8mail_search(email: str, progress=None) -> Tuple[List[dict], int]:
     found = []
     total = 0
 
+    proc = None
     try:
         proc = await asyncio.create_subprocess_exec(
             "h8mail",
@@ -65,5 +66,16 @@ async def h8mail_search(email: str, progress=None) -> Tuple[List[dict], int]:
         if progress:
             progress(0, 0, f"Ошибка: {str(exc)[:80]}", [])
         return [], 0
+    finally:
+        if proc is not None and proc.returncode is None:
+            try:
+                proc.terminate()
+            except ProcessLookupError:
+                pass
+            try:
+                await asyncio.wait_for(proc.wait(), timeout=5)
+            except asyncio.TimeoutError:
+                proc.kill()
+                await proc.wait()
 
     return found, total
