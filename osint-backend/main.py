@@ -47,6 +47,11 @@ app = FastAPI(title="Glaz Boga OSINT", version="0.5.2")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("glaz-boga")
 
+SUPABASE_HTTP_CLIENT = httpx.AsyncClient(
+    timeout=5,
+    limits=httpx.Limits(max_connections=20, max_keepalive_connections=10, keepalive_expiry=30),
+)
+
 MAIGRET_DATA = files("maigret").joinpath("resources", "data.json")
 
 DB = None
@@ -171,44 +176,44 @@ async def require_authenticated_user(request: Request):
         "apikey": "sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3N",
     }
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            response = await client.get(
-                "https://sxkukrqjtgkxmzuzondm.supabase.co/auth/v1/user",
-                headers=headers,
-            )
-            if response.status_code != 200:
-                raise HTTPException(status_code=401, detail="Недействительная сессия")
+        client = SUPABASE_HTTP_CLIENT
+        response = await client.get(
+            "https://sxkukrqjtgkxmzuzondm.supabase.co/auth/v1/user",
+            headers=headers,
+        )
+        if response.status_code != 200:
+            raise HTTPException(status_code=401, detail="Недействительная сессия")
 
-            user = response.json()
-            user_id = user.get("id")
-            if not user_id:
-                raise HTTPException(status_code=401, detail="Недействительная сессия")
+        user = response.json()
+        user_id = user.get("id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Недействительная сессия")
 
-            profile_response = await client.post(
-                "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/rpc/get_my_access_status",
-                headers={
-                    **headers,
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                },
-            )
-            if profile_response.status_code != 200:
-                raise HTTPException(status_code=503, detail="Не удалось проверить одобрение аккаунта")
+        profile_response = await client.post(
+            "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/rpc/get_my_access_status",
+            headers={
+                **headers,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+        )
+        if profile_response.status_code != 200:
+            raise HTTPException(status_code=503, detail="Не удалось проверить одобрение аккаунта")
 
-            profiles = profile_response.json()
-            profile = profiles[0] if isinstance(profiles, list) and profiles else None
-            if not profile or profile.get("approved") is not True:
-                raise HTTPException(status_code=403, detail="Требуется одобренный аккаунт")
+        profiles = profile_response.json()
+        profile = profiles[0] if isinstance(profiles, list) and profiles else None
+        if not profile or profile.get("approved") is not True:
+            raise HTTPException(status_code=403, detail="Требуется одобренный аккаунт")
 
-            permission_response = await client.post(
-                "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/rpc/has_app_access",
-                json={"p_app_id": "glaz-boga"},
-                headers={**headers, "Content-Type": "application/json", "Accept": "application/json"},
-            )
-            if permission_response.status_code != 200 or permission_response.json() is not True:
-                raise HTTPException(status_code=403, detail="Нет разрешения на приложение «Глаз Бога»")
+        permission_response = await client.post(
+            "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/rpc/has_app_access",
+            json={"p_app_id": "glaz-boga"},
+            headers={**headers, "Content-Type": "application/json", "Accept": "application/json"},
+        )
+        if permission_response.status_code != 200 or permission_response.json() is not True:
+            raise HTTPException(status_code=403, detail="Нет разрешения на приложение «Глаз Бога»")
 
-            return user
+        return user
     except HTTPException:
         raise
     except Exception:
