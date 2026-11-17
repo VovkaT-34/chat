@@ -69,9 +69,11 @@ REQUEST_TIMEOUT = 2
 JOB_TTL = 1800
 
 DEEP_JOB_TTL = 1800
+DEEP_CANCEL_REQUEST_TTL = 120
 DEEP_JOBS = {}
 DEEP_JOB_OWNERS = {}
 DEEP_TASKS = {}
+DEEP_CANCEL_REQUESTS = {}
 ACTIVE_DEEP_JOB_ID = None
 
 
@@ -107,7 +109,8 @@ def get_owned_username_job(job_id: str, user_id: str):
 
 
 def cleanup_deep_jobs():
-    cutoff = time.time() - DEEP_JOB_TTL
+    now = time.time()
+    cutoff = now - DEEP_JOB_TTL
 
     for job_id in list(DEEP_JOBS):
         job = DEEP_JOBS[job_id]
@@ -115,6 +118,10 @@ def cleanup_deep_jobs():
         if job["finished_at"] and job["finished_at"] < cutoff:
             DEEP_JOBS.pop(job_id, None)
             DEEP_JOB_OWNERS.pop(job_id, None)
+
+    for job_id in list(DEEP_CANCEL_REQUESTS):
+        if DEEP_CANCEL_REQUESTS[job_id]["expires_at"] <= now:
+            DEEP_CANCEL_REQUESTS.pop(job_id, None)
 
 
 def get_owned_deep_job(job_id: str, user_id: str):
@@ -183,13 +190,16 @@ async def require_authenticated_user(request: Request):
             if not user_id:
                 raise HTTPException(status_code=401, detail="Недействительная сессия")
 
-            profile_response = await client.get(
-                "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/profiles",
-                params={"id": "eq." + user_id, "select": "approved"},
-                headers={**headers, "Accept": "application/json"},
+            profile_response = await client.post(
+                "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/rpc/get_my_access_status",
+                headers={
+                    **headers,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
             )
             if profile_response.status_code != 200:
-                raise HTTPException(status_code=403, detail="Не удалось проверить одобрение аккаунта")
+                raise HTTPException(status_code=503, detail="Не удалось проверить одобрение аккаунта")
 
             profiles = profile_response.json()
             profile = profiles[0] if isinstance(profiles, list) and profiles else None
@@ -1258,20 +1268,47 @@ async def deep_search(
         )
     ),
     q: str = Query(min_length=1, max_length=256),
+    job_id: str | None = Query(
+        default=None,
+        min_length=32,
+        max_length=32,
+        pattern="^[a-f0-9]{32}$",
+    ),
 ):
     global ACTIVE_DEEP_JOB_ID
 
     cleanup_deep_jobs()
 
     query = q.strip()
+    job_id = job_id or uuid.uuid4().hex
+
+    cancel_request = DEEP_CANCEL_REQUESTS.pop(job_id, None)
+    if cancel_request:
+        if cancel_request["user_id"] != request.state.user_id:
+            raise HTTPException(status_code=404, detail="Глубокое задание не найдено")
+        cancelled_job = {
+            "type": kind,
+            "kind": kind,
+            "query": query,
+            "job_id": job_id,
+            "status": "cancelled",
+            "total": 0,
+            "checked": 0,
+            "count": 0,
+            "results": [],
+            "checked_items": [],
+            "error": None,
+            "finished_at": time.time(),
+        }
+        DEEP_JOB_OWNERS[job_id] = request.state.user_id
+        DEEP_JOBS[job_id] = cancelled_job
+        return cancelled_job
 
     if ACTIVE_DEEP_JOB_ID and ACTIVE_DEEP_JOB_ID in DEEP_JOBS:
         raise HTTPException(
             status_code=409,
             detail="Другой глубокий поиск уже выполняется",
         )
-
-    job_id = uuid.uuid4().hex
 
     DEEP_JOB_OWNERS[job_id] = request.state.user_id
     DEEP_JOBS[job_id] = {
@@ -1316,11 +1353,41 @@ def deep_status(
 @app.get("/deep/cancel")
 async def deep_cancel(
     request: Request,
-    job_id: str = Query(min_length=8, max_length=64),
+    job_id: str = Query(
+        min_length=32,
+        max_length=32,
+        pattern="^[a-f0-9]{32}$",
+    ),
 ):
     global ACTIVE_DEEP_JOB_ID
 
     cleanup_deep_jobs()
+
+    job = DEEP_JOBS.get(job_id)
+    if not job:
+        pending_cancel = DEEP_CANCEL_REQUESTS.get(job_id)
+        if pending_cancel and pending_cancel["user_id"] != request.state.user_id:
+            raise HTTPException(status_code=404, detail="Глубокое задание не найдено")
+        if not pending_cancel and len(DEEP_CANCEL_REQUESTS) >= 100:
+            raise HTTPException(status_code=429, detail="Слишком много ожидающих отмен")
+        DEEP_CANCEL_REQUESTS[job_id] = {
+            "user_id": request.state.user_id,
+            "expires_at": time.time() + DEEP_CANCEL_REQUEST_TTL,
+        }
+        return {
+            "type": "pending",
+            "kind": "pending",
+            "query": "",
+            "job_id": job_id,
+            "status": "cancelled",
+            "total": 0,
+            "checked": 0,
+            "count": 0,
+            "results": [],
+            "checked_items": [],
+            "error": None,
+            "finished_at": time.time(),
+        }
 
     job = get_owned_deep_job(job_id, request.state.user_id)
 
