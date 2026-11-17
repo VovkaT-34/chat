@@ -766,7 +766,14 @@ async function stopDeepSearch(){
     if(!r.ok)throw Error(d.detail||'HTTP '+r.status);
     if(deepJobId!==stoppingJobId)return;
     clearInterval(deepTimer);deepTimer=null;
-    renderDeep(d);
+    if(d.kind==='pending'){
+      deepStatus.textContent='Статус: остановлен';
+      deepChecked.textContent='Проверено: 0 / 0';
+      deepFound.textContent='Найдено: 0';
+      deepSites.textContent='Поиск отменён до запуска.';
+    }else{
+      renderDeep(d);
+    }
     deepJobId=null;
     stopDeep.classList.remove('active');
     deepRunning.classList.remove('active');
