@@ -115,8 +115,15 @@ async def mosint_search(query: str, progress=None):
                 raise RuntimeError(f"Не удалось прочитать JSON Mosint: {exc}") from exc
         finally:
             if process is not None and process.returncode is None:
-                try: process.terminate()
-                except ProcessLookupError: pass
+                try:
+                    process.terminate()
+                except ProcessLookupError:
+                    pass
+                try:
+                    await asyncio.wait_for(process.wait(), timeout=5)
+                except asyncio.TimeoutError:
+                    process.kill()
+                    await process.wait()
     normalized,findings=_normalize_results(data)
     if progress: progress(total_modules,total_modules,f"Mosint: готово ({total_modules} проверок, найдено {findings})",normalized)
     return normalized,findings
