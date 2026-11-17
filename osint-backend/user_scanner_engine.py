@@ -1237,82 +1237,83 @@ async def user_scanner_search(email: str, progress=None):
             progress(0, total, f"Пакет 0/{batch_total} • подготовка", found)
 
         active_tasks = set()
-        try:
-            for batch_start in range(0, total, BATCH_SIZE):
-                batch = modules[batch_start:batch_start + BATCH_SIZE]
-                batch_number = batch_start // BATCH_SIZE + 1
+        for batch_start in range(0, total, BATCH_SIZE):
+            batch = modules[batch_start:batch_start + BATCH_SIZE]
+            batch_number = batch_start // BATCH_SIZE + 1
 
-                pending = set()
-                task_modules = {}
-                batch_index = 0
+            pending = set()
+            task_modules = {}
+            batch_index = 0
 
-                while batch_index < len(batch) or pending:
-                    while batch_index < len(batch) and len(pending) < MAX_CONCURRENCY:
-                        module = batch[batch_index]
-                        task = asyncio.create_task(engine.check(module, email))
-                        pending.add(task)
-                        active_tasks.add(task)
-                        task_modules[task] = module
-                        batch_index += 1
+            while batch_index < len(batch) or pending:
+                while batch_index < len(batch) and len(pending) < MAX_CONCURRENCY:
+                    module = batch[batch_index]
+                    task = asyncio.create_task(engine.check(module, email))
+                    pending.add(task)
+                    active_tasks.add(task)
+                    task_modules[task] = module
+                    batch_index += 1
 
+                try:
                     done, pending = await asyncio.wait(
                         pending,
                         return_when=asyncio.FIRST_COMPLETED,
                     )
+                except asyncio.CancelledError:
+                    for task in active_tasks:
+                        if not task.done():
+                            task.cancel()
+                    if active_tasks:
+                        await asyncio.gather(*active_tasks, return_exceptions=True)
+                    raise
 
-                    for task in done:
-                        active_tasks.discard(task)
-                        module = task_modules.pop(task, None)
-                        try:
-                            res = task.result()
-                            data = _serialize_result(res)
-                            item = _make_found_item(data)
-                            diagnostic_issue = _diagnostic_issue(data)
+                for task in done:
+                    active_tasks.discard(task)
+                    module = task_modules.pop(task, None)
+                    try:
+                        res = task.result()
+                        data = _serialize_result(res)
+                        item = _make_found_item(data)
+                        diagnostic_issue = _diagnostic_issue(data)
 
-                            if item is not None:
-                                found.append(item)
-                            if diagnostic_issue:
-                                errors += 1
-                                error_details.append(diagnostic_issue)
-
-                            checked += 1
-                            site_name = data.get("site_name") or data.get("name") or "unknown"
-                            status = data.get("status") or "unknown"
-
-                            if progress:
-                                progress(
-                                    checked,
-                                    total,
-                                    f"Пакет {batch_number}/{batch_total} • {site_name} • {status}",
-                                    found,
-                                )
-                        except Exception as exc:
-                            checked += 1
+                        if item is not None:
+                            found.append(item)
+                        if diagnostic_issue:
                             errors += 1
-                            module_name = (
-                                getattr(module, "name", None)
-                                or getattr(module, "site_name", None)
-                                or str(module)
-                            )
-                            error_details.append(
-                                f"{module_name}: {str(exc)[:120]}"
-                            )
-                            if progress:
-                                progress(
-                                    checked,
-                                    total,
-                                    f"Пакет {batch_number}/{batch_total} • ошибка: {str(exc)[:120]}",
-                                    found,
-                                )
+                            error_details.append(diagnostic_issue)
 
-                if batch_start + BATCH_SIZE < total:
-                    await asyncio.sleep(BATCH_PAUSE)
-        finally:
-            remaining_tasks = [task for task in active_tasks if not task.done()]
-            for task in remaining_tasks:
-                task.cancel()
-            if remaining_tasks:
-                await asyncio.gather(*remaining_tasks, return_exceptions=True)
+                        checked += 1
+                        site_name = data.get("site_name") or data.get("name") or "unknown"
+                        status = data.get("status") or "unknown"
+
+                        if progress:
+                            progress(
+                                checked,
+                                total,
+                                f"Пакет {batch_number}/{batch_total} • {site_name} • {status}",
+                                found,
+                            )
+                    except Exception as exc:
+                        checked += 1
+                        errors += 1
+                        module_name = (
+                            getattr(module, "name", None)
+                            or getattr(module, "site_name", None)
+                            or str(module)
+                        )
+                        error_details.append(
+                            f"{module_name}: {str(exc)[:120]}"
+                        )
+                        if progress:
+                            progress(
+                                checked,
+                                total,
+                                f"Пакет {batch_number}/{batch_total} • ошибка: {str(exc)[:120]}",
+                                found,
+                            )
+
+            if batch_start + BATCH_SIZE < total:
+                await asyncio.sleep(BATCH_PAUSE)
 
         return found, total, errors, error_details
 
