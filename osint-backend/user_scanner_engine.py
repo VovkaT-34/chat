@@ -1226,6 +1226,7 @@ def _prepare_module(module):
 
 
 async def user_scanner_search(email: str, progress=None):
+    active_tasks = set()
     try:
         categories = load_categories(is_email=True)
         modules = []
@@ -1244,7 +1245,6 @@ async def user_scanner_search(email: str, progress=None):
         if progress:
             progress(0, total, f"Пакет 0/{batch_total} • подготовка", found)
 
-        active_tasks = set()
         for batch_start in range(0, total, BATCH_SIZE):
             batch = modules[batch_start:batch_start + BATCH_SIZE]
             batch_number = batch_start // BATCH_SIZE + 1
@@ -1329,3 +1329,10 @@ async def user_scanner_search(email: str, progress=None):
         if progress:
             progress(0, 0, "error", [])
         return [], 0, 1, ["User Scanner: внутренняя ошибка запуска"]
+    finally:
+        pending_tasks = [task for task in active_tasks if not task.done()]
+        for task in pending_tasks:
+            task.cancel()
+        if pending_tasks:
+            await asyncio.gather(*pending_tasks, return_exceptions=True)
+        load_modules.cache_clear()

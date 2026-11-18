@@ -1405,17 +1405,16 @@ async def deep_cancel(
 
     job["status"] = "cancelled"
     job["error"] = None
-    job["finished_at"] = time.time()
 
     task = DEEP_TASKS.get(job_id)
 
     if task and not task.done():
         task.cancel()
-
-    DEEP_TASKS.pop(job_id, None)
-
-    if ACTIVE_DEEP_JOB_ID == job_id:
-        ACTIVE_DEEP_JOB_ID = None
+        await asyncio.gather(task, return_exceptions=True)
+    elif task is None:
+        job["finished_at"] = time.time()
+        if ACTIVE_DEEP_JOB_ID == job_id:
+            ACTIVE_DEEP_JOB_ID = None
 
     return job
 
