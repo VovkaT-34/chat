@@ -376,25 +376,61 @@ async def mailaccess_memory():
         f"&startTime={start_iso}&endTime={end_iso}&resolutionSeconds=30"
     )
 
-    metrics = payload.get("metrics", []) if isinstance(payload, dict) else []
+    if isinstance(payload, list):
+        series_items = payload
+    elif isinstance(payload, dict):
+        series_items = []
+        metrics = payload.get("metrics", [])
+        if isinstance(metrics, list):
+            for metric in metrics:
+                if not isinstance(metric, dict):
+                    continue
+                if metric.get("type") == "memory_usage":
+                    nested_series = metric.get("data", [])
+                    if isinstance(nested_series, list):
+                        series_items.extend(nested_series)
+                elif "values" in metric:
+                    series_items.append(metric)
+    else:
+        series_items = []
+
     points = []
-    for metric in metrics:
-        if not isinstance(metric, dict) or metric.get("type") != "memory_usage":
+    for series in series_items:
+        if not isinstance(series, dict):
             continue
-        for series in metric.get("data", []):
-            if not isinstance(series, dict):
-                continue
-            for point in series.get("values", []):
-                if isinstance(point, dict) and "timestamp" in point and "value" in point:
-                    points.append(point)
+        labels = series.get("labels", [])
+        service_labels = [
+            label for label in labels
+            if isinstance(label, dict)
+            and label.get("field") in {"service", "resource"}
+        ]
+        if service_labels and not any(
+            label.get("value") == MAILACCESS_RENDER_SERVICE_ID
+            for label in service_labels
+        ):
+            continue
+        values = series.get("values", [])
+        if not isinstance(values, list):
+            continue
+        for point in values:
+            if isinstance(point, dict) and "timestamp" in point and "value" in point:
+                points.append((point, series.get("unit", "")))
 
     if not points:
         raise HTTPException(status_code=502, detail="Render API не вернул значения RAM MailAccess")
 
-    latest = max(points, key=lambda point: str(point.get("timestamp", "")))
+    latest, unit = max(points, key=lambda item: str(item[0].get("timestamp", "")))
     try:
         value = float(latest["value"])
-        ram_mb = value / (1024 * 1024) if value > 100000 else value
+        normalized_unit = str(unit).strip().lower()
+        if normalized_unit in {"bytes", "byte", "b"}:
+            ram_mb = value / (1024 * 1024)
+        elif normalized_unit in {"gb", "gib"}:
+            ram_mb = value * 1024
+        elif normalized_unit in {"mb", "mib"}:
+            ram_mb = value
+        else:
+            ram_mb = value / (1024 * 1024) if value > 100000 else value
     except (TypeError, ValueError):
         raise HTTPException(status_code=502, detail="Не удалось разобрать значение RAM MailAccess")
 
@@ -1112,14 +1148,14 @@ async def run_deep_job(job_id: str, kind: str, query: str):
                 job["results"] = list(results)
                 job["checked_items"] = [current]
 
-            found, total, errors, error_details = await mailaccess_search(
+            found, total, checked, errors, error_details, completed = await mailaccess_search(
                 query,
                 progress=progress,
             )
 
             job["results"] = found
             job["total"] = total
-            job["checked"] = total
+            job["checked"] = checked
             job["count"] = len(found)
             job["diagnostics"] = {
                 "errors": errors,
@@ -1127,13 +1163,19 @@ async def run_deep_job(job_id: str, kind: str, query: str):
             }
 
             summary = (
-                f"MailAccess: готово ({total} модулей, найдено {len(found)}, "
+                f"MailAccess: {'готово' if completed else 'прервано'} "
+                f"({checked}/{total} модулей, найдено {len(found)}, "
                 f"ошибок внешних проверок: {errors})"
             )
             if error_details:
                 summary += " • " + " | ".join(error_details[:5])
 
             job["checked_items"] = [summary]
+            if not completed:
+                raise RuntimeError(
+                    error_details[-1] if error_details
+                    else "MailAccess: расследование не завершилось"
+                )
 
         elif kind == "email_h8mail":
 

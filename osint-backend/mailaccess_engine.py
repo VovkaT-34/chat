@@ -139,7 +139,7 @@ def _make_finding(data: dict) -> dict:
 async def mailaccess_search(
     email: str,
     progress=None,
-) -> Tuple[List[dict], int]:
+) -> Tuple[List[dict], int, int, int, List[str], bool]:
 
     found: List[dict] = []
 
@@ -149,6 +149,7 @@ async def mailaccess_search(
     active_modules = set()
     errors = 0
     error_details = []
+    completed = False
 
     server = None
 
@@ -243,7 +244,7 @@ async def mailaccess_search(
                 "MailAccess: API-сервер не запустился",
             )
 
-            return [], 0, 1, ["MailAccess: API-сервер не запустился"]
+            return [], 0, 0, 1, ["MailAccess: API-сервер не запустился"], False
 
         send_progress(
             0,
@@ -408,6 +409,10 @@ async def mailaccess_search(
 
                 except websockets.exceptions.ConnectionClosed:
 
+                    error_details.append(
+                        f"MailAccess: WebSocket закрыт до завершения "
+                        f"({checked_modules}/{total_modules})"
+                    )
                     send_progress(
                         checked_modules,
                         total_modules,
@@ -432,7 +437,6 @@ async def mailaccess_search(
                             f"(exit code {server.returncode}) на "
                             f"{checked_modules}/{total_modules}"
                         )
-                        errors += 1
                         error_details.append(detail)
                         send_progress(
                             checked_modules,
@@ -560,6 +564,7 @@ async def mailaccess_search(
 
                 if event_type == "investigation_complete":
 
+                    completed = True
                     reported_total = (
                         event.get("total_modules")
                         or event.get("modules_total")
@@ -598,6 +603,7 @@ async def mailaccess_search(
                         or "неизвестная ошибка"
                     )
 
+                    error_details.append(f"MailAccess: {error_text[:160]}")
                     send_progress(
                         checked_modules,
                         total_modules,
@@ -617,6 +623,7 @@ async def mailaccess_search(
                         or "неизвестная ошибка"
                     )
 
+                    error_details.append(f"MailAccess WebSocket: {error_text[:160]}")
                     send_progress(
                         checked_modules,
                         total_modules,
@@ -628,10 +635,17 @@ async def mailaccess_search(
 
                     break
 
+        if not completed:
+            errors += 1
+            error_details.append(
+                f"MailAccess: расследование не завершено "
+                f"({checked_modules}/{total_modules} модулей)"
+            )
+
         if checked_modules > total_modules:
             total_modules = checked_modules
 
-        return found, checked_modules, errors, error_details
+        return found, total_modules, checked_modules, errors, error_details, completed
 
     except asyncio.TimeoutError:
 
@@ -649,7 +663,12 @@ async def mailaccess_search(
             ),
         )
 
-        return found, checked_modules, errors, error_details
+        errors += 1
+        error_details.append(
+            f"MailAccess: таймаут {MAILACCESS_TIMEOUT} сек "
+            f"({checked_modules}/{total_modules} модулей)"
+        )
+        return found, total_modules, checked_modules, errors, error_details, False
 
     except FileNotFoundError:
 
@@ -661,7 +680,7 @@ async def mailaccess_search(
                 [],
             )
 
-        return [], 0, 1, ["MailAccess: not installed"]
+        return [], 0, 0, 1, ["MailAccess: not installed"], False
 
     except Exception as exc:
 
@@ -681,7 +700,7 @@ async def mailaccess_search(
             ),
         )
 
-        return found, checked_modules, errors, error_details
+        return found, total_modules, checked_modules, errors, error_details, False
 
     finally:
 
