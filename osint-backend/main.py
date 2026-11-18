@@ -204,7 +204,6 @@ async def require_authenticated_user(request: Request):
         profile = profiles[0] if isinstance(profiles, list) and profiles else None
         if not profile or profile.get("approved") is not True:
             raise HTTPException(status_code=403, detail="Требуется одобренный аккаунт")
-        user["role"] = profile.get("role")
 
         permission_response = await client.post(
             "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/rpc/has_app_access",
@@ -230,7 +229,6 @@ async def enforce_admin_access(request: Request, call_next):
     try:
         user = await require_authenticated_user(request)
         request.state.user_id = user["id"]
-        request.state.user_role = user.get("role")
     except HTTPException as exc:
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
@@ -356,6 +354,8 @@ async def _render_api_request(path: str, method: str = "GET"):
             )
         if response.status_code >= 400:
             raise HTTPException(status_code=502, detail=f"Render API вернул HTTP {response.status_code}")
+        if not response.content.strip():
+            return {}
         return response.json()
     except HTTPException:
         raise
@@ -445,9 +445,6 @@ async def mailaccess_memory():
 @app.post("/mailaccess/memory/reset")
 async def mailaccess_memory_reset(request: Request):
     """Restart the isolated MailAccess Render service after confirming no local deep scan is active."""
-    if getattr(request.state, "user_role", None) != "superadmin":
-        raise HTTPException(status_code=403, detail="Перезапуск MailAccess доступен только супер-администратору")
-
     state = scan_state()
     if state["scanning"]:
         raise HTTPException(status_code=409, detail="Нельзя очищать ОЗУ во время сканирования")
