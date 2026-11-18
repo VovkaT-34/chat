@@ -9,7 +9,7 @@ from importlib.resources import files
 import httpx
 
 import phonenumbers
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from maigret import search as maigret_search
@@ -46,6 +46,7 @@ from mosint_engine import mosint_search
 app = FastAPI(title="Glaz Boga OSINT", version="0.5.2")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("glaz-boga")
+PROCESS_STARTED_AT = time.time()
 
 SUPABASE_HTTP_CLIENT = httpx.AsyncClient(
     timeout=5,
@@ -77,6 +78,11 @@ MAILACCESS_RESET_LOCK = asyncio.Lock()
 MAILACCESS_RESET_IN_PROGRESS = False
 MAILACCESS_RESET_COOLDOWN_UNTIL = 0.0
 ACTIVE_DEEP_JOB_ID = None
+OSINT_RENDER_SERVICE_ID = "srv-daiibgfqj5pc73a86m90"
+OSINT_RESET_LOCK = asyncio.Lock()
+OSINT_RESET_IN_PROGRESS = False
+OSINT_RESET_STARTED_AT = 0.0
+OSINT_RESET_TIMEOUT = 120
 
 
 def get_sites():
@@ -246,13 +252,26 @@ app.add_middleware(
 )
 
 
+def osint_resetting() -> bool:
+    global OSINT_RESET_IN_PROGRESS, OSINT_RESET_STARTED_AT
+    if OSINT_RESET_IN_PROGRESS and time.time() - OSINT_RESET_STARTED_AT > OSINT_RESET_TIMEOUT:
+        OSINT_RESET_IN_PROGRESS = False
+        OSINT_RESET_STARTED_AT = 0.0
+    return OSINT_RESET_IN_PROGRESS
+
+
 @app.get("/scan/state")
 def scan_state():
     cleanup_jobs()
     cleanup_deep_jobs()
     quick_running = bool(ACTIVE_JOB_ID and ACTIVE_JOB_ID in JOBS and JOBS[ACTIVE_JOB_ID].get("status") not in {"done", "error", "cancelled"})
     deep_running = bool(ACTIVE_DEEP_JOB_ID and ACTIVE_DEEP_JOB_ID in DEEP_JOBS and DEEP_JOBS[ACTIVE_DEEP_JOB_ID].get("status") not in {"done", "error", "cancelled"})
-    return {"scanning": quick_running or deep_running, "quick": quick_running, "deep": deep_running}
+    return {
+        "scanning": quick_running or deep_running,
+        "quick": quick_running,
+        "deep": deep_running,
+        "resetting": osint_resetting(),
+    }
 
 
 def _read_process_rss_mb(pid: int) -> float:
@@ -316,6 +335,7 @@ def memory():
         "ram_mb": round(rss_mb, 1),
         "unit": "MB RAM",
         "processes": len(pids),
+        "instance_started_at": PROCESS_STARTED_AT,
     }
 
 
@@ -331,14 +351,41 @@ def release_process_memory():
         pass
 
 
+async def _restart_osint_service():
+    global OSINT_RESET_IN_PROGRESS, OSINT_RESET_STARTED_AT
+    try:
+        await _render_api_request(
+            f"/services/{OSINT_RENDER_SERVICE_ID}/restart",
+            method="POST",
+        )
+    except Exception:
+        logger.exception("Failed to restart OSINT service for RAM reset")
+        OSINT_RESET_IN_PROGRESS = False
+        OSINT_RESET_STARTED_AT = 0.0
+
+
 @app.post("/memory/reset")
-async def reset_memory(request: Request):
-    """Release reclaimable Python/Linux heap pages; never reset while a scan is active."""
-    state = scan_state()
-    if state["scanning"]:
-        raise HTTPException(status_code=409, detail="Нельзя очищать ОЗУ во время сканирования")
-    release_process_memory()
-    return memory()
+async def reset_memory(background_tasks: BackgroundTasks):
+    """Restart the OSINT Render service only when no scan is active."""
+    global OSINT_RESET_IN_PROGRESS, OSINT_RESET_STARTED_AT
+
+    async with OSINT_RESET_LOCK:
+        state = scan_state()
+        if state["scanning"]:
+            raise HTTPException(status_code=409, detail="Нельзя очищать ОЗУ во время сканирования")
+        if state["resetting"]:
+            raise HTTPException(status_code=409, detail="Основной сервер уже перезапускается")
+
+        OSINT_RESET_IN_PROGRESS = True
+        OSINT_RESET_STARTED_AT = time.time()
+        background_tasks.add_task(_restart_osint_service)
+
+        return {
+            "ok": True,
+            "action": "restart",
+            "service": "glaz-boga-osint",
+            "ready": False,
+        }
 
 
 MAILACCESS_RENDER_SERVICE_ID = "srv-danemmjtqb8s73blr0i0"
@@ -600,6 +647,8 @@ async def username(request: Request, q: str = Query(min_length=1, max_length=64)
     global ACTIVE_JOB_ID
 
     cleanup_jobs()
+    if osint_resetting():
+        raise HTTPException(status_code=503, detail="Основной сервер перезапускается. Повторите поиск после восстановления.")
 
     if ACTIVE_JOB_ID and ACTIVE_JOB_ID in JOBS:
         active = JOBS[ACTIVE_JOB_ID]
@@ -1379,6 +1428,8 @@ async def deep_search(
     global ACTIVE_DEEP_JOB_ID
 
     cleanup_deep_jobs()
+    if osint_resetting():
+        raise HTTPException(status_code=503, detail="Основной сервер перезапускается. Повторите поиск после восстановления.")
 
     query = q.strip()
     job_id = job_id or uuid.uuid4().hex
