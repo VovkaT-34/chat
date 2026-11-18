@@ -9,10 +9,31 @@ let supabaseClient = null;
 const controlsEl = () => document.getElementById('mailaccessRamControls');
 const ramEl = () => document.getElementById('mailaccessRamIndicator');
 const resetEl = () => document.getElementById('mailaccessRamReset');
+let scanning = false;
+let resetInProgress = false;
 
 function setVisible(visible){
   const el = controlsEl();
   if(el) el.hidden = !visible;
+}
+
+function setScanning(value){
+  scanning = !!value;
+  const b = resetEl();
+  if(!b) return;
+  const busy = scanning || resetInProgress;
+  b.disabled = busy;
+  b.textContent = busy ? 'Очистить · занято' : 'Очистить';
+  b.title = scanning ? 'Очистка ОЗУ недоступна во время поиска' : resetInProgress ? 'Очистка ОЗУ выполняется' : '';
+}
+
+async function updateScanState(){
+  try{
+    const r = await fetch(RENDER_MAIN + '/scan/state?ts=' + Date.now(), {cache:'no-store', headers:await authHeaders()});
+    if(!r.ok) return;
+    const d = await r.json();
+    setScanning(d.scanning === true);
+  }catch(e){}
 }
 
 async function authHeaders(){
@@ -56,7 +77,8 @@ async function updateRam(){
 async function resetRam(){
   const b = resetEl();
   if(!b || b.disabled) return;
-  b.disabled = true;
+  resetInProgress = true;
+  setScanning(scanning);
   try{
     const r = await fetch(RENDER_MAIN + '/mailaccess/memory/reset', {
       method:'POST', cache:'no-store', headers:await authHeaders()
@@ -70,7 +92,8 @@ async function resetRam(){
   }catch(e){
     alert('Не удалось выполнить очистку ОЗУ MailAccess.');
   }finally{
-    b.disabled = false;
+    resetInProgress = false;
+    await updateScanState();
   }
 }
 
@@ -83,6 +106,7 @@ function start(){
   }
 
   updateRam();
+  updateScanState();
   let busy = false;
   const tick = async () => {
     if(busy){
@@ -90,7 +114,7 @@ function start(){
       return;
     }
     busy = true;
-    await updateRam();
+    await Promise.allSettled([updateRam(), updateScanState()]);
     busy = false;
     setTimeout(tick, 5000);
   };
