@@ -16,9 +16,9 @@
       <stop offset="100%" stop-color="#050408"/>
     </linearGradient>
   </defs>
-  <rect width="108" height="108" fill="url(#shade)"/>
-  <rect width="108" height="108" fill="url(#violetTopRight)"/>
-  <rect width="108" height="108" fill="url(#violetBottomLeft)"/>
+  <rect x="0" y="0" width="108" height="108" rx="18" ry="18" fill="url(#shade)"/>
+  <rect x="0" y="0" width="108" height="108" rx="18" ry="18" fill="url(#violetTopRight)"/>
+  <rect x="0" y="0" width="108" height="108" rx="18" ry="18" fill="url(#violetBottomLeft)"/>
   <path d="M25 31.5c0-5.25 4.25-9.5 9.5-9.5h39c5.25 0 9.5 4.25 9.5 9.5v28c0 5.25-4.25 9.5-9.5 9.5H53l-13 10v-10h-5.5c-5.25 0-9.5-4.25-9.5-9.5z" fill="#fff"/>
   <path d="M38 41h33v5.5H38zM38 53h24v5.5H38z" fill="#542477"/>
 </svg>
