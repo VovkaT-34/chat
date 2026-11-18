@@ -351,21 +351,31 @@ def release_process_memory():
         pass
 
 
-async def _restart_osint_service():
-    global OSINT_RESET_IN_PROGRESS, OSINT_RESET_STARTED_AT
-    try:
-        await _render_api_request(
-            f"/services/{OSINT_RENDER_SERVICE_ID}/restart",
-            method="POST",
-        )
-    except Exception:
-        logger.exception("Failed to restart OSINT service for RAM reset")
-        OSINT_RESET_IN_PROGRESS = False
-        OSINT_RESET_STARTED_AT = 0.0
+def release_maigret_cache_if_idle():
+    """Drop the large Maigret database after all Maigret scans have finished."""
+    global DB, SITES
+
+    quick_running = bool(
+        ACTIVE_JOB_ID
+        and ACTIVE_JOB_ID in JOBS
+        and JOBS[ACTIVE_JOB_ID].get("status") not in {"done", "error", "cancelled"}
+    )
+    deep_job = DEEP_JOBS.get(ACTIVE_DEEP_JOB_ID) if ACTIVE_DEEP_JOB_ID else None
+    deep_maigret_running = bool(
+        deep_job
+        and deep_job.get("kind") == "username"
+        and deep_job.get("status") not in {"done", "error", "cancelled"}
+    )
+    if quick_running or deep_maigret_running:
+        return
+
+    DB = None
+    SITES = None
+    release_process_memory()
 
 
 @app.post("/memory/reset")
-async def reset_memory(background_tasks: BackgroundTasks):
+async def reset_memory():
     """Restart the OSINT Render service only when no scan is active."""
     global OSINT_RESET_IN_PROGRESS, OSINT_RESET_STARTED_AT
 
@@ -378,7 +388,15 @@ async def reset_memory(background_tasks: BackgroundTasks):
 
         OSINT_RESET_IN_PROGRESS = True
         OSINT_RESET_STARTED_AT = time.time()
-        background_tasks.add_task(_restart_osint_service)
+        try:
+            await _render_api_request(
+                f"/services/{OSINT_RENDER_SERVICE_ID}/restart",
+                method="POST",
+            )
+        except HTTPException:
+            OSINT_RESET_IN_PROGRESS = False
+            OSINT_RESET_STARTED_AT = 0.0
+            raise
 
         return {
             "ok": True,
@@ -640,6 +658,8 @@ async def run_username_job(job_id: str, username: str, sites):
 
         if ACTIVE_JOB_ID == job_id:
             ACTIVE_JOB_ID = None
+        sites = None
+        release_maigret_cache_if_idle()
 
 
 @app.get("/username")
@@ -1398,12 +1418,16 @@ async def run_deep_job(job_id: str, kind: str, query: str):
         if kind == "email_userscanner":
             release_process_memory()
 
+        if kind == "username":
+            sites = None
+
         job["finished_at"] = time.time()
 
         if ACTIVE_DEEP_JOB_ID == job_id:
             ACTIVE_DEEP_JOB_ID = None
 
         DEEP_TASKS.pop(job_id, None)
+        release_maigret_cache_if_idle()
 
 
 @app.get("/deep")
