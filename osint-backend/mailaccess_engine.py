@@ -12,7 +12,7 @@ import websockets
 
 logger = logging.getLogger(__name__)
 
-MAILACCESS_TIMEOUT = 900
+MAILACCESS_TIMEOUT = 3600
 MAX_CONCURRENT_MODULES = 1
 MAILACCESS_HOST = "127.0.0.1"
 MAILACCESS_URL = os.getenv("MAILACCESS_URL", "").strip().rstrip("/")
@@ -198,10 +198,13 @@ async def mailaccess_search(
             ),
 
             "ENABLE_MAIGRET_PLATFORMS": "true",
-            "ENABLE_MAIGRET_WAVE2": "false",
+            "ENABLE_MAIGRET_WAVE2": "true",
+            "ENABLE_USERNAME_PLATFORMS": "true",
+            "ENABLE_USERNAME_WAVE2": "true",
 
-            "ENABLE_BREACH_DEEP": "false",
-            "ENABLE_EMAIL_DISCOVERY": "false",
+            "ENABLE_BREACH_DEEP": "true",
+            "BREACH_DEEP_FULL": "true",
+            "ENABLE_EMAIL_DISCOVERY": "true",
 
             "RATE_LIMIT_ENABLED": "true",
             "REQUEST_DELAY_MS": "1000",
@@ -341,6 +344,7 @@ async def mailaccess_search(
                 json={
                     "email": email,
                     "force": True,
+                    "enable_modules": ["all"],
                 },
             )
 
