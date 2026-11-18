@@ -73,6 +73,9 @@ DEEP_JOB_OWNERS = {}
 DEEP_TASKS = {}
 DEEP_CANCEL_REQUESTS = {}
 MAILACCESS_MEMORY_CACHE = {"at": 0.0, "ram_mb": None}
+MAILACCESS_RESET_LOCK = asyncio.Lock()
+MAILACCESS_RESET_IN_PROGRESS = False
+MAILACCESS_RESET_COOLDOWN_UNTIL = 0.0
 ACTIVE_DEEP_JOB_ID = None
 
 
@@ -445,11 +448,57 @@ async def mailaccess_memory():
 @app.post("/mailaccess/memory/reset")
 async def mailaccess_memory_reset(request: Request):
     """Restart the isolated MailAccess Render service after confirming no local deep scan is active."""
-    state = scan_state()
-    if state["scanning"]:
-        raise HTTPException(status_code=409, detail="Нельзя очищать ОЗУ во время сканирования")
-    await _render_api_request(f"/services/{MAILACCESS_RENDER_SERVICE_ID}/restart", method="POST")
-    return {"ok": True, "action": "restart", "service": "glaz-boga-mailaccess"}
+    global MAILACCESS_RESET_IN_PROGRESS, MAILACCESS_RESET_COOLDOWN_UNTIL
+
+    async with MAILACCESS_RESET_LOCK:
+        state = scan_state()
+        if state["scanning"]:
+            raise HTTPException(status_code=409, detail="Нельзя перезапускать MailAccess во время глубокого поиска")
+        now = time.time()
+        if now < MAILACCESS_RESET_COOLDOWN_UNTIL:
+            wait_seconds = max(1, int(MAILACCESS_RESET_COOLDOWN_UNTIL - now))
+            raise HTTPException(
+                status_code=429,
+                detail=f"MailAccess уже перезапускался. Повторная очистка будет доступна через {wait_seconds} сек.",
+            )
+
+        MAILACCESS_RESET_IN_PROGRESS = True
+        MAILACCESS_RESET_COOLDOWN_UNTIL = now + 60
+        try:
+            await _render_api_request(
+                f"/services/{MAILACCESS_RENDER_SERVICE_ID}/restart",
+                method="POST",
+            )
+
+            # Render accepts the restart request before the service is ready.
+            # Wait for the isolated MailAccess API to answer health checks so
+            # the UI cannot immediately trigger another restart.
+            await asyncio.sleep(5)
+            deadline = asyncio.get_running_loop().time() + 45
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                while asyncio.get_running_loop().time() < deadline:
+                    try:
+                        response = await client.get(
+                            "https://glaz-boga-mailaccess.onrender.com/health"
+                        )
+                        if response.status_code == 200:
+                            MAILACCESS_MEMORY_CACHE.update({"at": 0.0, "ram_mb": None})
+                            return {
+                                "ok": True,
+                                "action": "restart",
+                                "service": "glaz-boga-mailaccess",
+                                "ready": True,
+                            }
+                    except httpx.HTTPError:
+                        pass
+                    await asyncio.sleep(2)
+
+            raise HTTPException(
+                status_code=504,
+                detail="Перезапуск отправлен, но MailAccess не подтвердил готовность за 50 секунд. Не нажимайте очистку повторно; проверьте статус сервиса.",
+            )
+        finally:
+            MAILACCESS_RESET_IN_PROGRESS = False
 
 
 async def run_username_job(job_id: str, username: str, sites):
