@@ -9,7 +9,7 @@ from importlib.resources import files
 import httpx
 
 import phonenumbers
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from maigret import search as maigret_search
