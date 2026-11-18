@@ -659,6 +659,9 @@ async def run_username_job(job_id: str, username: str, sites):
         if ACTIVE_JOB_ID == job_id:
             ACTIVE_JOB_ID = None
         sites = None
+        items = None
+        batch = None
+        found = None
         release_maigret_cache_if_idle()
 
 
@@ -1420,6 +1423,9 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
         if kind == "username":
             sites = None
+            items = None
+            batch = None
+            found = None
 
         job["finished_at"] = time.time()
 
