@@ -204,6 +204,7 @@ async def require_authenticated_user(request: Request):
         profile = profiles[0] if isinstance(profiles, list) and profiles else None
         if not profile or profile.get("approved") is not True:
             raise HTTPException(status_code=403, detail="Требуется одобренный аккаунт")
+        user["role"] = profile.get("role")
 
         permission_response = await client.post(
             "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/rpc/has_app_access",
@@ -229,6 +230,7 @@ async def enforce_admin_access(request: Request, call_next):
     try:
         user = await require_authenticated_user(request)
         request.state.user_id = user["id"]
+        request.state.user_role = user.get("role")
     except HTTPException as exc:
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
@@ -443,28 +445,9 @@ async def mailaccess_memory():
 @app.post("/mailaccess/memory/reset")
 async def mailaccess_memory_reset(request: Request):
     """Restart the isolated MailAccess Render service after confirming no local deep scan is active."""
-    authorization = request.headers.get("authorization", "")
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            role_response = await client.post(
-                "https://sxkukrqjtgkxmzuzondm.supabase.co/rest/v1/rpc/get_my_access_status",
-                headers={
-                    "Authorization": authorization,
-                    "apikey": "sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3n",
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                },
-            )
-        if role_response.status_code != 200:
-            raise HTTPException(status_code=503, detail="Не удалось проверить роль пользователя")
-        role_rows = role_response.json()
-        role = role_rows[0].get("role") if isinstance(role_rows, list) and role_rows else None
-        if role != "superadmin":
-            raise HTTPException(status_code=403, detail="Перезапуск MailAccess доступен только супер-администратору")
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(status_code=503, detail="Не удалось проверить роль пользователя")
+    role = getattr(request.state, "user_role", None)
+    if role != "superadmin":
+        raise HTTPException(status_code=403, detail="Перезапуск MailAccess доступен только супер-администратору")
 
     state = scan_state()
     if state["scanning"]:
