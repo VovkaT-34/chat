@@ -271,6 +271,7 @@ def scan_state():
         "quick": quick_running,
         "deep": deep_running,
         "resetting": osint_resetting(),
+        "mailaccess_resetting": MAILACCESS_RESET_IN_PROGRESS,
     }
 
 
@@ -431,12 +432,85 @@ async def _render_api_request(path: str, method: str = "GET"):
         raise HTTPException(status_code=502, detail="Не удалось получить данные Render API")
 
 
+async def _restart_mailaccess_service():
+    previous_instances = await _render_api_request(
+        f"/services/{MAILACCESS_RENDER_SERVICE_ID}/instances"
+    )
+    previous_ids = {
+        str(instance.get("id"))
+        for instance in previous_instances
+        if isinstance(instance, dict) and instance.get("id")
+    } if isinstance(previous_instances, list) else set()
+
+    await _render_api_request(
+        f"/services/{MAILACCESS_RENDER_SERVICE_ID}/restart",
+        method="POST",
+    )
+
+    # Wait for the previous Render instance to disappear before accepting
+    # health from the replacement instance.
+    await asyncio.sleep(5)
+    deadline = asyncio.get_running_loop().time() + 45
+    async with httpx.AsyncClient(timeout=4.0) as client:
+        while asyncio.get_running_loop().time() < deadline:
+            current_instances = await _render_api_request(
+                f"/services/{MAILACCESS_RENDER_SERVICE_ID}/instances"
+            )
+            current_ids = {
+                str(instance.get("id"))
+                for instance in current_instances
+                if isinstance(instance, dict) and instance.get("id")
+            } if isinstance(current_instances, list) else set()
+            replacement_ready = bool(current_ids) and (
+                not previous_ids or not current_ids.intersection(previous_ids)
+            )
+            if replacement_ready:
+                try:
+                    response = await client.get(
+                        "https://glaz-boga-mailaccess.onrender.com/health"
+                    )
+                    if response.status_code == 200 or (
+                        response.status_code == 429
+                        and (response.headers.get("CF-Ray") or "cloudflare" in response.headers.get("Server", "").lower())
+                    ):
+                        MAILACCESS_MEMORY_CACHE.update({"at": 0.0, "ram_mb": None})
+                        return
+                except httpx.HTTPError:
+                    pass
+            await asyncio.sleep(2)
+
+    raise HTTPException(
+        status_code=504,
+        detail="Перезапуск отправлен, но MailAccess не подтвердил готовность за 50 секунд. Проверьте статус сервиса.",
+    )
+
+
+async def _restart_mailaccess_after_scan():
+    global MAILACCESS_RESET_IN_PROGRESS, MAILACCESS_RESET_COOLDOWN_UNTIL
+
+    async with MAILACCESS_RESET_LOCK:
+        if MAILACCESS_RESET_IN_PROGRESS:
+            return
+
+        MAILACCESS_RESET_IN_PROGRESS = True
+        MAILACCESS_MEMORY_CACHE.update({"at": 0.0, "ram_mb": None})
+        try:
+            await _restart_mailaccess_service()
+            MAILACCESS_RESET_COOLDOWN_UNTIL = time.time() + 60
+        except Exception as exc:
+            logger.warning("Automatic MailAccess RAM reset failed: %s", exc)
+        finally:
+            MAILACCESS_RESET_IN_PROGRESS = False
+
+
 @app.get("/mailaccess/memory")
 async def mailaccess_memory():
     """Return cached current Render memory usage for the isolated MailAccess service."""
     now = time.time()
     if (MAILACCESS_MEMORY_CACHE["ram_mb"] is not None and now - MAILACCESS_MEMORY_CACHE["at"] < 10):
         return {"ram_mb": MAILACCESS_MEMORY_CACHE["ram_mb"], "unit": "MB RAM", "service": "glaz-boga-mailaccess", "cached": True}
+    if MAILACCESS_MEMORY_CACHE["ram_mb"] is None and MAILACCESS_MEMORY_CACHE["at"] > 0 and now - MAILACCESS_MEMORY_CACHE["at"] < 10:
+        raise HTTPException(status_code=502, detail="Ожидание метрик активного экземпляра MailAccess")
     end = now
     start = end - 180
     end_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(end))
@@ -477,6 +551,7 @@ async def mailaccess_memory():
         if isinstance(instance, dict) and instance.get("id")
     }
     if not active_instance_ids:
+        MAILACCESS_MEMORY_CACHE.update({"at": now, "ram_mb": None})
         raise HTTPException(status_code=502, detail="Render API пока не вернул активный экземпляр MailAccess")
 
     points = []
@@ -509,6 +584,7 @@ async def mailaccess_memory():
                 points.append((point, series.get("unit", "")))
 
     if not points:
+        MAILACCESS_MEMORY_CACHE.update({"at": now, "ram_mb": None})
         raise HTTPException(status_code=502, detail="Render API не вернул значения RAM активного экземпляра MailAccess")
 
     latest, unit = max(points, key=lambda item: str(item[0].get("timestamp", "")))
@@ -543,47 +619,26 @@ async def mailaccess_memory_reset(request: Request):
             raise HTTPException(status_code=409, detail="Нельзя перезапускать MailAccess во время глубокого поиска")
         now = time.time()
         if now < MAILACCESS_RESET_COOLDOWN_UNTIL:
-            wait_seconds = max(1, int(MAILACCESS_RESET_COOLDOWN_UNTIL - now))
-            raise HTTPException(
-                status_code=429,
-                detail=f"MailAccess уже перезапускался. Повторная очистка будет доступна через {wait_seconds} сек.",
-            )
+            return {
+                "ok": True,
+                "action": "already_reset",
+                "service": "glaz-boga-mailaccess",
+                "ready": True,
+            }
+
+        if MAILACCESS_RESET_IN_PROGRESS:
+            raise HTTPException(status_code=409, detail="MailAccess уже перезапускается")
 
         MAILACCESS_RESET_IN_PROGRESS = True
         MAILACCESS_RESET_COOLDOWN_UNTIL = now + 60
         try:
-            await _render_api_request(
-                f"/services/{MAILACCESS_RENDER_SERVICE_ID}/restart",
-                method="POST",
-            )
-
-            # Render accepts the restart request before the service is ready.
-            # Wait for the isolated MailAccess API to answer health checks so
-            # the UI cannot immediately trigger another restart.
-            await asyncio.sleep(5)
-            deadline = asyncio.get_running_loop().time() + 45
-            async with httpx.AsyncClient(timeout=4.0) as client:
-                while asyncio.get_running_loop().time() < deadline:
-                    try:
-                        response = await client.get(
-                            "https://glaz-boga-mailaccess.onrender.com/health"
-                        )
-                        if response.status_code == 200:
-                            MAILACCESS_MEMORY_CACHE.update({"at": 0.0, "ram_mb": None})
-                            return {
-                                "ok": True,
-                                "action": "restart",
-                                "service": "glaz-boga-mailaccess",
-                                "ready": True,
-                            }
-                    except httpx.HTTPError:
-                        pass
-                    await asyncio.sleep(2)
-
-            raise HTTPException(
-                status_code=504,
-                detail="Перезапуск отправлен, но MailAccess не подтвердил готовность за 50 секунд. Не нажимайте очистку повторно; проверьте статус сервиса.",
-            )
+            await _restart_mailaccess_service()
+            return {
+                "ok": True,
+                "action": "restart",
+                "service": "glaz-boga-mailaccess",
+                "ready": True,
+            }
         finally:
             MAILACCESS_RESET_IN_PROGRESS = False
 
@@ -1434,6 +1489,9 @@ async def run_deep_job(job_id: str, kind: str, query: str):
 
         DEEP_TASKS.pop(job_id, None)
         release_maigret_cache_if_idle()
+
+        if kind == "email_mailaccess" and job["status"] == "done":
+            await _restart_mailaccess_after_scan()
 
 
 @app.get("/deep")

@@ -66,6 +66,8 @@ async def _wait_health(
                             diagnostic_headers,
                             response.text[:400],
                         )
+                        if response.headers.get("CF-Ray") or "cloudflare" in response.headers.get("Server", "").lower():
+                            return True
 
                     retry_after = response.headers.get("Retry-After", "")
                     try:

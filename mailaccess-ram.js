@@ -11,20 +11,24 @@ const ramEl = () => document.getElementById('mailaccessRamIndicator');
 const resetEl = () => document.getElementById('mailaccessRamReset');
 let scanning = false;
 let resetInProgress = false;
+let serviceResetting = false;
 
 function setVisible(visible){
   const el = controlsEl();
   if(el) el.hidden = !visible;
 }
 
-function setScanning(value){
+function setScanning(value, resetting){
   scanning = !!value;
+  serviceResetting = !!resetting;
   const b = resetEl();
+  const el = ramEl();
+  if(serviceResetting && el) el.textContent = 'ОЗУ: перезапуск…';
   if(!b) return;
-  const busy = scanning || resetInProgress;
+  const busy = scanning || serviceResetting || resetInProgress;
   b.disabled = busy;
   b.textContent = busy ? 'Очистить · занято' : 'Очистить';
-  b.title = scanning ? 'Очистка ОЗУ недоступна во время поиска' : resetInProgress ? 'Очистка ОЗУ выполняется' : '';
+  b.title = serviceResetting ? 'MailAccess автоматически очищается после проверки' : scanning ? 'Очистка ОЗУ недоступна во время поиска' : resetInProgress ? 'Очистка ОЗУ выполняется' : '';
 }
 
 async function updateScanState(){
@@ -32,7 +36,7 @@ async function updateScanState(){
     const r = await fetch(RENDER_MAIN + '/scan/state?ts=' + Date.now(), {cache:'no-store', headers:await authHeaders()});
     if(!r.ok) return;
     const d = await r.json();
-    setScanning(d.scanning === true);
+    setScanning(d.scanning === true, d.mailaccess_resetting === true);
   }catch(e){}
 }
 
@@ -62,13 +66,21 @@ async function updateRam(){
   setVisible(true);
   const el = ramEl();
   if(!el) return;
+  if(serviceResetting || resetInProgress){
+    el.textContent = 'ОЗУ: перезапуск…';
+    return;
+  }
   try{
     const r = await fetch(RENDER_MAIN + '/mailaccess/memory?ts=' + Date.now(), {cache:'no-store', headers:await authHeaders()});
-    if(!r.ok) return;
+    if(!r.ok){
+      if(r.status === 502) el.textContent = 'ОЗУ: ожидание метрик';
+      return;
+    }
     const d = await r.json();
     const n = Number(d.ram_mb);
     if(Number.isFinite(n)){
       el.textContent = 'ОЗУ: ' + n.toFixed(1) + ' MB';
+      el.title = '';
       el.classList.toggle('osint-ram-high', n >= 500);
     }
   }catch(e){}
@@ -78,7 +90,9 @@ async function resetRam(){
   const b = resetEl();
   if(!b || b.disabled) return;
   resetInProgress = true;
-  setScanning(scanning);
+  const el = ramEl();
+  if(el) el.textContent = 'ОЗУ: перезапуск…';
+  setScanning(scanning, false);
   try{
     const r = await fetch(RENDER_MAIN + '/mailaccess/memory/reset', {
       method:'POST', cache:'no-store', headers:await authHeaders()
