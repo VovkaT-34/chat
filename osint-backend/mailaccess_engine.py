@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import json
+import logging
 import os
 import socket
 from typing import List, Tuple
@@ -8,6 +9,8 @@ from typing import List, Tuple
 import httpx
 import websockets
 
+
+logger = logging.getLogger(__name__)
 
 MAILACCESS_TIMEOUT = 900
 MAX_CONCURRENT_MODULES = 1
@@ -27,6 +30,7 @@ async def _wait_health(
     timeout: float = 90.0,
 ) -> bool:
     deadline = asyncio.get_running_loop().time() + timeout
+    rate_limit_logged = False
 
     async with httpx.AsyncClient(
         base_url=base_url,
@@ -42,6 +46,27 @@ async def _wait_health(
                     return True
 
                 if response.status_code == 429:
+                    if not rate_limit_logged:
+                        rate_limit_logged = True
+                        diagnostic_headers = {
+                            name: response.headers.get(name)
+                            for name in (
+                                "Retry-After",
+                                "Server",
+                                "Via",
+                                "Content-Type",
+                                "CF-Ray",
+                                "X-Request-ID",
+                            )
+                            if response.headers.get(name) is not None
+                        }
+                        logger.warning(
+                            "MailAccess /health returned HTTP 429; "
+                            "headers=%s body=%r",
+                            diagnostic_headers,
+                            response.text[:400],
+                        )
+
                     retry_after = response.headers.get("Retry-After", "")
                     try:
                         delay = max(5.0, float(retry_after))
