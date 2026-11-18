@@ -1383,6 +1383,12 @@ async def deep_search(
         DEEP_JOBS[job_id] = cancelled_job
         return cancelled_job
 
+    if kind == "email_mailaccess" and MAILACCESS_RESET_IN_PROGRESS:
+        raise HTTPException(
+            status_code=409,
+            detail="MailAccess перезапускается. Дождитесь готовности сервиса и повторите поиск.",
+        )
+
     if ACTIVE_DEEP_JOB_ID and ACTIVE_DEEP_JOB_ID in DEEP_JOBS:
         raise HTTPException(
             status_code=409,
