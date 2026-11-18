@@ -399,11 +399,33 @@ async def mailaccess_memory():
     else:
         series_items = []
 
+    # Render metrics can temporarily contain both the old and new instance
+    # during a restart. Only use metrics for instances currently listed by Render.
+    active_instances = await _render_api_request(
+        f"/services/{MAILACCESS_RENDER_SERVICE_ID}/instances"
+    )
+    if not isinstance(active_instances, list):
+        raise HTTPException(status_code=502, detail="Render API вернул некорректный список экземпляров MailAccess")
+    active_instance_ids = {
+        str(instance.get("id"))
+        for instance in active_instances
+        if isinstance(instance, dict) and instance.get("id")
+    }
+    if not active_instance_ids:
+        raise HTTPException(status_code=502, detail="Render API пока не вернул активный экземпляр MailAccess")
+
     points = []
     for series in series_items:
         if not isinstance(series, dict):
             continue
         labels = series.get("labels", [])
+        instance_ids = {
+            str(label.get("value"))
+            for label in labels
+            if isinstance(label, dict) and label.get("field") == "instance"
+        } if isinstance(labels, list) else set()
+        if not instance_ids.intersection(active_instance_ids):
+            continue
         service_labels = [
             label for label in labels
             if isinstance(label, dict)
@@ -422,7 +444,7 @@ async def mailaccess_memory():
                 points.append((point, series.get("unit", "")))
 
     if not points:
-        raise HTTPException(status_code=502, detail="Render API не вернул значения RAM MailAccess")
+        raise HTTPException(status_code=502, detail="Render API не вернул значения RAM активного экземпляра MailAccess")
 
     latest, unit = max(points, key=lambda item: str(item[0].get("timestamp", "")))
     try:
