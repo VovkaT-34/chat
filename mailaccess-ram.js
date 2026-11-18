@@ -31,15 +31,6 @@ function setScanning(value, resetting){
   b.title = serviceResetting ? 'MailAccess автоматически очищается после проверки' : scanning ? 'Очистка ОЗУ недоступна во время поиска' : resetInProgress ? 'Очистка ОЗУ выполняется' : '';
 }
 
-async function updateScanState(){
-  try{
-    const r = await fetch(RENDER_MAIN + '/scan/state?ts=' + Date.now(), {cache:'no-store', headers:await authHeaders()});
-    if(!r.ok) return;
-    const d = await r.json();
-    setScanning(d.scanning === true, d.mailaccess_resetting === true);
-  }catch(e){}
-}
-
 async function authHeaders(){
   try{
     const existing = window.supabaseClient || window.supabase;
@@ -119,8 +110,13 @@ function start(){
     b.addEventListener('click', resetRam);
   }
 
-  updateRam();
-  updateScanState();
+  window.addEventListener('glaz-scan-state', event => {
+    const state = event.detail || {};
+    setScanning(state.scanning === true, state.mailaccessResetting === true);
+  });
+  if(window.__glazScanState){
+    setScanning(window.__glazScanState.scanning === true, window.__glazScanState.mailaccessResetting === true);
+  }
   let busy = false;
   const tick = async () => {
     if(busy){
@@ -128,9 +124,9 @@ function start(){
       return;
     }
     busy = true;
-    await Promise.allSettled([updateRam(), updateScanState()]);
+    await updateRam();
     busy = false;
-    setTimeout(tick, 5000);
+    setTimeout(tick, 10000);
   };
   tick();
 }
