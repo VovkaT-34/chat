@@ -66,9 +66,6 @@ async def _wait_health(
                             diagnostic_headers,
                             response.text[:400],
                         )
-                        if response.headers.get("CF-Ray") or "cloudflare" in response.headers.get("Server", "").lower():
-                            return True
-
                     retry_after = response.headers.get("Retry-After", "")
                     try:
                         delay = max(5.0, float(retry_after))
@@ -295,9 +292,34 @@ async def mailaccess_search(
             headers=api_headers,
         ) as client:
 
-            modules_response = await client.get(
-                "/api/modules/"
-            )
+            modules_response = None
+            for attempt in range(3):
+                modules_response = await client.get("/api/modules/")
+                if modules_response.status_code != 429 or attempt == 2:
+                    break
+
+                retry_after = modules_response.headers.get("Retry-After", "")
+                try:
+                    delay = max(1.0, min(30.0, float(retry_after)))
+                except (TypeError, ValueError):
+                    delay = 5.0 * (attempt + 1)
+                logger.warning(
+                    "MailAccess /api/modules/ returned HTTP 429; retry %s/2 in %.1f seconds",
+                    attempt + 1,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+
+            if modules_response.status_code == 429:
+                diagnostic_headers = {
+                    name: modules_response.headers.get(name)
+                    for name in ("Retry-After", "Server", "Via", "CF-Ray", "X-RateLimit-Remaining")
+                    if modules_response.headers.get(name) is not None
+                }
+                raise RuntimeError(
+                    "MailAccess /api/modules/ вернул HTTP 429 после 3 попыток; "
+                    f"headers={diagnostic_headers}; body={modules_response.text[:300]!r}"
+                )
 
             modules_response.raise_for_status()
 

@@ -377,9 +377,7 @@ def release_maigret_cache_if_idle():
 
 @app.post("/memory/reset")
 async def reset_memory():
-    """Restart the OSINT Render service only when no scan is active."""
-    global OSINT_RESET_IN_PROGRESS, OSINT_RESET_STARTED_AT
-
+    """Release cached Maigret data without restarting the Render instance."""
     async with OSINT_RESET_LOCK:
         state = scan_state()
         if state["scanning"]:
@@ -387,23 +385,12 @@ async def reset_memory():
         if state["resetting"]:
             raise HTTPException(status_code=409, detail="Основной сервер уже перезапускается")
 
-        OSINT_RESET_IN_PROGRESS = True
-        OSINT_RESET_STARTED_AT = time.time()
-        try:
-            await _render_api_request(
-                f"/services/{OSINT_RENDER_SERVICE_ID}/restart",
-                method="POST",
-            )
-        except HTTPException:
-            OSINT_RESET_IN_PROGRESS = False
-            OSINT_RESET_STARTED_AT = 0.0
-            raise
-
+        release_maigret_cache_if_idle()
         return {
             "ok": True,
-            "action": "restart",
+            "action": "released",
             "service": "glaz-boga-osint",
-            "ready": False,
+            "ready": True,
         }
 
 
@@ -469,12 +456,17 @@ async def _restart_mailaccess_service():
                     response = await client.get(
                         "https://glaz-boga-mailaccess.onrender.com/health"
                     )
-                    if response.status_code == 200 or (
-                        response.status_code == 429
-                        and (response.headers.get("CF-Ray") or "cloudflare" in response.headers.get("Server", "").lower())
-                    ):
+                    if response.status_code == 200:
                         MAILACCESS_MEMORY_CACHE.update({"at": 0.0, "ram_mb": None})
                         return
+                    if response.status_code == 429:
+                        retry_after = response.headers.get("Retry-After", "")
+                        try:
+                            delay = max(5.0, min(30.0, float(retry_after)))
+                        except (TypeError, ValueError):
+                            delay = 10.0
+                        await asyncio.sleep(delay)
+                        continue
                 except httpx.HTTPError:
                     pass
             await asyncio.sleep(2)
