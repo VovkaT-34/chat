@@ -14,21 +14,54 @@
 <div class="page">
   <div class="top"><button class="back" onclick="location.href='games.html'">← Игры</button><h1 class="title">🧱 Тетрис</h1><span id="tetrisScore" class="score">0</span></div>
   <div class="tetris-wrap"><button id="tetrisSoundToggle" class="sound-toggle" type="button" aria-label="Звук включён">♫ ЗВУК</button><canvas id="tetrisCanvas" class="tetris-canvas" width="300" height="600"></canvas><div class="tetris-next"><canvas id="tetrisNextCanvas" width="64" height="64"></canvas></div></div>
-  <div class="game-controls-wide"><div class="wide-grid"><button class="mobile-pause pause-btn" onclick="toggleTetrisPause()">Пауза</button><button class="game-btn" data-tetris="left" aria-label="Влево"><svg class="dragon-art" viewBox="0 0 190 120" role="img" aria-label="Дракон выдыхает огонь" xmlns="http://www.w3.org/2000/svg">
+  <div class="game-controls-wide"><div class="wide-grid"><button class="mobile-pause pause-btn" onclick="toggleTetrisPause()">Пауза</button><button class="game-btn" data-tetris="left" aria-label="Влево"><svg class="dragon-art" viewBox="0 0 220 150" role="img" aria-label="Огнедышащий крылатый дракон" xmlns="http://www.w3.org/2000/svg">
 <defs>
-  <linearGradient id="dragonScale" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff09a"/><stop offset=".28" stop-color="#d99a27"/><stop offset=".62" stop-color="#8b3c13"/><stop offset="1" stop-color="#3c211c"/></linearGradient>
-  <linearGradient id="dragonWing" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7c84c"/><stop offset=".5" stop-color="#a84618"/><stop offset="1" stop-color="#4c211c"/></linearGradient>
-  <linearGradient id="dragonFire" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#fff9b0"/><stop offset=".35" stop-color="#ffe33e"/><stop offset=".72" stop-color="#ff6b08"/><stop offset="1" stop-color="#d71908"/></linearGradient>
-  <filter id="dragonGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <linearGradient id="dragonScale" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe98a"/><stop offset=".28" stop-color="#d58b25"/><stop offset=".62" stop-color="#963b17"/><stop offset="1" stop-color="#351a17"/></linearGradient>
+  <linearGradient id="dragonWing" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffd65a"/><stop offset=".48" stop-color="#b94b1d"/><stop offset="1" stop-color="#512018"/></linearGradient>
+  <linearGradient id="dragonFire" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#fffbd0"/><stop offset=".3" stop-color="#ffe53d"/><stop offset=".68" stop-color="#ff6a08"/><stop offset="1" stop-color="#c91b08"/></linearGradient>
+  <filter id="dragonGlow" x="-50%" y="-60%" width="210%" height="220%"><feGaussianBlur stdDeviation="3.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 </defs>
-<g class="dragon-wing"><path d="M78 69 Q42 52 30 13 Q52 21 61 36 Q57 13 66 4 Q91 28 91 54 L105 70Z" fill="url(#dragonWing)" stroke="#4a2015" stroke-width="4" stroke-linejoin="round"/><path d="M78 65 48 29 M79 65 65 14 M82 64 87 33" fill="none" stroke="#ffd66a" stroke-width="2.4" stroke-linecap="round"/></g>
-<path d="M54 75 Q29 89 13 76 Q30 75 36 62 Q21 64 10 56 Q38 55 54 63" fill="none" stroke="#8e3b18" stroke-width="10" stroke-linecap="round"/><path d="M54 75 Q29 89 13 76 Q30 75 36 62" fill="none" stroke="#e7a936" stroke-width="4" stroke-linecap="round"/>
-<g class="dragon-body"><path d="M49 72 Q57 48 87 54 Q108 55 119 72 Q105 91 77 91 Q55 88 49 72Z" fill="url(#dragonScale)" stroke="#45231a" stroke-width="4"/><path d="M60 83 Q74 91 92 84" fill="none" stroke="#ffe18a" stroke-width="3" stroke-linecap="round"/><path d="M63 87 57 102 70 99 78 88 M96 86 103 99 116 101 108 83" fill="#a94d1d" stroke="#45231a" stroke-width="3" stroke-linejoin="round"/><path d="M58 101 53 105 M69 99 68 104 M106 99 111 104" stroke="#ffe18a" stroke-width="2" stroke-linecap="round"/></g>
-<path d="M89 65 Q100 42 122 38 L143 43 Q150 48 145 58 L126 68 Q111 74 96 79Z" fill="url(#dragonScale)" stroke="#45231a" stroke-width="4" stroke-linejoin="round"/><path d="M111 43 106 24 124 36 M132 39 139 22 144 43" fill="#d69a31" stroke="#45231a" stroke-width="3" stroke-linejoin="round"/>
-<path d="M132 45 Q144 39 157 47 L164 56 148 62 131 58Z" fill="#f0bb48" stroke="#45231a" stroke-width="3" stroke-linejoin="round"/><path d="M143 49 157 49" stroke="#3a1c15" stroke-width="3" stroke-linecap="round"/><ellipse cx="135" cy="43" rx="4" ry="3" fill="#fff6c0"/><circle cx="136" cy="43" r="2" fill="#1c1410"/><path d="M149 57 157 58" stroke="#6a2515" stroke-width="2.5" stroke-linecap="round"/>
-<g class="dragon-jaw"><path d="M128 56 Q145 62 161 57 L153 68 Q139 70 128 61Z" fill="#b94b22" stroke="#45231a" stroke-width="3" stroke-linejoin="round"/><path d="M139 60 143 65 146 60 150 64 153 59" fill="#fff0c2" stroke="#fff0c2" stroke-width="1.5"/></g>
-<g class="dragon-fire" filter="url(#dragonGlow)"><path d="M157 49 Q172 35 188 39 Q180 48 190 51 Q177 59 187 68 Q169 66 157 59 Q166 54 157 49Z" fill="url(#dragonFire)"/><path d="M157 51 Q171 46 181 49 Q172 54 181 59 Q167 58 157 55Z" fill="#fff8bd"/><path d="M166 42 Q172 31 179 29 Q177 39 182 42" fill="#ff8a0a"/></g>
-<g class="dragon-sparks" fill="#ffe56a"><path d="M174 27 177 19 180 28 187 31 180 34 177 42 174 34 167 31Z"/><circle cx="187" cy="75" r="2.5"/><circle cx="166" cy="18" r="2"/></g>
+<!-- Дальнее крыло с отчётливыми перепонками -->
+<g class="dragon-wing">
+ <path d="M102 91 Q72 77 55 14 Q79 27 91 47 Q85 19 103 5 Q119 33 119 57 Q137 30 154 25 Q148 62 130 91Z" fill="url(#dragonWing)" stroke="#4a2015" stroke-width="4" stroke-linejoin="round"/>
+ <path d="M108 88 67 26 M109 88 101 12 M113 86 145 34 M109 88 91 49" fill="none" stroke="#ffd978" stroke-width="2.6" stroke-linecap="round"/>
+</g>
+<!-- Длинный хвост -->
+<path d="M83 99 Q55 119 32 108 Q16 100 10 83 Q29 94 43 88 Q58 81 67 91" fill="none" stroke="#512219" stroke-width="15" stroke-linecap="round"/>
+<path d="M83 99 Q55 119 32 108 Q16 100 10 83" fill="none" stroke="#c97827" stroke-width="8" stroke-linecap="round"/>
+<path d="M12 83 2 69 22 76Z" fill="#e8b64b" stroke="#512219" stroke-width="3" stroke-linejoin="round"/>
+<!-- Тело и четыре лапы -->
+<g class="dragon-body">
+ <path d="M57 88 Q72 69 103 76 Q127 80 139 98 Q124 119 91 119 Q65 114 57 88Z" fill="url(#dragonScale)" stroke="#452019" stroke-width="4"/>
+ <path d="M68 99 Q86 112 112 103 M76 87 Q91 96 109 91" fill="none" stroke="#ffe18a" stroke-width="2.5" stroke-linecap="round"/>
+ <path d="M72 109 61 132 75 130 88 113 M111 111 119 132 135 133 129 105" fill="#a94a1b" stroke="#452019" stroke-width="4" stroke-linejoin="round"/>
+ <path d="M61 132 56 137 M73 130 72 137 M120 132 119 138 M132 132 139 137" stroke="#ffe7a0" stroke-width="2.5" stroke-linecap="round"/>
+</g>
+<!-- Шея, поднятая к голове -->
+<path d="M112 99 Q124 80 128 63 Q129 48 145 42 L164 47 Q163 66 149 77 Q143 92 137 106Z" fill="url(#dragonScale)" stroke="#452019" stroke-width="4" stroke-linejoin="round"/>
+<path d="M129 77 Q139 83 151 76" fill="none" stroke="#ffe18a" stroke-width="3" stroke-linecap="round"/>
+<!-- Шипы на загривке -->
+<path d="M119 79 108 65 125 70 128 55 139 65 147 51 151 67" fill="#e7ad3c" stroke="#512219" stroke-width="3" stroke-linejoin="round"/>
+<!-- Голова с длинной хищной мордой -->
+<path d="M139 43 Q145 25 166 25 Q181 25 190 35 L211 42 Q218 46 215 54 L194 60 Q179 65 160 58 L145 57Z" fill="url(#dragonScale)" stroke="#452019" stroke-width="4" stroke-linejoin="round"/>
+<!-- Два загнутых назад рога -->
+<path d="M151 31 Q137 15 126 10 Q134 28 143 39Z M168 27 Q166 10 175 3 Q178 20 180 31Z" fill="#f1cf77" stroke="#512219" stroke-width="3" stroke-linejoin="round"/>
+<!-- Глаз и ноздря -->
+<path d="M165 34 Q174 29 181 35" fill="none" stroke="#351711" stroke-width="4" stroke-linecap="round"/>
+<ellipse cx="175" cy="35" rx="3.2" ry="2.6" fill="#fff4b2"/><circle cx="176" cy="35" r="1.8" fill="#17100d"/>
+<path d="M204 45 209 47" stroke="#401a12" stroke-width="3" stroke-linecap="round"/>
+<!-- Нижняя челюсть -->
+<g class="dragon-jaw">
+ <path d="M158 55 Q181 62 215 53 L207 68 Q180 77 157 61Z" fill="#a9431d" stroke="#452019" stroke-width="3.5" stroke-linejoin="round"/>
+ <path d="M176 61 181 69 186 62 191 67 196 59" fill="#fff0c2" stroke="#fff0c2" stroke-width="1.5"/>
+</g>
+<!-- Пламя направлено прямо из пасти -->
+<g class="dragon-fire" filter="url(#dragonGlow)">
+ <path d="M211 43 Q225 27 239 33 Q231 44 244 48 Q230 55 242 67 Q222 66 209 57 Q218 50 211 43Z" fill="url(#dragonFire)"/>
+ <path d="M211 47 Q226 42 236 48 Q225 53 237 59 Q220 58 210 54Z" fill="#fffbd0"/>
+ <path d="M220 39 Q226 27 235 24 Q232 36 239 40" fill="#ff9a0b"/>
+</g>
+<g class="dragon-sparks" fill="#ffe56a"><path d="M224 19 228 9 232 19 241 23 232 27 228 37 224 27 215 23Z"/><circle cx="244" cy="76" r="3"/><circle cx="205" cy="20" r="2.5"/></g>
 </svg><span class="dragon-control-arrow">◀</span></button><button class="game-btn" data-tetris="rotate">↻</button><button class="game-btn" data-tetris="right">▶</button><button class="game-btn" data-tetris="down">▼</button></div></div>
   <p class="hint desktop-hint">Компьютер: ← → движение · ↑ поворот · ↓ вниз · Пробел — пауза</p>
 </div>
