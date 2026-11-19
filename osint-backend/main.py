@@ -475,53 +475,6 @@ async def _restart_mailaccess_service():
         status_code=504,
         detail="Перезапуск отправлен, но MailAccess не подтвердил готовность за 50 секунд. Проверьте статус сервиса.",
     )
-
-
-async def _ensure_mailaccess_service_awake():
-    """Wake the free MailAccess service with inbound traffic and wait for readiness."""
-    global MAILACCESS_RESET_IN_PROGRESS
-
-    async with MAILACCESS_RESET_LOCK:
-        MAILACCESS_RESET_IN_PROGRESS = True
-        MAILACCESS_MEMORY_CACHE.update({"at": 0.0, "ram_mb": None})
-        try:
-            deadline = asyncio.get_running_loop().time() + 150
-            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-                last_status = None
-                while asyncio.get_running_loop().time() < deadline:
-                    try:
-                        response = await client.get(
-                            "https://glaz-boga-mailaccess.onrender.com/health"
-                        )
-                        last_status = response.status_code
-                        if response.status_code == 200:
-                            return
-                        if response.status_code == 429:
-                            retry_after = response.headers.get("Retry-After", "")
-                            try:
-                                delay = max(5.0, min(20.0, float(retry_after)))
-                            except (TypeError, ValueError):
-                                delay = 10.0
-                        else:
-                            delay = 5.0
-                    except httpx.HTTPError:
-                        delay = 5.0
-
-                    remaining = deadline - asyncio.get_running_loop().time()
-                    if remaining > 0:
-                        await asyncio.sleep(min(delay, remaining))
-
-            raise HTTPException(
-                status_code=504,
-                detail=(
-                    "MailAccess не проснулся: сервис не подтвердил готовность "
-                    f"за 150 секунд (последний HTTP-статус: {last_status})."
-                ),
-            )
-        finally:
-            MAILACCESS_RESET_IN_PROGRESS = False
-
-
 async def _restart_mailaccess_after_scan():
     global MAILACCESS_RESET_IN_PROGRESS, MAILACCESS_RESET_COOLDOWN_UNTIL
 
@@ -1361,8 +1314,6 @@ async def run_deep_job(job_id: str, kind: str, query: str):
                 job["count"] = len(results)
                 job["results"] = list(results)
                 job["checked_items"] = [current]
-
-            await _ensure_mailaccess_service_awake()
 
             found, total, checked, errors, error_details, completed = await mailaccess_search(
                 query,
