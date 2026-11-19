@@ -32,6 +32,7 @@ body{padding:16px 14px 30px}
 .search input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.2);border-radius:13px;background:rgba(0,0,0,.3);color:#fff;padding:14px;font-size:16px;outline:none}
 .search button{border:4px solid #000;border-radius:13px;background:linear-gradient(135deg,#755d88 0%,#6a587d 62%,#3a2920 100%);color:#fff;padding:0 18px;font-weight:800;font-size:15px;cursor:pointer}
 .deep-button{background:linear-gradient(135deg,#0d0d0d 0%,#8f00d4 62%,#d97822 100%)!important}
+.deep-button.deep-button-busy{filter:brightness(.68) saturate(.8);box-shadow:inset 0 5px 8px rgba(0,0,0,.65),0 1px 0 rgba(255,255,255,.16);transform:translateY(2px);cursor:wait}
 .deep-kind{background:rgba(0,0,0,.3);font-size:15px;min-width:150px}
 .status,.deep-progress,.results{display:none;margin-top:10px;padding:11px 12px;border-radius:12px;background:rgba(255,255,255,.06);color:#d8cfd4;font-size:13px}
 .deep-progress{border:4px solid #39ff14;padding:14px}
@@ -310,6 +311,7 @@ deepDiagnostics=document.getElementById('deepDiagnostics'),
 stopDeep=document.getElementById('stopDeep'),
 deepRunning=document.getElementById('deepRunning');
 let currentType='all',deepTimer=null,deepJobId=null,deepRender=RENDER;
+function setDeepButtonBusy(busy){deepSearchButton.disabled=!!busy;deepSearchButton.textContent=busy?'Поиск — занято':'Поиск';deepSearchButton.classList.toggle('deep-button-busy',!!busy);}
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const enc=v=>encodeURIComponent(v.trim());
 function safeExternalUrl(value){
@@ -732,8 +734,7 @@ async function pollDeep(){
         deepJobId=null;
         stopDeep.classList.remove('active');
         deepRunning.classList.remove('active');
-        deepSearchButton.disabled=false;
-        deepSearchButton.textContent='Поиск';
+        setDeepButtonBusy(false);
       }else{
         deepStatus.innerHTML='Статус: <span class="deep-status-waiting">Render вернул HTTP '+r.status+' — ждём восстановления связи…</span>';
       }
@@ -746,8 +747,7 @@ async function pollDeep(){
       stopDeep.classList.remove('active');
       deepRunning.classList.remove('active');
       deepJobId=null;
-      deepSearchButton.disabled=false;
-      deepSearchButton.textContent='Поиск';
+      setDeepButtonBusy(false);
     }
   }catch(e){
     if(deepJobId===pollingJobId){
@@ -777,8 +777,7 @@ async function stopDeepSearch(){
     deepJobId=null;
     stopDeep.classList.remove('active');
     deepRunning.classList.remove('active');
-    deepSearchButton.disabled=false;
-    deepSearchButton.textContent='Поиск';
+    setDeepButtonBusy(false);
   }catch(e){
     if(deepJobId===stoppingJobId){
       deepStatus.textContent='Статус: ошибка остановки — '+e.message;
@@ -812,6 +811,7 @@ async function deepSearch(){
   }
   const requestJobId=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
   deepJobId=requestJobId;
+  setDeepButtonBusy(true);
   stopDeep.classList.add('active');
   stopDeep.disabled=false;
   deepRunning.classList.add('active');
