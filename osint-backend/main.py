@@ -477,6 +477,39 @@ async def _restart_mailaccess_service():
     )
 
 
+async def _ensure_mailaccess_service_awake():
+    """Wake the isolated MailAccess service only when it is not responding."""
+    global MAILACCESS_RESET_IN_PROGRESS
+
+    async with MAILACCESS_RESET_LOCK:
+        instances = await _render_api_request(
+            f"/services/{MAILACCESS_RENDER_SERVICE_ID}/instances"
+        )
+        active_ids = {
+            str(instance.get("id"))
+            for instance in instances
+            if isinstance(instance, dict) and instance.get("id")
+        } if isinstance(instances, list) else set()
+
+        if active_ids:
+            try:
+                async with httpx.AsyncClient(timeout=4.0) as client:
+                    response = await client.get(
+                        "https://glaz-boga-mailaccess.onrender.com/health"
+                    )
+                if response.status_code == 200:
+                    return
+            except httpx.HTTPError:
+                pass
+
+        MAILACCESS_RESET_IN_PROGRESS = True
+        MAILACCESS_MEMORY_CACHE.update({"at": 0.0, "ram_mb": None})
+        try:
+            await _restart_mailaccess_service()
+        finally:
+            MAILACCESS_RESET_IN_PROGRESS = False
+
+
 async def _restart_mailaccess_after_scan():
     global MAILACCESS_RESET_IN_PROGRESS, MAILACCESS_RESET_COOLDOWN_UNTIL
 
@@ -1316,6 +1349,8 @@ async def run_deep_job(job_id: str, kind: str, query: str):
                 job["count"] = len(results)
                 job["results"] = list(results)
                 job["checked_items"] = [current]
+
+            await _ensure_mailaccess_service_awake()
 
             found, total, checked, errors, error_details, completed = await mailaccess_search(
                 query,
