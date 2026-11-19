@@ -28,7 +28,7 @@ var wood=ctx.createLinearGradient(-52,0,52,0);wood.addColorStop(0,'#60351d');woo
 ctx.shadowColor='#39251688';ctx.shadowBlur=5;ctx.shadowOffsetY=3;
 /* Ствол слегка расширяется у основания, как настоящее дерево. */
 ctx.fillStyle=wood;ctx.strokeStyle='#57351f';ctx.lineWidth=3;ctx.lineJoin='round';
-ctx.beginPath();ctx.moveTo(-37,72);ctx.quadraticCurveTo(-46,245,-40,438);ctx.quadraticCurveTo(0,447,40,438);ctx.quadraticCurveTo(46,245,37,72);ctx.quadraticCurveTo(0,58,-37,72);ctx.closePath();ctx.fill();ctx.stroke();
+ctx.beginPath();ctx.moveTo(-37,72);ctx.quadraticCurveTo(-39,245,-40,438);ctx.quadraticCurveTo(0,447,40,438);ctx.quadraticCurveTo(39,245,37,72);ctx.quadraticCurveTo(0,58,-37,72);ctx.closePath();ctx.fill();ctx.stroke();
 /* Все сучья растут вверх: у основания они толще, кверху постепенно сужаются. */
 function drawBranch(side,b){
   var rootX=side*31;
@@ -66,11 +66,11 @@ ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
 /* Углубление внутри оставлено ровным и гладким, чтобы яйцо свободно скатывалось. */
 var hollow=ctx.createLinearGradient(-31,0,31,0);hollow.addColorStop(0,'#58351f');hollow.addColorStop(.16,'#80502d');hollow.addColorStop(.5,'#a16b3d');hollow.addColorStop(.84,'#80502d');hollow.addColorStop(1,'#50301d');
 ctx.fillStyle=hollow;ctx.beginPath();ctx.moveTo(-27,76);
-ctx.quadraticCurveTo(-32,210,-26,432);ctx.quadraticCurveTo(0,440,26,432);
-ctx.quadraticCurveTo(32,210,27,76);ctx.quadraticCurveTo(0,68,-27,76);ctx.closePath();ctx.fill();
+ctx.quadraticCurveTo(-27,210,-26,432);ctx.quadraticCurveTo(0,440,26,432);
+ctx.quadraticCurveTo(27,210,27,76);ctx.quadraticCurveTo(0,68,-27,76);ctx.closePath();ctx.fill();
 ctx.strokeStyle='#e0ad70';ctx.lineWidth=3;ctx.beginPath();
-ctx.moveTo(-35,78);ctx.quadraticCurveTo(-40,245,-33,425);
-ctx.moveTo(35,78);ctx.quadraticCurveTo(40,245,33,425);ctx.stroke();
+ctx.moveTo(-35,78);ctx.quadraticCurveTo(-35,245,-33,425);
+ctx.moveTo(35,78);ctx.quadraticCurveTo(35,245,33,425);ctx.stroke();
 /* Внутренние волокна и шесть неглубоких зарубок сохранены. */
 ctx.strokeStyle='#4c2d1b';ctx.lineWidth=1.5;
 [[-17,96,-13,414],[-8,88,-6,421],[17,94,13,414]].forEach(function(p){ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.quadraticCurveTo(p[0]-2,250,p[2],p[3]);ctx.stroke()});
