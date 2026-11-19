@@ -15,12 +15,13 @@
     <div class="top">
       <button class="back" onclick="location.href='games.html'">← Игры</button>
       <h1 class="title">🏓 Понг</h1>
+      <button id="pongSoundToggle" class="pong-sound-toggle" type="button" aria-label="Звук включён">♫ ЗВУК</button>
       <span id="pongScore" class="score">0 : 0</span>
     </div>
     <canvas id="pongCanvas" class="pong-canvas" width="600" height="600"></canvas>
     <div class="game-controls-wide">
       <div class="wide-grid">
-        <button class="mobile-pause pause-btn" onclick="togglePongPause()">Пауза</button>
+        <button class="mobile-pause pause-btn" onclick="togglePongPause()">Пуск</button>
         <button class="game-btn" data-pong="up">▲</button>
         <button class="game-btn" data-pong="down">▼</button>
       </div>
