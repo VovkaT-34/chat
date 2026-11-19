@@ -1,0 +1,19 @@
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{margin:0;min-height:100%;font-family:Arial,sans-serif;background:radial-gradient(ellipse at top,#345d3c 0,#182b20 65%,#101b15 100%);color:#fff;overscroll-behavior:none}
+body{padding:14px 12px 24px;min-height:100svh}.volk-page{width:min(760px,100%);margin:auto}
+.volk-top{display:flex;align-items:center;gap:12px;margin:0 0 12px}.volk-top h1{font-size:clamp(20px,4vw,28px);margin:0;color:#fff2c6;text-shadow:0 2px 0 #633b24}
+.back{border:1px solid #ffffff38;background:#ffffff12;color:#fff;border-radius:11px;padding:10px 13px;font-size:14px}
+.game-shell{border:3px solid #e58a25;border-radius:20px;padding:10px;background:linear-gradient(145deg,#31583b,#172c21);box-shadow:0 12px 35px #0008, inset 0 0 0 2px #ffd16b35}
+.hud{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 4px 10px}.hud>div{display:flex;flex-direction:column;gap:3px}.hud span{font-size:10px;letter-spacing:1.5px;color:#d9e9c9}.hud strong{font-size:20px;color:#ffe49a;font-variant-numeric:tabular-nums}.hud>div:nth-child(3) strong{font-size:16px;color:#ff8b75;white-space:nowrap}
+.sound-toggle{border:1px solid #ffffff55;border-radius:9px;background:#ffffff17;color:#fff;padding:8px 10px;font-weight:800;font-size:11px}
+.stage-wrap{position:relative;border:3px solid #f2bd60;border-radius:12px;overflow:hidden;background:#b7d78a;line-height:0}
+#volkCanvas{display:block;width:100%;height:auto;aspect-ratio:640/520;touch-action:manipulation}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:#102116b8;padding:14px}.overlay.hidden{display:none}
+.overlay-card{width:min(360px,95%);padding:20px 18px;text-align:center;border:2px solid #ffc35b;border-radius:18px;background:linear-gradient(145deg,#31583b,#172c21);box-shadow:0 10px 30px #0008;line-height:1.35}
+.wolf-mark{font-size:54px;filter:drop-shadow(0 4px 2px #0006)}.overlay-card h2{margin:4px 0 8px;color:#ffe49a;font-size:27px}.overlay-card p{margin:0 0 16px;color:#e8f0dd;font-size:14px}
+.start-btn,.game-actions button{border:0;border-radius:11px;background:linear-gradient(#ffcf62,#e68a24);color:#39220d;font-weight:900;letter-spacing:.5px;padding:13px 18px;font-size:14px;box-shadow:0 3px 0 #8c4b17}
+.lane-controls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.lane-controls button{min-height:58px;border:1px solid #ffffff3d;border-radius:12px;background:linear-gradient(145deg,#497a4d,#294b32);color:#fff2c6;font-size:24px;font-weight:900;touch-action:manipulation}
+.lane-controls button.active{background:linear-gradient(#ffcf62,#e68a24);color:#3b250e;border-color:#ffe39a}.lane-controls small{font-size:10px;vertical-align:middle}
+.game-actions{display:flex;align-items:center;gap:12px}.game-actions button{padding:10px 14px;white-space:nowrap}.game-actions p{margin:0;color:#d6e3d1;font-size:12px;line-height:1.35}
+@media(max-width:430px){body{padding:10px 8px 18px}.game-shell{padding:7px;border-width:2px}.volk-top{margin-bottom:9px}.back{padding:9px 10px}.hud{gap:5px}.hud strong{font-size:17px}.hud span{font-size:9px}.hud>div:nth-child(3) strong{font-size:13px}.sound-toggle{padding:7px 8px;font-size:10px}.lane-controls{gap:5px}.lane-controls button{min-height:52px}.game-actions{align-items:flex-start}.game-actions p{font-size:11px}}
