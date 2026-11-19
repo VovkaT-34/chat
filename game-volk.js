@@ -37,7 +37,7 @@ function drawBranch(side,b){
   var tipY=b.y-rise;
   var midX=rootX+(tipX-rootX)*.58;
   var midY=b.y-rise*.48;
-  var thickness=b.w*(.78+Math.max(0,Math.min(1,(b.y-100)/282))*.42);
+  var thickness=b.w*(.82+Math.max(0,Math.min(1,(b.y-100)/282))*.78);
   var half=thickness/2;
   var tipW=Math.max(2.2,thickness*.13);
   ctx.fillStyle=wood;ctx.strokeStyle='#57351f';ctx.lineWidth=2.5;ctx.lineJoin='round';
