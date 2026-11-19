@@ -7,7 +7,8 @@ body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}
 .title{margin:0;font-size:27px}
 .game-head{display:flex;justify-content:flex-start;align-items:center;gap:10px;margin-bottom:12px}
 .game-head h2{margin:0}
-.score{font-weight:700;margin-left:auto}
+.score{font-weight:700;margin-left:0}
+.snake-sound-toggle{margin-left:auto;border:1px solid rgba(255,255,255,.35);border-radius:9px;background:rgba(255,255,255,.1);color:#fff;padding:8px 10px;font-weight:800;font-size:11px;cursor:pointer;white-space:nowrap}
 .canvas-wrap{width:600px;height:600px;margin:auto;display:flex;align-items:stretch}
 .game-canvas{display:block;width:600px;height:600px;aspect-ratio:1;border-radius:16px;background:#101315;border:2px solid rgba(255,255,255,.14);touch-action:none}
 .controls{width:min(600px,100%);margin:14px auto 0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:auto auto auto;gap:12px}
