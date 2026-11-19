@@ -2,6 +2,7 @@
 'use strict';
 
 const RENDER_MAIN = 'https://glaz-boga-osint.onrender.com';
+const RENDER_MAILACCESS = 'https://glaz-boga-mailaccess.onrender.com';
 const SUPABASE_URL = 'https://sxkukrqjtgkxmzuzondm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3N';
 let supabaseClient = null;
@@ -51,6 +52,15 @@ async function authHeaders(){
     }
   }catch(e){}
   return {};
+}
+
+async function wakeMailAccess(){
+  try{
+    await fetch(RENDER_MAILACCESS + '/health?ts=' + Date.now(), {
+      cache:'no-store',
+      mode:'no-cors'
+    });
+  }catch(e){}
 }
 
 async function updateRam(){
@@ -124,7 +134,7 @@ function start(){
       return;
     }
     busy = true;
-    await updateRam();
+    await Promise.allSettled([wakeMailAccess(), updateRam()]);
     busy = false;
     setTimeout(tick, 10000);
   };
