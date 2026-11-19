@@ -5,8 +5,8 @@ body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}
 .top{display:flex;align-items:center;gap:10px;margin-bottom:18px}
 .back{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;padding:10px 14px;font-size:15px;cursor:pointer}
 .title{margin:0;font-size:27px}
-.score{font-weight:700;margin-left:auto}
-.tetris-wrap{width:600px;height:600px;margin:auto;display:flex;justify-content:center;align-items:center;position:relative;background:#2b2927;border:2px solid rgba(255,255,255,.28);border-radius:16px}.sound-toggle{position:absolute;left:10px;top:10px;z-index:2;border:1px solid rgba(255,255,255,.35);border-radius:9px;background:rgba(255,255,255,.1);color:#fff;padding:8px 10px;font-weight:800;font-size:11px;cursor:pointer}
+.score{font-weight:700;margin-left:0}
+.tetris-wrap{width:600px;height:600px;margin:auto;display:flex;justify-content:center;align-items:center;position:relative;background:#2b2927;border:2px solid rgba(255,255,255,.28);border-radius:16px}.sound-toggle{margin-left:auto;border:1px solid rgba(255,255,255,.35);border-radius:9px;background:rgba(255,255,255,.1);color:#fff;padding:8px 10px;font-weight:800;font-size:11px;cursor:pointer;white-space:nowrap}
 .tetris-canvas{width:300px;height:600px;background:#0a0c0d;touch-action:none}.tetris-next{position:absolute;right:18px;top:10px;width:72px;text-align:center;pointer-events:none}.tetris-next-title{display:none}.tetris-next canvas{display:block;width:64px;height:64px;margin:auto;background:rgba(0,0,0,.16);border-radius:8px}
 .game-controls-wide{width:min(600px,100%);margin:14px auto 0}
 .wide-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:auto auto auto;gap:12px}
