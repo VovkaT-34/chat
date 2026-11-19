@@ -26,12 +26,11 @@
     </div>
     <div class="stage-wrap">
       <canvas id="volkCanvas" width="640" height="520" aria-label="Волк ловит падающие яйца"></canvas>
-      <div id="volkOverlay" class="overlay">
+      <div id="volkOverlay" class="overlay hidden">
         <div class="overlay-card">
           <div class="wolf-mark">🐺</div>
           <h2 id="overlayTitle">Ну, погоди!</h2>
           <p id="overlayText">Лови яйца в четырёх лотках. Переключайся между дорожками и не дай яйцам разбиться!</p>
-          <button id="startVolk" class="start-btn" type="button">НАЧАТЬ ИГРУ</button>
         </div>
       </div>
     </div>
@@ -42,6 +41,7 @@
       <button type="button" data-lane="3">↘ <small>4</small></button>
     </div>
     <div class="game-actions">
+      <button id="startVolk" class="start-btn" type="button">▶ ПУСК</button>
       <button id="pauseVolk" type="button">ПАУЗА</button>
       <p>На телефоне нажимай нужный лоток. На компьютере — клавиши 1–4 или стрелки.</p>
     </div>
