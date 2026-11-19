@@ -26,25 +26,39 @@ var branchSets=[
 var branches=branchSets[treeIndex]||branchSets[0];
 var wood=ctx.createLinearGradient(-52,0,52,0);wood.addColorStop(0,'#60351d');wood.addColorStop(.24,'#a96a35');wood.addColorStop(.5,'#d39a59');wood.addColorStop(.78,'#a96a35');wood.addColorStop(1,'#60351d');
 ctx.shadowColor='#39251688';ctx.shadowBlur=5;ctx.shadowOffsetY=3;
-/* Основной ствол с грубоватым, но цельным наружным краем. */
+/* Ствол слегка расширяется у основания, как настоящее дерево. */
 ctx.fillStyle=wood;ctx.strokeStyle='#57351f';ctx.lineWidth=3;ctx.lineJoin='round';
-ctx.beginPath();ctx.moveTo(-37,72);ctx.quadraticCurveTo(-46,245,-35,438);ctx.quadraticCurveTo(0,445,35,438);ctx.quadraticCurveTo(46,245,37,72);ctx.quadraticCurveTo(0,58,-37,72);ctx.closePath();ctx.fill();ctx.stroke();
-/* Каждый сучок растёт из широкой части ствола, постепенно сужается и заканчивается неровным изломом. */
+ctx.beginPath();ctx.moveTo(-37,72);ctx.quadraticCurveTo(-46,245,-40,438);ctx.quadraticCurveTo(0,447,40,438);ctx.quadraticCurveTo(46,245,37,72);ctx.quadraticCurveTo(0,58,-37,72);ctx.closePath();ctx.fill();ctx.stroke();
+/* Все сучья растут вверх: у основания они толще, кверху постепенно сужаются. */
 function drawBranch(side,b){
-  var rootX=side*31,dir=side*(b.len),tipX=rootX+dir;
-  var bend=Math.sin(b.angle)*b.len,tipY=b.y+bend;
-  var half=b.w/2,tipW=Math.max(4,b.w*.28);
+  var rootX=side*31;
+  var rise=b.len*.78;
+  var tipX=rootX+side*(b.len+Math.abs(Math.sin(b.angle))*b.len*.22);
+  var tipY=b.y-rise;
+  var midX=rootX+(tipX-rootX)*.58;
+  var midY=b.y-rise*.48;
+  var thickness=b.w*(.78+Math.max(0,Math.min(1,(b.y-100)/282))*.42);
+  var half=thickness/2;
+  var tipW=Math.max(2.2,thickness*.13);
   ctx.fillStyle=wood;ctx.strokeStyle='#57351f';ctx.lineWidth=2.5;ctx.lineJoin='round';
   ctx.beginPath();
-  ctx.moveTo(rootX-side*4,b.y-half*.72);
-  ctx.quadraticCurveTo(rootX+side*5,b.y-half,rootX+side*10,b.y-half*.42);
-  ctx.quadraticCurveTo(tipX-side*3,tipY-tipW,tipX,tipY-2);
-  ctx.lineTo(tipX+side*2,tipY+tipW*.42);
-  ctx.quadraticCurveTo(rootX+side*12,b.y+half*.75,rootX-side*3,b.y+half*.8);
+  ctx.moveTo(rootX-side*3,b.y+half*.38);
+  ctx.quadraticCurveTo(rootX+side*6,b.y+half*.72,midX,midY+tipW*2.1);
+  ctx.quadraticCurveTo(tipX-side*5,tipY+tipW*1.35,tipX,tipY+tipW*.15);
+  /* Ломаный торец: несколько неровных сколов вместо ровного спила. */
+  ctx.lineTo(tipX+side*2.4,tipY-tipW*.48);
+  ctx.lineTo(tipX-side*.5,tipY-tipW*1.35);
+  ctx.lineTo(tipX-side*2.2,tipY-tipW*.72);
+  ctx.quadraticCurveTo(midX-side*4,midY-tipW*1.9,rootX+side*8,b.y-half*.68);
+  ctx.quadraticCurveTo(rootX+side*2,b.y-half*.82,rootX-side*3,b.y-half*.32);
   ctx.closePath();ctx.fill();ctx.stroke();
-  /* Светлая неровная грань свежего облома. */
-  ctx.strokeStyle='#d39a5d';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(tipX-side*2,tipY-tipW*.75);ctx.lineTo(tipX+side*2,tipY+tipW*.45);ctx.stroke();
+  /* Светлые неровные грани древесины на месте свежего излома. */
+  ctx.strokeStyle='#d39a5d';ctx.lineWidth=1.8;
+  ctx.beginPath();
+  ctx.moveTo(tipX+side*1.8,tipY-tipW*.42);
+  ctx.lineTo(tipX-side*.45,tipY-tipW*1.18);
+  ctx.lineTo(tipX-side*1.8,tipY-tipW*.68);
+  ctx.stroke();
 }
 branches.left.forEach(function(b){drawBranch(-1,b)});
 branches.right.forEach(function(b){drawBranch(1,b)});
