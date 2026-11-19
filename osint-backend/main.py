@@ -1542,7 +1542,12 @@ async def deep_search(
             detail="MailAccess перезапускается. Дождитесь готовности сервиса и повторите поиск.",
         )
 
-    if ACTIVE_DEEP_JOB_ID and ACTIVE_DEEP_JOB_ID in DEEP_JOBS:
+    if (
+        ACTIVE_DEEP_JOB_ID
+        and ACTIVE_DEEP_JOB_ID in DEEP_JOBS
+        and DEEP_JOBS[ACTIVE_DEEP_JOB_ID].get("status")
+        not in {"done", "error", "cancelled"}
+    ):
         raise HTTPException(
             status_code=409,
             detail="Другой глубокий поиск уже выполняется",
