@@ -838,6 +838,44 @@ async function deepSearch(){
     deepStatus.textContent='Статус: ошибка запуска — '+e.message+' (можно нажать Stop для отмены)';
   }
 }
+async function restoreDeepSearch(){
+  try{
+    for(let i=0;i<100&&!window.__osintAuthFetchInstalled;i++){
+      await new Promise(resolve=>setTimeout(resolve,100));
+    }
+    if(!window.__osintAuthFetchInstalled)return;
+    let response=null,activeRender=RENDER;
+    for(const server of [RENDER,RENDER_MOSINT]){
+      const r=await fetch(server+'/deep/active',{cache:'no-store'});
+      if(!r.ok)continue;
+      const data=await r.json();
+      if(data&&data.job){
+        response=data;
+        activeRender=server;
+        break;
+      }
+    }
+    const job=response&&response.job;
+    if(!job||!job.job_id||!['queued','running'].includes(job.status))return;
+    deepJobId=job.job_id;
+    deepRender=activeRender;
+    deepKind.value=job.kind||deepKind.value;
+    deepQ.value=job.query||'';
+    deepProgress.style.display='block';
+    renderDeep(job);
+    setDeepButtonBusy(true);
+    stopDeep.classList.add('active');
+    stopDeep.disabled=false;
+    deepRunning.classList.add('active');
+    await pollDeep();
+    if(deepJobId)deepTimer=setInterval(pollDeep,4000);
+  }catch(e){}
+}
+window.addEventListener('beforeunload',e=>{
+  if(!deepJobId)return;
+  e.preventDefault();
+  e.returnValue='';
+});
 function updateDeepPlaceholder(){
   const p={
     username_sherlock:'Username для быстрого поиска Sherlock…',
@@ -896,6 +934,7 @@ deepQ.addEventListener('keydown',e=>{
 });
 deepKind.addEventListener('change',updateDeepPlaceholder);
 updateDeepPlaceholder();
+restoreDeepSearch();
 </script>
 </body>
 </html>

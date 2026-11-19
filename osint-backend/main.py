@@ -1582,6 +1582,21 @@ async def deep_search(
     return DEEP_JOBS[job_id]
 
 
+@app.get("/deep/active")
+def deep_active(request: Request):
+    cleanup_deep_jobs()
+
+    job_id = ACTIVE_DEEP_JOB_ID
+    if not job_id or DEEP_JOB_OWNERS.get(job_id) != request.state.user_id:
+        return {"job": None}
+
+    job = DEEP_JOBS.get(job_id)
+    if not job or job.get("status") in {"done", "error", "cancelled"}:
+        return {"job": None}
+
+    return {"job": job}
+
+
 @app.get("/deep/status")
 def deep_status(
     request: Request,
