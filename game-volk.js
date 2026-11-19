@@ -14,7 +14,47 @@ ctx.fillStyle='#e8d6a0';ctx.fillRect(0,0,640,58);ctx.fillStyle='#b77a3f';ctx.fil
 for(var i=0;i<4;i++)drawWoodChute(lanes[i]);
 ctx.fillStyle='#725037';ctx.fillRect(0,435,640,85);ctx.fillStyle='#a87b4a';for(var k=0;k<640;k+=32)ctx.fillRect(k,435,2,85);ctx.fillStyle='#d9b17a';ctx.fillRect(0,435,640,7);
 ctx.fillStyle='#4c8b48';ctx.fillRect(0,427,640,9)}
-function drawWoodChute(x){ctx.save();ctx.translate(x,0);ctx.shadowColor='#39251688';ctx.shadowBlur=5;ctx.shadowOffsetY=3;var body=ctx.createLinearGradient(-52,0,52,0);body.addColorStop(0,'#70401f');body.addColorStop(.22,'#b8793e');body.addColorStop(.5,'#d39a59');body.addColorStop(.78,'#a96a35');body.addColorStop(1,'#60381f');ctx.fillStyle=body;ctx.strokeStyle='#57351f';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-43,66);ctx.quadraticCurveTo(-52,180,-46,300);ctx.quadraticCurveTo(-50,390,-39,438);ctx.lineTo(39,438);ctx.quadraticCurveTo(50,390,46,300);ctx.quadraticCurveTo(52,180,43,66);ctx.quadraticCurveTo(0,58,-43,66);ctx.closePath();ctx.fill();ctx.stroke();ctx.shadowColor='transparent';var groove=ctx.createLinearGradient(-30,0,30,0);groove.addColorStop(0,'#58351f');groove.addColorStop(.18,'#80502d');groove.addColorStop(.5,'#9a6538');groove.addColorStop(.82,'#80502d');groove.addColorStop(1,'#50301d');ctx.fillStyle=groove;ctx.beginPath();ctx.moveTo(-29,72);ctx.quadraticCurveTo(-35,220,-28,432);ctx.quadraticCurveTo(0,443,28,432);ctx.quadraticCurveTo(35,220,29,72);ctx.quadraticCurveTo(0,66,-29,72);ctx.closePath();ctx.fill();ctx.strokeStyle='#e0ad70';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-39,76);ctx.quadraticCurveTo(-44,245,-35,425);ctx.moveTo(39,76);ctx.quadraticCurveTo(44,245,35,425);ctx.stroke();ctx.strokeStyle='#4c2d1b';ctx.lineWidth=2;for(var g=0;g<5;g++){var gx=-34+g*17;ctx.beginPath();ctx.moveTo(gx,92+(g%2)*8);ctx.quadraticCurveTo(gx-5,240,gx+2,410);ctx.stroke()}for(var n=0;n<6;n++){var ny=78+(n+1)*(308/6);ctx.strokeStyle='#4b2b19';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-25,ny-2);ctx.quadraticCurveTo(-10,ny+5,0,ny+2);ctx.quadraticCurveTo(12,ny-1,25,ny+3);ctx.stroke();ctx.strokeStyle='#d7a16a';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-24,ny-5);ctx.quadraticCurveTo(-8,ny+1,0,ny-1);ctx.quadraticCurveTo(12,ny-4,24,ny);ctx.stroke()}ctx.fillStyle='#4b2b1c';ctx.strokeStyle='#d39a5d';ctx.lineWidth=2;[[-39,150,5], [39,218,6],[-38,320,4],[38,370,5]].forEach(function(k){ctx.beginPath();ctx.ellipse(k[0],k[1],k[2]+2,k[2],.25,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.strokeStyle='#5a351f';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(k[0],k[1],k[2],k[2]*.55,.25,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='#d39a5d';ctx.lineWidth=2});ctx.restore()}
+function drawWoodChute(x){ctx.save();ctx.translate(x,0);
+/* Самодельный ствол: наружные сучья намеренно разной длины и под разными углами. */
+ctx.shadowColor='#39251688';ctx.shadowBlur=5;ctx.shadowOffsetY=3;
+var wood=ctx.createLinearGradient(-52,0,52,0);wood.addColorStop(0,'#60351d');wood.addColorStop(.24,'#a96a35');wood.addColorStop(.5,'#d39a59');wood.addColorStop(.78,'#a96a35');wood.addColorStop(1,'#60351d');
+ctx.fillStyle=wood;ctx.strokeStyle='#57351f';ctx.lineWidth=3;ctx.lineJoin='round';
+ctx.beginPath();ctx.moveTo(-37,72);
+ctx.quadraticCurveTo(-47,92,-42,132);
+ctx.lineTo(-54,118);ctx.quadraticCurveTo(-61,112,-64,122);ctx.quadraticCurveTo(-61,137,-43,151);
+ctx.quadraticCurveTo(-49,190,-43,226);
+ctx.lineTo(-57,213);ctx.quadraticCurveTo(-67,210,-68,222);ctx.quadraticCurveTo(-61,241,-40,252);
+ctx.quadraticCurveTo(-46,300,-39,340);
+ctx.lineTo(-54,329);ctx.quadraticCurveTo(-64,329,-64,341);ctx.quadraticCurveTo(-56,357,-36,365);
+ctx.quadraticCurveTo(-40,402,-34,438);
+ctx.lineTo(35,438);
+ctx.quadraticCurveTo(43,410,39,382);
+ctx.lineTo(57,365);ctx.quadraticCurveTo(66,352,59,344);ctx.quadraticCurveTo(50,339,39,354);
+ctx.quadraticCurveTo(46,315,43,277);
+ctx.lineTo(59,261);ctx.quadraticCurveTo(69,248,61,239);ctx.quadraticCurveTo(52,235,42,250);
+ctx.quadraticCurveTo(49,198,43,163);
+ctx.lineTo(59,148);ctx.quadraticCurveTo(68,137,59,129);ctx.quadraticCurveTo(50,126,41,141);
+ctx.quadraticCurveTo(48,99,37,72);
+ctx.quadraticCurveTo(0,58,-37,72);ctx.closePath();ctx.fill();ctx.stroke();
+ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+/* Неровные обломанные торцы сучьев — без острых выступов внутрь жёлоба. */
+ctx.strokeStyle='#d39a5d';ctx.lineWidth=2;
+[[-60,122,-52,128],[-64,220,-55,224],[-60,340,-51,344],[62,133,54,139],[63,245,54,250],[61,350,52,356]].forEach(function(p){ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(p[2],p[3]);ctx.stroke()});
+/* Углубление внутри оставлено ровным и гладким, чтобы яйцо свободно скатывалось. */
+var hollow=ctx.createLinearGradient(-31,0,31,0);hollow.addColorStop(0,'#58351f');hollow.addColorStop(.16,'#80502d');hollow.addColorStop(.5,'#a16b3d');hollow.addColorStop(.84,'#80502d');hollow.addColorStop(1,'#50301d');
+ctx.fillStyle=hollow;ctx.beginPath();ctx.moveTo(-27,76);
+ctx.quadraticCurveTo(-32,210,-26,432);ctx.quadraticCurveTo(0,440,26,432);
+ctx.quadraticCurveTo(32,210,27,76);ctx.quadraticCurveTo(0,68,-27,76);ctx.closePath();ctx.fill();
+ctx.strokeStyle='#e0ad70';ctx.lineWidth=3;ctx.beginPath();
+ctx.moveTo(-35,78);ctx.quadraticCurveTo(-40,245,-33,425);
+ctx.moveTo(35,78);ctx.quadraticCurveTo(40,245,33,425);ctx.stroke();
+/* Внутренние волокна и поперечные зарубки неглубокие, не пересекают дорожку яйца. */
+ctx.strokeStyle='#4c2d1b';ctx.lineWidth=1.5;
+[[-17,96,-13,414],[-8,88,-6,421],[17,94,13,414]].forEach(function(p){ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.quadraticCurveTo(p[0]-2,250,p[2],p[3]);ctx.stroke()});
+for(var n=0;n<6;n++){var ny=78+(n+1)*(308/6);ctx.strokeStyle='#4b2b19';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-21,ny);ctx.quadraticCurveTo(-9,ny+3,0,ny+1);ctx.quadraticCurveTo(10,ny-1,21,ny+2);ctx.stroke();ctx.strokeStyle='#d7a16a';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-20,ny-2);ctx.quadraticCurveTo(-7,ny,0,ny-1);ctx.quadraticCurveTo(10,ny-3,20,ny);ctx.stroke()}
+/* Небольшие сучки только на внешней поверхности. */
+[[-39,177,4],[40,205,5],[-39,302,3],[39,392,4]].forEach(function(k){ctx.fillStyle='#4b2b1c';ctx.strokeStyle='#d39a5d';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(k[0],k[1],k[2]+1,k[2],.2,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.strokeStyle='#5a351f';ctx.beginPath();ctx.ellipse(k[0],k[1],k[2],k[2]*.5,.2,0,Math.PI*2);ctx.stroke()});
+ctx.restore()}
 function rollClick(step){tone(430+step*28,.035,'square',.055);tone(650+step*22,.028,'triangle',.035,.025)}
 function drawHen(x,remaining){var active=remaining>0,progress=active?1-remaining/.48:0,bob=active?Math.sin(progress*Math.PI*4)*2.5:0,wing=active?Math.sin(progress*Math.PI*5)*.45:0;ctx.save();ctx.translate(x,29+bob);ctx.fillStyle='#00000030';ctx.beginPath();ctx.ellipse(0,20,27,4,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#c96b19';ctx.beginPath();ctx.moveTo(-19,-3);ctx.quadraticCurveTo(-34,-17,-31,-8);ctx.quadraticCurveTo(-29,1,-18,4);ctx.closePath();ctx.fill();ctx.fillStyle='#e99a22';ctx.strokeStyle='#9b501b';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(-1,1,25,17,-.08,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#f8b936';ctx.beginPath();ctx.ellipse(-9,-1,13,10,wing,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d47b1e';ctx.lineWidth=1.5;ctx.stroke();ctx.strokeStyle='#b96820';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-8,13);ctx.lineTo(-10,19);ctx.lineTo(-15,20);ctx.moveTo(7,13);ctx.lineTo(8,19);ctx.lineTo(13,20);ctx.stroke();ctx.fillStyle='#f6c34e';ctx.beginPath();ctx.arc(17,-9,11,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#a95a1c';ctx.lineWidth=1.8;ctx.stroke();ctx.fillStyle='#d9362d';ctx.beginPath();ctx.arc(12,-20,4,0,Math.PI*2);ctx.arc(18,-22,4,0,Math.PI*2);ctx.arc(24,-19,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d9362d';ctx.beginPath();ctx.moveTo(21,-4);ctx.quadraticCurveTo(30,0,24,7);ctx.quadraticCurveTo(19,5,21,-4);ctx.fill();ctx.fillStyle='#f18a20';ctx.beginPath();ctx.moveTo(26,-10);ctx.lineTo(37,-6);ctx.lineTo(26,-2);ctx.closePath();ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(20,-12,3.2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#222';ctx.beginPath();ctx.arc(21,-12,1.5,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#9d5c20';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(20,-7);ctx.lineTo(25,-7);ctx.stroke();if(active&&progress>.68){ctx.fillStyle='#fffdf2';ctx.beginPath();ctx.ellipse(1,19,6,8,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d9d7c6';ctx.lineWidth=1;ctx.stroke()}ctx.restore()}
 function drawEgg(e){ctx.save();ctx.translate(e.x+Math.sin(e.rollStep*1.35)*2,e.y-e.bump*18);ctx.rotate((e.rollStep%2?1:-1)*.16+Math.sin(e.y/22)*.05);ctx.shadowColor='#3c4d2c66';ctx.shadowBlur=5;ctx.shadowOffsetY=3;var g=ctx.createLinearGradient(-12,-18,12,18);g.addColorStop(0,'#fffef1');g.addColorStop(.5,'#fff');g.addColorStop(1,'#d9dfc7');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,0,11,16,0,0,Math.PI*2);ctx.fill();ctx.shadowColor='transparent';ctx.fillStyle='#e7a64a';ctx.beginPath();ctx.ellipse(-3,-5,2,3,0,0,Math.PI*2);ctx.fill();ctx.restore()}
