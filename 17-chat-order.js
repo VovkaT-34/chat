@@ -69,7 +69,7 @@
         if (document.getElementById("coinGamesEffectStyle")) return;
         var style = document.createElement("style");
         style.id = "coinGamesEffectStyle";
-        style.textContent = ".coin-1c{touch-action:manipulation}.coin-1c.coin-press{animation:coinGamesPress .2s ease-out both;transform-origin:center center}@keyframes coinGamesPress{0%{transform:translate(-50%,-50%) scale(.64)}42%{transform:translate(-50%,-50%) scale(.50)}100%{transform:translate(-50%,-50%) scale(.64)}}.coin-firework-spark{position:absolute;left:50%;top:50%;width:3px;height:13px;border-radius:3px;background:linear-gradient(to top,#ff8c00,#fff7a8 70%,#fff);box-shadow:0 0 5px 2px rgba(255,220,90,.9),0 0 12px rgba(255,145,0,.75);pointer-events:none;z-index:20;animation:coinSparkBurst .2s cubic-bezier(.12,.7,.3,1) forwards}@keyframes coinSparkBurst{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(0) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(var(--travel)) scale(.12)}}";
+        style.textContent = ".coin-1c{touch-action:manipulation}.coin-1c.coin-press{animation:coinGamesPress .32s ease-out both;transform-origin:center center}@keyframes coinGamesPress{0%{transform:translate(-50%,-50%) scale(.64)}42%{transform:translate(-50%,-50%) scale(.40)}100%{transform:translate(-50%,-50%) scale(.64)}}.coin-firework-spark{position:absolute;left:50%;top:50%;width:3px;height:13px;border-radius:3px;background:linear-gradient(to top,#ff8c00,#fff7a8 70%,#fff);box-shadow:0 0 5px 2px rgba(255,220,90,.9),0 0 12px rgba(255,145,0,.75);pointer-events:none;z-index:20;animation:coinSparkBurst .32s cubic-bezier(.12,.7,.3,1) forwards}@keyframes coinSparkBurst{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(0) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(var(--travel)) scale(.12)}}";
         document.head.appendChild(style);
     }
 
@@ -90,7 +90,8 @@
             spark.style.setProperty("--travel", "-" + (155 + (i % 4) * 9) + "px");
             coin.appendChild(spark);
         }
-        setTimeout(openGames, 220);
+        void coin.offsetWidth;
+            setTimeout(openGames, 360);
     }, true);
 
     document.addEventListener("contextmenu", function (event) {

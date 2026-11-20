@@ -30,5 +30,6 @@
   <script>var activeGame='tanks';</script>
   <script src="game-tanchiki.js"></script>
   <script>startTanks();document.addEventListener('keydown',function(e){if(e.code==='Space'){e.preventDefault();toggleTankPause();return}if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();moveTank(e.code.replace('Arrow','').toLowerCase())}});</script>
+<script src="game-navigation.js"></script>
 </body>
 </html>

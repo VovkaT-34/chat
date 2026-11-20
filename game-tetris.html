@@ -76,4 +76,5 @@
   <p class="hint desktop-hint">Компьютер: ← → движение · ↑ поворот · ↓ вниз · Пробел — пауза</p>
 </div>
 <script>var activeGame='tetris';</script><script src="game-tetris.js"></script><script>startTetris();document.addEventListener('keydown',function(e){if(e.code==='Space'){e.preventDefault();toggleTetrisPause();return}if(e.code==='ArrowLeft'){e.preventDefault();moveTetris(-1)}if(e.code==='ArrowRight'){e.preventDefault();moveTetris(1)}if(e.code==='ArrowDown'){e.preventDefault();tetrisStep()}if(e.code==='ArrowUp'){e.preventDefault();rotateTetris()}});</script>
+<script src="game-navigation.js"></script>
 </body></html>
