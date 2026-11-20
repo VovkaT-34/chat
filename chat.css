@@ -462,6 +462,9 @@ body {
     display: flex;
     gap: 8px;
     align-items: center;
+    padding: 6px;
+    background: #c9a27b;
+    border-radius: 12px;
 }
 
 #messageInput {
