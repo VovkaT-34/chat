@@ -81,8 +81,14 @@ function drawHen(x,remaining){var active=remaining>0,progress=active?1-remaining
 function drawEgg(e){ctx.save();ctx.translate(e.x+Math.sin(e.rollStep*1.35)*2,e.y-e.bump*18);ctx.rotate((e.rollStep%2?1:-1)*.16+Math.sin(e.y/22)*.05);ctx.shadowColor='#3c4d2c66';ctx.shadowBlur=5;ctx.shadowOffsetY=3;var g=ctx.createLinearGradient(-12,-18,12,18);g.addColorStop(0,'#fffef1');g.addColorStop(.5,'#fff');g.addColorStop(1,'#d9dfc7');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,0,11,16,0,0,Math.PI*2);ctx.fill();ctx.shadowColor='transparent';ctx.fillStyle='#e7a64a';ctx.beginPath();ctx.ellipse(-3,-5,2,3,0,0,Math.PI*2);ctx.fill();ctx.restore()}
 function drawSplat(s){ctx.save();ctx.globalAlpha=Math.min(1,s.life/12);ctx.translate(s.x,s.y);ctx.fillStyle='#fff9df';ctx.beginPath();ctx.moveTo(-27,1);ctx.quadraticCurveTo(-31,-5,-22,-7);ctx.quadraticCurveTo(-18,-12,-9,-8);ctx.quadraticCurveTo(0,-13,8,-7);ctx.quadraticCurveTo(19,-11,23,-5);ctx.quadraticCurveTo(32,0,23,5);ctx.quadraticCurveTo(15,9,5,6);ctx.quadraticCurveTo(-6,11,-15,6);ctx.quadraticCurveTo(-26,9,-27,1);ctx.closePath();ctx.fill();ctx.fillStyle='#f5c52e';ctx.beginPath();ctx.ellipse(0,0,12,4.5,-.08,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ffe36a';ctx.beginPath();ctx.ellipse(-2,-1,6,2,0,0,Math.PI*2);ctx.fill();ctx.restore()}function drawBasket(x,y){ctx.save();ctx.translate(x,y);ctx.fillStyle='#a85c27';ctx.beginPath();ctx.moveTo(-31,-4);ctx.lineTo(31,-4);ctx.lineTo(24,19);ctx.quadraticCurveTo(0,27,-24,19);ctx.closePath();ctx.fill();ctx.strokeStyle='#f0b45d';ctx.lineWidth=4;ctx.stroke();ctx.strokeStyle='#6c3d22';ctx.lineWidth=2;for(var i=-18;i<=18;i+=9){ctx.beginPath();ctx.moveTo(i,-2);ctx.lineTo(i*.72,20);ctx.stroke()}ctx.restore()}
 function drawWolf(){var x=lanes[lane],y=400;ctx.save();ctx.translate(x,y);
-/* Во втором режиме волк наклоняется к выбранному бревну. */
-if(mode===1&&lane===0){ctx.translate(18,-5);ctx.scale(-1,1);ctx.rotate(-.16)}else if(mode===1&&lane===2){ctx.translate(-8,-5);ctx.rotate(-.12)}else if(mode===1&&lane===3){ctx.translate(-20,-9);ctx.rotate(-.2)}
+/* Четыре самостоятельные позы: волк по-разному бросается к каждому лотку.
+   Корзина рисуется после восстановления canvas и остаётся строго на прежних координатах. */
+if(mode===1){
+  if(lane===0){ctx.translate(19,-5);ctx.scale(-1,1);ctx.rotate(-.25);ctx.scale(1.03,.98)}
+  else if(lane===1){ctx.translate(8,-2);ctx.rotate(-.11);ctx.scale(1.02,1)}
+  else if(lane===2){ctx.translate(-9,-4);ctx.rotate(-.08);ctx.scale(1.02,1)}
+  else if(lane===3){ctx.translate(-19,-8);ctx.rotate(-.23);ctx.scale(1.04,.97)}
+}
 ctx.fillStyle='#243b2b55';ctx.beginPath();ctx.ellipse(-2,36,48,9,0,0,Math.PI*2);ctx.fill();
 /* Пушистый хвост и корпус — профиль волка, направленный вправо. */
 ctx.fillStyle='#596873';ctx.strokeStyle='#303d43';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-24,-20);ctx.quadraticCurveTo(-48,-31,-57,-12);ctx.quadraticCurveTo(-63,1,-47,8);ctx.quadraticCurveTo(-35,12,-24,1);ctx.lineTo(-17,-3);ctx.closePath();ctx.fill();ctx.stroke();
@@ -96,10 +102,37 @@ ctx.fillStyle='#596873';ctx.beginPath();ctx.moveTo(8,-65);ctx.lineTo(14,-99);ctx
 ctx.fillStyle='#e9b17a';ctx.beginPath();ctx.moveTo(14,-84);ctx.lineTo(17,-91);ctx.lineTo(25,-62);ctx.closePath();ctx.fill();
 ctx.fillStyle='#e6b17c';ctx.beginPath();ctx.moveTo(26,-48);ctx.quadraticCurveTo(47,-50,58,-39);ctx.quadraticCurveTo(54,-24,30,-27);ctx.quadraticCurveTo(17,-31,14,-39);ctx.closePath();ctx.fill();ctx.stroke();
 ctx.fillStyle='#303a3e';ctx.beginPath();ctx.ellipse(57,-39,6,4,.15,0,Math.PI*2);ctx.fill();
-ctx.fillStyle='#f7d36e';ctx.beginPath();ctx.ellipse(28,-56,6,4,-.12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#171f22';ctx.beginPath();ctx.arc(30,-56,2.2,0,Math.PI*2);ctx.fill();
-ctx.strokeStyle='#283238';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(22,-63);ctx.lineTo(34,-62);ctx.stroke();
-ctx.strokeStyle='#6d3d35';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(39,-28);ctx.quadraticCurveTo(47,-23,53,-30);ctx.stroke();
-ctx.fillStyle='#fff0d8';ctx.beginPath();ctx.moveTo(44,-28);ctx.lineTo(48,-19);ctx.lineTo(51,-28);ctx.closePath();ctx.fill();
+/* Глаза, брови и рот меняются вместе с позой: азарт, напряжение,
+   удивление и решительный оскал вместо одного и того же выражения. */
+ctx.fillStyle='#fff4d5';ctx.beginPath();ctx.ellipse(28,-56,6.2,5.1,-.12,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#171f22';ctx.beginPath();ctx.arc(lane===0?30:29,-56,2.5,0,Math.PI*2);ctx.fill();
+ctx.strokeStyle='#283238';ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();
+if(lane===0){ctx.moveTo(21,-64);ctx.lineTo(34,-60)}
+else if(lane===1){ctx.moveTo(21,-62);ctx.lineTo(34,-65)}
+else if(lane===2){ctx.moveTo(21,-66);ctx.lineTo(34,-67)}
+else{ctx.moveTo(21,-63);ctx.lineTo(34,-60)}
+ctx.stroke();
+ctx.fillStyle='#6d302b';ctx.beginPath();
+if(lane===2){ctx.ellipse(48,-29,5.5,7,0,0,Math.PI*2)}
+else if(lane===3){ctx.ellipse(47,-28,7,4.2,-.12,0,Math.PI*2)}
+else{ctx.ellipse(47,-28,lane===0?7:5.5,lane===0?5.5:3.5,-.12,0,Math.PI*2)}
+ctx.fill();
+ctx.strokeStyle='#f8dfbd';ctx.lineWidth=1.5;ctx.beginPath();
+if(lane===2){ctx.moveTo(44,-31);ctx.lineTo(51,-31)}
+else{ctx.moveTo(42,-27);ctx.quadraticCurveTo(47,-24,52,-28)}
+ctx.stroke();
+ctx.fillStyle='#fff0d8';ctx.beginPath();
+if(lane===0){ctx.moveTo(43,-27);ctx.lineTo(46,-20);ctx.lineTo(49,-27)}
+else if(lane===3){ctx.moveTo(45,-27);ctx.lineTo(48,-21);ctx.lineTo(51,-27)}
+else{ctx.moveTo(44,-27);ctx.lineTo(47,-22);ctx.lineTo(50,-27)}
+ctx.closePath();ctx.fill();
+if(lane===0||lane===3){
+  ctx.strokeStyle='#e8f0f2';ctx.lineWidth=2;ctx.beginPath();
+  ctx.moveTo(39,-72);ctx.lineTo(43,-78);ctx.moveTo(46,-70);ctx.lineTo(52,-74);ctx.stroke();
+}
+if(lane===2){
+  ctx.fillStyle='#d9f2ff';ctx.beginPath();ctx.ellipse(39,-67,2.2,4,-.3,0,Math.PI*2);ctx.fill();
+}
 /* Красная одежда сохранена; корзина остаётся на прежнем месте. */
 ctx.fillStyle='#d94735';ctx.beginPath();ctx.moveTo(-22,-22);ctx.quadraticCurveTo(0,-32,25,-20);ctx.lineTo(20,8);ctx.lineTo(-18,8);ctx.closePath();ctx.fill();ctx.strokeStyle='#8d3028';ctx.lineWidth=2;ctx.stroke();
 ctx.fillStyle='#f3bd45';ctx.fillRect(-20,-20,40,5);
