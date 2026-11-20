@@ -113,7 +113,7 @@ if(mode===2){updateClassic(dt);return}
 if(breakPause>0){breakPause=Math.max(0,breakPause-dt);splats.forEach(function(s){s.life--});splats=splats.filter(function(s){return s.life>0});particles.forEach(function(p){p.y-=.5;p.life--});particles=particles.filter(function(p){return p.life>0});return}
 var speed=Math.min(245,124+caughtEggs*.72),targetEggs=eggsPerStage();
 spawn+=dt;
-if(!pendingEgg&&batchLaunched<batchSize&&spawn>(shortWaveGap?.01:.3)){spawn=0;shortWaveGap=false;var availableLanes=[0,1,2,3].filter(function(n){return eggs.every(function(e){return e.lane!==n})});var ln=availableLanes[Math.floor(Math.random()*availableLanes.length)];pendingEgg={lane:ln,remaining:.35};laying[ln]=.35}
+if(!pendingEgg&&batchLaunched<batchSize&&spawn>(shortWaveGap?.01:.4)){spawn=0;shortWaveGap=false;var availableLanes=[0,1,2,3].filter(function(n){return eggs.every(function(e){return e.lane!==n})});var ln=availableLanes[Math.floor(Math.random()*availableLanes.length)];pendingEgg={lane:ln,remaining:.35};laying[ln]=.35}
 if(pendingEgg){pendingEgg.remaining-=dt;laying[pendingEgg.lane]=Math.max(0,pendingEgg.remaining);if(pendingEgg.remaining<=0){var eggLane=pendingEgg.lane;eggs.push({lane:eggLane,x:lanes[eggLane],y:78,vy:speed,rollStep:0,bump:0,checked:false,missed:false,done:false});batchLaunched++;pendingEgg=null}}
 for(var h=0;h<4;h++)if(!pendingEgg||pendingEgg.lane!==h)laying[h]=Math.max(0,laying[h]-dt);
 var eggBroken=false;
