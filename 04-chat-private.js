@@ -284,6 +284,7 @@ async function openNewPrivateChatDialog() {
                 padding: 11px 10px;
                 border-radius: 10px;
                 cursor: pointer;
+                color: #fff;
                 font-size: 16px;
             `;
 
