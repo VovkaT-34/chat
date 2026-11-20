@@ -120,8 +120,6 @@
             closeDisappearingSettings();
             if (typeof onBack === "function") onBack();
         });
-        panel.appendChild(backButton);
-
         var title = document.createElement("h3");
         title.textContent = "Исчезающие сообщения";
         title.style.cssText = "margin:0 0 16px;font-size:20px";
@@ -159,7 +157,7 @@
         panel.appendChild(grid);
 
         var footer = document.createElement("div");
-        footer.style.cssText = "display:flex;justify-content:flex-end;margin-top:18px";
+        footer.style.cssText = "display:flex;justify-content:space-between;margin-top:18px";
         var closeButton = document.createElement("button");
         closeButton.type = "button";
         closeButton.textContent = "Готово";
@@ -168,6 +166,8 @@
             closeDisappearingSettings();
             if (typeof onClose === "function") onClose();
         });
+        backButton.style.marginBottom = "0";
+        footer.appendChild(backButton);
         footer.appendChild(closeButton);
         panel.appendChild(footer);
 
