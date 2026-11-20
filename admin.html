@@ -66,13 +66,27 @@
             image:"linear-gradient(115deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.38) 25%,rgba(255,255,255,.08) 48%,rgba(112,70,0,.10) 75%,rgba(255,255,255,.12) 100%),repeating-conic-gradient(rgba(255,247,205,.25) 0% 25%,transparent 0% 50%),repeating-conic-gradient(rgba(92,55,0,.20) 0% 25%,transparent 0% 50%),linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px),linear-gradient(0deg,rgba(92,55,0,.16) 1px,transparent 1px),linear-gradient(135deg,#8a641e 0%,#d9bd70 25%,#f7d774 50%,#fff3bd 70%,#b17a1f 100%)",
             size:"260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%",
             animation:"externalGoldCellsOriginal 20s ease-in-out infinite"
+        },
+        "metal-small-cells":{
+            color:"#92999d",
+            image:"linear-gradient(115deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.42) 25%,rgba(255,255,255,.10) 48%,rgba(35,42,46,.12) 75%,rgba(255,255,255,.16) 100%),repeating-conic-gradient(rgba(245,250,252,.26) 0% 25%,transparent 0% 50%),repeating-conic-gradient(rgba(35,42,46,.18) 0% 25%,transparent 0% 50%),linear-gradient(90deg,rgba(255,255,255,.22) 1px,transparent 1px),linear-gradient(0deg,rgba(35,42,46,.16) 1px,transparent 1px),linear-gradient(145deg,#69747a 0%,#cbd1d4 25%,#929da2 50%,#e9edef 70%,#737e83 100%)",
+            size:"260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%",
+            animation:"externalMetalCellsSmall 20s ease-in-out infinite"
+        },
+        "metal-large-cells":{
+            color:"#92999d",
+            image:"linear-gradient(115deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.42) 25%,rgba(255,255,255,.10) 48%,rgba(35,42,46,.12) 75%,rgba(255,255,255,.16) 100%),repeating-conic-gradient(rgba(245,250,252,.26) 0% 25%,transparent 0% 50%),repeating-conic-gradient(rgba(35,42,46,.18) 0% 25%,transparent 0% 50%),linear-gradient(90deg,rgba(255,255,255,.22) 1px,transparent 1px),linear-gradient(0deg,rgba(35,42,46,.16) 1px,transparent 1px),linear-gradient(145deg,#69747a 0%,#cbd1d4 25%,#929da2 50%,#e9edef 70%,#737e83 100%)",
+            size:"260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%",
+            animation:"externalMetalCellsLarge 20s ease-in-out infinite"
         }
     };
     var style=document.createElement("style");
     style.id="chatExternalThemeMotion";
     style.textContent="@keyframes externalMetalGrid{0%,100%{background-position:0 0,0 0,0 0}50%{background-position:32px 24px,-32px -24px,0 0}}"+
         "@keyframes externalMetalLarge{0%,100%{background-position:0 0,0 0,0 0}50%{background-position:64px 48px,-64px -48px,0 0}}"+
-        "@keyframes externalGoldShine{0%,100%{background-position:0% 50%,0 0,0 0}50%{background-position:100% 50%,40px 30px,0 0}}"+"@keyframes externalGoldCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0 0;background-size:260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0,0 0;background-size:260% 260%,288px 216px,224px 168px,128px 96px,128px 96px,100% 100%}}"+"@keyframes externalGoldCellsOriginal{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0 0}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0}}";
+        "@keyframes externalGoldShine{0%,100%{background-position:0% 50%,0 0,0 0}50%{background-position:100% 50%,40px 30px,0 0}}"+"@keyframes externalGoldCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0 0;background-size:260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0,0 0;background-size:260% 260%,288px 216px,224px 168px,128px 96px,128px 96px,100% 100%}}"+"@keyframes externalGoldCellsOriginal{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0 0}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0}}"+
+        "@keyframes externalMetalCellsSmall{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0 0}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0}}"+
+        "@keyframes externalMetalCellsLarge{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0 0;background-size:260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0,0 0;background-size:260% 260%,288px 216px,224px 168px,128px 96px,128px 96px,100% 100%}}";
     document.head.appendChild(style);
     function apply(){
         var id=localStorage.getItem(KEY)||"metal-grid";
@@ -81,7 +95,7 @@
         body.style.setProperty("background-color",theme.color,"important");
         body.style.setProperty("background-image",theme.image,"important");
         var reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        if(id==="gold-large"&&!reduced)body.style.removeProperty("background-size");
+        if((id==="gold-large"||id==="metal-large-cells")&&!reduced)body.style.removeProperty("background-size");
         else body.style.setProperty("background-size",theme.size,"important");
         body.style.setProperty("animation",reduced?"none":theme.animation,"important");
     }
