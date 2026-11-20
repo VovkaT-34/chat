@@ -601,7 +601,7 @@
                 if (settings.theme === "custom-photo-theme") settings.theme = "classic";
                 saveSettings(settings, scope);
                 applyTheme(settings.theme, settings.text, settings.messageStyle);
-                openSettings("theme", scope);
+                openSettings("theme", scope, onBack, onClose);
             });
             personalThemeButton.appendChild(deleteThemeButton);
             themeGrid.appendChild(personalThemeButton);
