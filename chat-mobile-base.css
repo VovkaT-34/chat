@@ -127,8 +127,8 @@ body {
         position: sticky;
         bottom: 0;
         z-index: 100;
-        padding: 6px 0;
-        background: rgba(255, 251, 245, .97);
+        padding: 6px 6px;
+        background: #c9a27b;
         border-radius: 10px;
         padding-bottom: max(6px, env(safe-area-inset-bottom));
         overflow: hidden;
