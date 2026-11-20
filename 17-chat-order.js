@@ -69,7 +69,7 @@
         if (document.getElementById("coinGamesEffectStyle")) return;
         var style = document.createElement("style");
         style.id = "coinGamesEffectStyle";
-        style.textContent = ".coin-1c{touch-action:manipulation}.coin-1c.coin-press{animation:coinGamesPress 1s ease-out both;transform-origin:center center}@keyframes coinGamesPress{0%,100%{scale:1}42%{scale:.625}}.coin-firework-layer{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:99999}.coin-firework-spark{position:absolute;left:0;top:0;width:4px;height:17px;border-radius:3px;background:linear-gradient(to top,#ff8c00,#fff7a8 70%,#fff);box-shadow:0 0 6px 2px rgba(255,220,90,.95),0 0 16px rgba(255,145,0,.9);pointer-events:none;animation:coinSparkBurst 1s cubic-bezier(.12,.7,.3,1) forwards}@keyframes coinSparkBurst{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(0) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(var(--travel)) scale(.12)}}";
+        style.textContent = ".coin-1c{touch-action:manipulation}.coin-1c.coin-press{animation:coinGamesPress .3s ease-out both;transform-origin:center center}@keyframes coinGamesPress{0%,100%{scale:1}42%{scale:.625}}.coin-firework-layer{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:99999}.coin-firework-spark{position:absolute;left:0;top:0;width:7px;height:25px;border-radius:4px;background:linear-gradient(to top,#ff6500 0%,#ffb000 28%,#fff36a 65%,#fff 100%);box-shadow:0 0 12px 5px rgba(255,220,60,1),0 0 28px 12px rgba(255,145,0,.95),0 0 48px 18px rgba(255,230,90,.65);pointer-events:none;animation:coinSparkBurst .3s cubic-bezier(.12,.7,.3,1) forwards}@keyframes coinSparkBurst{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(0) scale(1.25)}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(var(--travel)) scale(.18)}}";
         document.head.appendChild(style);
     }
 
@@ -89,16 +89,16 @@
         sparkLayer.style.top = (coinRect.top + coinRect.height / 2) + "px";
         document.body.appendChild(sparkLayer);
         coin.classList.add("coin-press");
-        for (var i = 0; i < 16; i++) {
+        for (var i = 0; i < 24; i++) {
             var spark = document.createElement("span");
             spark.className = "coin-firework-spark";
             spark.style.setProperty("--angle", (i * 22.5) + "deg");
-            spark.style.setProperty("--travel", "-" + (155 + (i % 4) * 9) + "px");
+            spark.style.setProperty("--travel", "-" + (195 + (i % 5) * 12) + "px");
             sparkLayer.appendChild(spark);
         }
         void coin.offsetWidth;
-        setTimeout(function () { sparkLayer.remove(); }, 1050);
-        setTimeout(openGames, 1100);
+        setTimeout(function () { sparkLayer.remove(); }, 350);
+        setTimeout(openGames, 400);
     }, true);
 
     document.addEventListener("contextmenu", function (event) {
