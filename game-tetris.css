@@ -25,6 +25,7 @@ body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}
 
 .dragon-body{transform-box:view-box;transform-origin:100px 98px;animation:dragonBody 1.1s ease-in-out infinite}
 .dragon-jaw{transform-box:view-box;transform-origin:160px 56px;animation:dragonJaw .38s ease-in-out infinite alternate}
+.dragon-fire-burst{transform-box:view-box;transform-origin:210px 52px;animation:dragonFireBurst 10s ease-in-out infinite}
 .dragon-fire{transform-box:view-box;transform-origin:210px 52px;animation:dragonFlame .2s ease-in-out infinite alternate}
 .dragon-sparks{animation:dragonSparks .55s ease-in-out infinite alternate}
 .dragon-control-arrow{position:relative;z-index:4}
@@ -33,6 +34,7 @@ body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}
 @keyframes dragonBody{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.035)}}
 @keyframes dragonJaw{from{transform:rotate(0deg)}to{transform:rotate(13deg)}}
 @keyframes dragonFlame{from{transform:scale(.72,.82);opacity:.78}to{transform:scale(1.13,1.2);opacity:1}}
+@keyframes dragonFireBurst{0%,84%{transform:scale(1);opacity:1}89%{transform:scale(2.2);opacity:1}91%,93%{transform:scale(2.8);opacity:1}96%{transform:scale(1.5);opacity:.7}100%{transform:scale(1);opacity:1}}
 @keyframes dragonSparks{from{opacity:.55;transform:translate(0,2px)}to{opacity:1;transform:translate(2px,-3px)}}
 @media(prefers-reduced-motion:reduce){.dragon-wing-far,.dragon-wing-near,.dragon-body,.dragon-jaw,.dragon-fire,.dragon-sparks{animation:none}}
 .hint{text-align:center;color:#cfc7c0;font-size:13px;margin:10px 0 0}
