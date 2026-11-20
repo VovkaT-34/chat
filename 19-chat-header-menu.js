@@ -16,8 +16,12 @@
     function closeSettingsChoice() { var overlay = document.getElementById("chatSettingsChoiceOverlay"); if (overlay) overlay.remove(); }
 
     function openAppearanceChoice() {
-        if (typeof window.openChatAppearanceChoice === "function") window.openChatAppearanceChoice("chat");
-        else console.error("Общие настройки оформления не загружены.");
+        if (typeof window.openChatAppearanceChoice === "function") {
+            window.openChatAppearanceChoice("chat", function () {}, function () {
+                closeSettingsChoice();
+                closeMenu();
+            });
+        } else console.error("Общие настройки оформления не загружены.");
     }
 
     function openGroupRename() {
@@ -65,18 +69,23 @@
             button.addEventListener("click", function (event) {
                 event.preventDefault();
                 event.stopPropagation();
-                closeSettingsChoice();
                 handler();
             });
             panel.appendChild(button);
         }
 
+        addChoice("← Назад", function () { closeSettingsChoice(); });
         if (getCurrentChatType() === "group") {
             addChoice("Изменить ник группы", openGroupRename);
         }
         addChoice("Настройка оформления данного чата", openAppearanceChoice);
         addChoice("Исчезающие сообщения", function () {
-            if (typeof window.openChatDisappearingSettings === "function") window.openChatDisappearingSettings();
+            if (typeof window.openChatDisappearingSettings === "function") {
+                window.openChatDisappearingSettings(function () {}, function () {
+                    closeSettingsChoice();
+                    closeMenu();
+                });
+            }
         });
 
         overlay.appendChild(panel);
@@ -105,7 +114,7 @@
         if (type !== "public") {
             menu.appendChild(createMenuButton("Пользователи", function () { closeMenu(); if (typeof window.openChatUsers === "function") window.openChatUsers(); else console.error("Интерфейс пользователей не найден: window.openChatUsers"); }));
         }
-        menu.appendChild(createMenuButton(settingsTitle, function () { closeMenu(); openSettingsFromMenu(); }));
+        menu.appendChild(createMenuButton(settingsTitle, function () { openSettingsFromMenu(); }));
         if (type !== "public") {
             menu.appendChild(createMenuButton(leaveTitle, function () { closeMenu(); if (typeof window.leaveCurrentChat === "function") window.leaveCurrentChat(); else console.error("Механизм выхода из чата не найден: window.leaveCurrentChat"); }));
         }
