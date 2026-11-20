@@ -89,6 +89,32 @@
             }
         },
         {
+            id: "metal-small-cells",
+            name: "Metal — маленькие клетки",
+            preview: "linear-gradient(135deg,#69747a,#cbd1d4,#929da2,#e9edef,#737e83)",
+            vars: {
+                bg: "#92999d",
+                pattern: "linear-gradient(115deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.42) 25%,rgba(255,255,255,.10) 48%,rgba(35,42,46,.12) 75%,rgba(255,255,255,.16) 100%),repeating-conic-gradient(rgba(245,250,252,.26) 0% 25%,transparent 0% 50%),repeating-conic-gradient(rgba(35,42,46,.18) 0% 25%,transparent 0% 50%),linear-gradient(90deg,rgba(255,255,255,.22) 1px,transparent 1px),linear-gradient(0deg,rgba(35,42,46,.16) 1px,transparent 1px),linear-gradient(145deg,#69747a 0%,#cbd1d4 25%,#929da2 50%,#e9edef 70%,#737e83 100%)",
+                size: "260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%",
+                bubble: "rgba(245,248,250,.94)",
+                border: "rgba(65,78,84,.20)",
+                shadow: "rgba(40,50,55,.16)"
+            }
+        },
+        {
+            id: "metal-large-cells",
+            name: "Metal — большие клетки",
+            preview: "linear-gradient(135deg,#69747a,#cbd1d4,#929da2,#e9edef,#737e83)",
+            vars: {
+                bg: "#92999d",
+                pattern: "linear-gradient(115deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.42) 25%,rgba(255,255,255,.10) 48%,rgba(35,42,46,.12) 75%,rgba(255,255,255,.16) 100%),repeating-conic-gradient(rgba(245,250,252,.26) 0% 25%,transparent 0% 50%),repeating-conic-gradient(rgba(35,42,46,.18) 0% 25%,transparent 0% 50%),linear-gradient(90deg,rgba(255,255,255,.22) 1px,transparent 1px),linear-gradient(0deg,rgba(35,42,46,.16) 1px,transparent 1px),linear-gradient(145deg,#69747a 0%,#cbd1d4 25%,#929da2 50%,#e9edef 70%,#737e83 100%)",
+                size: "260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%",
+                bubble: "rgba(245,248,250,.94)",
+                border: "rgba(65,78,84,.20)",
+                shadow: "rgba(40,50,55,.16)"
+            }
+        },
+        {
             id: "midnight-gold-original",
             name: "Midnight Gold",
             preview: "linear-gradient(135deg,#151b29,#27334b,#c49a42)",
@@ -341,6 +367,7 @@
 
     function getThemeMotion(themeId) {
         if (themeId === "gold-shine-original" || themeId === "gold-shine" || themeId === "gold-shine-small-cells" || themeId === "gold-shine-large-cells") return null;
+        if (themeId === "metal-small-cells" || themeId === "metal-large-cells") return null;
         if (themeId === "gold-large-cells") {
             return {
                 pattern: "repeating-linear-gradient(0deg,transparent 0 62px,rgba(255,255,255,.30) 63px 65px,transparent 66px 128px),repeating-linear-gradient(90deg,transparent 0 62px,rgba(255,255,255,.26) 63px 65px,transparent 66px 128px),repeating-linear-gradient(0deg,transparent 0 62px,rgba(112,70,0,.24) 63px 65px,transparent 66px 128px),repeating-linear-gradient(90deg,transparent 0 62px,rgba(112,70,0,.22) 63px 65px,transparent 66px 128px)",
@@ -440,8 +467,12 @@
 @keyframes chatThemeGoldCells{0%,100%{background-position:0 0,0 0,64px 48px,64px 48px,0% 50%}50%{background-position:128px 96px,128px 96px,0 0,0 0,100% 50%}}
 @keyframes chatThemeGoldSmallShine{0%,100%{background-position:0% 50%,0 0,0% 50%}50%{background-position:100% 50%,60px 60px,100% 50%}}
 @keyframes chatThemeGoldLargeCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0% 50%}50%{background-position:100% 50%,128px 96px,0 0,128px 96px,128px 96px,100% 50%}}
+@keyframes chatThemeMetalSmallCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0% 50%}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0,100% 50%}}
+@keyframes chatThemeMetalLargeCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0% 50%;background-size:260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0,100% 50%;background-size:260% 260%,288px 216px,224px 168px,128px 96px,128px 96px,100% 100%}}
 @keyframes chatBubbleIridescence{0%{background-position:0% 50%}100%{background-position:100% 50%}}
 #messages[data-chat-theme="gold-large-cells"]{background-image:var(--chat-theme-motion-pattern),var(--chat-theme-pattern)!important;background-size:var(--chat-theme-motion-size),var(--chat-theme-size)!important;animation:chatThemeGoldCells 12s ease-in-out infinite!important}
+#messages[data-chat-theme="metal-small-cells"]{background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;animation:chatThemeMetalSmallCells 20s ease-in-out infinite!important}
+#messages[data-chat-theme="metal-large-cells"]{background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;animation:chatThemeMetalLargeCells 20s ease-in-out infinite!important}
 #messages[data-chat-theme]{background-color:var(--chat-theme-bg)!important;background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;background-position:0% 50%,100% 0%,0% 100%,50% 50%;animation:chatThemeIridescence 34s ease-in-out infinite;transition:background-color .28s ease}
 #messages[data-chat-theme="gold-shine-small-cells"]{background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;animation:chatThemeGoldSmallShine 30s ease-in-out infinite!important}
 #messages[data-chat-theme="gold-shine-large-cells"]{background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;animation:chatThemeGoldLargeCells 20s ease-in-out infinite!important}
@@ -452,7 +483,7 @@
 #messages[data-message-style] .message-time{color:var(--chat-card-time)!important}
 #messages[data-message-style] .message > div[style*="background:#eeeeee"]{background:var(--chat-card-reply-bg)!important;border-left-color:var(--chat-card-reply-border)!important}
 #messages[data-message-style] .message > button{background:var(--chat-card-button-bg)!important;color:var(--chat-card-button-color)!important}
-@media(prefers-reduced-motion:reduce){#messages[data-chat-theme],#messages[data-chat-theme] .message{animation:none!important}}
+@media(prefers-reduced-motion:reduce){#messages[data-chat-theme],#messages[data-chat-theme] .message,#messages[data-chat-theme="metal-small-cells"],#messages[data-chat-theme="metal-large-cells"]{animation:none!important}}
 .chat-theme-settings{width:min(520px,calc(100vw - 28px));max-height:min(82vh,720px);overflow:auto;background:#fff;color:#222;border-radius:16px;box-shadow:0 18px 55px rgba(0,0,0,.30);padding:18px;font-family:Arial,sans-serif}
 .chat-theme-settings h3{margin:0 0 14px;font-size:20px}.chat-theme-section{margin-top:16px}.chat-theme-section-title{font-weight:700;margin-bottom:9px}.chat-theme-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.chat-theme-option{border:2px solid #ddd;background:#fafafa;border-radius:11px;padding:8px;text-align:left;cursor:pointer;font:inherit}.chat-theme-option.selected{border-color:#8b5a3c;box-shadow:0 0 0 2px rgba(139,90,60,.12)}.chat-theme-preview{height:52px;border-radius:8px;margin-bottom:6px;border:1px solid rgba(0,0,0,.10)}.chat-theme-name{font-size:14px;font-weight:700}.chat-text-grid{display:flex;flex-wrap:wrap;gap:7px}.chat-text-option{border:1px solid #d5d5d5;background:#fff;border-radius:9px;padding:8px 10px;cursor:pointer;font:13px Arial,sans-serif}.chat-text-option.selected{border-color:#8b5a3c;box-shadow:0 0 0 2px rgba(139,90,60,.10)}.chat-text-dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-2px;margin-right:5px;border:1px solid rgba(0,0,0,.16)}.chat-theme-footer{display:flex;justify-content:flex-end;margin-top:18px}.chat-theme-close{border:0;background:#8b5a3c;color:#fff;padding:9px 15px;border-radius:9px;font-weight:700;cursor:pointer}
 @media(max-width:520px){.chat-theme-grid{grid-template-columns:1fr}.chat-theme-settings{padding:15px}}
