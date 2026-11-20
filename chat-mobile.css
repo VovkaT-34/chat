@@ -120,6 +120,11 @@
     z-index: 100 !important;
 }
 
+/* Монета декоративная: не должна перехватывать касания кнопки Admin Panel. */
+.coin-1c {
+    pointer-events: none !important;
+}
+
 /* Список чатов: long press не должен выделять текст на iPhone и Android. */
 .chat-list .chat-item,
 .chat-list .chat-item * {
