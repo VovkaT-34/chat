@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 var canvas=document.getElementById('volkCanvas'),ctx=canvas.getContext('2d'),scoreEl=document.getElementById('volkScore'),bestEl=document.getElementById('volkBest'),livesEl=document.getElementById('volkLives'),overlay=document.getElementById('volkOverlay'),overlayTitle=document.getElementById('overlayTitle'),overlayText=document.getElementById('overlayText'),startBtn=document.getElementById('startVolk'),soundBtn=document.getElementById('soundToggle');
-var lanes=[105,248,392,535],lane=0,eggs=[],score=0,lives=4,best=0,running=false,paused=false,last=0,spawn=0,raf=0,soundOn=true,audio=null,caughtEggs=0,particles=[],splats=[],laying=[0,0,0,0],pendingEgg=null,breakPause=0,batchSize=1,batchLaunched=0;
+var lanes=[105,248,392,535],lane=0,eggs=[],score=0,lives=4,best=0,running=false,paused=false,last=0,spawn=0,raf=0,soundOn=true,audio=null,caughtEggs=0,particles=[],splats=[],laying=[0,0,0,0],pendingEgg=null,breakPause=0,batchSize=1,batchLaunched=0,shortWaveGap=false;
 try{localStorage.removeItem('volk-best');best=Number(localStorage.getItem('volk-best-v2')||0)}catch(e){}bestEl.textContent=best;
 function audioReady(){if(!soundOn)return null;try{var A=window.AudioContext||window.webkitAudioContext;if(!A)return null;if(!audio)audio=new A();if(audio.state==='suspended')audio.resume();return audio}catch(e){return null}}
 function tone(freq,duration,type,volume,when){var a=audioReady();if(!a)return;var o=a.createOscillator(),g=a.createGain(),t=a.currentTime+(when||0);o.type=type||'sine';o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(volume||.025,t);g.gain.exponentialRampToValueAtTime(.001,t+duration);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+duration)}
@@ -111,7 +111,7 @@ function update(dt){
 if(breakPause>0){breakPause=Math.max(0,breakPause-dt);splats.forEach(function(s){s.life--});splats=splats.filter(function(s){return s.life>0});particles.forEach(function(p){p.y-=.5;p.life--});particles=particles.filter(function(p){return p.life>0});return}
 var speed=Math.min(245,124+caughtEggs*.72),targetEggs=eggsPerStage();
 spawn+=dt;
-if(!pendingEgg&&batchLaunched<batchSize&&spawn>1.05+(batchSize-1)*.45){spawn=0;var availableLanes=[0,1,2,3].filter(function(n){return eggs.every(function(e){return e.lane!==n})});var ln=availableLanes[Math.floor(Math.random()*availableLanes.length)];pendingEgg={lane:ln,remaining:.35};laying[ln]=.35}
+if(!pendingEgg&&batchLaunched<batchSize&&spawn>(shortWaveGap?.25:1.05+(batchSize-1)*.45)){spawn=0;shortWaveGap=false;var availableLanes=[0,1,2,3].filter(function(n){return eggs.every(function(e){return e.lane!==n})});var ln=availableLanes[Math.floor(Math.random()*availableLanes.length)];pendingEgg={lane:ln,remaining:.35};laying[ln]=.35}
 if(pendingEgg){pendingEgg.remaining-=dt;laying[pendingEgg.lane]=Math.max(0,pendingEgg.remaining);if(pendingEgg.remaining<=0){var eggLane=pendingEgg.lane;eggs.push({lane:eggLane,x:lanes[eggLane],y:78,vy:speed,rollStep:0,bump:0,checked:false,missed:false,done:false});batchLaunched++;pendingEgg=null}}
 for(var h=0;h<4;h++)if(!pendingEgg||pendingEgg.lane!==h)laying[h]=Math.max(0,laying[h]-dt);
 var eggBroken=false;
@@ -120,13 +120,13 @@ if(!e.checked&&e.y>386){e.checked=true;if(e.lane===lane){e.done=true;caughtEggs+
 if(e.missed&&e.y>=419){e.done=true;splats.push({x:e.x,y:437,life:55});eggBroken=true}});
 if(eggBroken){eggs=[];pendingEgg=null;batchLaunched=0;laying=[0,0,0,0];spawn=0;breakPause=.72}
 eggs=eggs.filter(function(e){return !e.done});
-if(!eggBroken&&!pendingEgg&&batchLaunched===batchSize&&eggs.length===0){batchSize=eggsPerStage();batchLaunched=0;spawn=0}
+if(!eggBroken&&!pendingEgg&&batchLaunched===batchSize&&eggs.length===0){batchSize=eggsPerStage();batchLaunched=0;spawn=0;shortWaveGap=true}
 splats.forEach(function(s){s.life--});splats=splats.filter(function(s){return s.life>0});
 particles.forEach(function(p){p.y-=.5;p.life--});particles=particles.filter(function(p){return p.life>0});
 if(lives<=0)endGame()}
 function frame(t){if(!running||paused)return;var dt=Math.min((t-last)/1000||0,.04);last=t;update(dt);render();if(running&&!paused)raf=requestAnimationFrame(frame)}
 function chooseLane(n){lane=Math.max(0,Math.min(3,n));document.querySelectorAll('[data-lane]').forEach(function(b){b.classList.toggle('active',Number(b.dataset.lane)===lane)});tick();render()}
-function startGame(){audioReady();intro();startBtn.disabled=false;score=0;lives=4;caughtEggs=0;batchSize=1;batchLaunched=0;spawn=0;eggs=[];particles=[];splats=[];laying=[0,0,0,0];pendingEgg=null;breakPause=0;lane=0;paused=false;running=true;last=performance.now();scoreEl.textContent='0';livesEl.textContent='♥ ♥ ♥ ♥';startBtn.textContent='ПАУЗА';overlay.classList.add('hidden');overlay.classList.remove('paused');overlay.classList.remove('game-over');chooseLane(0);cancelAnimationFrame(raf);raf=requestAnimationFrame(frame)}
+function startGame(){audioReady();intro();startBtn.disabled=false;score=0;lives=4;caughtEggs=0;batchSize=1;batchLaunched=0;shortWaveGap=false;spawn=0;eggs=[];particles=[];splats=[];laying=[0,0,0,0];pendingEgg=null;breakPause=0;lane=0;paused=false;running=true;last=performance.now();scoreEl.textContent='0';livesEl.textContent='♥ ♥ ♥ ♥';startBtn.textContent='ПАУЗА';overlay.classList.add('hidden');overlay.classList.remove('paused');overlay.classList.remove('game-over');chooseLane(0);cancelAnimationFrame(raf);raf=requestAnimationFrame(frame)}
 function endGame(){running=false;cancelAnimationFrame(raf);startBtn.disabled=false;startBtn.textContent='ИГРАТЬ ЕЩЁ';if(score>best){best=score;bestEl.textContent=best;try{localStorage.setItem('volk-best-v2',String(best))}catch(e){}}overlayTitle.textContent='Игра окончена';overlayText.textContent='Счёт: '+score;overlay.classList.add('game-over');overlay.classList.remove('hidden');overlay.classList.remove('paused')}
 function togglePause(){if(!running)return;if(!paused){paused=true;cancelAnimationFrame(raf);startBtn.textContent='ПРОДОЛЖИТЬ';overlayTitle.textContent='ПАУЗА';overlay.classList.add('paused');overlay.classList.remove('hidden')}else{paused=false;overlay.classList.add('hidden');overlay.classList.remove('paused');startBtn.textContent='ПАУЗА';last=performance.now();raf=requestAnimationFrame(frame)}}
 startBtn.addEventListener('click',function(){if(!running){startGame();return}togglePause()});
