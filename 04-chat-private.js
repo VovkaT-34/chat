@@ -246,7 +246,7 @@ async function openNewPrivateChatDialog() {
     let requestNumber = 0;
 
     function closeDialog() {
-        if (closed || creating) return;
+        if (closed) return;
         closed = true;
         if (timer) clearTimeout(timer);
         overlay.remove();
@@ -597,7 +597,7 @@ async function openNewGroupChatDialog() {
     let creating = false;
 
     function closeDialog() {
-        if (closed) return;
+        if (closed || creating) return;
         closed = true;
         overlay.remove();
     }
