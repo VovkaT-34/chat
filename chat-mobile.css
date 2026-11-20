@@ -73,10 +73,10 @@
 
 /* На телефонах компенсируем масштабирование монеты, чтобы её видимый край совпадал с краем экрана. */
 @media (max-width: 700px) {
-    .coin-1c { left: -55px !important; }
+    .coin-1c { left: -51px !important; }
 }
 @media (max-width: 380px) {
-    .coin-1c { left: -53px !important; }
+    .coin-1c { left: -49px !important; }
 }
 
 /* Только кнопка выхода: коричнево-оранжевый цвет на всех устройствах. */
