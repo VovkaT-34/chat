@@ -155,8 +155,8 @@ async function openNewPrivateChatDialog() {
         max-height: min(70vh, 560px);
         display: flex;
         flex-direction: column;
-        background: #fff;
-        color: #222;
+        background: #111;
+        color: #fff;
         border-radius: 14px;
         box-shadow: 0 12px 40px rgba(0,0,0,.28);
         overflow: hidden;
@@ -185,11 +185,16 @@ async function openNewPrivateChatDialog() {
         width: 100%;
         box-sizing: border-box;
         padding: 12px 14px;
-        border: 1px solid #ccc;
+        border: 1px solid #666;
+        background: #1b1b1b;
+        color: #fff;
         border-radius: 10px;
         font-size: 16px;
         outline: none;
     `;
+    const placeholderStyle = document.createElement("style");
+    placeholderStyle.textContent = "#privateChatSearchOverlay input::placeholder{color:#fff;opacity:1}";
+    dialog.appendChild(placeholderStyle);
 
     inputWrap.appendChild(input);
 
@@ -202,7 +207,7 @@ async function openNewPrivateChatDialog() {
     const status = document.createElement("div");
     status.style.cssText = `
         padding: 12px 10px 16px;
-        color: #777;
+        color: #fff;
         font-size: 14px;
         text-align: center;
     `;
@@ -212,7 +217,7 @@ async function openNewPrivateChatDialog() {
         display: flex;
         justify-content: flex-end;
         padding: 10px 14px 14px;
-        border-top: 1px solid #eee;
+        border-top: 1px solid #555;
     `;
 
     const cancelButton = document.createElement("button");
@@ -221,6 +226,7 @@ async function openNewPrivateChatDialog() {
     cancelButton.style.cssText = `
         border: 0;
         background: transparent;
+        color: #fff;
         padding: 9px 12px;
         font-size: 15px;
         cursor: pointer;
@@ -292,14 +298,14 @@ async function openNewPrivateChatDialog() {
 
             const publicId = document.createElement("span");
             publicId.textContent = "@" + (user.public_id || "ID не назначен");
-            publicId.style.cssText = "font-size:13px;color:#666;line-height:1.25;";
+            publicId.style.cssText = "font-size:13px;color:#fff;line-height:1.25;";
 
             identity.appendChild(name);
             identity.appendChild(publicId);
             row.appendChild(identity);
             row.setAttribute("aria-label", (user.username || "Пользователь") + ", @" + (user.public_id || "ID не назначен"));
             row.addEventListener("mouseenter", function () {
-                row.style.background = "#f1f1f1";
+                row.style.background = "#292929";
             });
             row.addEventListener("mouseleave", function () {
                 row.style.background = "transparent";
@@ -494,249 +500,257 @@ async function createNewPrivateChat(
 // =========================================
 
 async function openNewGroupChatDialog() {
-
     if (!currentUser) {
-
-        alert(
-            "Пользователь не авторизован."
-        );
-
-        return;
-
-    }
-
-
-    const groupName =
-        prompt(
-            "Введите название группового чата:"
-        );
-
-
-    if (!groupName) {
+        alert("Пользователь не авторизован.");
         return;
     }
 
+    const overlay = document.createElement("div");
+    overlay.id = "groupChatCreateOverlay";
+    overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 10vh 16px 24px;
+        background: rgba(0,0,0,.65);
+        box-sizing: border-box;
+    `;
 
-    const name =
-        groupName.trim();
+    const dialog = document.createElement("div");
+    dialog.style.cssText = `
+        width: min(460px, 100%);
+        max-height: min(80vh, 640px);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 18px;
+        box-sizing: border-box;
+        background: #111;
+        color: #fff;
+        border: 1px solid #555;
+        border-radius: 14px;
+        box-shadow: 0 12px 40px rgba(0,0,0,.55);
+        overflow-y: auto;
+    `;
 
+    const title = document.createElement("div");
+    title.textContent = "Новый групповой чат";
+    title.style.cssText = "font-size:19px;font-weight:700;color:#fff";
 
-    if (!name) {
-        return;
+    const nameLabel = document.createElement("label");
+    nameLabel.textContent = "Название группового чата";
+    nameLabel.style.cssText = "display:flex;flex-direction:column;gap:7px;color:#fff;font-size:14px";
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.maxLength = 80;
+    nameInput.autocomplete = "off";
+    nameInput.placeholder = "Введите название группового чата";
+    nameInput.style.cssText = "width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #666;border-radius:10px;background:#1b1b1b;color:#fff;font-size:16px;outline:none";
+    nameLabel.appendChild(nameInput);
+
+    const usersLabel = document.createElement("label");
+    usersLabel.textContent = "Имена пользователей через запятую";
+    usersLabel.style.cssText = "display:flex;flex-direction:column;gap:7px;color:#fff;font-size:14px";
+
+    const usersInput = document.createElement("textarea");
+    usersInput.rows = 3;
+    usersInput.autocomplete = "off";
+    usersInput.placeholder = "Например: user1, user2, user3";
+    usersInput.style.cssText = "width:100%;box-sizing:border-box;resize:vertical;padding:12px 14px;border:1px solid #666;border-radius:10px;background:#1b1b1b;color:#fff;font-size:16px;outline:none";
+    usersLabel.appendChild(usersInput);
+
+    const placeholderStyle = document.createElement("style");
+    placeholderStyle.textContent = "#groupChatCreateOverlay input::placeholder,#groupChatCreateOverlay textarea::placeholder{color:#fff;opacity:1}";
+    dialog.appendChild(placeholderStyle);
+
+    const status = document.createElement("div");
+    status.style.cssText = "display:none;color:#fff;font-size:14px;line-height:1.4;white-space:pre-wrap";
+
+    const footer = document.createElement("div");
+    footer.style.cssText = "display:flex;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid #555";
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.textContent = "Отмена";
+    cancelButton.style.cssText = "border:1px solid #666;border-radius:8px;background:#222;color:#fff;padding:10px 14px;font-size:15px;cursor:pointer";
+
+    const createButton = document.createElement("button");
+    createButton.type = "button";
+    createButton.textContent = "Создать";
+    createButton.style.cssText = "border:1px solid #888;border-radius:8px;background:#333;color:#fff;padding:10px 14px;font-size:15px;font-weight:700;cursor:pointer";
+
+    footer.appendChild(cancelButton);
+    footer.appendChild(createButton);
+    dialog.appendChild(title);
+    dialog.appendChild(nameLabel);
+    dialog.appendChild(usersLabel);
+    dialog.appendChild(status);
+    dialog.appendChild(footer);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    let closed = false;
+    let creating = false;
+
+    function closeDialog() {
+        if (closed) return;
+        closed = true;
+        overlay.remove();
     }
 
-
-    const usersText =
-        prompt(
-            "Введите имена пользователей через запятую:\n\n" +
-            "Например:\n" +
-            "user1, user2, user3"
-        );
-
-
-    if (!usersText) {
-        return;
+    function setStatus(message) {
+        status.textContent = message || "";
+        status.style.display = message ? "block" : "none";
     }
 
+    async function createGroup() {
+        if (closed || creating) return;
 
-    const usernames =
-        usersText
+        const name = nameInput.value.trim();
+        if (!name) {
+            setStatus("Введите название группового чата.");
+            nameInput.focus();
+            return;
+        }
+
+        const usernames = usersInput.value
             .split(",")
-            .map(
-                username =>
-                    username.trim()
-            )
+            .map(username => username.trim())
             .filter(Boolean);
 
+        if (usernames.length < 2) {
+            setStatus("Для группового чата необходимо добавить минимум двух других пользователей.");
+            usersInput.focus();
+            return;
+        }
 
-    if (usernames.length < 2) {
+        creating = true;
+        createButton.disabled = true;
+        createButton.style.opacity = ".6";
+        setStatus("Проверка пользователей...");
 
-        alert(
-            "Для группового чата необходимо добавить минимум двух других пользователей."
-        );
+        const userIds = [];
 
-        return;
+        for (const username of usernames) {
+            const { data: users, error } = await supabaseClient.rpc(
+                "search_users",
+                { p_search: username }
+            );
 
-    }
+            if (error) {
+                console.log("Ошибка поиска пользователя:", error);
+                setStatus("Ошибка поиска пользователя: " + username);
+                creating = false;
+                createButton.disabled = false;
+                createButton.style.opacity = "1";
+                return;
+            }
 
+            if (!users || users.length === 0) {
+                setStatus("Пользователь не найден: " + username);
+                creating = false;
+                createButton.disabled = false;
+                createButton.style.opacity = "1";
+                return;
+            }
 
-    const userIds = [];
+            const exactUser = users.find(
+                user => (user.username || "").toLowerCase() === username.toLowerCase()
+            );
 
+            if (!exactUser) {
+                setStatus("Не найдено точное имя пользователя: " + username);
+                creating = false;
+                createButton.disabled = false;
+                createButton.style.opacity = "1";
+                return;
+            }
 
-    for (
-        const username of usernames
-    ) {
+            if (exactUser.id === currentUser.id) continue;
 
-        const {
-            data: users,
-            error
-        } = await supabaseClient.rpc(
-            "search_users",
+            if (!userIds.includes(exactUser.id)) {
+                userIds.push(exactUser.id);
+            }
+        }
+
+        if (userIds.length < 2) {
+            setStatus("В группе должно быть минимум два других пользователя.");
+            creating = false;
+            createButton.disabled = false;
+            createButton.style.opacity = "1";
+            return;
+        }
+
+        setStatus("Создание группового чата...");
+
+        const { data: chatId, error: groupError } = await supabaseClient.rpc(
+            "create_group_chat",
             {
-                p_search: username
+                p_name: name,
+                p_user_ids: userIds
             }
         );
 
-
-        if (error) {
-
-            console.log(
-                "Ошибка поиска пользователя:",
-                error
-            );
-
-            alert(
-                "Ошибка поиска пользователя: " +
-                username
-            );
-
+        if (groupError) {
+            console.log("Ошибка создания группового чата:", groupError);
+            setStatus("Не удалось создать групповой чат.");
+            creating = false;
+            createButton.disabled = false;
+            createButton.style.opacity = "1";
             return;
-
         }
 
-
-        if (!users || users.length === 0) {
-
-            alert(
-                "Пользователь не найден: " +
-                username
-            );
-
+        if (!chatId) {
+            setStatus("Не удалось получить ID группового чата.");
+            creating = false;
+            createButton.disabled = false;
+            createButton.style.opacity = "1";
             return;
-
         }
 
+        console.log("Групповой чат создан:", chatId);
+        closeDialog();
 
-        const exactUser =
-            users.find(
-                user =>
-                    (
-                        user.username ||
-                        ""
-                    ).toLowerCase() ===
-                    username.toLowerCase()
-            );
+        await loadChats();
 
+        currentChatId = Number(chatId);
 
-        if (!exactUser) {
-
-            alert(
-                "Не найдено точное имя пользователя: " +
-                username
-            );
-
-            return;
-
+        const chatTitle = document.getElementById("chatTitle");
+        if (chatTitle) {
+            chatTitle.textContent = name;
         }
 
+        await loadMessages();
+        await updateUnreadCount(currentChatId);
+    }
 
-        if (
-            exactUser.id ===
-            currentUser.id
-        ) {
-
-            continue;
-
+    cancelButton.addEventListener("click", closeDialog);
+    createButton.addEventListener("click", createGroup);
+    nameInput.addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            usersInput.focus();
         }
-
-
-        if (
-            !userIds.includes(
-                exactUser.id
-            )
-        ) {
-
-            userIds.push(
-                exactUser.id
-            );
-
+        if (event.key === "Escape") closeDialog();
+    });
+    usersInput.addEventListener("keydown", function(event) {
+        if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            createGroup();
         }
+        if (event.key === "Escape") closeDialog();
+    });
+    overlay.addEventListener("click", function(event) {
+        if (event.target === overlay) closeDialog();
+    });
+    document.addEventListener("keydown", function onDialogKeydown(event) {
+        if (!closed && event.key === "Escape") closeDialog();
+        if (closed) document.removeEventListener("keydown", onDialogKeydown);
+    });
 
-    }
-
-
-    if (userIds.length < 2) {
-
-        alert(
-            "В группе должно быть минимум два других пользователя."
-        );
-
-        return;
-
-    }
-
-
-    const {
-        data: chatId,
-        error: groupError
-    } = await supabaseClient.rpc(
-        "create_group_chat",
-        {
-            p_name: name,
-            p_user_ids: userIds
-        }
-    );
-
-
-    if (groupError) {
-
-        console.log(
-            "Ошибка создания группового чата:",
-            groupError
-        );
-
-        alert(
-            "Не удалось создать групповой чат."
-        );
-
-        return;
-
-    }
-
-
-    if (!chatId) {
-
-        alert(
-            "Не удалось получить ID группового чата."
-        );
-
-        return;
-
-    }
-
-
-    console.log(
-        "Групповой чат создан:",
-        chatId
-    );
-
-
-    await loadChats();
-
-
-    currentChatId =
-        Number(chatId);
-
-
-    const chatTitle =
-        document.getElementById(
-            "chatTitle"
-        );
-
-
-    if (chatTitle) {
-
-        chatTitle.textContent =
-            name;
-
-    }
-
-
-    await loadMessages();
-
-
-    await updateUnreadCount(
-        currentChatId
-    );
-
+    nameInput.focus();
 }
