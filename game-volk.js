@@ -104,7 +104,7 @@ ctx.fillStyle='#fff0d8';ctx.beginPath();ctx.moveTo(44,-28);ctx.lineTo(48,-19);ct
 ctx.fillStyle='#d94735';ctx.beginPath();ctx.moveTo(-22,-22);ctx.quadraticCurveTo(0,-32,25,-20);ctx.lineTo(20,8);ctx.lineTo(-18,8);ctx.closePath();ctx.fill();ctx.strokeStyle='#8d3028';ctx.lineWidth=2;ctx.stroke();
 ctx.fillStyle='#f3bd45';ctx.fillRect(-20,-20,40,5);
 ctx.strokeStyle='#596873';ctx.lineWidth=9;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-13,-15);ctx.lineTo(-25,3);ctx.moveTo(19,-14);ctx.lineTo(31,2);ctx.stroke();
-drawBasket(lane===0?18:lane===2?18:lane===3?0:0,8);ctx.restore()}
+drawBasket(lane===0?18:lane===2?18:lane===3?-18:0,8);ctx.restore()}
 function render(){drawBackground();for(var i=0;i<4;i++)drawHen(lanes[i],laying[i]);drawWolf();eggs.forEach(drawEgg);splats.forEach(drawSplat);particles.forEach(function(p){ctx.globalAlpha=Math.max(0,p.life/25);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1})}
 function eggsPerStage(){return caughtEggs>=21?4:caughtEggs>=12?3:caughtEggs>=5?2:1}
 function update(dt){
