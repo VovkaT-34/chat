@@ -526,7 +526,7 @@
         var backButton = document.createElement("button");
         backButton.type = "button";
         backButton.textContent = "← Назад";
-        backButton.style.cssText = "border:0;background:#eee;color:#222;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-weight:700;cursor:pointer";
+        backButton.style.cssText = "border:2px solid #fff0a0;background:linear-gradient(145deg,#fff4ad 0%,#e9b83e 17%,#b87912 43%,#f7d66b 58%,#a8660b 82%,#f6d77a 100%);color:#fff;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-weight:900;cursor:pointer;text-shadow:0 2px 2px #754000,0 -1px 1px rgba(255,255,255,.9);box-shadow:inset 0 3px 3px rgba(255,255,255,.8),inset 0 -6px 5px rgba(92,48,0,.48),0 5px 0 #70430b,0 8px 13px rgba(0,0,0,.48)";
         backButton.addEventListener("click", function () {
             closeSettings();
             onBack();
