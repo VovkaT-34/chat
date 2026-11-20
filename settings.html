@@ -65,7 +65,7 @@
     style.id="chatExternalThemeMotion";
     style.textContent="@keyframes externalMetalGrid{0%,100%{background-position:0 0,0 0,0 0}50%{background-position:32px 24px,-32px -24px,0 0}}"+
         "@keyframes externalMetalLarge{0%,100%{background-position:0 0,0 0,0 0}50%{background-position:64px 48px,-64px -48px,0 0}}"+
-        "@keyframes externalGoldShine{0%,100%{background-position:0% 50%,0 0,0 0}50%{background-position:100% 50%,40px 30px,0 0}}"+"@keyframes externalGoldCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0 0}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0,0 0}}";
+        "@keyframes externalGoldShine{0%,100%{background-position:0% 50%,0 0,0 0}50%{background-position:100% 50%,40px 30px,0 0}}"+"@keyframes externalGoldCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0 0;background-size:260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0,0 0;background-size:260% 260%,288px 216px,224px 168px,128px 96px,128px 96px,100% 100%}}";
     document.head.appendChild(style);
     function apply(){
         var id=localStorage.getItem(KEY)||"metal-grid";
@@ -73,8 +73,9 @@
         var body=document.body;
         body.style.setProperty("background-color",theme.color,"important");
         body.style.setProperty("background-image",theme.image,"important");
-        body.style.setProperty("background-size",theme.size,"important");
         var reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if(id==="gold-large"&&!reduced)body.style.removeProperty("background-size");
+        else body.style.setProperty("background-size",theme.size,"important");
         body.style.setProperty("animation",reduced?"none":theme.animation,"important");
     }
     if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",apply,{once:true});
