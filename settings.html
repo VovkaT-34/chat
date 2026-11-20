@@ -84,6 +84,7 @@
         else body.style.setProperty("background-size",theme.size,"important");
         body.style.setProperty("animation",reduced?"none":theme.animation,"important");
     }
+    window.applyExternalSettingsTheme=apply;
     if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",apply,{once:true});
     else apply();
 })();
@@ -161,6 +162,7 @@
             button.appendChild(name);
             button.addEventListener("click",function(){
                 localStorage.setItem(KEY,choice.id);
+                if(typeof window.applyExternalSettingsTheme==="function")window.applyExternalSettingsTheme();
                 grid.querySelectorAll("button").forEach(function(item){
                     item.style.borderColor="#ddd";
                     item.setAttribute("aria-pressed","false");
