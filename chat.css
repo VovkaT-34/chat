@@ -79,7 +79,7 @@ body {
     height: 44px;
     padding: 5px 7px 5px 9px;
     margin-bottom: 7px;
-    background: #B34700;
+    background: #6b310f;
     color: #fffaf5;
     border: 1px solid rgba(255,255,255,.16);
     border-radius: 11px;
@@ -91,7 +91,7 @@ body {
 }
 
 .chat-item:hover {
-    background: #963C00;
+    background: #54260c;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(70, 45, 27, .16);
 }
@@ -147,19 +147,19 @@ body {
 ========================================= */
 
 .private-chat {
-    background: #B34700;
+    background: #6b310f;
 }
 
 .private-chat:hover {
-    background: #963C00;
+    background: #54260c;
 }
 
 .group-chat {
-    background: #B34700;
+    background: #6b310f;
 }
 
 .group-chat:hover {
-    background: #963C00;
+    background: #54260c;
 }
 
 
@@ -271,7 +271,7 @@ body {
 .chat-window {
     flex: 1;
     min-width: 0;
-    background: #B34700;
+    background: #6b310f;
     border: 1px solid rgba(117, 82, 50, .13);
     border-radius: 16px;
     padding: 16px;
