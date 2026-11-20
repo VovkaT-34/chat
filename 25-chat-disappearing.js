@@ -103,14 +103,24 @@
         if (overlay) overlay.remove();
     }
 
-    function openDisappearingSettings() {
+    function openDisappearingSettings(onBack, onClose) {
         closeDisappearingSettings();
         var overlay = document.createElement("div");
         overlay.id = "chatDisappearingSettingsOverlay";
-        overlay.style.cssText = "position:fixed;inset:0;z-index:100003;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box;pointer-events:auto";
+        overlay.style.cssText = "position:fixed;inset:0;z-index:100004;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box;pointer-events:auto";
 
         var panel = document.createElement("div");
         panel.style.cssText = "width:min(420px,calc(100vw - 28px));background:#fff;color:#222;border-radius:16px;box-shadow:0 18px 55px rgba(0,0,0,.30);padding:18px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:auto";
+
+        var backButton = document.createElement("button");
+        backButton.type = "button";
+        backButton.textContent = "← Назад";
+        backButton.style.cssText = "border:0;background:#eee;color:#222;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-weight:700;cursor:pointer";
+        backButton.addEventListener("click", function () {
+            closeDisappearingSettings();
+            if (typeof onBack === "function") onBack();
+        });
+        panel.appendChild(backButton);
 
         var title = document.createElement("h3");
         title.textContent = "Исчезающие сообщения";
@@ -154,7 +164,10 @@
         closeButton.type = "button";
         closeButton.textContent = "Готово";
         closeButton.style.cssText = "border:0;background:#8b5a3c;color:#fff;padding:9px 15px;border-radius:9px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
-        closeButton.addEventListener("click", closeDisappearingSettings);
+        closeButton.addEventListener("click", function () {
+            closeDisappearingSettings();
+            if (typeof onClose === "function") onClose();
+        });
         footer.appendChild(closeButton);
         panel.appendChild(footer);
 
