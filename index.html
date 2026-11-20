@@ -80,7 +80,9 @@
 .chat-list-header{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:0;margin:0 0 12px}
 .chat-list-header h2{margin:2px 4px!important;min-width:0}
 .chat-list-new-chat{position:relative;flex:0 0 auto}
-body{background-color:#92999d!important;background-image:linear-gradient(145deg,#aeb5b9 0%,#929a9f 48%,#a3aaae 100%)!important}
+@keyframes metalCellDrift{0%,100%{background-position:0 0,0 0,0 0}50%{background-position:32px 24px,-32px -24px,0 0}}
+body{background-color:#92999d!important;background-image:linear-gradient(90deg,rgba(255,255,255,.10) 1px,transparent 1px),linear-gradient(0deg,rgba(35,42,46,.10) 1px,transparent 1px),linear-gradient(145deg,#aeb5b9 0%,#929a9f 48%,#a3aaae 100%)!important;background-size:64px 48px,64px 48px,100% 100%!important;animation:metalCellDrift 28s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){body{animation:none!important}}
 .chat-list{background:#6b310f!important}
 .chat-list h2{color:#f1f1f1!important}
 #chatTitle{color:#fffefa!important}
