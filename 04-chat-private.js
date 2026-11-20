@@ -246,7 +246,7 @@ async function openNewPrivateChatDialog() {
     let requestNumber = 0;
 
     function closeDialog() {
-        if (closed) return;
+        if (closed || creating) return;
         closed = true;
         if (timer) clearTimeout(timer);
         overlay.remove();
@@ -547,7 +547,6 @@ async function openNewGroupChatDialog() {
 
     const nameInput = document.createElement("input");
     nameInput.type = "text";
-    nameInput.maxLength = 80;
     nameInput.autocomplete = "off";
     nameInput.placeholder = "Введите название группового чата";
     nameInput.style.cssText = "width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #666;border-radius:10px;background:#1b1b1b;color:#fff;font-size:16px;outline:none";
@@ -714,6 +713,7 @@ async function openNewGroupChatDialog() {
         }
 
         console.log("Групповой чат создан:", chatId);
+        creating = false;
         closeDialog();
 
         await loadChats();
