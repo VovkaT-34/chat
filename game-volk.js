@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 var canvas=document.getElementById('volkCanvas'),ctx=canvas.getContext('2d'),scoreEl=document.getElementById('volkScore'),bestEl=document.getElementById('volkBest'),livesEl=document.getElementById('volkLives'),overlay=document.getElementById('volkOverlay'),overlayTitle=document.getElementById('overlayTitle'),overlayText=document.getElementById('overlayText'),startBtn=document.getElementById('startVolk'),soundBtn=document.getElementById('soundToggle');
-var lanes=[105,248,392,535],lane=0,eggs=[],score=0,lives=4,best=0,running=false,paused=false,last=0,spawn=0,raf=0,soundOn=true,audio=null,caughtEggs=0,particles=[],splats=[],laying=[0,0,0,0],pendingEgg=null,breakPause=0;
+var lanes=[105,248,392,535],lane=0,eggs=[],score=0,lives=4,best=0,running=false,paused=false,last=0,spawn=0,raf=0,soundOn=true,audio=null,caughtEggs=0,particles=[],splats=[],laying=[0,0,0,0],pendingEgg=null,breakPause=0,batchSize=1,batchLaunched=0;
 try{localStorage.removeItem('volk-best');best=Number(localStorage.getItem('volk-best-v2')||0)}catch(e){}bestEl.textContent=best;
 function audioReady(){if(!soundOn)return null;try{var A=window.AudioContext||window.webkitAudioContext;if(!A)return null;if(!audio)audio=new A();if(audio.state==='suspended')audio.resume();return audio}catch(e){return null}}
 function tone(freq,duration,type,volume,when){var a=audioReady();if(!a)return;var o=a.createOscillator(),g=a.createGain(),t=a.currentTime+(when||0);o.type=type||'sine';o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(volume||.025,t);g.gain.exponentialRampToValueAtTime(.001,t+duration);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+duration)}
@@ -81,8 +81,8 @@ function drawHen(x,remaining){var active=remaining>0,progress=active?1-remaining
 function drawEgg(e){ctx.save();ctx.translate(e.x+Math.sin(e.rollStep*1.35)*2,e.y-e.bump*18);ctx.rotate((e.rollStep%2?1:-1)*.16+Math.sin(e.y/22)*.05);ctx.shadowColor='#3c4d2c66';ctx.shadowBlur=5;ctx.shadowOffsetY=3;var g=ctx.createLinearGradient(-12,-18,12,18);g.addColorStop(0,'#fffef1');g.addColorStop(.5,'#fff');g.addColorStop(1,'#d9dfc7');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,0,11,16,0,0,Math.PI*2);ctx.fill();ctx.shadowColor='transparent';ctx.fillStyle='#e7a64a';ctx.beginPath();ctx.ellipse(-3,-5,2,3,0,0,Math.PI*2);ctx.fill();ctx.restore()}
 function drawSplat(s){ctx.save();ctx.globalAlpha=Math.min(1,s.life/12);ctx.translate(s.x,s.y);ctx.fillStyle='#fff9df';ctx.beginPath();ctx.moveTo(-27,1);ctx.quadraticCurveTo(-31,-5,-22,-7);ctx.quadraticCurveTo(-18,-12,-9,-8);ctx.quadraticCurveTo(0,-13,8,-7);ctx.quadraticCurveTo(19,-11,23,-5);ctx.quadraticCurveTo(32,0,23,5);ctx.quadraticCurveTo(15,9,5,6);ctx.quadraticCurveTo(-6,11,-15,6);ctx.quadraticCurveTo(-26,9,-27,1);ctx.closePath();ctx.fill();ctx.fillStyle='#f5c52e';ctx.beginPath();ctx.ellipse(0,0,12,4.5,-.08,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ffe36a';ctx.beginPath();ctx.ellipse(-2,-1,6,2,0,0,Math.PI*2);ctx.fill();ctx.restore()}function drawBasket(x,y){ctx.save();ctx.translate(x,y);ctx.fillStyle='#a85c27';ctx.beginPath();ctx.moveTo(-31,-4);ctx.lineTo(31,-4);ctx.lineTo(24,19);ctx.quadraticCurveTo(0,27,-24,19);ctx.closePath();ctx.fill();ctx.strokeStyle='#f0b45d';ctx.lineWidth=4;ctx.stroke();ctx.strokeStyle='#6c3d22';ctx.lineWidth=2;for(var i=-18;i<=18;i+=9){ctx.beginPath();ctx.moveTo(i,-2);ctx.lineTo(i*.72,20);ctx.stroke()}ctx.restore()}
 function drawWolf(){var x=lanes[lane],y=400;ctx.save();ctx.translate(x,y);
-/* Позиции волка различаются: крайние разворачиваются к своей стороне, вторая слева сохраняет исходную позу. */
-if(lane===0){ctx.scale(-1,1);ctx.rotate(-.08)}else if(lane===2){ctx.rotate(-.1);ctx.translate(9,0)}else if(lane===3){ctx.scale(-1,1);ctx.rotate(.1);ctx.translate(-7,0)}
+/* Меняется только поза волка: он наклоняется к выбранному бревну. */
+if(lane===0){ctx.translate(18,-5);ctx.scale(-1,1);ctx.rotate(-.16)}else if(lane===2){ctx.translate(-8,-5);ctx.rotate(-.12)}else if(lane===3){ctx.translate(-20,-9);ctx.rotate(-.2)}
 ctx.fillStyle='#243b2b55';ctx.beginPath();ctx.ellipse(-2,36,48,9,0,0,Math.PI*2);ctx.fill();
 /* Пушистый хвост и корпус — профиль волка, направленный вправо. */
 ctx.fillStyle='#596873';ctx.strokeStyle='#303d43';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-24,-20);ctx.quadraticCurveTo(-48,-31,-57,-12);ctx.quadraticCurveTo(-63,1,-47,8);ctx.quadraticCurveTo(-35,12,-24,1);ctx.lineTo(-17,-3);ctx.closePath();ctx.fill();ctx.stroke();
@@ -104,28 +104,29 @@ ctx.fillStyle='#fff0d8';ctx.beginPath();ctx.moveTo(44,-28);ctx.lineTo(48,-19);ct
 ctx.fillStyle='#d94735';ctx.beginPath();ctx.moveTo(-22,-22);ctx.quadraticCurveTo(0,-32,25,-20);ctx.lineTo(20,8);ctx.lineTo(-18,8);ctx.closePath();ctx.fill();ctx.strokeStyle='#8d3028';ctx.lineWidth=2;ctx.stroke();
 ctx.fillStyle='#f3bd45';ctx.fillRect(-20,-20,40,5);
 ctx.strokeStyle='#596873';ctx.lineWidth=9;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-13,-15);ctx.lineTo(-25,3);ctx.moveTo(19,-14);ctx.lineTo(31,2);ctx.stroke();
-drawBasket(lane===0?18:lane===2?18:lane===3?-18:0,8);ctx.restore()}
+ctx.restore();ctx.save();ctx.translate(x,y);drawBasket(0,8);ctx.restore()}
 function render(){drawBackground();for(var i=0;i<4;i++)drawHen(lanes[i],laying[i]);drawWolf();eggs.forEach(drawEgg);splats.forEach(drawSplat);particles.forEach(function(p){ctx.globalAlpha=Math.max(0,p.life/25);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1})}
 function eggsPerStage(){return caughtEggs>=21?4:caughtEggs>=12?3:caughtEggs>=5?2:1}
 function update(dt){
 if(breakPause>0){breakPause=Math.max(0,breakPause-dt);splats.forEach(function(s){s.life--});splats=splats.filter(function(s){return s.life>0});particles.forEach(function(p){p.y-=.5;p.life--});particles=particles.filter(function(p){return p.life>0});return}
 var speed=Math.min(245,124+caughtEggs*.72),targetEggs=eggsPerStage();
 spawn+=dt;
-if(!pendingEgg&&eggs.length<targetEggs&&spawn>Math.max(.34,.78-caughtEggs*.008)){spawn=0;var availableLanes=[0,1,2,3].filter(function(n){return eggs.every(function(e){return e.lane!==n})});var ln=availableLanes[Math.floor(Math.random()*availableLanes.length)];pendingEgg={lane:ln,remaining:.35};laying[ln]=.35}
-if(pendingEgg){pendingEgg.remaining-=dt;laying[pendingEgg.lane]=Math.max(0,pendingEgg.remaining);if(pendingEgg.remaining<=0){var eggLane=pendingEgg.lane;eggs.push({lane:eggLane,x:lanes[eggLane],y:78,vy:speed,rollStep:0,bump:0,checked:false,missed:false,done:false});pendingEgg=null}}
+if(!pendingEgg&&batchLaunched<batchSize&&spawn>Math.max(.34,.78-caughtEggs*.008)){spawn=0;var availableLanes=[0,1,2,3].filter(function(n){return eggs.every(function(e){return e.lane!==n})});var ln=availableLanes[Math.floor(Math.random()*availableLanes.length)];pendingEgg={lane:ln,remaining:.35};laying[ln]=.35}
+if(pendingEgg){pendingEgg.remaining-=dt;laying[pendingEgg.lane]=Math.max(0,pendingEgg.remaining);if(pendingEgg.remaining<=0){var eggLane=pendingEgg.lane;eggs.push({lane:eggLane,x:lanes[eggLane],y:78,vy:speed,rollStep:0,bump:0,checked:false,missed:false,done:false});batchLaunched++;pendingEgg=null}}
 for(var h=0;h<4;h++)if(!pendingEgg||pendingEgg.lane!==h)laying[h]=Math.max(0,laying[h]-dt);
 var eggBroken=false;
 eggs.forEach(function(e){e.y+=e.vy*dt;e.bump=Math.max(0,e.bump-dt);while(e.rollStep<6&&e.y>=78+(e.rollStep+1)*(308/6)){e.rollStep++;e.bump=.12;rollClick(e.rollStep)}
 if(!e.checked&&e.y>386){e.checked=true;if(e.lane===lane){e.done=true;caughtEggs++;score+=1;scoreEl.textContent=score;catchSound();for(var j=0;j<8;j++)particles.push({x:e.x+(Math.random()-.5)*25,y:397,color:'#ffe7a0',size:2+Math.random()*3,life:25})}else{e.missed=true;lives--;livesEl.textContent='♥ '.repeat(lives).trim()||'—';crack()}}
 if(e.missed&&e.y>=419){e.done=true;splats.push({x:e.x,y:437,life:55});eggBroken=true}});
-if(eggBroken){eggs=[];pendingEgg=null;laying=[0,0,0,0];spawn=0;breakPause=.72}
+if(eggBroken){eggs=[];pendingEgg=null;batchLaunched=0;laying=[0,0,0,0];spawn=0;breakPause=.72}
 eggs=eggs.filter(function(e){return !e.done});
+if(!eggBroken&&!pendingEgg&&batchLaunched===batchSize&&eggs.length===0){batchSize=eggsPerStage();batchLaunched=0;spawn=0}
 splats.forEach(function(s){s.life--});splats=splats.filter(function(s){return s.life>0});
 particles.forEach(function(p){p.y-=.5;p.life--});particles=particles.filter(function(p){return p.life>0});
 if(lives<=0)endGame()}
 function frame(t){if(!running||paused)return;var dt=Math.min((t-last)/1000||0,.04);last=t;update(dt);render();if(running&&!paused)raf=requestAnimationFrame(frame)}
 function chooseLane(n){lane=Math.max(0,Math.min(3,n));document.querySelectorAll('[data-lane]').forEach(function(b){b.classList.toggle('active',Number(b.dataset.lane)===lane)});tick();render()}
-function startGame(){audioReady();intro();startBtn.disabled=false;score=0;lives=4;caughtEggs=0;spawn=0;eggs=[];particles=[];splats=[];laying=[0,0,0,0];pendingEgg=null;breakPause=0;lane=0;paused=false;running=true;last=performance.now();scoreEl.textContent='0';livesEl.textContent='♥ ♥ ♥ ♥';startBtn.textContent='ПАУЗА';overlay.classList.add('hidden');overlay.classList.remove('paused');overlay.classList.remove('game-over');chooseLane(0);cancelAnimationFrame(raf);raf=requestAnimationFrame(frame)}
+function startGame(){audioReady();intro();startBtn.disabled=false;score=0;lives=4;caughtEggs=0;batchSize=1;batchLaunched=0;spawn=0;eggs=[];particles=[];splats=[];laying=[0,0,0,0];pendingEgg=null;breakPause=0;lane=0;paused=false;running=true;last=performance.now();scoreEl.textContent='0';livesEl.textContent='♥ ♥ ♥ ♥';startBtn.textContent='ПАУЗА';overlay.classList.add('hidden');overlay.classList.remove('paused');overlay.classList.remove('game-over');chooseLane(0);cancelAnimationFrame(raf);raf=requestAnimationFrame(frame)}
 function endGame(){running=false;cancelAnimationFrame(raf);startBtn.disabled=false;startBtn.textContent='ИГРАТЬ ЕЩЁ';if(score>best){best=score;bestEl.textContent=best;try{localStorage.setItem('volk-best-v2',String(best))}catch(e){}}overlayTitle.textContent='Игра окончена';overlayText.textContent='Счёт: '+score;overlay.classList.add('game-over');overlay.classList.remove('hidden');overlay.classList.remove('paused')}
 function togglePause(){if(!running)return;if(!paused){paused=true;cancelAnimationFrame(raf);startBtn.textContent='ПРОДОЛЖИТЬ';overlayTitle.textContent='ПАУЗА';overlay.classList.add('paused');overlay.classList.remove('hidden')}else{paused=false;overlay.classList.add('hidden');overlay.classList.remove('paused');startBtn.textContent='ПАУЗА';last=performance.now();raf=requestAnimationFrame(frame)}}
 startBtn.addEventListener('click',function(){if(!running){startGame();return}togglePause()});
