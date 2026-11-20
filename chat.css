@@ -271,7 +271,7 @@ body {
 .chat-window {
     flex: 1;
     min-width: 0;
-    background: #6b310f;
+    background: #C45100;
     border: 1px solid rgba(117, 82, 50, .13);
     border-radius: 16px;
     padding: 16px;
