@@ -367,7 +367,18 @@
 
     function getThemeMotion(themeId) {
         if (themeId === "gold-shine-original" || themeId === "gold-shine" || themeId === "gold-shine-small-cells" || themeId === "gold-shine-large-cells") return null;
-        if (themeId === "metal-small-cells" || themeId === "metal-large-cells") return null;
+        if (themeId === "metal-small-cells") {
+            return {
+                pattern: "repeating-linear-gradient(0deg,transparent 0 30px,rgba(255,255,255,.30) 31px 33px,transparent 34px 64px),repeating-linear-gradient(90deg,transparent 0 30px,rgba(255,255,255,.26) 31px 33px,transparent 34px 64px),repeating-linear-gradient(0deg,transparent 0 30px,rgba(35,42,46,.22) 31px 33px,transparent 34px 64px),repeating-linear-gradient(90deg,transparent 0 30px,rgba(35,42,46,.20) 31px 33px,transparent 34px 64px)",
+                size: "128px 96px,128px 96px,64px 48px,64px 48px"
+            };
+        }
+        if (themeId === "metal-large-cells") {
+            return {
+                pattern: "repeating-linear-gradient(0deg,transparent 0 62px,rgba(255,255,255,.30) 63px 65px,transparent 66px 128px),repeating-linear-gradient(90deg,transparent 0 62px,rgba(255,255,255,.26) 63px 65px,transparent 66px 128px),repeating-linear-gradient(0deg,transparent 0 62px,rgba(35,42,46,.22) 63px 65px,transparent 66px 128px),repeating-linear-gradient(90deg,transparent 0 62px,rgba(35,42,46,.20) 63px 65px,transparent 66px 128px)",
+                size: "256px 192px,256px 192px,128px 96px,128px 96px"
+            };
+        }
         if (themeId === "gold-large-cells") {
             return {
                 pattern: "repeating-linear-gradient(0deg,transparent 0 62px,rgba(255,255,255,.30) 63px 65px,transparent 66px 128px),repeating-linear-gradient(90deg,transparent 0 62px,rgba(255,255,255,.26) 63px 65px,transparent 66px 128px),repeating-linear-gradient(0deg,transparent 0 62px,rgba(112,70,0,.24) 63px 65px,transparent 66px 128px),repeating-linear-gradient(90deg,transparent 0 62px,rgba(112,70,0,.22) 63px 65px,transparent 66px 128px)",
@@ -467,12 +478,12 @@
 @keyframes chatThemeGoldCells{0%,100%{background-position:0 0,0 0,64px 48px,64px 48px,0% 50%}50%{background-position:128px 96px,128px 96px,0 0,0 0,100% 50%}}
 @keyframes chatThemeGoldSmallShine{0%,100%{background-position:0% 50%,0 0,0% 50%}50%{background-position:100% 50%,60px 60px,100% 50%}}
 @keyframes chatThemeGoldLargeCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0% 50%}50%{background-position:100% 50%,128px 96px,0 0,128px 96px,128px 96px,100% 50%}}
-@keyframes chatThemeMetalSmallCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0% 50%}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0,100% 50%}}
-@keyframes chatThemeMetalLargeCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0% 50%;background-size:260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0,100% 50%;background-size:260% 260%,288px 216px,224px 168px,128px 96px,128px 96px,100% 100%}}
+@keyframes chatThemeMetalSmallCells{0%,100%{background-position:0% 50%,0 0,64px 48px,0 0,0 0,0% 50%,0 0,64px 48px,0 0,0 0}50%{background-position:100% 50%,64px 48px,0 0,64px 48px,64px 48px,100% 50%,64px 48px,0 0,64px 48px,64px 48px}}
+@keyframes chatThemeMetalLargeCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0% 50%,0 0,128px 96px,0 0,0 0; background-size:256px 192px,256px 192px,128px 96px,128px 96px,260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%}50%{background-position:100% 50%,128px 96px,0 0,128px 96px,128px 96px,100% 50%,128px 96px,0 0,128px 96px,128px 96px; background-size:256px 192px,288px 216px,224px 168px,128px 96px,128px 96px,260% 260%,288px 216px,224px 168px,128px 96px,128px 96px,100% 100%}}
 @keyframes chatBubbleIridescence{0%{background-position:0% 50%}100%{background-position:100% 50%}}
 #messages[data-chat-theme="gold-large-cells"]{background-image:var(--chat-theme-motion-pattern),var(--chat-theme-pattern)!important;background-size:var(--chat-theme-motion-size),var(--chat-theme-size)!important;animation:chatThemeGoldCells 12s ease-in-out infinite!important}
-#messages[data-chat-theme="metal-small-cells"]{background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;animation:chatThemeMetalSmallCells 20s ease-in-out infinite!important}
-#messages[data-chat-theme="metal-large-cells"]{background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;animation:chatThemeMetalLargeCells 20s ease-in-out infinite!important}
+#messages[data-chat-theme="metal-small-cells"]{background-image:var(--chat-theme-motion-pattern),var(--chat-theme-pattern)!important;background-size:var(--chat-theme-motion-size),var(--chat-theme-size)!important;animation:chatThemeMetalSmallCells 20s ease-in-out infinite!important}
+#messages[data-chat-theme="metal-large-cells"]{background-image:var(--chat-theme-motion-pattern),var(--chat-theme-pattern)!important;background-size:var(--chat-theme-motion-size),var(--chat-theme-size)!important;animation:chatThemeMetalLargeCells 20s ease-in-out infinite!important}
 #messages[data-chat-theme]{background-color:var(--chat-theme-bg)!important;background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;background-position:0% 50%,100% 0%,0% 100%,50% 50%;animation:chatThemeIridescence 34s ease-in-out infinite;transition:background-color .28s ease}
 #messages[data-chat-theme="gold-shine-small-cells"]{background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;animation:chatThemeGoldSmallShine 30s ease-in-out infinite!important}
 #messages[data-chat-theme="gold-shine-large-cells"]{background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;animation:chatThemeGoldLargeCells 20s ease-in-out infinite!important}
