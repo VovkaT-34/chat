@@ -15,9 +15,11 @@
 .settings-button,.admin-panel-button{min-height:40px;padding:9px 15px;border:1px solid rgba(255,255,255,.22);border-radius:11px;color:#fffaf5;font-family:Arial,sans-serif;font-size:14px;font-weight:700;line-height:1;cursor:pointer;box-shadow:0 5px 14px rgba(55,38,25,.18);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;display:inline-flex;align-items:center;gap:6px}
 .settings-button{position:absolute;right:0;top:50%;transform:translateY(-50%);width:42px;height:42px;min-width:42px;min-height:42px;padding:0;border-radius:50%;font-size:0;line-height:1;justify-content:center;background:linear-gradient(135deg,#211a16 0%,#5b3d2b 48%,#9a6a43 100%);background-size:180% 180%;animation:settingsGradient 5s ease infinite}
 .settings-button:hover{transform:translateY(-50%) translateY(-1px) scale(1.03);box-shadow:0 7px 18px rgba(55,38,25,.28);filter:brightness(1.08)}
-.settings-button .settings-icon-svg{display:block;width:22px;height:22px;flex:none;color:currentColor;stroke:currentColor;transform:rotate(0deg);transition:transform .22s ease}
+.settings-button .settings-icon-svg{display:block;width:25px;height:25px;flex:none;overflow:visible;transform:rotate(0deg);transition:transform .22s ease;filter:drop-shadow(0 1px 1px rgba(20,10,4,.8)) drop-shadow(0 0 3px rgba(190,83,28,.45))}
 .settings-button:hover .settings-icon-svg{transform:rotate(28deg)}
-.settings-button:active .settings-icon-svg{transform:rotate(52deg) scale(.94)}
+.settings-button:active .settings-icon-svg{transform:rotate(180deg) scale(.94)}
+.settings-button .settings-icon-svg.settings-spin{animation:settingsGearSpin .34s cubic-bezier(.2,.75,.25,1) forwards}
+@keyframes settingsGearSpin{0%{transform:rotate(0) scale(1)}70%{transform:rotate(205deg) scale(.92)}100%{transform:rotate(180deg) scale(1)}}
 .admin-panel-button{position:absolute;left:0;top:50%;transform:translateY(-50%);background:linear-gradient(135deg,#263238 0%,#405b73 45%,#7661a8 100%);background-size:180% 180%;animation:adminGradient 5s ease infinite}
 .admin-panel-button:hover{transform:translateY(-50%) translateY(-1px) scale(1.03);box-shadow:0 7px 18px rgba(55,55,85,.25);filter:brightness(1.08)}
 @keyframes settingsGradient{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
@@ -100,10 +102,33 @@
         <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
         Админ-панель
     </button>
-    <button onclick="window.location.href='settings.html'" class="settings-button" aria-label="Настройки" title="Настройки" type="button">
-        <svg class="settings-icon-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 3.2l1.1 1.9a7.5 7.5 0 0 1 1.7.7l2.1-.6 1.6 1.6-.6 2.1c.3.5.5 1.1.7 1.7l.6 2.1-1.6 1.6-2.1-.6a7.5 7.5 0 0 1-1.7.7L12 20.8h-2.5l-1.1-1.9a7.5 7.5 0 0 1-1.7-.7l-2.1.6-1.6-1.6.6-2.1a7.5 7.5 0 0 1-.7-1.7L1 12.3V9.8l1.9-1.1a7.5 7.5 0 0 1 .7-1.7L3 4.9l1.6-1.6 2.1.6a7.5 7.5 0 0 1 1.7-.7l1.1-1.9H12z" transform="translate(1 0) scale(.92)"/>
-            <circle cx="12" cy="11" r="3.1"/>
+    <button onclick="const gear=this.querySelector('.settings-icon-svg');gear.classList.remove('settings-spin');void gear.getBoundingClientRect();gear.classList.add('settings-spin');setTimeout(()=>window.location.href='settings.html',340)" class="settings-button" aria-label="Настройки" title="Настройки" type="button">
+        <svg class="settings-icon-svg" width="25" height="25" viewBox="0 0 24 24" aria-hidden="true">
+            <defs>
+                <linearGradient id="rustMetal" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#f0c18a"/>
+                    <stop offset=".22" stop-color="#a85a2e"/>
+                    <stop offset=".48" stop-color="#63331f"/>
+                    <stop offset=".7" stop-color="#c4773d"/>
+                    <stop offset="1" stop-color="#3b241b"/>
+                </linearGradient>
+                <radialGradient id="rustLight" cx="30%" cy="22%" r="78%">
+                    <stop offset="0" stop-color="#f7d4a1" stop-opacity=".9"/>
+                    <stop offset=".42" stop-color="#d1844b" stop-opacity=".35"/>
+                    <stop offset="1" stop-color="#291811" stop-opacity=".7"/>
+                </radialGradient>
+                <filter id="rustTexture" x="-20%" y="-20%" width="140%" height="140%">
+                    <feTurbulence type="fractalNoise" baseFrequency=".72" numOctaves="2" seed="8" result="noise"/>
+                    <feColorMatrix in="noise" type="saturate" values="0" result="grain"/>
+                    <feComponentTransfer in="grain" result="grainAlpha">
+                        <feFuncA type="table" tableValues="0 .28"/>
+                    </feComponentTransfer>
+                    <feBlend in="SourceGraphic" in2="grainAlpha" mode="multiply"/>
+                </filter>
+            </defs>
+            <path fill="url(#rustMetal)" stroke="#2d1b13" stroke-width=".8" fill-rule="evenodd" filter="url(#rustTexture)" d="M10.1 1.4h3.8l.55 2.25c.58.17 1.13.4 1.64.69l2.08-1.02 2.68 2.68-1.02 2.08c.29.51.52 1.06.69 1.64l2.25.55v3.8l-2.25.55a7.8 7.8 0 0 1-.69 1.64l1.02 2.08-2.68 2.68-2.08-1.02c-.51.29-1.06.52-1.64.69l-.55 2.25h-3.8l-.55-2.25a7.8 7.8 0 0 1-1.64-.69l-2.08 1.02-2.68-2.68 1.02-2.08a7.8 7.8 0 0 1-.69-1.64l-2.25-.55v-3.8l2.25-.55c.17-.58.4-1.13.69-1.64L3.15 6l2.68-2.68 2.08 1.02c.51-.29 1.06-.52 1.64-.69L10.1 1.4Z M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/>
+            <path d="M5.4 7.1 7 5.5m10.1 12.9 1.4-1.4M7 18.4l1.3-1.2m8.8-10.7 1.4 1.3" stroke="#f0b078" stroke-width=".7" stroke-linecap="round" opacity=".8"/>
+            <circle cx="12" cy="12" r="2.3" fill="#3c261b" stroke="#e3a16b" stroke-width=".8"/>
         </svg>
     </button>
     <div class="coin-1c">
