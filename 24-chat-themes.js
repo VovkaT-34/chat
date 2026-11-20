@@ -300,6 +300,27 @@
         localStorage.setItem(storageKey(scope), JSON.stringify(settings));
     }
 
+    function getThemeMotion(themeId) {
+        if (themeId === "gold-shine-original" || themeId === "gold-shine") return null;
+        var activeThemes = THEMES.filter(function (theme) {
+            return theme.id !== "gold-shine-original" && theme.id !== "gold-shine";
+        });
+        var index = activeThemes.findIndex(function (theme) { return theme.id === themeId; });
+        var cycle = ["grid", "stripe-forward", "stripe-reverse", "grid", "stripe-reverse", "stripe-forward"];
+        var type = index >= 0 ? cycle[index % cycle.length] : "stripe-forward";
+        if (type === "grid") {
+            return {
+                pattern: "repeating-linear-gradient(0deg,transparent 0 29px,rgba(255,255,255,.19) 30px 32px,transparent 33px 34px),repeating-linear-gradient(90deg,transparent 0 29px,rgba(0,0,0,.12) 30px 32px,transparent 33px 34px)",
+                size: "34px 34px,34px 34px"
+            };
+        }
+        var angle = type === "stripe-forward" ? "135deg" : "45deg";
+        return {
+            pattern: "repeating-linear-gradient(" + angle + ",transparent 0 27px,rgba(255,255,255,.20) 28px 30px,transparent 31px 48px),repeating-linear-gradient(" + angle + ",transparent 0 27px,rgba(0,0,0,.11) 28px 30px,transparent 31px 48px)",
+            size: "48px 48px,48px 48px"
+        };
+    }
+
     function applyTheme(themeId, textColor, messageStyleId) {
         var box = document.getElementById("messages");
         if (!box) return;
@@ -320,6 +341,14 @@
         }
         box.style.setProperty("--chat-theme-bg", theme.vars.bg);
         box.style.setProperty("--chat-theme-pattern", theme.vars.pattern);
+        var motion = getThemeMotion(theme.id);
+        if (motion) {
+            box.style.setProperty("--chat-theme-motion-pattern", motion.pattern);
+            box.style.setProperty("--chat-theme-motion-size", motion.size);
+        } else {
+            box.style.removeProperty("--chat-theme-motion-pattern");
+            box.style.removeProperty("--chat-theme-motion-size");
+        }
         box.style.setProperty("--chat-theme-size", theme.vars.size);
         box.style.setProperty("--chat-message-bg", theme.vars.bubble);
         box.style.setProperty("--chat-message-border", theme.vars.border);
@@ -360,6 +389,8 @@
         var style = document.createElement("style");
         style.id = "chatThemesCSS";
         style.textContent = `
+@keyframes chatThemePatternDrift{0%{background-position:0 0,0 0,0% 50%,100% 0%,0% 100%,50% 50%}100%{background-position:44px 44px,-44px -44px,0% 50%,100% 0%,0% 100%,50% 50%}}
+#messages[data-chat-theme]:not([data-chat-theme="gold-shine-original"]):not([data-chat-theme="gold-shine"]){background-image:var(--chat-theme-motion-pattern),var(--chat-theme-pattern)!important;background-size:var(--chat-theme-motion-size),var(--chat-theme-size)!important;background-position:0 0,0 0,0% 50%,100% 0%,0% 100%,50% 50%;animation:chatThemePatternDrift 12s linear infinite!important}
 @keyframes chatThemeIridescence{0%{background-position:0% 50%,100% 0%,0% 100%,50% 50%}50%{background-position:100% 50%,0% 100%,100% 0%,50% 50%}100%{background-position:0% 50%,100% 0%,0% 100%,50% 50%}}
 @keyframes chatBubbleIridescence{0%{background-position:0% 50%}100%{background-position:100% 50%}}
 #messages[data-chat-theme]{background-color:var(--chat-theme-bg)!important;background-image:var(--chat-theme-pattern)!important;background-size:var(--chat-theme-size)!important;background-position:0% 50%,100% 0%,0% 100%,50% 50%;animation:chatThemeIridescence 34s ease-in-out infinite;transition:background-color .28s ease}
