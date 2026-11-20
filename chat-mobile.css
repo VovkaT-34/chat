@@ -79,6 +79,18 @@
     .coin-1c { left: -43px !important; }
 }
 
+/* Только iPhone/iOS: монету смещаем ещё на 7px влево; Android сохраняет общее положение. */
+@media (max-width: 700px) {
+    @supports (-webkit-touch-callout: none) {
+        .coin-1c { left: -52px !important; }
+    }
+}
+@media (max-width: 380px) {
+    @supports (-webkit-touch-callout: none) {
+        .coin-1c { left: -50px !important; }
+    }
+}
+
 /* Только кнопка выхода: коричнево-оранжевый цвет на всех устройствах. */
 .leave-chat-button {
     background: linear-gradient(135deg, #8b5a3c 0%, #a96332 50%, #d9822b 100%) !important;
