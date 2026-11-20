@@ -465,20 +465,31 @@
         if (overlay) overlay.remove();
     }
 
-    function openSettings(section, scope) {
+    function openSettings(section, scope, onBack, onClose) {
         closeSettings();
         injectCSS();
         scope = scope || "all";
+        onBack = typeof onBack === "function" ? onBack : function () { openAppearanceChoice(scope); };
 
         var settings = loadSettings(scope);
         var overlay = document.createElement("div");
         overlay.id = "chatThemeSettingsOverlay";
-        overlay.style.cssText = "position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
+        overlay.style.cssText = "position:fixed;inset:0;z-index:100004;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
 
         var panel = document.createElement("div");
         panel.className = "chat-theme-settings";
         panel.setAttribute("role", "dialog");
         panel.setAttribute("aria-modal", "true");
+
+        var backButton = document.createElement("button");
+        backButton.type = "button";
+        backButton.textContent = "← Назад";
+        backButton.style.cssText = "border:0;background:#eee;color:#222;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-weight:700;cursor:pointer";
+        backButton.addEventListener("click", function () {
+            closeSettings();
+            onBack();
+        });
+        panel.appendChild(backButton);
 
         var title = document.createElement("h3");
         title.textContent = section === "theme" ? "Настройка темы" : section === "text" ? "Цвет текста сообщений" : section === "cards" ? "Оформление карточек сообщений" : "Настройки оформления";
@@ -544,7 +555,7 @@
                         settings.theme = "custom-photo-theme";
                         saveSettings(settings, scope);
                         applyTheme(settings.theme, settings.text, settings.messageStyle);
-                        openSettings("theme", scope);
+                        openSettings("theme", scope, onBack, onClose);
                     } catch (error) {
                         alert("Не удалось сохранить тему. Возможно, в памяти браузера недостаточно места.");
                     }
@@ -590,7 +601,7 @@
                 if (settings.theme === "custom-photo-theme") settings.theme = "classic";
                 saveSettings(settings, scope);
                 applyTheme(settings.theme, settings.text, settings.messageStyle);
-                openSettings("theme", scope);
+                openSettings("theme", scope, onBack, onClose);
             });
             personalThemeButton.appendChild(deleteThemeButton);
             themeGrid.appendChild(personalThemeButton);
@@ -716,7 +727,7 @@
                         settings.customMessageImage = canvas.toDataURL("image/jpeg", 0.82);
                         settings.messageStyle = "custom-photo";
                         saveSettings(settings, scope);
-                        openSettings("cards", scope);
+                        openSettings("cards", scope, onBack, onClose);
                     } catch (error) {
                         alert("Не удалось сохранить фотографию. Возможно, в памяти браузера недостаточно места.");
                     }
@@ -768,7 +779,7 @@
                 if (settings.messageStyle === "custom-photo") settings.messageStyle = "classic";
                 saveSettings(settings, scope);
                 applyTheme(settings.theme, settings.text, settings.messageStyle);
-                openSettings("cards", scope);
+                openSettings("cards", scope, onBack, onClose);
             });
             personalCard.appendChild(personalButton);
             personalCard.appendChild(deletePhotoButton);
@@ -803,7 +814,10 @@
         closeButton.type = "button";
         closeButton.className = "chat-theme-close";
         closeButton.textContent = "Готово";
-        closeButton.addEventListener("click", closeSettings);
+        closeButton.addEventListener("click", function () {
+            closeSettings();
+            if (typeof onClose === "function") onClose();
+        });
         if (scope === "chat") {
             var resetButton = document.createElement("button");
             resetButton.type = "button";
@@ -815,6 +829,7 @@
                 localStorage.removeItem(storageKey("chat"));
                 closeSettings();
                 applySaved();
+                if (typeof onClose === "function") onClose();
             });
             footer.appendChild(resetButton);
         }
@@ -838,7 +853,7 @@
         applyTheme(settings.theme, settings.text, settings.messageStyle);
     }
 
-    function openAppearanceChoice(scope) {
+    function openAppearanceChoice(scope, onBack, onClose) {
         scope = scope || "all";
         if (scope === "chat" && !Number(window.currentChatId || 0)) {
             console.warn("Нельзя открыть индивидуальное оформление без выбранного чата.");
@@ -849,9 +864,19 @@
 
         var overlay = document.createElement("div");
         overlay.id = "chatAppearanceChoiceOverlay";
-        overlay.style.cssText = "position:fixed;inset:0;z-index:100002;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
+        overlay.style.cssText = "position:fixed;inset:0;z-index:100003;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
         var panel = document.createElement("div");
         panel.style.cssText = "width:min(300px,calc(100vw - 28px));background:#000;color:#fff;border:1px solid #333;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.45);padding:6px;font-family:Arial,sans-serif;box-sizing:border-box";
+
+        var backButton = document.createElement("button");
+        backButton.type = "button";
+        backButton.textContent = "← Назад";
+        backButton.style.cssText = "display:block;width:100%;border:0;background:#333;color:#fff;text-align:left;padding:12px;border-radius:8px;cursor:pointer;font:inherit";
+        backButton.addEventListener("click", function () {
+            overlay.remove();
+            if (typeof onBack === "function") onBack();
+        });
+        panel.appendChild(backButton);
 
         [["Настройка темы", "theme"], ["Цвет текста сообщений", "text"], ["Оформление карточек сообщений", "cards"]].forEach(function (choice) {
             var button = document.createElement("button");
@@ -861,8 +886,10 @@
             button.addEventListener("click", function (event) {
                 event.preventDefault();
                 event.stopPropagation();
-                overlay.remove();
-                openSettings(choice[1], scope);
+                openSettings(choice[1], scope, function () {}, function () {
+                    overlay.remove();
+                    if (typeof onClose === "function") onClose();
+                });
             });
             panel.appendChild(button);
         });
