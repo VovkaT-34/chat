@@ -156,7 +156,7 @@ if(pendingEgg){pendingEgg.remaining-=dt;laying[pendingEgg.lane]=Math.max(0,pendi
 for(var h=0;h<4;h++)if(!pendingEgg||pendingEgg.lane!==h)laying[h]=Math.max(0,laying[h]-dt);
 var eggBroken=false;
 eggs.forEach(function(e){e.y+=e.vy*dt;e.bump=Math.max(0,e.bump-dt);while(e.rollStep<6&&e.y>=78+(e.rollStep+1)*(308/6)){e.rollStep++;e.bump=.12;rollClick(e.rollStep)}
-if(!e.checked&&e.y>386){e.checked=true;if(e.lane===lane){e.done=true;caughtEggs++;score+=1;scoreEl.textContent=score;catchSound();for(var j=0;j<8;j++)particles.push({x:e.x+(Math.random()-.5)*25,y:397,color:'#ffe7a0',size:2+Math.random()*3,life:25})}else{e.missed=true;lives--;livesEl.textContent='♥ '.repeat(lives).trim()||'—';crack()}}
+if(!e.checked&&e.y>386){e.checked=true;if(e.lane===lane){e.done=true;eggCaught(e)}else{e.missed=true;lives--;livesEl.textContent='♥ '.repeat(lives).trim()||'—';crack();queueGoldenEgg()}}
 if(e.missed&&e.y>=419){e.done=true;if(e.golden)goldenEggActive=false;splats.push({x:e.x,y:437,life:55});eggBroken=true}});
 if(eggBroken){eggs=[];pendingEgg=null;batchLaunched=0;laying=[0,0,0,0];spawn=0;breakPause=.72}
 eggs=eggs.filter(function(e){return !e.done});
