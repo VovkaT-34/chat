@@ -36,7 +36,7 @@ body{padding:18px 14px 28px;min-height:100svh;overflow-x:hidden}
 @keyframes dragonFlame{from{transform:scale(.72,.82);opacity:.78}to{transform:scale(1.13,1.2);opacity:1}}
 @keyframes dragonFireBurst{0%,84%{transform:scale(1);opacity:1}89%{transform:scale(2.2);opacity:1}91%,93%{transform:scale(2.8);opacity:1}96%{transform:scale(1.5);opacity:.7}100%{transform:scale(1);opacity:1}}
 @keyframes dragonSparks{from{opacity:.55;transform:translate(0,2px)}to{opacity:1;transform:translate(2px,-3px)}}
-@media(prefers-reduced-motion:reduce){.dragon-wing-far,.dragon-wing-near,.dragon-body,.dragon-jaw,.dragon-fire,.dragon-sparks{animation:none}}
+@media(prefers-reduced-motion:reduce){.dragon-wing-far,.dragon-wing-near,.dragon-body,.dragon-jaw,.dragon-fire-burst,.dragon-fire,.dragon-sparks{animation:none}}
 .hint{text-align:center;color:#cfc7c0;font-size:13px;margin:10px 0 0}
 .desktop-hint{display:block}
 @media(max-width:700px){.top{margin-bottom:10px}.title{font-size:24px}.mobile-pause{display:block}.desktop-hint{display:none}.tetris-wrap{width:calc(100vw - 28px);height:calc(100vw - 28px);margin-left:50%;transform:translateX(-50%)}.tetris-canvas{width:calc((100vw - 28px)/2);height:calc(100vw - 28px)}.tetris-next{right:7px;width:66px}.tetris-next-title{font-size:9px}.tetris-next canvas{width:58px;height:58px}.game-controls-wide{width:calc(100vw - 28px);margin-top:8px}.wide-grid{gap:11px;row-gap:8px}.game-btn{min-height:76px;font-size:45px}.dragon-art{top:-50px;width:79px;height:54px}}
