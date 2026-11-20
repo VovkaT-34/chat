@@ -489,8 +489,6 @@
             closeSettings();
             onBack();
         });
-        panel.appendChild(backButton);
-
         var title = document.createElement("h3");
         title.textContent = section === "theme" ? "Настройка темы" : section === "text" ? "Цвет текста сообщений" : section === "cards" ? "Оформление карточек сообщений" : "Настройки оформления";
         panel.appendChild(title);
@@ -810,6 +808,7 @@
 
         var footer = document.createElement("div");
         footer.className = "chat-theme-footer";
+        footer.style.justifyContent = "space-between";
         var closeButton = document.createElement("button");
         closeButton.type = "button";
         closeButton.className = "chat-theme-close";
@@ -818,6 +817,8 @@
             closeSettings();
             if (typeof onClose === "function") onClose();
         });
+        backButton.style.marginBottom = "0";
+        footer.appendChild(backButton);
         if (scope === "chat") {
             var resetButton = document.createElement("button");
             resetButton.type = "button";
@@ -876,8 +877,6 @@
             overlay.remove();
             if (typeof onBack === "function") onBack();
         });
-        panel.appendChild(backButton);
-
         [["Настройка темы", "theme"], ["Цвет текста сообщений", "text"], ["Оформление карточек сообщений", "cards"]].forEach(function (choice) {
             var button = document.createElement("button");
             button.type = "button";
@@ -893,6 +892,7 @@
             });
             panel.appendChild(button);
         });
+        panel.appendChild(backButton);
 
         overlay.appendChild(panel);
         document.body.appendChild(overlay);
