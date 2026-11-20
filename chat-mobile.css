@@ -82,12 +82,12 @@
 /* Только iPhone/iOS: монету смещаем ещё на 7px влево; Android сохраняет общее положение. */
 @media (max-width: 700px) {
     @supports (-webkit-touch-callout: none) {
-        .coin-1c { left: -52px !important; }
+        .coin-1c { left: -57px !important; }
     }
 }
 @media (max-width: 380px) {
     @supports (-webkit-touch-callout: none) {
-        .coin-1c { left: -50px !important; }
+        .coin-1c { left: -55px !important; }
     }
 }
 
