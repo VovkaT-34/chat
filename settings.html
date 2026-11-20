@@ -25,6 +25,7 @@
 <div class="field" id="publicIdField"><input id="publicIdInput" maxlength="24" minlength="3" pattern="[a-z0-9_]{3,24}" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Например: sad4821"><button class="primary" id="publicIdSave" type="button">Сохранить</button></div>
 <div class="row"><div><strong>Пароль</strong><small>Изменение пароля аккаунта</small></div><button id="passwordToggle">Изменить</button></div>
 <div class="field" id="passwordField"><input id="passwordInput" type="password" minlength="6" placeholder="Новый пароль" autocomplete="new-password"><button class="primary" id="passwordSave">Сохранить</button></div>
+<div class="row"><div><strong>Настройка внешней темы</strong><small>Фон всей страницы: металл и Gold Shine</small></div><button id="externalThemeToggle" type="button">Открыть</button></div>
 <div class="row"><div><strong>Настройка оформления всех чатов</strong><small>Общая тема, цвет текста и оформление карточек по умолчанию</small></div><button id="themeToggle" type="button">Открыть</button></div>
 <div class="row"><div><strong>Звук сообщений</strong><small>Звуковые уведомления внутри чата</small></div><button id="soundToggle">Вкл.</button></div>
 <div class="row"><div><strong>Уведомления</strong><small id="notificationStatus">Системные уведомления о новых сообщениях</small></div><button id="notificationToggle" type="button">Включить</button></div>
@@ -42,5 +43,71 @@
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase.js"></script><script src="logout.js"></script><script src="settings.js"></script><script src="24-chat-themes.js"></script>
 <script>document.getElementById("themeToggle").onclick=function(){if(typeof window.openChatAppearanceChoice==="function")window.openChatAppearanceChoice("all");};</script>
+<script>
+(function(){
+    "use strict";
+    var KEY="chatExternalTheme";
+    var choices=[
+        {id:"metal-classic",name:"Металл — прежний",preview:"linear-gradient(145deg,#aeb5b9,#929a9f,#a3aaae)"},
+        {id:"metal-grid",name:"Металл — текущая сетка",preview:"repeating-linear-gradient(0deg,transparent 0 47px,rgba(35,42,46,.16) 48px),repeating-linear-gradient(90deg,transparent 0 63px,rgba(255,255,255,.25) 64px),linear-gradient(145deg,#aeb5b9,#929a9f,#a3aaae)"},
+        {id:"metal-large",name:"Металл — крупные клетки",preview:"repeating-linear-gradient(0deg,transparent 0 95px,rgba(35,42,46,.18) 96px),repeating-linear-gradient(90deg,transparent 0 127px,rgba(255,255,255,.28) 128px),linear-gradient(145deg,#aeb5b9,#929a9f,#a3aaae)"},
+        {id:"gold-shine",name:"Gold Shine",preview:"linear-gradient(115deg,#8a641e,#d9bd70,#f7d774,#fff3bd,#b17a1f)"}
+    ];
+    var trigger=document.getElementById("externalThemeToggle");
+    if(!trigger)return;
+    trigger.addEventListener("click",function(){
+        var old=document.getElementById("externalThemePicker");
+        if(old)old.remove();
+        var overlay=document.createElement("div");
+        overlay.id="externalThemePicker";
+        overlay.style.cssText="position:fixed;inset:0;z-index:100010;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.55);box-sizing:border-box";
+        var panel=document.createElement("div");
+        panel.style.cssText="width:min(440px,calc(100vw - 28px));max-height:80vh;overflow:auto;padding:18px;background:#fff;color:#222;border-radius:16px;box-shadow:0 18px 55px rgba(0,0,0,.3);font-family:Arial,sans-serif";
+        var heading=document.createElement("h3");
+        heading.textContent="Настройка внешней темы";
+        heading.style.cssText="margin:0 0 14px;font-size:19px";
+        panel.appendChild(heading);
+        var grid=document.createElement("div");
+        grid.style.cssText="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px";
+        var selected=localStorage.getItem(KEY)||"metal-grid";
+        choices.forEach(function(choice){
+            var button=document.createElement("button");
+            button.type="button";
+            button.setAttribute("aria-pressed",String(choice.id===selected));
+            button.style.cssText="padding:8px;border:2px solid "+(choice.id===selected?"#8b5a3c":"#ddd")+";border-radius:11px;background:#fafafa;text-align:left;cursor:pointer;font:inherit;min-width:0";
+            var preview=document.createElement("div");
+            preview.style.cssText="height:66px;border-radius:8px;margin-bottom:8px;border:1px solid rgba(0,0,0,.12);background:"+choice.preview;
+            var name=document.createElement("div");
+            name.textContent=choice.name;
+            name.style.cssText="font-size:13px;font-weight:700";
+            button.appendChild(preview);
+            button.appendChild(name);
+            button.addEventListener("click",function(){
+                localStorage.setItem(KEY,choice.id);
+                grid.querySelectorAll("button").forEach(function(item){
+                    item.style.borderColor="#ddd";
+                    item.setAttribute("aria-pressed","false");
+                });
+                button.style.borderColor="#8b5a3c";
+                button.setAttribute("aria-pressed","true");
+            });
+            grid.appendChild(button);
+        });
+        panel.appendChild(grid);
+        var footer=document.createElement("div");
+        footer.style.cssText="display:flex;justify-content:flex-end;margin-top:16px";
+        var close=document.createElement("button");
+        close.type="button";
+        close.textContent="Готово";
+        close.style.cssText="border:0;border-radius:9px;padding:9px 16px;background:#8b5a3c;color:#fff;font-weight:700;cursor:pointer";
+        close.addEventListener("click",function(){overlay.remove();});
+        footer.appendChild(close);
+        panel.appendChild(footer);
+        overlay.appendChild(panel);
+        overlay.addEventListener("click",function(event){if(event.target===overlay)overlay.remove();});
+        document.body.appendChild(overlay);
+    });
+})();
+</script>
 </body>
 </html>
