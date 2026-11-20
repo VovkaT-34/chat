@@ -69,7 +69,7 @@
         if (document.getElementById("coinGamesEffectStyle")) return;
         var style = document.createElement("style");
         style.id = "coinGamesEffectStyle";
-        style.textContent = ".coin-1c{touch-action:manipulation}.coin-1c.coin-press{animation:coinGamesPress .3s ease-out both;transform-origin:center center}@keyframes coinGamesPress{0%,100%{scale:1}42%{scale:.625}}.coin-firework-layer{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:99999}.coin-firework-spark{position:absolute;left:0;top:0;width:7px;height:25px;border-radius:4px;background:linear-gradient(to top,#ff6500 0%,#ffb000 28%,#fff36a 65%,#fff 100%);box-shadow:0 0 12px 5px rgba(255,220,60,1),0 0 28px 12px rgba(255,145,0,.95),0 0 48px 18px rgba(255,230,90,.65);pointer-events:none;animation:coinSparkBurst .3s cubic-bezier(.12,.7,.3,1) forwards}@keyframes coinSparkBurst{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(0) scale(1.25)}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(var(--travel)) scale(.18)}}";
+        style.textContent = ".coin-1c{touch-action:manipulation}.coin-1c.coin-press{animation:coinGamesPress .3s ease-out both;transform-origin:center center}@keyframes coinGamesPress{0%,100%{scale:1}42%{scale:.625}}.coin-firework-layer{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:99999}.coin-rocket{position:absolute;left:0;top:0;width:10px;height:10px;pointer-events:none;animation:coinRocketFly .32s cubic-bezier(.12,.72,.2,1) both}.coin-rocket:before{content:\"\";position:absolute;left:3px;top:4px;width:4px;height:58px;border-radius:50%;background:linear-gradient(to top,transparent 0%,var(--rocket-color) 48%,#fff 100%);box-shadow:0 0 12px 4px var(--rocket-color);opacity:.98}.coin-rocket:after{content:\"\";position:absolute;left:1px;top:0;width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:0 0 8px 4px #fff,0 0 18px 8px var(--rocket-color),0 0 30px 12px var(--rocket-color)}@keyframes coinRocketFly{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(0) scale(.8)}72%,100%{opacity:1;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(var(--travel)) scale(1.15)}}.coin-rocket-burst{position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:var(--rocket-color);box-shadow:0 0 9px 4px var(--rocket-color),0 0 18px 7px #fff;animation:coinRocketBurst .12s .205s ease-out both}@keyframes coinRocketBurst{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--burst-angle)) translateY(0) scale(1.5)}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--burst-angle)) translateY(var(--burst-distance)) scale(.12)}}.coin-rocket-flash{position:absolute;left:50%;top:50%;width:18px;height:18px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 14px 7px var(--rocket-color),0 0 28px 12px var(--rocket-color);animation:coinRocketFlash .16s .19s ease-out both}@keyframes coinRocketFlash{0%{opacity:1;transform:translate(-50%,-50%) scale(.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(4.5)}}";
         document.head.appendChild(style);
     }
 
@@ -89,15 +89,29 @@
         sparkLayer.style.top = (coinRect.top + coinRect.height / 2) + "px";
         document.body.appendChild(sparkLayer);
         coin.classList.add("coin-press");
-        for (var i = 0; i < 24; i++) {
-            var spark = document.createElement("span");
-            spark.className = "coin-firework-spark";
-            spark.style.setProperty("--angle", (i * 22.5) + "deg");
-            spark.style.setProperty("--travel", "-" + (195 + (i % 5) * 12) + "px");
-            sparkLayer.appendChild(spark);
+        var rocketColors = ["#fff36a", "#54eaff", "#ff62d5", "#ff9b35", "#a8ff68"];
+        for (var i = 0; i < 10; i++) {
+            var rocket = document.createElement("span");
+            rocket.className = "coin-rocket";
+            rocket.style.setProperty("--angle", (i * 36) + "deg");
+            rocket.style.setProperty("--travel", "-" + (145 + (i % 4) * 16) + "px");
+            rocket.style.setProperty("--rocket-color", rocketColors[i % rocketColors.length]);
+            for (var j = 0; j < 8; j++) {
+                var fragment = document.createElement("span");
+                fragment.className = "coin-rocket-burst";
+                fragment.style.setProperty("--rocket-color", rocketColors[i % rocketColors.length]);
+                fragment.style.setProperty("--burst-angle", (j * 45 + (i % 3) * 12) + "deg");
+                fragment.style.setProperty("--burst-distance", "-" + (24 + (j % 3) * 10) + "px");
+                rocket.appendChild(fragment);
+            }
+            var flash = document.createElement("span");
+            flash.className = "coin-rocket-flash";
+            flash.style.setProperty("--rocket-color", rocketColors[i % rocketColors.length]);
+            rocket.appendChild(flash);
+            sparkLayer.appendChild(rocket);
         }
         void coin.offsetWidth;
-        setTimeout(function () { sparkLayer.remove(); }, 350);
+        setTimeout(function () { sparkLayer.remove(); }, 370);
         setTimeout(openGames, 400);
     }, true);
 
