@@ -71,6 +71,14 @@
     }
 }
 
+/* На телефонах компенсируем масштабирование монеты, чтобы её видимый край совпадал с краем экрана. */
+@media (max-width: 700px) {
+    .coin-1c { left: -78px !important; }
+}
+@media (max-width: 380px) {
+    .coin-1c { left: -76px !important; }
+}
+
 /* Только кнопка выхода: коричнево-оранжевый цвет на всех устройствах. */
 .leave-chat-button {
     background: linear-gradient(135deg, #8b5a3c 0%, #a96332 50%, #d9822b 100%) !important;
