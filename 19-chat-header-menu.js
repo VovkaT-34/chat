@@ -74,7 +74,6 @@
             panel.appendChild(button);
         }
 
-        addChoice("← Назад", function () { closeSettingsChoice(); });
         if (getCurrentChatType() === "group") {
             addChoice("Изменить ник группы", openGroupRename);
         }
@@ -87,6 +86,7 @@
                 });
             }
         });
+        addChoice("← Назад", function () { closeSettingsChoice(); });
 
         overlay.appendChild(panel);
         document.body.appendChild(overlay);
