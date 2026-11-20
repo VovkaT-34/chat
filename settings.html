@@ -53,13 +53,19 @@
             image:"linear-gradient(115deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.38) 25%,rgba(255,255,255,.08) 48%,rgba(112,70,0,.10) 75%,rgba(255,255,255,.12) 100%),radial-gradient(circle at 20% 30%,rgba(255,255,255,.34) 0 2px,transparent 3px),linear-gradient(135deg,#8a641e 0%,#d9bd70 25%,#f7d774 50%,#fff3bd 70%,#b17a1f 100%)",
             size:"260% 260%,120px 120px,100% 100%",
             animation:"externalGoldShine 30s ease-in-out infinite"
+        },
+        "gold-large":{
+            color:"#b58a35",
+            image:"linear-gradient(115deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.38) 25%,rgba(255,255,255,.08) 48%,rgba(112,70,0,.10) 75%,rgba(255,255,255,.12) 100%),repeating-conic-gradient(rgba(255,247,205,.25) 0% 25%,transparent 0% 50%),repeating-conic-gradient(rgba(92,55,0,.20) 0% 25%,transparent 0% 50%),linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px),linear-gradient(0deg,rgba(92,55,0,.16) 1px,transparent 1px),linear-gradient(135deg,#8a641e 0%,#d9bd70 25%,#f7d774 50%,#fff3bd 70%,#b17a1f 100%)",
+            size:"260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%",
+            animation:"externalGoldCells 20s ease-in-out infinite"
         }
     };
     var style=document.createElement("style");
     style.id="chatExternalThemeMotion";
     style.textContent="@keyframes externalMetalGrid{0%,100%{background-position:0 0,0 0,0 0}50%{background-position:32px 24px,-32px -24px,0 0}}"+
         "@keyframes externalMetalLarge{0%,100%{background-position:0 0,0 0,0 0}50%{background-position:64px 48px,-64px -48px,0 0}}"+
-        "@keyframes externalGoldShine{0%,100%{background-position:0% 50%,0 0,0 0}50%{background-position:100% 50%,40px 30px,0 0}}";
+        "@keyframes externalGoldShine{0%,100%{background-position:0% 50%,0 0,0 0}50%{background-position:100% 50%,40px 30px,0 0}}"+"@keyframes externalGoldCells{0%,100%{background-position:0% 50%,0 0,128px 96px,0 0,0 0,0 0;background-size:260% 260%,256px 192px,256px 192px,128px 96px,128px 96px,100% 100%}50%{background-position:100% 50%,128px 96px,0 0,0 0,0 0,0 0;background-size:260% 260%,288px 216px,224px 168px,128px 96px,128px 96px,100% 100%}}";
     document.head.appendChild(style);
     function apply(){
         var id=localStorage.getItem(KEY)||"metal-grid";
@@ -113,7 +119,8 @@
         {id:"metal-classic",name:"Металл — прежний",preview:"linear-gradient(145deg,#aeb5b9,#929a9f,#a3aaae)"},
         {id:"metal-grid",name:"Металл — текущая сетка",preview:"repeating-linear-gradient(0deg,transparent 0 47px,rgba(35,42,46,.16) 48px),repeating-linear-gradient(90deg,transparent 0 63px,rgba(255,255,255,.25) 64px),linear-gradient(145deg,#aeb5b9,#929a9f,#a3aaae)"},
         {id:"metal-large",name:"Металл — крупные клетки",preview:"repeating-linear-gradient(0deg,transparent 0 95px,rgba(35,42,46,.18) 96px),repeating-linear-gradient(90deg,transparent 0 127px,rgba(255,255,255,.28) 128px),linear-gradient(145deg,#aeb5b9,#929a9f,#a3aaae)"},
-        {id:"gold-shine",name:"Gold Shine",preview:"linear-gradient(115deg,#8a641e,#d9bd70,#f7d774,#fff3bd,#b17a1f)"}
+        {id:"gold-shine",name:"Gold Shine",preview:"linear-gradient(115deg,#8a641e,#d9bd70,#f7d774,#fff3bd,#b17a1f)"},
+        {id:"gold-large",name:"Gold — крупные клетки",preview:"repeating-conic-gradient(rgba(255,247,205,.25) 0% 25%,rgba(92,55,0,.16) 0% 50%) 0 0/128px 96px,linear-gradient(135deg,#8a641e,#d9bd70,#f7d774,#fff3bd,#b17a1f)"}
     ];
     var trigger=document.getElementById("externalThemeToggle");
     if(!trigger)return;
