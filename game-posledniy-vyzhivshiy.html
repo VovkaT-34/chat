@@ -64,6 +64,10 @@
         <label>Чувствительность камеры <output id="cameraSensValue">55%</output><input id="cameraSensitivity" type="range" min="10" max="100" value="55"></label>
         <label>Чувствительность прицела (ADS) <output id="adsSensValue">35%</output><input id="adsSensitivity" type="range" min="10" max="100" value="35"></label>
         <label>Режим джойстика<select id="joystickMode"><option value="fixed">Фиксированный</option><option value="floating">Плавающий — появляется под пальцем</option></select></label>
+        <label>Режим гироскопа<select id="gyroMode"><option value="always">Всегда включён</option><option value="ads">Только при прицеливании</option></select></label>
+        <label>Чувствительность гироскопа <output id="gyroSensValue">35%</output><input id="gyroSensitivity" type="range" min="10" max="100" value="35"></label>
+        <div class="button-row"><button id="gyroEnable" class="secondary-button">ВКЛЮЧИТЬ ГИРОСКОП</button><button id="gyroCalibrate" class="secondary-button" disabled>КАЛИБРОВАТЬ</button></div>
+        <p class="settings-note" id="gyroStatus">Выключен. Для работы требуется разрешение датчика.</p>
         <label>Размер кнопок <output id="sizeValue">100%</output><input id="buttonSize" type="range" min="75" max="135" value="100"></label>
         <label>Прозрачность кнопок <output id="opacityValue">65%</output><input id="buttonOpacity" type="range" min="20" max="100" value="65"></label>
         <label class="check-row"><input id="hudEdit" type="checkbox"> Редактировать расположение кнопок</label>
