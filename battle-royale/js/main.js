@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { defaults, WEAPONS, worldSize, playerSpeed } from "./constants.js";
 import { clamp, rand, fmt } from "./utils.js";
+import { createAudioSystem } from "./audio.js";
 
 const $ = id => document.getElementById(id);
 const root=$("gameRoot"),canvas=$("world");
@@ -8,6 +9,8 @@ const ui={menu:$("menu"),settings:$("settings"),how:$("how"),pause:$("pause"),re
 const storeKey="brut-last-survivor-settings-v1",layoutKey="brut-last-survivor-hud-v1";
 
 let settings={...defaults},savedSettings={};try{savedSettings=JSON.parse(localStorage.getItem(storeKey)||"{}");settings={...settings,...savedSettings}}catch{}settings.cameraSensitivity=Number(savedSettings.cameraSensitivity??savedSettings.sensitivity??55);settings.adsSensitivity=Number(savedSettings.adsSensitivity??savedSettings.sensitivity??35);settings.joystickMode=savedSettings.joystickMode==="floating"?"floating":"fixed";settings.gyroEnabled=true;settings.gyroMode="always";
+const audio=createAudioSystem(()=>settings);
+const {getAudio,unlockAudio,tone,noiseBurst,playSfx,sound}=audio;
 let renderer,scene,camera,clock,raycaster,sunLight;
 let player,bots=[],loot=[],obstacles=[],bullets=[],particles=[],zoneRing;
 let running=false,paused=false,gameOver=false,elapsed=0,zoneRadius=47,zoneStage=0,zoneTimer=180;
@@ -21,7 +24,7 @@ function cycleFireMode(){const modes=getWeapon().modes;if(modes.length<2){showTo
 
 let yaw=0,pitch=.18,aiming=false,crouching=false,prone=false,sprinting=false,fireHeld=false,jumpUntil=0,lastShot=0,reloadUntil=0,toastTimer=0;
 let move={x:0,y:0},lookPointer=null,keys=new Set(),lastFrame=0;
-let gyroPrevious=null,gyroCurrent=null,gyroPendingYaw=0,gyroPendingPitch=0,requestGyroAccess=async()=>false,applyGyroInput=()=>{},footstepTimer=0;let audioContext=null,noiseBuffer=null;
+let gyroPrevious=null,gyroCurrent=null,gyroPendingYaw=0,gyroPendingPitch=0,requestGyroAccess=async()=>false,applyGyroInput=()=>{},footstepTimer=0;
 
 const materials={};
 const v3=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -32,12 +35,12 @@ function showToast(message){ui.toast.textContent=message;ui.toast.classList.add(
 function openScreen(id){Object.values(ui).forEach(x=>x.classList?.remove("visible"));ui[id].classList.add("visible")}
 function closeScreens(){Object.values(ui).forEach(x=>x.classList?.remove("visible"))}
 function saveSettings(){try{localStorage.setItem(storeKey,JSON.stringify(settings))}catch{}}
-function getAudio(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;if(!audioContext){audioContext=new C();const length=Math.floor(audioContext.sampleRate*.35);noiseBuffer=audioContext.createBuffer(1,length,audioContext.sampleRate);const data=noiseBuffer.getChannelData(0);for(let i=0;i<length;i++)data[i]=Math.random()*2-1}return audioContext}catch{return null}}
-function unlockAudio(){const a=getAudio();if(a&&a.state==="suspended")a.resume().catch(()=>{})}
-function tone(freq,duration,volume,type="sine",endFreq=freq,delay=0){const a=getAudio();if(!a||!settings.soundEnabled||settings.volume===0)return;const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+delay;o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(1,endFreq),t+duration);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(volume*settings.volume/100,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+duration+.02)}
-function noiseBurst(duration,volume,filterFreq=1800,delay=0){const a=getAudio();if(!a||!settings.soundEnabled||settings.volume===0||!noiseBuffer)return;const src=a.createBufferSource(),filter=a.createBiquadFilter(),g=a.createGain(),t=a.currentTime+delay;src.buffer=noiseBuffer;filter.type="lowpass";filter.frequency.value=filterFreq;g.gain.setValueAtTime(volume*settings.volume/100,t);g.gain.exponentialRampToValueAtTime(.0001,t+duration);src.connect(filter);filter.connect(g);g.connect(a.destination);src.start(t);src.stop(t+duration)}
-function playSfx(kind){if(!settings.soundEnabled||settings.volume===0)return;switch(kind){case"gun":noiseBurst(.16,.32,2600);tone(105,.19,.3,"sawtooth",38);tone(850,.035,.12,"square",240,.006);break;case"botGun":noiseBurst(.12,.12,1700);tone(90,.14,.1,"triangle",35);break;case"hit":tone(980,.07,.18,"triangle",620);tone(1450,.045,.08,"sine",1050,.035);break;case"damage":tone(125,.22,.22,"sawtooth",58);noiseBurst(.12,.08,600);break;case"reload":noiseBurst(.055,.13,2300);tone(420,.06,.12,"square",270,.12);noiseBurst(.08,.12,1500,.28);tone(620,.08,.1,"triangle",900,.42);break;case"pickup":tone(620,.09,.13,"sine",820);tone(930,.12,.12,"sine",1250,.1);break;case"heal":tone(440,.16,.12,"sine",660);tone(660,.2,.13,"sine",880,.13);break;case"step":noiseBurst(.055,.045,430);tone(72,.055,.055,"sine",48);break;case"zone":tone(260,.25,.15,"sine",420);tone(520,.3,.12,"sine",760,.18);break;case"win":tone(520,.22,.16,"triangle",780);tone(780,.3,.16,"triangle",1040,.2);tone(1040,.42,.14,"sine",1320,.48);break;case"lose":tone(260,.28,.17,"triangle",150);tone(150,.48,.15,"sawtooth",65,.24);break}}
-function sound(freq=440,duration=.07,volume=.08){tone(freq,duration,volume,"triangle",Math.max(40,freq*.72))}
+
+
+
+
+
+
 function mat(color,roughness=.9){const k=color+":"+roughness;if(!materials[k])materials[k]=new THREE.MeshStandardMaterial({color,roughness});return materials[k]}
 function box(w,h,d,color,x,y,z,group=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));m.position.set(x,y,z);m.castShadow=settings.shadows;m.receiveShadow=true;group.add(m);return m}
 function addObstacle(x,z,w,d,h=3,color="#a99c80"){const g=new THREE.Group();g.position.set(x,0,z);box(w,h,d,color,0,h/2,0,g);scene.add(g);obstacles.push({x,z,w,d,h,mesh:g});return g}
