@@ -12,6 +12,7 @@ import { createMenuUI } from "./menu-ui.js";
 import { createBotAI } from "./bot-ai.js";
 import { createZoneSystem } from "./zone.js";
 import { createCombatSystem } from "./combat.js";
+import { createPlayerController } from "./player-controller.js";
 import { setEditMode as setHudEditMode, saveLayout as saveHudLayout, loadLayout as loadHudLayout, bindEditor as bindHudEditor } from "./hud-layout.js";
 
 const $ = id => document.getElementById(id);
@@ -57,6 +58,25 @@ const gyro=createGyroSystem({
 
 
 
+
+const playerController=createPlayerController({
+  v3,playerSpeed,
+  state:{
+    get player(){return player},
+    get camera(){return camera},
+    get move(){return move},
+    keys,
+    get yaw(){return yaw},
+    get pitch(){return pitch},
+    get prone(){return prone},
+    get crouching(){return crouching},
+    get sprinting(){return sprinting},
+    get aiming(){return aiming},
+    get footstepTimer(){return footstepTimer},set footstepTimer(value){footstepTimer=value},
+    get jumpUntil(){return jumpUntil}
+  },
+  actions:{playSfx,collides}
+});
 
 const combat=createCombatSystem({
   THREE,v3,
@@ -201,7 +221,6 @@ function isPortraitGame(){return innerHeight>innerWidth&&innerWidth<=900}
 function screenToGamePoint(x,y){return isPortraitGame()?{x:y,y:innerWidth-x}:{x,y}}
 function resize(){if(!renderer)return;const portrait=isPortraitGame();const viewWidth=portrait?innerHeight:innerWidth,viewHeight=portrait?innerWidth:innerHeight;camera.aspect=viewWidth/viewHeight;camera.updateProjectionMatrix();renderer.setSize(viewWidth,viewHeight,false);$("rotateNotice").style.display="none"}
 function collides(x,z,r=.55){for(const o of obstacles){if(x>o.x-o.w/2-r&&x<o.x+o.w/2+r&&z>o.z-o.d/2-r&&z<o.z+o.d/2+r)return true}return Math.abs(x)>53||Math.abs(z)>53}
-function updatePlayer(dt){if(!player)return;let mx=move.x,my=move.y;if(keys.has("KeyW")||keys.has("ArrowUp"))my-=1;if(keys.has("KeyS")||keys.has("ArrowDown"))my+=1;if(keys.has("KeyA")||keys.has("ArrowLeft"))mx-=1;if(keys.has("KeyD")||keys.has("ArrowRight"))mx+=1;const len=Math.hypot(mx,my);if(len>1){mx/=len;my/=len}const forward=v3(-Math.sin(yaw),0,-Math.cos(yaw)),right=v3(Math.cos(yaw),0,-Math.sin(yaw));const speed=playerSpeed*(prone?.2:crouching?.48:sprinting?1.55:1)*(aiming?.78:1);const delta=forward.multiplyScalar(-my*speed*dt).add(right.multiplyScalar(mx*speed*dt));if(len>.18){footstepTimer-=dt;if(footstepTimer<=0){playSfx("step");footstepTimer=sprinting?.28:crouching?.62:prone?.9:.43}}else footstepTimer=0;const nx=player.position.x+delta.x,nz=player.position.z+delta.z;if(!collides(nx,player.position.z))player.position.x=nx;if(!collides(player.position.x,nz))player.position.z=nz;player.rotation.y=yaw;if(performance.now()<jumpUntil)player.position.y=Math.sin((jumpUntil-performance.now())/420*Math.PI)*.8;else player.position.y=0;player.scale.y=prone?.52:crouching?.78:1;const target=v3(player.position.x+Math.sin(yaw)*9,2.6+pitch*7,player.position.z+Math.cos(yaw)*9);const desired=v3(player.position.x+Math.sin(yaw)*8,2.8+pitch*7,player.position.z+Math.cos(yaw)*8);const offset=v3(Math.sin(yaw)*7,aiming?2.35:3.25,Math.cos(yaw)*7);camera.position.lerp(v3(player.position.x+offset.x,player.position.y+offset.y,player.position.z+offset.z),1-Math.exp(-dt*8));camera.fov=aiming?43:64;camera.updateProjectionMatrix();camera.lookAt(player.position.x-Math.sin(yaw)*12,player.position.y+1.45+pitch*10,player.position.z-Math.cos(yaw)*12);void target;void desired}
 
 function updateHud(){updateHudModule({$,health,armor,ammo,reserveByAmmo,getWeapon,weapon,fireMode,medkits,kills,bots})}
 function finish(win){if(gameOver)return;gameOver=true;running=false;fireHeld=false;$("resultTitle").textContent=win?"ПОБЕДА":"ПОРАЖЕНИЕ";$("resultTitle").style.color=win?"#f0d58c":"#e58d78";$("resultKills").textContent=kills;$("resultTime").textContent=fmt(elapsed);$("resultDamage").textContent=Math.round(totalDamage);openScreen("result");playSfx(win?"win":"lose")}
@@ -209,7 +228,7 @@ function finish(win){if(gameOver)return;gameOver=true;running=false;fireHeld=fal
 function drawMiniMap(){drawMiniMapModule({$,obstacles,zoneRadius,bots,player,yaw})}
 function drawMap(){drawMapModule({$,obstacles,zoneRadius,player,bots})}
 function resetMatch(){if(!renderer)initWorld();footstepTimer=0;move={x:0,y:0};keys.clear();lookPointer=null;fireHeld=false;triggerLocked=false;aiming=false;crouching=false;prone=false;sprinting=false;jumpUntil=0;lastShot=0;reloadUntil=0;$("aimButton").classList.remove("active");$("crouchButton").classList.remove("active");$("proneButton").classList.remove("active");$("sprintButton").classList.remove("active");const knob=$("joystick").querySelector(".joy-knob");knob.style.left="50%";knob.style.top="50%";for(const b of bots)scene.remove(b.mesh);for(const l of loot)scene.remove(l.mesh);for(const p of particles)scene.remove(p.mesh);bots=[];loot=[];particles=[];bullets=[];obstacles=[];scene.clear();buildWorld();scene.add(player);player.position.set(0,0,-7);for(let i=0;i<12;i++)makeBot(i);for(let i=0;i<24;i++){let x,z,tries=0;do{x=rand(-47,47);z=rand(-47,47);tries++}while((Math.hypot(x,z)<8||collides(x,z,.7))&&tries<30);if(tries<30)makeLoot(["ammo","ammo","medkit","armor","weapon"][i%5],x,z)}health=100;armor=0;activeWeaponId="p92";fireMode="SINGLE";weaponMagazines={p92:15};reserveByAmmo={"556":120,"762":90,"45":100,"9":60};ammo=15;reserve=60;weapon="P92";weaponType="pistol";triggerLocked=false;setPersonWeapon(player,"p92");medkits=2;kills=0;totalDamage=0;elapsed=0;zoneRadius=47;zoneStage=0;zoneTimer=180;yaw=0;pitch=.18;gameOver=false;paused=false;running=true;player.rotation.set(0,0,0);updateHud();closeScreens();lastFrame=performance.now();showToast("Найдите оружие и выживите")}
-function animate(now){requestAnimationFrame(animate);if(!renderer||!scene||!camera)return;const dt=Math.min(clock.getDelta(),.05);if(running&&!paused&&!gameOver){gyro.apply();updatePlayer(dt);botAI.updateBots(dt);zoneSystem.updateZone(dt);combat.pickLoot();const nearLoot=loot.some(item=>item.active&&Math.hypot(player.position.x-item.x,player.position.z-item.z)<2.8);$("lootButton").classList.toggle("available",nearLoot&&!settings.autoLoot);if(fireHeld)combat.shoot();zoneSystem.checkWin();for(let i=particles.length-1;i>=0;i--){particles[i].life-=dt;if(particles[i].life<=0){scene.remove(particles[i].mesh);particles.splice(i,1)}}}drawMiniMap();renderer.render(scene,camera)}
+function animate(now){requestAnimationFrame(animate);if(!renderer||!scene||!camera)return;const dt=Math.min(clock.getDelta(),.05);if(running&&!paused&&!gameOver){gyro.apply();playerController.updatePlayer(dt);botAI.updateBots(dt);zoneSystem.updateZone(dt);combat.pickLoot();const nearLoot=loot.some(item=>item.active&&Math.hypot(player.position.x-item.x,player.position.z-item.z)<2.8);$("lootButton").classList.toggle("available",nearLoot&&!settings.autoLoot);if(fireHeld)combat.shoot();zoneSystem.checkWin();for(let i=particles.length-1;i>=0;i--){particles[i].life-=dt;if(particles[i].life<=0){scene.remove(particles[i].mesh);particles.splice(i,1)}}}drawMiniMap();renderer.render(scene,camera)}
 function startMatch(){unlockAudio();const gyroRequest=gyro.requestAccess();resetMatch();gyroRequest.then(gyroReady=>{if(!gyroReady&&running)showToast("Гироскоп недоступен: проверьте разрешение датчика")})}
 function pauseMatch(){if(!running)return;paused=true;fireHeld=false;sprinting=false;move={x:0,y:0};openScreen("pause")}
 function resumeMatch(){paused=false;closeScreens()}
