@@ -20,10 +20,11 @@
   <canvas id="world" aria-label="Игровой мир"></canvas>
   <div id="rotateNotice" class="rotate-notice"><div class="rotate-icon">↻</div><b>Поверните телефон горизонтально</b><span>Игра рассчитана на альбомный экран</span></div>
   <header class="top-hud">
-    <button class="hud-icon" id="mapButton" aria-label="Карта">⌖</button>
+    <button class="hud-icon hud-control exit-menu-button" data-hud="exit" id="exitMenuButton" aria-label="Выйти в меню" title="Выйти в меню">⌂</button>
     <div class="match-info"><b id="aliveCount">13</b><span>В ЖИВЫХ</span><i></i><b id="zoneClock">03:00</b><span>ЗОНА</span></div>
     <div class="top-right"><span id="connectionLabel">ОДИНОЧНЫЙ РЕЖИМ</span><button class="hud-icon" id="quickSettings" aria-label="Настройки">⚙</button><button class="hud-icon" id="pauseButton" aria-label="Пауза">Ⅱ</button></div>
   </header>
+  <button class="mini-map hud-control" data-hud="map" id="mapButton" aria-label="Открыть карту" title="Открыть карту"><canvas id="miniMap" width="160" height="160"></canvas></button>
   <div class="status-hud">
     <div class="health-track"><span id="healthFill"></span></div><b id="healthText">100</b>
     <div class="armor-track"><span id="armorFill"></span></div><b id="armorText">0</b>
