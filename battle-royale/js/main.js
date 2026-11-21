@@ -13,6 +13,7 @@ import { createBotAI } from "./bot-ai.js";
 import { createZoneSystem } from "./zone.js";
 import { createCombatSystem } from "./combat.js";
 import { createPlayerController } from "./player-controller.js";
+import { createWorldSystem } from "./world.js";
 import { setEditMode as setHudEditMode, saveLayout as saveHudLayout, loadLayout as loadHudLayout, bindEditor as bindHudEditor } from "./hud-layout.js";
 
 const $ = id => document.getElementById(id);
@@ -39,6 +40,7 @@ let move={x:0,y:0},lookPointer=null,keys=new Set(),lastFrame=0;
 let footstepTimer=0;
 
 const materials={};
+let worldSystem;
 const v3=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 
 
@@ -172,56 +174,26 @@ const zoneSystem=createZoneSystem({
 
 function mat(color,roughness=.9){const k=color+":"+roughness;if(!materials[k])materials[k]=new THREE.MeshStandardMaterial({color,roughness});return materials[k]}
 const {createWeaponModel,setPersonWeapon,makePerson}=createCharacterModels({THREE,mat});
-function box(w,h,d,color,x,y,z,group=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));m.position.set(x,y,z);m.castShadow=settings.shadows;m.receiveShadow=true;group.add(m);return m}
-function addObstacle(x,z,w,d,h=3,color="#a99c80"){const g=new THREE.Group();g.position.set(x,0,z);box(w,h,d,color,0,h/2,0,g);scene.add(g);obstacles.push({x,z,w,d,h,mesh:g});return g}
-
-function buildWorld(){
-  const ground=new THREE.Mesh(new THREE.PlaneGeometry(worldSize,worldSize),mat("#536b49"));
-  ground.rotation.x=-Math.PI/2;ground.position.y=-.08;ground.receiveShadow=true;scene.add(ground);
-  const path=new THREE.Mesh(new THREE.PlaneGeometry(13,worldSize),mat("#77745c"));
-  path.rotation.x=-Math.PI/2;path.position.set(0,-.055,0);path.receiveShadow=true;scene.add(path);
-  const hemi=new THREE.HemisphereLight("#dce8d0","#46513b",2.0);scene.add(hemi);
-  sunLight=new THREE.DirectionalLight("#fff0d0",2.25);sunLight.position.set(-28,48,-22);sunLight.castShadow=settings.shadows;
-  sunLight.shadow.mapSize.set(1024,1024);sunLight.shadow.camera.left=-62;sunLight.shadow.camera.right=62;sunLight.shadow.camera.top=62;sunLight.shadow.camera.bottom=-62;scene.add(sunLight);
-  addObstacle(-19,-22,12,8,3.2,"#817c68");
-  addObstacle(21,-25,10,9,3.5,"#8b8068");
-  addObstacle(-28,13,9,12,3.1,"#777b68");
-  addObstacle(24,19,12,8,3.4,"#8a806d");
-  addObstacle(-3,31,15,6,2.8,"#777866");
-  addObstacle(3,-38,8,7,3.1,"#817965");
-  addObstacle(-40,-5,6,12,2.7,"#777b69");
-  addObstacle(40,4,7,11,3.2,"#857d68");
-  zoneRing=new THREE.Mesh(new THREE.TorusGeometry(47,.22,6,128),new THREE.MeshBasicMaterial({color:"#a9d8ee",transparent:true,opacity:.78}));
-  zoneRing.rotation.x=-Math.PI/2;zoneRing.position.y=.24;scene.add(zoneRing);
-  camera.position.set(0,5,1);camera.lookAt(0,1,-8);
-}
-function makeLoot(type,x,z){
-  const colors={ammo:"#d7b95f",medkit:"#d36f61",armor:"#668fa0",weapon:"#b58b50"};
-  const group=new THREE.Group();
-  const base=new THREE.Mesh(new THREE.CylinderGeometry(.38,.42,.12,12),mat("#303b32"));base.position.y=.12;base.castShadow=true;group.add(base);
-  const crate=new THREE.Mesh(new THREE.BoxGeometry(.48,.36,.42),mat(colors[type]||"#b58b50"));crate.position.y=.36;crate.castShadow=true;crate.receiveShadow=true;group.add(crate);
-  if(type==="medkit"){
-    const crossV=new THREE.Mesh(new THREE.BoxGeometry(.10,.25,.035),mat("#fff0dc"));
-    const crossH=new THREE.Mesh(new THREE.BoxGeometry(.25,.10,.035),mat("#fff0dc"));
-    crossV.position.set(0,.38,.224);crossH.position.set(0,.38,.224);group.add(crossV,crossH);
-  }else if(type==="weapon"){
-    const weaponModel=createWeaponModel("p92");weaponModel.scale.setScalar(.38);weaponModel.position.set(0,.53,0);group.add(weaponModel);
-  }else{
-    const stripe=new THREE.Mesh(new THREE.BoxGeometry(.08,.38,.44),mat("#e9e2c9"));stripe.position.y=.36;group.add(stripe);
+worldSystem=createWorldSystem({
+  THREE,worldSize,settings,rand,mat,createWeaponModel,makePerson,
+  state:{
+    get scene(){return scene},
+    get camera(){return camera},
+    get obstacles(){return obstacles},
+    get loot(){return loot},
+    get bots(){return bots},
+    set sunLight(value){sunLight=value},
+    set zoneRing(value){zoneRing=value}
   }
-  group.position.set(x,0,z);scene.add(group);loot.push({type,x,z,mesh:group,active:true});return group;
-}
-
-
-
-
-function makeBot(i){const botWeapon=["scar","m416","akm","m16","mk14","mk12","svd","kar98k","ump45"][i%9];const g=makePerson(["#725b4b","#536a52","#6b5865","#526778"][i%4],true,botWeapon);let x,z;do{x=rand(-45,45);z=rand(-45,45)}while(Math.hypot(x,z)<15||collides(x,z,.8));g.position.set(x,0,z);scene.add(g);bots.push({mesh:g,x,z,health:100,armor:i%3===0?25:0,alive:true,shoot:rand(1,4),wander:rand(0,6),target:null})}
+});
+function buildWorld(){return worldSystem.buildWorld()}
+function makeLoot(type,x,z){return worldSystem.makeLoot(type,x,z)}
+function makeBot(i){return worldSystem.makeBot(i)}
+function collides(x,z,r=.55){return worldSystem.collides(x,z,r)}
 function initWorld(){scene=new THREE.Scene();scene.background=new THREE.Color("#aebd9a");scene.fog=new THREE.Fog("#aebd9a",72,138);renderer=new THREE.WebGLRenderer({canvas,antialias:settings.quality!=="low",powerPreference:"high-performance"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,settings.quality==="high"?1.6:1.15));renderer.setSize(innerWidth,innerHeight,false);renderer.shadowMap.enabled=settings.shadows&&settings.quality!=="low";renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,180);clock=new THREE.Clock();raycaster=new THREE.Raycaster();buildWorld();player=makePerson("#496b78");scene.add(player);for(let i=0;i<12;i++)makeBot(i);for(let i=0;i<24;i++){let x,z,tries=0;do{x=rand(-47,47);z=rand(-47,47);tries++}while((Math.hypot(x,z)<8||collides(x,z,.7))&&tries<30);if(tries<30)makeLoot(["ammo","ammo","medkit","armor","weapon"][i%5],x,z)}resize();applySettingsToHud();animate()}
 function isPortraitGame(){return innerHeight>innerWidth&&innerWidth<=900}
 function screenToGamePoint(x,y){return isPortraitGame()?{x:y,y:innerWidth-x}:{x,y}}
 function resize(){if(!renderer)return;const portrait=isPortraitGame();const viewWidth=portrait?innerHeight:innerWidth,viewHeight=portrait?innerWidth:innerHeight;camera.aspect=viewWidth/viewHeight;camera.updateProjectionMatrix();renderer.setSize(viewWidth,viewHeight,false);$("rotateNotice").style.display="none"}
-function collides(x,z,r=.55){for(const o of obstacles){if(x>o.x-o.w/2-r&&x<o.x+o.w/2+r&&z>o.z-o.d/2-r&&z<o.z+o.d/2+r)return true}return Math.abs(x)>53||Math.abs(z)>53}
-
 function updateHud(){updateHudModule({$,health,armor,ammo,reserveByAmmo,getWeapon,weapon,fireMode,medkits,kills,bots})}
 function finish(win){if(gameOver)return;gameOver=true;running=false;fireHeld=false;$("resultTitle").textContent=win?"ПОБЕДА":"ПОРАЖЕНИЕ";$("resultTitle").style.color=win?"#f0d58c":"#e58d78";$("resultKills").textContent=kills;$("resultTime").textContent=fmt(elapsed);$("resultDamage").textContent=Math.round(totalDamage);openScreen("result");playSfx(win?"win":"lose")}
 
