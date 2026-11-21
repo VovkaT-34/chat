@@ -61,7 +61,9 @@
       <div class="dialog-head"><div><p class="eyebrow">ПАРАМЕТРЫ</p><h2>Настройки</h2></div><button class="close-btn" data-close="settings">×</button></div>
       <nav class="settings-tabs"><button class="selected" data-tab="controls">УПРАВЛЕНИЕ</button><button data-tab="graphics">ГРАФИКА</button><button data-tab="gameplay">ИГРА</button><button data-tab="sound">ЗВУК</button></nav>
       <section class="settings-page active" data-page="controls">
-        <label>Чувствительность камеры <output id="sensValue">55%</output><input id="sensitivity" type="range" min="10" max="100" value="55"></label>
+        <label>Чувствительность камеры <output id="cameraSensValue">55%</output><input id="cameraSensitivity" type="range" min="10" max="100" value="55"></label>
+        <label>Чувствительность прицела (ADS) <output id="adsSensValue">35%</output><input id="adsSensitivity" type="range" min="10" max="100" value="35"></label>
+        <label>Режим джойстика<select id="joystickMode"><option value="fixed">Фиксированный</option><option value="floating">Плавающий — появляется под пальцем</option></select></label>
         <label>Размер кнопок <output id="sizeValue">100%</output><input id="buttonSize" type="range" min="75" max="135" value="100"></label>
         <label>Прозрачность кнопок <output id="opacityValue">65%</output><input id="buttonOpacity" type="range" min="20" max="100" value="65"></label>
         <label class="check-row"><input id="hudEdit" type="checkbox"> Редактировать расположение кнопок</label>
