@@ -19,7 +19,7 @@ import (
 const maxPlayers = 4
 
 // Public Supabase project settings; the publishable key is intentionally public.
-// Access is granted only after Supabase Auth and the profiles table confirm an approved admin.
+// Access is granted only after Supabase Auth and the profiles table confirm an approved user.
 const supabaseURL = "https://sxkukrqjtgkxmzuzondm.supabase.co"
 const supabasePublishableKey = "sb_publishable_bepvJnr4yp-TUIyDK4Wnig_5qEhej3N"
 
