@@ -11,6 +11,7 @@ import { createControls } from "./controls.js";
 import { createMenuUI } from "./menu-ui.js";
 import { createBotAI } from "./bot-ai.js";
 import { createZoneSystem } from "./zone.js";
+import { createCombatSystem } from "./combat.js";
 import { setEditMode as setHudEditMode, saveLayout as saveHudLayout, loadLayout as loadHudLayout, bindEditor as bindHudEditor } from "./hud-layout.js";
 
 const $ = id => document.getElementById(id);
@@ -57,6 +58,39 @@ const gyro=createGyroSystem({
 
 
 
+const combat=createCombatSystem({
+  THREE,v3,
+  state:{
+    get running(){return running},
+    get paused(){return paused},
+    get gameOver(){return gameOver},
+    get reloadUntil(){return reloadUntil},set reloadUntil(value){reloadUntil=value},
+    get lastShot(){return lastShot},set lastShot(value){lastShot=value},
+    get fireMode(){return fireMode},
+    get triggerLocked(){return triggerLocked},set triggerLocked(value){triggerLocked=value},
+    get ammo(){return ammo},set ammo(value){ammo=value},
+    get weaponMagazines(){return weaponMagazines},
+    get activeWeaponId(){return activeWeaponId},
+    get reserveByAmmo(){return reserveByAmmo},
+    get settings(){return settings},
+    get aiming(){return aiming},
+    get bots(){return bots},
+    get camera(){return camera},
+    get raycaster(){return raycaster},
+    get obstacles(){return obstacles},
+    get totalDamage(){return totalDamage},set totalDamage(value){totalDamage=value},
+    get scene(){return scene},
+    get kills(){return kills},set kills(value){kills=value},
+    get particles(){return particles},
+    get medkits(){return medkits},set medkits(value){medkits=value},
+    get health(){return health},set health(value){health=value},
+    get armor(){return armor},set armor(value){armor=value},
+    get loot(){return loot},
+    get player(){return player}
+  },
+  actions:{root,getWeapon,showToast,playSfx,updateHud,makeLoot,cycleWeapon}
+});
+
 const controls=createControls({
   $,root,settings,screenToGamePoint,clamp,
   state:{
@@ -75,7 +109,7 @@ const controls=createControls({
     get running(){return running},
     get paused(){return paused}
   },
-  actions:{cycleWeapon,cycleFireMode,sound,reload,heal,pickLoot,pauseMatch}
+  actions:{cycleWeapon,cycleFireMode,sound,reload:combat.reload,heal:combat.heal,pickLoot:combat.pickLoot,pauseMatch}
 });
 
 const menuUI=createMenuUI({
@@ -168,10 +202,6 @@ function screenToGamePoint(x,y){return isPortraitGame()?{x:y,y:innerWidth-x}:{x,
 function resize(){if(!renderer)return;const portrait=isPortraitGame();const viewWidth=portrait?innerHeight:innerWidth,viewHeight=portrait?innerWidth:innerHeight;camera.aspect=viewWidth/viewHeight;camera.updateProjectionMatrix();renderer.setSize(viewWidth,viewHeight,false);$("rotateNotice").style.display="none"}
 function collides(x,z,r=.55){for(const o of obstacles){if(x>o.x-o.w/2-r&&x<o.x+o.w/2+r&&z>o.z-o.d/2-r&&z<o.z+o.d/2+r)return true}return Math.abs(x)>53||Math.abs(z)>53}
 function updatePlayer(dt){if(!player)return;let mx=move.x,my=move.y;if(keys.has("KeyW")||keys.has("ArrowUp"))my-=1;if(keys.has("KeyS")||keys.has("ArrowDown"))my+=1;if(keys.has("KeyA")||keys.has("ArrowLeft"))mx-=1;if(keys.has("KeyD")||keys.has("ArrowRight"))mx+=1;const len=Math.hypot(mx,my);if(len>1){mx/=len;my/=len}const forward=v3(-Math.sin(yaw),0,-Math.cos(yaw)),right=v3(Math.cos(yaw),0,-Math.sin(yaw));const speed=playerSpeed*(prone?.2:crouching?.48:sprinting?1.55:1)*(aiming?.78:1);const delta=forward.multiplyScalar(-my*speed*dt).add(right.multiplyScalar(mx*speed*dt));if(len>.18){footstepTimer-=dt;if(footstepTimer<=0){playSfx("step");footstepTimer=sprinting?.28:crouching?.62:prone?.9:.43}}else footstepTimer=0;const nx=player.position.x+delta.x,nz=player.position.z+delta.z;if(!collides(nx,player.position.z))player.position.x=nx;if(!collides(player.position.x,nz))player.position.z=nz;player.rotation.y=yaw;if(performance.now()<jumpUntil)player.position.y=Math.sin((jumpUntil-performance.now())/420*Math.PI)*.8;else player.position.y=0;player.scale.y=prone?.52:crouching?.78:1;const target=v3(player.position.x+Math.sin(yaw)*9,2.6+pitch*7,player.position.z+Math.cos(yaw)*9);const desired=v3(player.position.x+Math.sin(yaw)*8,2.8+pitch*7,player.position.z+Math.cos(yaw)*8);const offset=v3(Math.sin(yaw)*7,aiming?2.35:3.25,Math.cos(yaw)*7);camera.position.lerp(v3(player.position.x+offset.x,player.position.y+offset.y,player.position.z+offset.z),1-Math.exp(-dt*8));camera.fov=aiming?43:64;camera.updateProjectionMatrix();camera.lookAt(player.position.x-Math.sin(yaw)*12,player.position.y+1.45+pitch*10,player.position.z-Math.cos(yaw)*12);void target;void desired}
-function shoot(){const w=getWeapon(),now=performance.now();if(!running||paused||gameOver||root.classList.contains("editing")||reloadUntil>now||now-lastShot<w.rate)return;if(fireMode!=="AUTO"&&triggerLocked)return;const rounds=fireMode==="BURST"?3:1;if(ammo<rounds){showToast("Нет патронов");if(settings.autoReload&&reserveByAmmo[w.ammo]>0)reload();return}triggerLocked=true;lastShot=now;ammo-=rounds;weaponMagazines[activeWeaponId]=ammo;updateHud();playSfx("gun");camera.updateMatrixWorld();let aimDirection=new THREE.Vector3();camera.getWorldDirection(aimDirection);if(settings.aimAssist){let best=null,bestAngle=.065;for(const b of bots){if(!b.alive)continue;const to=v3(b.x,1.25,b.z).sub(camera.position),dist=to.length();if(dist>w.range)continue;const angle=aimDirection.angleTo(to.normalize());if(angle<bestAngle){bestAngle=angle;best=b}}if(best)aimDirection.copy(v3(best.x,1.25,best.z).sub(camera.position).normalize())}raycaster.set(camera.position,aimDirection);const hits=raycaster.intersectObjects(bots.filter(b=>b.alive).map(b=>b.mesh),true);const blocks=raycaster.intersectObjects(obstacles.map(o=>o.mesh),true);if(blocks.length&&(!hits.length||blocks[0].distance<hits[0].distance)){showToast("Попадание в укрытие");return}if(hits.length){playSfx("hit");const hitObject=hits[0].object;const bot=bots.find(b=>b.alive&&(()=>{let node=hitObject;while(node){if(node===b.mesh)return true;node=node.parent}return false})());if(bot&&camera.position.distanceTo(bot.mesh.position)<w.range){for(let shot=0;shot<rounds&&bot.health>0;shot++){let damage=w.damage;if(aiming)damage*=1.25;const absorbed=Math.min(bot.armor,damage*.45);bot.armor-=absorbed;bot.health-=damage-absorbed;totalDamage+=damage;}if(bot.health<=0){bot.alive=false;scene.remove(bot.mesh);kills++;makeLoot("ammo",bot.x,bot.z);if(Math.random()>.55)makeLoot("medkit",bot.x+.7,bot.z);showToast("Противник устранён")}else showToast("Попадание");updateHud()}}if(settings.effects){const p=new THREE.Mesh(new THREE.SphereGeometry(.07,6,6),new THREE.MeshBasicMaterial({color:"#ffdb85"}));p.position.copy(camera.position).add(raycaster.ray.direction.clone().multiplyScalar(1.2));scene.add(p);particles.push({mesh:p,life:.12})}}
-function reload(){const w=getWeapon(),weaponId=activeWeaponId;if(reloadUntil>performance.now()||ammo>=w.mag||reserveByAmmo[w.ammo]<=0)return;const duration=w.reload;reloadUntil=performance.now()+duration;showToast("Перезарядка…");playSfx("reload");setTimeout(()=>{if(gameOver||activeWeaponId!==weaponId)return;const n=Math.min(w.mag-ammo,reserveByAmmo[w.ammo]);ammo+=n;reserveByAmmo[w.ammo]-=n;weaponMagazines[weaponId]=ammo;reloadUntil=0;updateHud()},duration)}
-function heal(){if(medkits<=0||health>=95)return;medkits--;health=Math.min(100,health+45);updateHud();showToast("Аптечка использована");playSfx("heal")}
-function pickLoot(force=false){for(const item of loot){if(!item.active||Math.hypot(player.position.x-item.x,player.position.z-item.z)>2.2)continue;if(!settings.autoLoot&&!force)continue;item.active=false;scene.remove(item.mesh);if(item.type==="ammo")reserveByAmmo[getWeapon().ammo]+=24;if(item.type==="medkit")medkits=Math.min(5,medkits+1);if(item.type==="armor")armor=Math.min(100,armor+30);if(item.type==="weapon"){cycleWeapon(1);reserveByAmmo[getWeapon().ammo]+=30}playSfx("pickup");showToast(item.type==="weapon"?"Подобран автомат":item.type==="medkit"?"Подобрана аптечка":item.type==="armor"?"Броня усилена":"Патроны подобраны");updateHud()}}
 
 function updateHud(){updateHudModule({$,health,armor,ammo,reserveByAmmo,getWeapon,weapon,fireMode,medkits,kills,bots})}
 function finish(win){if(gameOver)return;gameOver=true;running=false;fireHeld=false;$("resultTitle").textContent=win?"ПОБЕДА":"ПОРАЖЕНИЕ";$("resultTitle").style.color=win?"#f0d58c":"#e58d78";$("resultKills").textContent=kills;$("resultTime").textContent=fmt(elapsed);$("resultDamage").textContent=Math.round(totalDamage);openScreen("result");playSfx(win?"win":"lose")}
@@ -179,7 +209,7 @@ function finish(win){if(gameOver)return;gameOver=true;running=false;fireHeld=fal
 function drawMiniMap(){drawMiniMapModule({$,obstacles,zoneRadius,bots,player,yaw})}
 function drawMap(){drawMapModule({$,obstacles,zoneRadius,player,bots})}
 function resetMatch(){if(!renderer)initWorld();footstepTimer=0;move={x:0,y:0};keys.clear();lookPointer=null;fireHeld=false;triggerLocked=false;aiming=false;crouching=false;prone=false;sprinting=false;jumpUntil=0;lastShot=0;reloadUntil=0;$("aimButton").classList.remove("active");$("crouchButton").classList.remove("active");$("proneButton").classList.remove("active");$("sprintButton").classList.remove("active");const knob=$("joystick").querySelector(".joy-knob");knob.style.left="50%";knob.style.top="50%";for(const b of bots)scene.remove(b.mesh);for(const l of loot)scene.remove(l.mesh);for(const p of particles)scene.remove(p.mesh);bots=[];loot=[];particles=[];bullets=[];obstacles=[];scene.clear();buildWorld();scene.add(player);player.position.set(0,0,-7);for(let i=0;i<12;i++)makeBot(i);for(let i=0;i<24;i++){let x,z,tries=0;do{x=rand(-47,47);z=rand(-47,47);tries++}while((Math.hypot(x,z)<8||collides(x,z,.7))&&tries<30);if(tries<30)makeLoot(["ammo","ammo","medkit","armor","weapon"][i%5],x,z)}health=100;armor=0;activeWeaponId="p92";fireMode="SINGLE";weaponMagazines={p92:15};reserveByAmmo={"556":120,"762":90,"45":100,"9":60};ammo=15;reserve=60;weapon="P92";weaponType="pistol";triggerLocked=false;setPersonWeapon(player,"p92");medkits=2;kills=0;totalDamage=0;elapsed=0;zoneRadius=47;zoneStage=0;zoneTimer=180;yaw=0;pitch=.18;gameOver=false;paused=false;running=true;player.rotation.set(0,0,0);updateHud();closeScreens();lastFrame=performance.now();showToast("Найдите оружие и выживите")}
-function animate(now){requestAnimationFrame(animate);if(!renderer||!scene||!camera)return;const dt=Math.min(clock.getDelta(),.05);if(running&&!paused&&!gameOver){gyro.apply();updatePlayer(dt);botAI.updateBots(dt);zoneSystem.updateZone(dt);pickLoot();const nearLoot=loot.some(item=>item.active&&Math.hypot(player.position.x-item.x,player.position.z-item.z)<2.8);$("lootButton").classList.toggle("available",nearLoot&&!settings.autoLoot);if(fireHeld)shoot();zoneSystem.checkWin();for(let i=particles.length-1;i>=0;i--){particles[i].life-=dt;if(particles[i].life<=0){scene.remove(particles[i].mesh);particles.splice(i,1)}}}drawMiniMap();renderer.render(scene,camera)}
+function animate(now){requestAnimationFrame(animate);if(!renderer||!scene||!camera)return;const dt=Math.min(clock.getDelta(),.05);if(running&&!paused&&!gameOver){gyro.apply();updatePlayer(dt);botAI.updateBots(dt);zoneSystem.updateZone(dt);combat.pickLoot();const nearLoot=loot.some(item=>item.active&&Math.hypot(player.position.x-item.x,player.position.z-item.z)<2.8);$("lootButton").classList.toggle("available",nearLoot&&!settings.autoLoot);if(fireHeld)combat.shoot();zoneSystem.checkWin();for(let i=particles.length-1;i>=0;i--){particles[i].life-=dt;if(particles[i].life<=0){scene.remove(particles[i].mesh);particles.splice(i,1)}}}drawMiniMap();renderer.render(scene,camera)}
 function startMatch(){unlockAudio();const gyroRequest=gyro.requestAccess();resetMatch();gyroRequest.then(gyroReady=>{if(!gyroReady&&running)showToast("Гироскоп недоступен: проверьте разрешение датчика")})}
 function pauseMatch(){if(!running)return;paused=true;fireHeld=false;sprinting=false;move={x:0,y:0};openScreen("pause")}
 function resumeMatch(){paused=false;closeScreens()}
