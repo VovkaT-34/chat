@@ -1,16 +1,18 @@
 import * as THREE from "three";
+import { defaults, WEAPONS, worldSize, playerSpeed } from "./constants.js";
+import { clamp, rand, fmt } from "./utils.js";
 
 const $ = id => document.getElementById(id);
 const root=$("gameRoot"),canvas=$("world");
 const ui={menu:$("menu"),settings:$("settings"),how:$("how"),pause:$("pause"),result:$("result"),map:$("mapScreen"),toast:$("toast")};
 const storeKey="brut-last-survivor-settings-v1",layoutKey="brut-last-survivor-hud-v1";
-const defaults={sensitivity:55,cameraSensitivity:55,adsSensitivity:35,joystickMode:"fixed",gyroEnabled:false,gyroMode:"always",gyroSensitivity:35,buttonSize:100,buttonOpacity:65,quality:"medium",shadows:true,effects:true,autoLoot:true,aimAssist:true,autoReload:true,reticle:"#f6efc7",volume:55,soundEnabled:true};
+
 let settings={...defaults},savedSettings={};try{savedSettings=JSON.parse(localStorage.getItem(storeKey)||"{}");settings={...settings,...savedSettings}}catch{}settings.cameraSensitivity=Number(savedSettings.cameraSensitivity??savedSettings.sensitivity??55);settings.adsSensitivity=Number(savedSettings.adsSensitivity??savedSettings.sensitivity??35);settings.joystickMode=savedSettings.joystickMode==="floating"?"floating":"fixed";settings.gyroEnabled=true;settings.gyroMode="always";
 let renderer,scene,camera,clock,raycaster,sunLight;
 let player,bots=[],loot=[],obstacles=[],bullets=[],particles=[],zoneRing;
 let running=false,paused=false,gameOver=false,elapsed=0,zoneRadius=47,zoneStage=0,zoneTimer=180;
 let kills=0,totalDamage=0,health=100,armor=0,ammo=12,reserve=48,weapon="ПИСТОЛЕТ",weaponType="pistol",medkits=2;
-const WEAPONS=[{id:"scar",name:"SCAR-L",type:"AR",damage:31,rate:105,mag:30,reload:2200,range:52,modes:["AUTO","SINGLE"],ammo:"556"},{id:"m416",name:"M416",type:"AR",damage:29,rate:92,mag:30,reload:2100,range:50,modes:["AUTO","SINGLE"],ammo:"556"},{id:"akm",name:"AKM",type:"AR",damage:36,rate:100,mag:30,reload:2400,range:46,modes:["AUTO","SINGLE"],ammo:"762"},{id:"m16",name:"M16A4",type:"AR",damage:34,rate:95,mag:30,reload:2200,range:58,modes:["SINGLE","BURST"],ammo:"556"},{id:"mk14",name:"MK14",type:"DMR",damage:48,rate:180,mag:10,reload:2600,range:72,modes:["SINGLE","AUTO"],ammo:"762"},{id:"mk12",name:"MK12",type:"DMR",damage:42,rate:260,mag:20,reload:2400,range:70,modes:["SINGLE"],ammo:"556"},{id:"svd",name:"SVD",type:"DMR",damage:55,rate:300,mag:10,reload:2800,range:76,modes:["SINGLE"],ammo:"762"},{id:"kar98k",name:"Kar98k",type:"SR",damage:88,rate:1150,mag:5,reload:3100,range:95,modes:["SINGLE"],ammo:"762"},{id:"ump45",name:"UMP45",type:"SMG",damage:25,rate:88,mag:25,reload:1900,range:32,modes:["AUTO","SINGLE"],ammo:"45"},{id:"p92",name:"P92",type:"PISTOL",damage:22,rate:230,mag:15,reload:1500,range:24,modes:["SINGLE"],ammo:"9"}];
+
 let activeWeaponId="p92",fireMode="SINGLE",weaponMagazines={p92:15},reserveByAmmo={"556":120,"762":90,"45":100,"9":60},triggerLocked=false;
 const getWeapon=()=>WEAPONS.find(w=>w.id===activeWeaponId)||WEAPONS[9];
 function selectWeapon(id){const w=WEAPONS.find(x=>x.id===id);if(!w)return;activeWeaponId=id;weapon=w.name;weaponType=w.type.toLowerCase();ammo=weaponMagazines[id]??w.mag;weaponMagazines[id]=ammo;fireMode=w.modes.includes(fireMode)?fireMode:w.modes[0];reloadUntil=0;if(player)setPersonWeapon(player,id);updateHud()}
@@ -20,12 +22,12 @@ function cycleFireMode(){const modes=getWeapon().modes;if(modes.length<2){showTo
 let yaw=0,pitch=.18,aiming=false,crouching=false,prone=false,sprinting=false,fireHeld=false,jumpUntil=0,lastShot=0,reloadUntil=0,toastTimer=0;
 let move={x:0,y:0},lookPointer=null,keys=new Set(),lastFrame=0;
 let gyroPrevious=null,gyroCurrent=null,gyroPendingYaw=0,gyroPendingPitch=0,requestGyroAccess=async()=>false,applyGyroInput=()=>{},footstepTimer=0;let audioContext=null,noiseBuffer=null;
-const worldSize=112,playerSpeed=7.2;
+
 const materials={};
 const v3=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const rand=(a,b)=>a+Math.random()*(b-a);
-const fmt=t=>{const s=Math.max(0,Math.floor(t));return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
+
+
+
 function showToast(message){ui.toast.textContent=message;ui.toast.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>ui.toast.classList.remove("show"),1900)}
 function openScreen(id){Object.values(ui).forEach(x=>x.classList?.remove("visible"));ui[id].classList.add("visible")}
 function closeScreens(){Object.values(ui).forEach(x=>x.classList?.remove("visible"))}
