@@ -54,6 +54,7 @@ let mpReconnectTimer=null;
 let mpReconnectDelay=1000;
 let mpReconnectSelection=-1;
 let mpReconnectReady=false;
+let mpPendingSelection=false;
 
 function mpRoomCode(){
   const raw=new URLSearchParams(location.search).get('room');
@@ -74,7 +75,7 @@ function mpUpdateUI(){
   if(!s)return;
   s.textContent='Игрок '+mpLocalPlayer+' · '+mpPeerCount+'/4'+(mpPanelNotice?' · '+mpPanelNotice:'');
   const launch=document.getElementById('mpLaunch'), checks=document.getElementById('mpChecks');
-  if(launch&&!mpStarted){launch.disabled=mpLocalSelection<0; launch.innerHTML='ПУСК<div id="mpChecks" class="mp-checks">'+Array.from({length:4},(_,i)=>'<span class="mp-check '+((i+1===mpLocalPlayer?mpLocalReady:(mpRemotePlayers[i+1]?.ready))?'ok':'')+'">✓ '+(i+1)+'</span>').join('')+'</div>';}
+  if(launch&&!mpStarted){launch.disabled=mpLocalSelection<0; launch.innerHTML='ПУСК<div id="mpChecks" class="mp-checks">'+Array.from({length:4},(_,i)=>'<span class="mp-check '+((i+1===mpLocalPlayer?mpLocalSelection>=0:(mpRemotePlayers[i+1]?.selection>=0))?'ok':'')+'">✓ '+(i+1)+'</span>').join('')+'</div>';}
   if(inp && document.activeElement!==inp) inp.value=mpRoom;
 }
 function mpRebuildState(){
@@ -120,6 +121,7 @@ async function mpJoin(room,isReconnect=false){
     mpPeerCount=1;
     mpLocalReady=false;
     mpLocalSelection=-1;
+    mpPendingSelection=false;
     mpStarted=false;
   }
   const scheme=location.protocol==='https:'?'wss:':'ws:';
@@ -133,7 +135,7 @@ async function mpJoin(room,isReconnect=false){
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + accessToken }
     });
-    if (!ticketResponse.ok) throw new Error('Не удалось авторизовать подключение');
+    if (!ticketResponse.ok) throw new Error('Билет подключения: HTTP ' + ticketResponse.status);
     const ticketData = await ticketResponse.json();
     if (!ticketData.ticket) throw new Error('Не удалось получить билет подключения');
     const wsUrl=scheme+'//airplanes5-multiplayer.onrender.com/ws?room='+encodeURIComponent(room)+'&session='+encodeURIComponent(mpKey)+'&ticket='+encodeURIComponent(ticketData.ticket);
@@ -143,16 +145,16 @@ async function mpJoin(room,isReconnect=false){
       mpReconnectDelay=1000;
       mpPanelNotice='';
       mpUpdateUI();
-      if(mpReconnectSelection>=0){
+      if(mpPendingSelection){
         const sel=mpReconnectSelection, ready=mpReconnectReady;
-        mpReconnectSelection=-1;mpReconnectReady=false;
+        mpPendingSelection=false;mpReconnectSelection=-1;mpReconnectReady=false;
         mpSendSelection(sel,ready);
       }
     };
-    mpSocket.onclose=()=>{
+    mpSocket.onclose=(event)=>{
       mpSocketConnected=false;
-      if(mpLocalSelection>=0){mpReconnectSelection=mpLocalSelection;mpReconnectReady=mpLocalReady;}
-      mpPanelNotice='Переподключение…';
+      if(mpLocalSelection>=0){mpReconnectSelection=mpLocalSelection;mpReconnectReady=mpLocalReady;mpPendingSelection=true;}
+      mpPanelNotice='Соединение закрыто ('+(event&&event.code?event.code:'без кода')+'), повтор…';
       mpUpdateUI();
       if(!mpReconnectTimer){
         const delay=mpReconnectDelay;
@@ -196,7 +198,7 @@ async function mpJoin(room,isReconnect=false){
       mpUpdateUI();
     };
   }catch(e){
-    mpPanelNotice='Ошибка подключения';
+    mpPanelNotice=(e&&e.message)?String(e.message):'Ошибка подключения';
     mpUpdateUI();
   }
 }
@@ -236,10 +238,13 @@ function mpSendSelection(index,ready){
   const nextReady=!!ready;
   mpLocalSelection=nextIndex;
   mpLocalReady=nextReady;
-  if(!mpSocket||mpSocket.readyState!==WebSocket.OPEN)return;
+  mpUpdateUI();
+  if(!mpSocket||mpSocket.readyState!==WebSocket.OPEN){
+    mpReconnectSelection=nextIndex;mpReconnectReady=nextReady;mpPendingSelection=true;
+    return;
+  }
   mpSocket.send(JSON.stringify({type:'selection',selection:nextIndex}));
   mpSocket.send(JSON.stringify({type:'ready',ready:nextReady}));
-  mpUpdateUI();
 }
 window.__airplanes5LocalPlayer=()=>mpLocalPlayer;
 window.__airplanes5RemoteSelection=(player)=>mpRemotePlayers[Number(player)]?.selection ?? -1;
