@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#101a1b">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Последний выживший</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="battle-royale/style.css">
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}
+</script>
+<script src="auth-check.js"></script>
+</head>
+<body>
+<div id="gameRoot">
+  <canvas id="world" aria-label="Игровой мир"></canvas>
+  <div id="rotateNotice" class="rotate-notice"><div class="rotate-icon">↻</div><b>Поверните телефон горизонтально</b><span>Игра рассчитана на альбомный экран</span></div>
+  <header class="top-hud">
+    <button class="hud-icon" id="mapButton" aria-label="Карта">⌖</button>
+    <div class="match-info"><b id="aliveCount">13</b><span>В ЖИВЫХ</span><i></i><b id="zoneClock">03:00</b><span>ЗОНА</span></div>
+    <div class="top-right"><span id="connectionLabel">ОДИНОЧНЫЙ РЕЖИМ</span><button class="hud-icon" id="quickSettings" aria-label="Настройки">⚙</button><button class="hud-icon" id="pauseButton" aria-label="Пауза">Ⅱ</button></div>
+  </header>
+  <div class="status-hud">
+    <div class="health-track"><span id="healthFill"></span></div><b id="healthText">100</b>
+    <div class="armor-track"><span id="armorFill"></span></div><b id="armorText">0</b>
+  </div>
+  <div class="weapon-hud"><span id="weaponName">ПИСТОЛЕТ</span><b id="ammoText">12 / 48</b><small id="pickupHint">Подберите снаряжение</small></div>
+  <div id="joystick" class="joystick hud-control" data-hud="move" aria-label="Движение"><div class="joy-ring"><div class="joy-knob"></div></div></div>
+  <div id="lookZone" aria-label="Обзор"></div>
+  <div id="crosshair" aria-hidden="true">+</div>
+  <div class="action-cluster">
+    <button class="action-btn aim hud-control" data-hud="aim" id="aimButton">ПРИЦЕЛ</button>
+    <button class="action-btn fire hud-control" data-hud="fire" id="fireButton">ОГОНЬ</button>
+    <button class="action-btn jump hud-control" data-hud="jump" id="jumpButton">ПРЫЖОК</button>
+    <button class="action-btn sprint hud-control" data-hud="sprint" id="sprintButton">БЕГ</button>
+    <button class="action-btn crouch hud-control" data-hud="crouch" id="crouchButton">ПРИСЕСТЬ</button>
+    <button class="action-btn prone hud-control" data-hud="prone" id="proneButton">ЛЁЖА</button>
+    <button class="action-btn reload hud-control" data-hud="reload" id="reloadButton">↻</button>
+    <button class="action-btn heal hud-control" data-hud="heal" id="healButton">АПТЕЧКА</button>
+    <button class="action-btn loot hud-control" data-hud="loot" id="lootButton">ПОДОБРАТЬ</button>
+  </div>
+  <div class="bottom-left-info"><span id="killCount">УБИЙСТВА: 0</span><span id="zoneWarning"></span></div>
+  <div id="toast" class="toast"></div>
+  <div id="menu" class="screen visible">
+    <div class="menu-panel">
+      <div class="brand-mark">БР</div><p class="eyebrow">ОДИНОЧНАЯ КОРОЛЕВСКАЯ БИТВА</p>
+      <h1>ПОСЛЕДНИЙ<br><em>ВЫЖИВШИЙ</em></h1>
+      <p class="menu-copy">Высадитесь на острове, найдите снаряжение и останьтесь последним в безопасной зоне.</p>
+      <button id="startButton" class="primary-button">НАЧАТЬ МАТЧ</button>
+      <div class="menu-actions"><button id="settingsButton">НАСТРОЙКИ</button><button id="howButton">КАК ИГРАТЬ</button></div>
+      <small>Одиночный режим · 12 противников под управлением ИИ</small>
+    </div>
+  </div>
+  <div id="settings" class="screen">
+    <div class="dialog settings-dialog">
+      <div class="dialog-head"><div><p class="eyebrow">ПАРАМЕТРЫ</p><h2>Настройки</h2></div><button class="close-btn" data-close="settings">×</button></div>
+      <nav class="settings-tabs"><button class="selected" data-tab="controls">УПРАВЛЕНИЕ</button><button data-tab="graphics">ГРАФИКА</button><button data-tab="gameplay">ИГРА</button><button data-tab="sound">ЗВУК</button></nav>
+      <section class="settings-page active" data-page="controls">
+        <label>Чувствительность камеры <output id="sensValue">55%</output><input id="sensitivity" type="range" min="10" max="100" value="55"></label>
+        <label>Размер кнопок <output id="sizeValue">100%</output><input id="buttonSize" type="range" min="75" max="135" value="100"></label>
+        <label>Прозрачность кнопок <output id="opacityValue">65%</output><input id="buttonOpacity" type="range" min="20" max="100" value="65"></label>
+        <label class="check-row"><input id="hudEdit" type="checkbox"> Редактировать расположение кнопок</label>
+        <div class="button-row"><button id="saveLayout" class="secondary-button">СОХРАНИТЬ РАСКЛАДКУ</button><button id="resetLayout" class="secondary-button">СБРОСИТЬ</button></div>
+        <p class="settings-note">В режиме редактирования перетаскивайте кнопки пальцем. В обычном режиме правая часть экрана управляет обзором.</p>
+      </section>
+      <section class="settings-page" data-page="graphics">
+        <label>Качество графики<select id="quality"><option value="low">Низкое — максимум плавности</option><option value="medium" selected>Среднее — баланс</option><option value="high">Высокое — детали</option></select></label>
+        <label class="check-row"><input id="shadows" type="checkbox" checked> Тени</label>
+        <label class="check-row"><input id="effects" type="checkbox" checked> Эффекты попаданий</label>
+      </section>
+      <section class="settings-page" data-page="gameplay">
+        <label class="check-row"><input id="autoLoot" type="checkbox" checked> Автоматически подбирать предметы</label>
+        <label class="check-row"><input id="aimAssist" type="checkbox" checked> Помощь при прицеливании</label>
+        <label class="check-row"><input id="autoReload" type="checkbox" checked> Автоматическая перезарядка</label>
+        <label>Цвет прицела<select id="reticle"><option value="#f6efc7">Светлый</option><option value="#79ff9b">Зелёный</option><option value="#ff7373">Красный</option><option value="#7bd8ff">Голубой</option></select></label>
+      </section>
+      <section class="settings-page" data-page="sound">
+        <label>Громкость <output id="volumeValue">55%</output><input id="volume" type="range" min="0" max="100" value="55"></label>
+        <label class="check-row"><input id="soundEnabled" type="checkbox" checked> Звуковые эффекты</label>
+      </section>
+      <div class="dialog-footer"><button class="primary-button" id="applySettings">ГОТОВО</button></div>
+    </div>
+  </div>
+  <div id="how" class="screen">
+    <div class="dialog">
+      <div class="dialog-head"><div><p class="eyebrow">ПАМЯТКА</p><h2>Как играть</h2></div><button class="close-btn" data-close="how">×</button></div>
+      <ul class="how-list"><li>Двигайтесь левым джойстиком, обзор меняйте движением пальца по свободной правой части экрана.</li><li>Подбирайте оружие, патроны, броню и аптечки. Подбор можно настроить.</li><li>Кнопка «Огонь» стреляет, «Прицел» приближает обзор, «Прыжок» и «Присесть» помогают двигаться.</li><li>Безопасная зона постепенно сужается. За её пределами здоровье уменьшается.</li><li>Победа — когда вы останетесь последним выжившим.</li></ul>
+      <button class="primary-button" data-close="how">ПОНЯТНО</button>
+    </div>
+  </div>
+  <div id="mapScreen" class="screen map-screen">
+    <div class="dialog map-dialog"><div class="dialog-head"><h2>Карта острова</h2><button class="close-btn" data-close="mapScreen">×</button></div><canvas id="fullMap" width="700" height="700"></canvas><p>Круг — безопасная зона. Точка — ваше положение.</p></div>
+  </div>
+  <div id="pause" class="screen">
+    <div class="dialog pause-dialog"><p class="eyebrow">МАТЧ ПРИОСТАНОВЛЕН</p><h2>Пауза</h2><button class="primary-button" id="resumeButton">ПРОДОЛЖИТЬ</button><button class="secondary-button" id="pauseSettings">НАСТРОЙКИ</button><button class="secondary-button" id="quitButton">ВЫЙТИ В МЕНЮ</button></div>
+  </div>
+  <div id="result" class="screen">
+    <div class="dialog result-dialog"><p class="eyebrow">МАТЧ ЗАВЕРШЁН</p><h2 id="resultTitle">ПОБЕДА</h2><div class="result-stats"><div><b id="resultKills">0</b><span>УБИЙСТВ</span></div><div><b id="resultTime">00:00</b><span>ВРЕМЯ</span></div><div><b id="resultDamage">0</b><span>УРОН</span></div></div><button class="primary-button" id="againButton">ЕЩЁ РАЗ</button><button class="secondary-button" id="resultMenuButton">В ГЛАВНОЕ МЕНЮ</button></div>
+  </div>
+</div>
+<script type="module" src="battle-royale/game.js"></script>
+</body>
+</html>
