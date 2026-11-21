@@ -553,15 +553,28 @@ func handleWS(w http.ResponseWriter, req *http.Request) {
 		Player int `json:"player"`
 	}
 	welcomeBytes, _ := json.Marshal(welcome{Type: "welcome", Player: id})
+	room.mu.Lock()
 	client := room.clients[id]
-	go client.writer()
-	_ = writeText(client, welcomeBytes)
-
+	room.mu.Unlock()
+	if client == nil {
+		_ = conn.Close()
+		return
+	}
 	defer func() {
 		room.remove(id, client)
 		client.closeWriter()
 		_ = conn.Close()
 	}()
+	// Send this connection event directly before the replaceable snapshot queue.
+	// Otherwise a fresh snapshot can evict the welcome message before the client
+	// learns which player slot it owns.
+	if err := conn.SetWriteDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		return
+	}
+	if err := conn.WriteMessage(websocket.TextMessage, welcomeBytes); err != nil {
+		return
+	}
+	go client.writer()
 
 	for {
 		op, payload, err := conn.ReadMessage()
