@@ -15,6 +15,7 @@ import { createCombatSystem } from "./combat.js";
 import { createPlayerController } from "./player-controller.js";
 import { createWorldSystem } from "./world.js";
 import { createGameLoop } from "./game-loop.js";
+import { createWeaponSystem } from "./weapon-system.js";
 import { setEditMode as setHudEditMode, saveLayout as saveHudLayout, loadLayout as loadHudLayout, bindEditor as bindHudEditor } from "./hud-layout.js";
 
 const $ = id => document.getElementById(id);
@@ -31,10 +32,11 @@ let running=false,paused=false,gameOver=false,elapsed=0,zoneRadius=47,zoneStage=
 let kills=0,totalDamage=0,health=100,armor=0,ammo=12,reserve=48,weapon="ПИСТОЛЕТ",weaponType="pistol",medkits=2;
 
 let activeWeaponId="p92",fireMode="SINGLE",weaponMagazines={p92:15},reserveByAmmo={"556":120,"762":90,"45":100,"9":60},triggerLocked=false;
-const getWeapon=()=>WEAPONS.find(w=>w.id===activeWeaponId)||WEAPONS[9];
-function selectWeapon(id){const w=WEAPONS.find(x=>x.id===id);if(!w)return;activeWeaponId=id;weapon=w.name;weaponType=w.type.toLowerCase();ammo=weaponMagazines[id]??w.mag;weaponMagazines[id]=ammo;fireMode=w.modes.includes(fireMode)?fireMode:w.modes[0];reloadUntil=0;if(player)setPersonWeapon(player,id);updateHud()}
-function cycleWeapon(step){const i=WEAPONS.findIndex(w=>w.id===activeWeaponId);selectWeapon(WEAPONS[(i+step+WEAPONS.length)%WEAPONS.length].id);showToast("Оружие: "+weapon)}
-function cycleFireMode(){const modes=getWeapon().modes;if(modes.length<2){showToast("Для этого оружия режим один");return}fireMode=modes[(modes.indexOf(fireMode)+1)%modes.length];showToast("Режим: "+fireMode);updateHud()}
+let weaponSystem;
+const getWeapon=()=>weaponSystem.getWeapon();
+function selectWeapon(id){return weaponSystem.selectWeapon(id)}
+function cycleWeapon(step){return weaponSystem.cycleWeapon(step)}
+function cycleFireMode(){return weaponSystem.cycleFireMode()}
 
 let yaw=0,pitch=.18,aiming=false,crouching=false,prone=false,sprinting=false,fireHeld=false,jumpUntil=0,lastShot=0,reloadUntil=0,toastTimer=0;
 let move={x:0,y:0},lookPointer=null,keys=new Set(),lastFrame=0;
@@ -175,6 +177,20 @@ const zoneSystem=createZoneSystem({
 
 function mat(color,roughness=.9){const k=color+":"+roughness;if(!materials[k])materials[k]=new THREE.MeshStandardMaterial({color,roughness});return materials[k]}
 const {createWeaponModel,setPersonWeapon,makePerson}=createCharacterModels({THREE,mat});
+weaponSystem=createWeaponSystem({
+  WEAPONS,
+  state:{
+    get activeWeaponId(){return activeWeaponId},set activeWeaponId(value){activeWeaponId=value},
+    get weapon(){return weapon},set weapon(value){weapon=value},
+    get weaponType(){return weaponType},set weaponType(value){weaponType=value},
+    get ammo(){return ammo},set ammo(value){ammo=value},
+    get weaponMagazines(){return weaponMagazines},
+    get fireMode(){return fireMode},set fireMode(value){fireMode=value},
+    set reloadUntil(value){reloadUntil=value},
+    get player(){return player}
+  },
+  actions:{setPersonWeapon,updateHud,showToast}
+});
 worldSystem=createWorldSystem({
   THREE,worldSize,settings,rand,mat,createWeaponModel,makePerson,
   state:{
