@@ -10,7 +10,7 @@ let renderer,scene,camera,clock,raycaster,sunLight;
 let player,bots=[],loot=[],obstacles=[],bullets=[],particles=[],zoneRing;
 let running=false,paused=false,gameOver=false,elapsed=0,zoneRadius=47,zoneStage=0,zoneTimer=180;
 let kills=0,totalDamage=0,health=100,armor=0,ammo=12,reserve=48,weapon="ПИСТОЛЕТ",weaponType="pistol",medkits=2;
-let yaw=0,pitch=.18,aiming=false,crouching=false,fireHeld=false,jumpUntil=0,lastShot=0,reloadUntil=0,toastTimer=0;
+let yaw=0,pitch=.18,aiming=false,crouching=false,prone=false,sprinting=false,fireHeld=false,jumpUntil=0,lastShot=0,reloadUntil=0,toastTimer=0;
 let move={x:0,y:0},lookPointer=null,keys=new Set(),lastFrame=0;
 const worldSize=112,playerSpeed=7.2;
 const materials={};
