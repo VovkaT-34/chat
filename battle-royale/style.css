@@ -60,3 +60,7 @@ button,input,select{font:inherit}button{cursor:pointer;touch-action:manipulation
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 
 .settings-scroll-rail{position:fixed;z-index:30;top:5vh;bottom:5vh;width:32px;border:1px solid #d9bd7b88;border-radius:8px;background:repeating-linear-gradient(135deg,#e5d4a044 0 3px,#182522cc 3px 7px);box-shadow:0 0 12px #0008;touch-action:none;user-select:none;-webkit-user-select:none;cursor:ns-resize;opacity:.88}.settings-scroll-rail::after{content:"↕";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#f2dfb0;font-size:20px;font-weight:900;text-shadow:0 1px 4px #000}.settings-scroll-rail-left{left:max(3px,env(safe-area-inset-left))}.settings-scroll-rail-right{right:max(3px,env(safe-area-inset-right))}.settings-scroll-rail:active{background:repeating-linear-gradient(135deg,#f0d38a88 0 3px,#263a35ee 3px 7px);opacity:1}
+
+/* Dialog height follows the rotated game viewport on mobile. */
+.dialog{max-height:calc(100dvh - 36px)}
+@media(orientation:portrait) and (max-width:900px){.dialog{max-height:calc(100dvw - 36px)}}
