@@ -47,10 +47,48 @@ const {createWeaponModel,setPersonWeapon,makePerson}=createCharacterModels({THRE
 function box(w,h,d,color,x,y,z,group=scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));m.position.set(x,y,z);m.castShadow=settings.shadows;m.receiveShadow=true;group.add(m);return m}
 function addObstacle(x,z,w,d,h=3,color="#a99c80"){const g=new THREE.Group();g.position.set(x,0,z);box(w,h,d,color,0,h/2,0,g);scene.add(g);obstacles.push({x,z,w,d,h,mesh:g});return g}
 
+function buildWorld(){
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(worldSize,worldSize),mat("#536b49"));
+  ground.rotation.x=-Math.PI/2;ground.position.y=-.08;ground.receiveShadow=true;scene.add(ground);
+  const path=new THREE.Mesh(new THREE.PlaneGeometry(13,worldSize),mat("#77745c"));
+  path.rotation.x=-Math.PI/2;path.position.set(0,-.055,0);path.receiveShadow=true;scene.add(path);
+  const hemi=new THREE.HemisphereLight("#dce8d0","#46513b",2.0);scene.add(hemi);
+  sunLight=new THREE.DirectionalLight("#fff0d0",2.25);sunLight.position.set(-28,48,-22);sunLight.castShadow=settings.shadows;
+  sunLight.shadow.mapSize.set(1024,1024);sunLight.shadow.camera.left=-62;sunLight.shadow.camera.right=62;sunLight.shadow.camera.top=62;sunLight.shadow.camera.bottom=-62;scene.add(sunLight);
+  addObstacle(-19,-22,12,8,3.2,"#817c68");
+  addObstacle(21,-25,10,9,3.5,"#8b8068");
+  addObstacle(-28,13,9,12,3.1,"#777b68");
+  addObstacle(24,19,12,8,3.4,"#8a806d");
+  addObstacle(-3,31,15,6,2.8,"#777866");
+  addObstacle(3,-38,8,7,3.1,"#817965");
+  addObstacle(-40,-5,6,12,2.7,"#777b69");
+  addObstacle(40,4,7,11,3.2,"#857d68");
+  zoneRing=new THREE.Mesh(new THREE.TorusGeometry(47,.22,6,128),new THREE.MeshBasicMaterial({color:"#a9d8ee",transparent:true,opacity:.78}));
+  zoneRing.rotation.x=Math.PI/2;zoneRing.position.y=.24;scene.add(zoneRing);
+  camera.position.set(0,5,1);camera.lookAt(0,1,-8);
+}
+function makeLoot(type,x,z){
+  const colors={ammo:"#d7b95f",medkit:"#d36f61",armor:"#668fa0",weapon:"#b58b50"};
+  const group=new THREE.Group();
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(.38,.42,.12,12),mat("#303b32"));base.position.y=.12;base.castShadow=true;group.add(base);
+  const crate=new THREE.Mesh(new THREE.BoxGeometry(.48,.36,.42),mat(colors[type]||"#b58b50"));crate.position.y=.36;crate.castShadow=true;crate.receiveShadow=true;group.add(crate);
+  if(type==="medkit"){
+    const crossV=new THREE.Mesh(new THREE.BoxGeometry(.10,.25,.035),mat("#fff0dc"));
+    const crossH=new THREE.Mesh(new THREE.BoxGeometry(.25,.10,.035),mat("#fff0dc"));
+    crossV.position.set(0,.38,.224);crossH.position.set(0,.38,.224);group.add(crossV,crossH);
+  }else if(type==="weapon"){
+    const weaponModel=createWeaponModel("p92");weaponModel.scale.setScalar(.38);weaponModel.position.set(0,.53,0);group.add(weaponModel);
+  }else{
+    const stripe=new THREE.Mesh(new THREE.BoxGeometry(.08,.38,.44),mat("#e9e2c9"));stripe.position.y=.36;group.add(stripe);
+  }
+  group.position.set(x,0,z);scene.add(group);loot.push({type,x,z,mesh:group,active:true});return group;
+}
+
+
 
 
 function makeBot(i){const botWeapon=["scar","m416","akm","m16","mk14","mk12","svd","kar98k","ump45"][i%9];const g=makePerson(["#725b4b","#536a52","#6b5865","#526778"][i%4],true,botWeapon);let x,z;do{x=rand(-45,45);z=rand(-45,45)}while(Math.hypot(x,z)<15||collides(x,z,.8));g.position.set(x,0,z);scene.add(g);bots.push({mesh:g,x,z,health:100,armor:i%3===0?25:0,alive:true,shoot:rand(1,4),wander:rand(0,6),target:null})}
-function initWorld(){renderer=new THREE.WebGLRenderer({canvas,antialias:settings.quality!=="low",powerPreference:"high-performance"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,settings.quality==="high"?1.6:1.15));renderer.setSize(innerWidth,innerHeight,false);renderer.shadowMap.enabled=settings.shadows&&settings.quality!=="low";renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,180);clock=new THREE.Clock();raycaster=new THREE.Raycaster();buildWorld();player=makePerson("#496b78");scene.add(player);for(let i=0;i<12;i++)makeBot(i);for(let i=0;i<24;i++){let x,z,tries=0;do{x=rand(-47,47);z=rand(-47,47);tries++}while((Math.hypot(x,z)<8||collides(x,z,.7))&&tries<30);if(tries<30)makeLoot(["ammo","ammo","medkit","armor","weapon"][i%5],x,z)}resize();applySettingsToHud();animate()}
+function initWorld(){scene=new THREE.Scene();scene.background=new THREE.Color("#aebd9a");scene.fog=new THREE.Fog("#aebd9a",72,138);renderer=new THREE.WebGLRenderer({canvas,antialias:settings.quality!=="low",powerPreference:"high-performance"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,settings.quality==="high"?1.6:1.15));renderer.setSize(innerWidth,innerHeight,false);renderer.shadowMap.enabled=settings.shadows&&settings.quality!=="low";renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,180);clock=new THREE.Clock();raycaster=new THREE.Raycaster();buildWorld();player=makePerson("#496b78");scene.add(player);for(let i=0;i<12;i++)makeBot(i);for(let i=0;i<24;i++){let x,z,tries=0;do{x=rand(-47,47);z=rand(-47,47);tries++}while((Math.hypot(x,z)<8||collides(x,z,.7))&&tries<30);if(tries<30)makeLoot(["ammo","ammo","medkit","armor","weapon"][i%5],x,z)}resize();applySettingsToHud();animate()}
 function isPortraitGame(){return innerHeight>innerWidth&&innerWidth<=900}
 function screenToGamePoint(x,y){return isPortraitGame()?{x:y,y:innerWidth-x}:{x,y}}
 function resize(){if(!renderer)return;const portrait=isPortraitGame();const viewWidth=portrait?innerHeight:innerWidth,viewHeight=portrait?innerWidth:innerHeight;camera.aspect=viewWidth/viewHeight;camera.updateProjectionMatrix();renderer.setSize(viewWidth,viewHeight,false);$("rotateNotice").style.display="none"}
@@ -81,7 +119,25 @@ window.addEventListener("keydown",e=>{keys.add(e.code);if(e.code==="Space"){jump
 function applySettingsToHud(){root.style.setProperty("--btn-scale",settings.buttonSize/100);root.style.setProperty("--reticle-color",settings.reticle);root.style.setProperty("--btn-opacity",settings.buttonOpacity/100);document.querySelectorAll(".action-btn").forEach(b=>{b.style.opacity=settings.buttonOpacity/100;b.style.transform="scale("+settings.buttonSize/100+")"});$("joystick").style.opacity=settings.buttonOpacity/100;$("joystick").style.transform="scale("+settings.buttonSize/100+")";$("gyroSensitivity").value=settings.gyroSensitivity;$("gyroSensValue").textContent=settings.gyroSensitivity+"%";$("cameraSensitivity").value=settings.cameraSensitivity;$("cameraSensValue").textContent=settings.cameraSensitivity+"%";$("adsSensitivity").value=settings.adsSensitivity;$("adsSensValue").textContent=settings.adsSensitivity+"%";$("joystickMode").value=settings.joystickMode;$("buttonSize").value=settings.buttonSize;$("sizeValue").textContent=settings.buttonSize+"%";$("buttonOpacity").value=settings.buttonOpacity;$("opacityValue").textContent=settings.buttonOpacity+"%";$("quality").value=settings.quality;$("shadows").checked=settings.shadows;$("effects").checked=settings.effects;$("autoLoot").checked=settings.autoLoot;$("aimAssist").checked=settings.aimAssist;$("autoReload").checked=settings.autoReload;$("reticle").value=settings.reticle;$("volume").value=settings.volume;$("volumeValue").textContent=settings.volume+"%";$("soundEnabled").checked=settings.soundEnabled}
 function bindGyro(){const status=$("gyroStatus"),calibrate=$("gyroCalibrate");const supported=typeof DeviceOrientationEvent!=="undefined";function updateStatus(t){status.textContent=t}function onOrientation(e){if(!Number.isFinite(e.beta)||!Number.isFinite(e.gamma))return;const physicalAngle=(screen.orientation&&Number.isFinite(screen.orientation.angle)?screen.orientation.angle:(Number(window.orientation)||0)+360)%360;gyroCurrent={beta:e.beta,gamma:e.gamma,angle:(physicalAngle+(isPortraitGame()?90:0))%360};if(!gyroPrevious){gyroPrevious={...gyroCurrent};return}const db=gyroCurrent.beta-gyroPrevious.beta,dg=gyroCurrent.gamma-gyroPrevious.gamma;gyroPrevious={...gyroCurrent};if(!running||paused||gameOver){gyroPendingYaw=0;gyroPendingPitch=0;return}let yawDelta,pitchDelta;const angle=gyroCurrent.angle;if(angle>=45&&angle<135){yawDelta=db;pitchDelta=-dg}else if(angle>=225&&angle<315){yawDelta=-db;pitchDelta=dg}else if(angle>=135&&angle<225){yawDelta=-dg;pitchDelta=-db}else{yawDelta=dg;pitchDelta=db}gyroPendingYaw+=yawDelta;gyroPendingPitch+=pitchDelta}function applyGyro(){if(!running||paused||gameOver)return;const yawDelta=gyroPendingYaw,pitchDelta=gyroPendingPitch;gyroPendingYaw=0;gyroPendingPitch=0;yaw-=yawDelta*settings.gyroSensitivity*.00022;pitch=clamp(pitch+pitchDelta*settings.gyroSensitivity*.00016,-.32,.55)}window.addEventListener("deviceorientation",onOrientation);requestGyroAccess=async()=>{if(!supported){updateStatus("Устройство не поддерживает датчик ориентации");return false}try{if(typeof DeviceOrientationEvent.requestPermission==="function"){const result=await DeviceOrientationEvent.requestPermission();if(result!=="granted"){updateStatus("Браузер не разрешил доступ к гироскопу");return false}}settings.gyroEnabled=true;settings.gyroMode="always";gyroPrevious=gyroCurrent?{...gyroCurrent}:null;gyroPendingYaw=0;gyroPendingPitch=0;saveSettings();updateStatus(gyroPrevious?"Гироскоп активен":"Ожидание данных датчика");return true}catch(err){updateStatus("Не удалось получить разрешение гироскопа");return false}};calibrate.addEventListener("click",()=>{if(!gyroCurrent){updateStatus("Данных датчика пока нет");return}gyroPrevious={...gyroCurrent};gyroPendingYaw=0;gyroPendingPitch=0;updateStatus("Гироскоп откалиброван")});calibrate.disabled=!supported;updateStatus(supported?"Гироскоп включается автоматически при запуске матча":"Датчик ориентации не поддерживается");return applyGyro}
 function bindSettings(){document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("selected",x===b));document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===b.dataset.tab))}));const range=(id,key,out,suffix="%")=>$(id).addEventListener("input",()=>{settings[key]=Number($(id).value);$(out).textContent=settings[key]+suffix;applySettingsToHud()});range("gyroSensitivity","gyroSensitivity","gyroSensValue");range("cameraSensitivity","cameraSensitivity","cameraSensValue");range("adsSensitivity","adsSensitivity","adsSensValue");$("joystickMode").addEventListener("change",()=>{settings.joystickMode=$("joystickMode").value;if(settings.joystickMode==="fixed"){$("joystick").style.left="";$("joystick").style.top="";$("joystick").style.right="";$("joystick").style.bottom=""}});range("buttonSize","buttonSize","sizeValue");range("buttonOpacity","buttonOpacity","opacityValue");range("volume","volume","volumeValue");["quality","reticle"].forEach(id=>$(id).addEventListener("change",()=>settings[id]=$(id).value));["shadows","effects","autoLoot","aimAssist","autoReload","soundEnabled"].forEach(id=>$(id).addEventListener("change",()=>settings[id]=$(id).checked));$("applySettings").onclick=()=>{saveSettings();if(renderer){renderer.shadowMap.enabled=settings.shadows&&settings.quality!=="low";if(sunLight)sunLight.castShadow=settings.shadows;renderer.setPixelRatio(Math.min(devicePixelRatio||1,settings.quality==="high"?1.6:1.15));renderer.setSize(innerWidth,innerHeight,false)}if(root.classList.contains("editing"))setEditMode(false);if(paused)openScreen("pause");else if(!running&&!gameOver)openScreen("menu");else closeScreens()};document.querySelectorAll(".settings-scroll-rail").forEach(rail=>{let pointerId=null,lastY=0;rail.addEventListener("pointerdown",e=>{e.preventDefault();pointerId=e.pointerId;lastY=screenToGamePoint(e.clientX,e.clientY).y;rail.setPointerCapture(e.pointerId)});rail.addEventListener("pointermove",e=>{if(e.pointerId!==pointerId)return;e.preventDefault();const y=screenToGamePoint(e.clientX,e.clientY).y;const delta=lastY-y;lastY=y;const panel=$("settings").querySelector(".settings-dialog");panel.scrollTop+=delta});const stop=()=>{pointerId=null};["pointerup","pointercancel","lostpointercapture"].forEach(type=>rail.addEventListener(type,stop))})}
-function bindScreenScroll(){["settings","how"].forEach(id=>{const screen=$(id),panel=screen.querySelector(".dialog");let lastY=null;screen.addEventListener("touchstart",e=>{if(e.target!==screen)return;lastY=screenToGamePoint(e.touches[0].clientX,e.touches[0].clientY).y},{passive:true});screen.addEventListener("touchmove",e=>{if(lastY===null)return;e.preventDefault();const y=screenToGamePoint(e.touches[0].clientX,e.touches[0].clientY).y;panel.scrollTop+=lastY-y;lastY=y},{passive:false});["touchend","touchcancel"].forEach(type=>screen.addEventListener(type,()=>{lastY=null}))})}
+function bindScreenScroll(){
+  ["settings","how"].forEach(id=>{
+    const screen=$(id),panel=screen.querySelector(".dialog");let pointerId=null,lastY=0;
+    screen.addEventListener("pointerdown",e=>{
+      const rect=panel.getBoundingClientRect();
+      if(e.clientX>=rect.left&&e.clientX<=rect.right)return;
+      if(e.target.closest?.(".settings-scroll-rail"))return;
+      pointerId=e.pointerId;lastY=screenToGamePoint(e.clientX,e.clientY).y;
+      screen.setPointerCapture(e.pointerId);e.preventDefault();
+    },{passive:false});
+    screen.addEventListener("pointermove",e=>{
+      if(e.pointerId!==pointerId)return;
+      e.preventDefault();const y=screenToGamePoint(e.clientX,e.clientY).y;
+      panel.scrollTop+=lastY-y;lastY=y;
+    },{passive:false});
+    const stop=e=>{if(e.pointerId===pointerId)pointerId=null;};
+    ["pointerup","pointercancel","lostpointercapture"].forEach(type=>screen.addEventListener(type,stop));
+  });
+}
 function setEditMode(on){root.classList.toggle("editing",on);$("hudEdit").checked=on;$("lookZone").style.pointerEvents=on?"none":"auto";if(on){showToast("Перетаскивайте кнопки в удобное место")}else saveLayout()}
 function saveLayout(){const data={_space:"game-v2"};document.querySelectorAll("[data-hud]").forEach(el=>{data[el.dataset.hud]={left:el.offsetLeft/root.clientWidth,top:el.offsetTop/root.clientHeight,width:el.offsetWidth/root.clientWidth,height:el.offsetHeight/root.clientHeight}});try{localStorage.setItem(layoutKey,JSON.stringify(data))}catch{}}
 function loadLayout(){try{const d=JSON.parse(localStorage.getItem(layoutKey)||"{}");document.querySelectorAll("[data-hud]").forEach(el=>{const p=d[el.dataset.hud];if(p){let left=p.left,top=p.top;if(d._space!=="game-v2"&&isPortraitGame()){left=p.top;top=1-p.left-p.width}el.style.left=(left*100)+"%";el.style.top=(top*100)+"%";el.style.right="auto";el.style.bottom="auto"}})}catch{}}
