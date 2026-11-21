@@ -8,6 +8,7 @@ import { bindScreenScroll as bindScreenScrollModule } from "./screen-scroll.js";
 import { createGyroSystem } from "./gyro.js";
 import { applySettingsToHud as applySettingsToHudModule, bindSettings as bindSettingsModule } from "./settings-ui.js";
 import { createControls } from "./controls.js";
+import { createMenuUI } from "./menu-ui.js";
 import { setEditMode as setHudEditMode, saveLayout as saveHudLayout, loadLayout as loadHudLayout, bindEditor as bindHudEditor } from "./hud-layout.js";
 
 const $ = id => document.getElementById(id);
@@ -73,6 +74,18 @@ const controls=createControls({
     get paused(){return paused}
   },
   actions:{cycleWeapon,cycleFireMode,sound,reload,heal,pickLoot,pauseMatch}
+});
+
+const menuUI=createMenuUI({
+  $,root,ui,layoutKey,
+  state:{
+    get running(){return running},set running(value){running=value},
+    get paused(){return paused},set paused(value){paused=value},
+    get gameOver(){return gameOver},set gameOver(value){gameOver=value},
+    get fireHeld(){return fireHeld},set fireHeld(value){fireHeld=value},
+    get move(){return move},set move(value){move=value}
+  },
+  actions:{startMatch,pauseMatch,resumeMatch,openScreen,drawMap,setEditMode,closeScreens,saveLayout,showToast}
 });
 
 function mat(color,roughness=.9){const k=color+":"+roughness;if(!materials[k])materials[k]=new THREE.MeshStandardMaterial({color,roughness});return materials[k]}
@@ -159,6 +172,5 @@ function setEditMode(on){setHudEditMode(on,{root,$,showToast,saveLayout})}
 function saveLayout(){saveHudLayout({layoutKey,root})}
 function loadLayout(){loadHudLayout({layoutKey,isPortraitGame})}
 function bindEditor(){bindHudEditor({root,screenToGamePoint,clamp,saveLayout})}
-function bindUI(){$("startButton").onclick=startMatch;$("quickSettings").onclick=()=>{if(root.classList.contains("editing"))setEditMode(false);openScreen("settings")};$("settingsButton").onclick=()=>openScreen("settings");$("howButton").onclick=()=>openScreen("how");$("pauseButton").onclick=pauseMatch;$("resumeButton").onclick=resumeMatch;$("pauseSettings").onclick=()=>openScreen("settings");$("quitButton").onclick=()=>{running=false;paused=false;gameOver=false;openScreen("menu")};$("againButton").onclick=startMatch;$("resultMenuButton").onclick=()=>openScreen("menu");$("mapButton").onclick=()=>{if(root.classList.contains("editing")||!running||paused)return;drawMap();openScreen("map")};$("exitMenuButton").onclick=()=>{if(root.classList.contains("editing"))return;running=false;paused=false;gameOver=false;fireHeld=false;move={x:0,y:0};openScreen("menu")};document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const id=b.dataset.close;ui[id].classList.remove("visible");if(id==="settings"||id==="how"){if(paused)openScreen("pause");else if(!running&&!gameOver)openScreen("menu")}});$("hudEdit").onchange=e=>{setEditMode(e.target.checked);if(e.target.checked)closeScreens()};$("saveLayout").onclick=()=>{saveLayout();showToast("Раскладка сохранена")};$("resetLayout").onclick=()=>{localStorage.removeItem(layoutKey);document.querySelectorAll("[data-hud]").forEach(el=>{el.style.left="";el.style.top="";el.style.right="";el.style.bottom=""});showToast("Стандартная раскладка восстановлена")};$("pauseButton").addEventListener("click",()=>{if(root.classList.contains("editing"))setEditMode(false)})}
-function init(){try{bindUI();initWorld();controls.bind();gyro.bind();bindSettings();bindScreenScroll();bindEditor();loadLayout();applySettingsToHud();updateHud();window.addEventListener("resize",resize);window.addEventListener("orientationchange",resize);document.addEventListener("visibilitychange",()=>{if(document.hidden&&running&&!paused)pauseMatch()})}catch(err){console.error(err);showToast("Не удалось запустить 3D-графику. Попробуйте другой браузер.")}}
+function init(){try{menuUI.bind();initWorld();controls.bind();gyro.bind();bindSettings();bindScreenScroll();bindEditor();loadLayout();applySettingsToHud();updateHud();window.addEventListener("resize",resize);window.addEventListener("orientationchange",resize);document.addEventListener("visibilitychange",()=>{if(document.hidden&&running&&!paused)pauseMatch()})}catch(err){console.error(err);showToast("Не удалось запустить 3D-графику. Попробуйте другой браузер.")}}
 init();
