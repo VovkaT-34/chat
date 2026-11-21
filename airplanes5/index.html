@@ -238,7 +238,7 @@ function mpPressLaunch(){
 }
 function mpCanStart(){
   if(mpLocalSelection<0||!mpLocalReady)return false;
-  if(mpPeerCount<=1)return true;
+  if(mpPeerCount<2)return false;
   for(const [player,p] of Object.entries(mpRemotePlayers)){
     if(Number(player)===mpLocalPlayer)continue;
     if(!p||p.selection<0||!p.ready)return false;
