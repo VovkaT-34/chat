@@ -20,7 +20,7 @@
   <header class="top-hud">
     <button class="hud-icon" id="mapButton" aria-label="Карта">⌖</button>
     <div class="match-info"><b id="aliveCount">13</b><span>В ЖИВЫХ</span><i></i><b id="zoneClock">03:00</b><span>ЗОНА</span></div>
-    <div class="top-right"><span id="connectionLabel">ОДИНОЧНЫЙ РЕЖИМ</span><button class="hud-icon" id="pauseButton" aria-label="Пауза">Ⅱ</button></div>
+    <div class="top-right"><span id="connectionLabel">ОДИНОЧНЫЙ РЕЖИМ</span><button class="hud-icon" id="quickSettings" aria-label="Настройки">⚙</button><button class="hud-icon" id="pauseButton" aria-label="Пауза">Ⅱ</button></div>
   </header>
   <div class="status-hud">
     <div class="health-track"><span id="healthFill"></span></div><b id="healthText">100</b>
@@ -29,11 +29,14 @@
   <div class="weapon-hud"><span id="weaponName">ПИСТОЛЕТ</span><b id="ammoText">12 / 48</b><small id="pickupHint">Подберите снаряжение</small></div>
   <div id="joystick" class="joystick hud-control" data-hud="move" aria-label="Движение"><div class="joy-ring"><div class="joy-knob"></div></div></div>
   <div id="lookZone" aria-label="Обзор"></div>
+  <div id="crosshair" aria-hidden="true">+</div>
   <div class="action-cluster">
     <button class="action-btn aim hud-control" data-hud="aim" id="aimButton">ПРИЦЕЛ</button>
     <button class="action-btn fire hud-control" data-hud="fire" id="fireButton">ОГОНЬ</button>
     <button class="action-btn jump hud-control" data-hud="jump" id="jumpButton">ПРЫЖОК</button>
+    <button class="action-btn sprint hud-control" data-hud="sprint" id="sprintButton">БЕГ</button>
     <button class="action-btn crouch hud-control" data-hud="crouch" id="crouchButton">ПРИСЕСТЬ</button>
+    <button class="action-btn prone hud-control" data-hud="prone" id="proneButton">ЛЁЖА</button>
     <button class="action-btn reload hud-control" data-hud="reload" id="reloadButton">↻</button>
     <button class="action-btn heal hud-control" data-hud="heal" id="healButton">АПТЕЧКА</button>
   </div>
