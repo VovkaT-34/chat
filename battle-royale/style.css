@@ -23,7 +23,7 @@ button,input,select{font:inherit}button{cursor:pointer;touch-action:manipulation
 .action-btn:active,.action-btn.active{background:#b17c39d9;border-color:#ffe2a1}
 .action-btn.fire{width:78px;height:78px;right:0;bottom:25px;background:#8b3b32c9;border-width:2px;font-size:12px}
 .action-btn.aim{width:57px;height:57px;right:88px;bottom:76px}
-.action-btn.jump{width:54px;height:54px;right:15px;bottom:118px}.action-btn.sprint{width:48px;height:48px;left:5px;bottom:128px}.action-btn.prone{width:45px;height:45px;right:145px;bottom:28px}
+.action-btn.jump{width:54px;height:54px;right:15px;bottom:118px}.action-btn.sprint{width:48px;height:48px;left:5px;bottom:128px}.action-btn.prone{width:45px;height:45px;right:145px;bottom:28px}.action-btn.loot{width:52px;height:52px;left:5px;bottom:5px;font-size:9px;display:none}.action-btn.loot.available{display:grid}
 .action-btn.crouch{width:51px;height:51px;right:81px;bottom:13px}
 .action-btn.reload{width:42px;height:42px;right:151px;bottom:21px;font-size:24px}
 .action-btn.heal{width:54px;height:54px;right:145px;bottom:91px;font-size:9px}
