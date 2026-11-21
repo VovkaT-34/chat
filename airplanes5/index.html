@@ -115,6 +115,8 @@ async function mpJoin(room,isReconnect=false){
   if(room.length<4){if(!isReconnect){mpPanelNotice='Код комнаты: минимум 4 символа';mpUpdateUI();}return;}
   if(mpSocket){const oldSocket=mpSocket;mpSocket=null;try{oldSocket.close();}catch(e){}}
   mpRoom=room;
+  mpPanelNotice='';
+  mpUpdateUI();
   const url=new URL(location.href);url.searchParams.set('room',room);history.replaceState(null,'',url.toString());
   mpSocketConnected=false;
   mpWelcomeReceived=false;
