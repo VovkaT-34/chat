@@ -76,23 +76,8 @@ func verifyApprovedUserToken(token string) (string, bool) {
 	p := profiles[0]
 	if !p.Approved { return user.ID, false }
 
-	permissionReq, err := http.NewRequest(
-		http.MethodPost,
-		supabaseURL+"/rest/v1/rpc/has_app_access",
-		strings.NewReader(`{"p_app_id":"airplanes5"}`),
-	)
-	if err != nil { return "", false }
-	permissionReq.Header.Set("apikey", supabasePublishableKey)
-	permissionReq.Header.Set("Authorization", "Bearer "+token)
-	permissionReq.Header.Set("Content-Type", "application/json")
-	permissionResp, err := client.Do(permissionReq)
-	if err != nil { return "", false }
-	defer permissionResp.Body.Close()
-	if permissionResp.StatusCode != http.StatusOK { return user.ID, false }
-	var hasAccess bool
-	if json.NewDecoder(permissionResp.Body).Decode(&hasAccess) != nil || !hasAccess {
-		return user.ID, false
-	}
+	// Approved chat membership is sufficient for this game; no separate
+	// per-app permission row is required.
 	return user.ID, true
 }
 func issueAuthTicket(w http.ResponseWriter, r *http.Request) {
@@ -371,7 +356,7 @@ func (r *Room) update(m ClientMessage, id int) {
 		}
 	}
 
-	if allReady(r.players) {
+	if len(r.clients) >= 2 && allReady(r.players) {
 		if r.phase != "game" {
 			r.paused = false
 			for _, p := range r.players {
