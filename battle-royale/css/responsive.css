@@ -1,0 +1,7 @@
+@media(orientation:portrait) and (max-width:900px){#gameRoot{inset:auto;left:50%;top:50%;width:100vh;height:100vw;width:100dvh;height:100dvw;transform:translate(-50%,-50%) rotate(90deg);transform-origin:center center}.rotate-notice{display:none!important}}
+
+@media(max-height:430px){.mini-map{width:86px;height:86px;top:62px}.weapon-hud{top:158px}.menu-panel{padding:13px 20px}.brand-mark{width:38px;height:38px;margin-bottom:7px}.menu-panel h1{font-size:32px}.menu-copy{margin:8px auto 12px}.menu-panel small{margin-top:10px}.dialog{padding:12px}.settings-page{min-height:120px}.action-cluster{bottom:calc(12px + var(--safe))}.joystick{bottom:calc(16px + var(--safe))}}
+
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+@media(orientation:portrait) and (max-width:900px){.dialog{max-height:calc(100dvw - 36px)}}
