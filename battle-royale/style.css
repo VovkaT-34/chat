@@ -26,6 +26,7 @@ button,input,select{font:inherit}button{cursor:pointer;touch-action:manipulation
 .action-btn{position:absolute;display:grid;place-items:center;border:1px solid #ffffff80;border-radius:50%;background:#172326a6;color:#fff;font-weight:900;font-size:clamp(9px,1.3vh,12px);text-shadow:0 1px 3px #000;box-shadow:0 3px 10px #0006;backdrop-filter:blur(4px);pointer-events:auto;touch-action:none}
 .action-btn:active,.action-btn.active{background:#b17c39d9;border-color:#ffe2a1}
 .action-btn.fire{width:78px;height:78px;right:0;bottom:25px;background:#8b3b32c9;border-width:2px;font-size:12px}
+.action-btn.weapon-prev{width:38px;height:38px;left:128px;bottom:24px;font-size:17px}.action-btn.weapon-next{width:38px;height:38px;left:172px;bottom:24px;font-size:17px}.action-btn.fire-mode{width:58px;height:38px;left:128px;bottom:68px;font-size:9px}
 .action-btn.aim{width:57px;height:57px;right:88px;bottom:76px}
 .action-btn.jump{width:54px;height:54px;right:15px;bottom:118px}.action-btn.sprint{width:48px;height:48px;left:32px;bottom:170px}.action-btn.prone{width:45px;height:45px;right:145px;bottom:28px}.action-btn.loot{width:52px;height:52px;left:46%;bottom:16px;font-size:9px;display:none}.action-btn.loot.available{display:grid}
 .action-btn.crouch{width:51px;height:51px;right:81px;bottom:13px}
