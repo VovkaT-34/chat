@@ -69,12 +69,12 @@ function mpHideLobbyUI(){
   if(notice)notice.classList.remove('show');
 }
 function mpUpdateUI(){
-  if(mpStarted||gameplayActive)mpHideLobbyUI();
+  if(mpStarted)mpHideLobbyUI();
   const s=document.getElementById('mpStatus'), inp=document.getElementById('mpRoomInput');
   if(!s)return;
-  s.textContent='Игрок '+mpLocalPlayer+' · '+mpPeerCount+'/2'+(mpPanelNotice?' · '+mpPanelNotice:'');
+  s.textContent='Игрок '+mpLocalPlayer+' · '+mpPeerCount+'/4'+(mpPanelNotice?' · '+mpPanelNotice:'');
   const launch=document.getElementById('mpLaunch'), checks=document.getElementById('mpChecks');
-  if(launch&&!mpStarted&&!gameplayActive){launch.disabled=mpLocalSelection<0; launch.innerHTML='ПУСК<div id="mpChecks" class="mp-checks">'+Array.from({length:mpPeerCount},(_,i)=>'<span class="mp-check '+((i+1===mpLocalPlayer?mpLocalReady:(mpRemotePlayers[i+1]?.ready))?'ok':'')+'">✓ '+(i+1)+'</span>').join('')+'</div>';}
+  if(launch&&!mpStarted){launch.disabled=mpLocalSelection<0; launch.innerHTML='ПУСК<div id="mpChecks" class="mp-checks">'+Array.from({length:4},(_,i)=>'<span class="mp-check '+((i+1===mpLocalPlayer?mpLocalReady:(mpRemotePlayers[i+1]?.ready))?'ok':'')+'">✓ '+(i+1)+'</span>').join('')+'</div>';}
   if(inp && document.activeElement!==inp) inp.value=mpRoom;
 }
 function mpRebuildState(){
@@ -88,10 +88,10 @@ function mpRebuildState(){
   peers.sort((a,b)=>(Number(a.joinedAt)||0)-(Number(b.joinedAt)||0)||a.key.localeCompare(b.key));
   const mine=peers.findIndex(p=>p.key===mpKey);
   mpLocalPlayer=mine<0?1:mine+1;
-  if(mpLocalPlayer>2)mpLocalPlayer=2;
-  mpPeerCount=Math.min(peers.length,2);
+  if(mpLocalPlayer>2)mpLocalPlayer=4;
+  mpPeerCount=Math.min(peers.length,4);
   mpRemotePlayers={};
-  for(let i=0;i<peers.length&&i<2;i++){
+  for(let i=0;i<peers.length&&i<4;i++){
     const p=peers[i];
     const player=i+1;
     if(p.key!==mpKey){
@@ -165,7 +165,7 @@ async function mpJoin(room,isReconnect=false){
       let m;try{m=JSON.parse(event.data);}catch(e){return;}
       if(m.type==='welcome'){
         mpWelcomeReceived=true;
-        mpLocalPlayer=Math.max(1,Math.min(2,Number(m.player)||1));
+        mpLocalPlayer=Math.max(1,Math.min(4,Number(m.player)||1));
         mpUpdateUI();
         return;
       }
@@ -175,7 +175,7 @@ async function mpJoin(room,isReconnect=false){
         return;
       }
       if(m.type!=='snapshot'||!Array.isArray(m.players)||!mpWelcomeReceived)return;
-      mpPeerCount=Math.min(m.players.length,2);
+      mpPeerCount=Math.min(m.players.length,4);
       const next={};
       for(const p of m.players){
         const player=Number(p.id);
@@ -220,9 +220,8 @@ function mpPressLaunch(){
 function mpCanStart(){
   if(mpLocalSelection<0||!mpLocalReady)return false;
   if(mpPeerCount<=1)return true;
-  for(let player=1;player<=mpPeerCount;player++){
-    if(player===mpLocalPlayer)continue;
-    const p=mpRemotePlayers[player];
+  for(const [player,p] of Object.entries(mpRemotePlayers)){
+    if(Number(player)===mpLocalPlayer)continue;
     if(!p||p.selection<0||!p.ready)return false;
   }
   return true;
@@ -275,14 +274,15 @@ window.__airplanes5SendShot=mpSendShot;
 window.__airplanes5SendSelection=mpSendSelection;
 window.__airplanes5LocalReady=()=>mpLocalReady;
 window.__airplanes5Launch=mpPressLaunch;
-window.__airplanes5SelectionScreen=function(show){mpSelectionScreenVisible=!!show&&!mpStarted&&!gameplayActive;const b=document.getElementById("mpLaunch");if(b)b.style.display=mpSelectionScreenVisible?"block":"none";if(mpStarted||gameplayActive)mpHideLobbyUI();};
+window.__airplanes5SelectionScreen=function(show){mpSelectionScreenVisible=!!show&&!mpStarted;const b=document.getElementById("mpLaunch");if(b)b.style.display=mpSelectionScreenVisible?"block":"none";if(mpStarted)mpHideLobbyUI();};
 window.__airplanes5IsMultiplayer=()=>mpSocketConnected && mpPeerCount>1;
 window.__airplanes5GameStarted=()=>mpStarted;
 const melody=[261.63,329.63,392,329.63,293.66,349.23,440,349.23],bass=[130.81,130.81,146.83,146.83,164.81,164.81,146.83,146.83];
 function ensureAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}
 function startMusic(){ensureAudio();if(musicTimer||paused||!gameplayActive)return;musicTimer=setInterval(()=>{if(paused||!gameplayActive||!audioCtx||audioCtx.state!=='running')return;const n=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=melody[musicStep%melody.length];g.gain.setValueAtTime(.0001,n);g.gain.exponentialRampToValueAtTime(.035,n+.025);g.gain.exponentialRampToValueAtTime(.0001,n+.28);o.connect(g).connect(audioCtx.destination);o.start(n);o.stop(n+.3);if(musicStep%2===0){const b=audioCtx.createOscillator(),bg=audioCtx.createGain();b.type='sine';b.frequency.value=bass[(musicStep/2)%bass.length|0];bg.gain.setValueAtTime(.0001,n);bg.gain.exponentialRampToValueAtTime(.018,n+.02);bg.gain.exponentialRampToValueAtTime(.0001,n+.42);b.connect(bg).connect(audioCtx.destination);b.start(n);b.stop(n+.45);}musicStep++;},360);}
 function stopMusic(){if(musicTimer){clearInterval(musicTimer);musicTimer=null;}if(audioCtx&&audioCtx.state==='running')audioCtx.suspend();}
-window.__airplanes5SetGameplay=function(active){gameplayActive=!!active;if(gameplayActive){mpStarted=true;mpHideLobbyUI();}if(gameplayActive&&!paused)startMusic();else stopMusic();};
+window.__airplanes5SetGameplay=function(active){gameplayActive=!!active;if(gameplayActive&&!paused)startMusic();else stopMusic();};
+window.__airplanes5SetGameStarted=function(){mpStarted=true;mpHideLobbyUI();mpUpdateUI();};
 window.__airplanes5PlayShot=function(){if(!gameplayActive||paused)return;ensureAudio();const n=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.setValueAtTime(760,n);o.frequency.exponentialRampToValueAtTime(240,n+.075);g.gain.setValueAtTime(.05,n);g.gain.exponentialRampToValueAtTime(.0001,n+.085);o.connect(g).connect(audioCtx.destination);o.start(n);o.stop(n+.09);};
 window.__airplanes5PauseRequest=null;
 window.__airplanes5Pause=function(e){
@@ -299,7 +299,7 @@ window.__airplanes5Pause=function(e){
 window.__airplanes5SetPaused=function(value){paused=!!value;const b=document.getElementById('pauseButton');if(b)b.textContent=paused?'▶':'Ⅱ';if(paused)stopMusic();else if(gameplayActive)startMusic();};
 window.addEventListener('pointerdown',()=>ensureAudio(),{passive:true});window.addEventListener('touchstart',()=>ensureAudio(),{passive:true});window.addEventListener('keydown',()=>ensureAudio(),{passive:true});
 const initialRoom=mpRoomCode();document.addEventListener('DOMContentLoaded',()=>{document.getElementById('mpRoomInput').value=initialRoom;const b=document.getElementById("mpLaunch");if(b)b.style.display=mpSelectionScreenVisible?"block":"none";mpJoin(initialRoom);});
-const go=new Go();WebAssembly.instantiateStreaming(fetch('game.wasm?v=mp2client-20260924-1'),go.importObject).then(result=>go.run(result.instance)).catch(error=>console.error('Airplanes 5 WASM error:',error));
+const go=new Go();WebAssembly.instantiateStreaming(fetch('game.wasm?v=mp4client-20261121-1'),go.importObject).then(result=>go.run(result.instance)).catch(error=>console.error('Airplanes 5 WASM error:',error));
 </script>
 <div id="mpPanel" class="mp-panel"><span id="mpStatus" class="mp-status">Подключение…</span><input id="mpRoomInput" maxlength="8" placeholder="КОД"><button type="button" onclick="mpJoin(document.getElementById('mpRoomInput').value)">Войти</button><button type="button" class="mp-copy" onclick="navigator.clipboard?.writeText(location.href)">Ссылка</button></div>
 <button id="mpLaunch" class="mp-launch" type="button" onclick="__airplanes5Launch()">ПУСК<div id="mpChecks" class="mp-checks"></div></button><div id="mpNotice" class="mp-notice"></div><div class="mobile-controls"><button id="pauseButton" class="pause" type="button" aria-label="Пауза" onclick="__airplanes5Pause(event)">Ⅱ</button></div>

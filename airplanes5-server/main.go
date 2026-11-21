@@ -16,7 +16,7 @@ import (
 )
 
 
-const maxPlayers = 2
+const maxPlayers = 4
 
 // Public Supabase project settings; the publishable key is intentionally public.
 // Access is granted only after Supabase Auth and the profiles table confirm an approved admin.
@@ -339,7 +339,7 @@ func (r *Room) update(m ClientMessage, id int) {
 		}
 		p.Selection = m.Selection
 		// Keep the authoritative spawn aligned with the original Airplanes playfield.
-		spawnX := []float64{80, 240, 400, 560}[m.Selection]
+		spawnX := []float64{100, 300, 500, 700}[id-1]
 		p.X = spawnX
 		p.Y = 620
 

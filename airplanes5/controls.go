@@ -136,7 +136,7 @@ func (i *Controls) Update(w donburi.World) {
 
 	if js.Global().Call("__airplanes5IsMultiplayer").Bool() {
 		localPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
-		if localPlayer < 1 || localPlayer > 2 { localPlayer = 1 }
+		if localPlayer < 1 || localPlayer > 4 { localPlayer = 1 }
 		i.query.Each(w, func(entry *donburi.Entry) {
 			airplane := component.PlayerAirplane.Get(entry)
 			in := component.Input.Get(entry)
@@ -195,7 +195,7 @@ func (i *Controls) Update(w donburi.World) {
 	}
 
 	localPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
-	if localPlayer < 1 || localPlayer > 2 {
+	if localPlayer < 1 || localPlayer > 4 {
 		localPlayer = 1
 	}
 
