@@ -266,7 +266,7 @@ window.__airplanes5SendShot=mpSendShot;
 window.__airplanes5SendSelection=mpSendSelection;
 window.__airplanes5LocalReady=()=>mpLocalReady;
 window.__airplanes5Launch=mpPressLaunch;
-window.__airplanes5SelectionScreen=function(show){mpSelectionScreenVisible=!!show&&!mpStarted;const b=document.getElementById("mpLaunch");if(b)b.style.display=mpSelectionScreenVisible?"block":"none";};
+window.__airplanes5SelectionScreen=function(show){mpSelectionScreenVisible=!!show;const b=document.getElementById("mpLaunch");if(b)b.style.display=mpSelectionScreenVisible?"block":"none";};
 window.__airplanes5IsMultiplayer=()=>mpSocketConnected && mpPeerCount>1;
 window.__airplanes5GameStarted=()=>mpStarted;
 const melody=[261.63,329.63,392,329.63,293.66,349.23,440,349.23],bass=[130.81,130.81,146.83,146.83,164.81,164.81,146.83,146.83];
