@@ -14,6 +14,7 @@ import { createZoneSystem } from "./zone.js";
 import { createCombatSystem } from "./combat.js";
 import { createPlayerController } from "./player-controller.js";
 import { createWorldSystem } from "./world.js";
+import { createGameLoop } from "./game-loop.js";
 import { setEditMode as setHudEditMode, saveLayout as saveHudLayout, loadLayout as loadHudLayout, bindEditor as bindHudEditor } from "./hud-layout.js";
 
 const $ = id => document.getElementById(id);
@@ -200,7 +201,34 @@ function finish(win){if(gameOver)return;gameOver=true;running=false;fireHeld=fal
 function drawMiniMap(){drawMiniMapModule({$,obstacles,zoneRadius,bots,player,yaw})}
 function drawMap(){drawMapModule({$,obstacles,zoneRadius,player,bots})}
 function resetMatch(){if(!renderer)initWorld();footstepTimer=0;move={x:0,y:0};keys.clear();lookPointer=null;fireHeld=false;triggerLocked=false;aiming=false;crouching=false;prone=false;sprinting=false;jumpUntil=0;lastShot=0;reloadUntil=0;$("aimButton").classList.remove("active");$("crouchButton").classList.remove("active");$("proneButton").classList.remove("active");$("sprintButton").classList.remove("active");const knob=$("joystick").querySelector(".joy-knob");knob.style.left="50%";knob.style.top="50%";for(const b of bots)scene.remove(b.mesh);for(const l of loot)scene.remove(l.mesh);for(const p of particles)scene.remove(p.mesh);bots=[];loot=[];particles=[];bullets=[];obstacles=[];scene.clear();buildWorld();scene.add(player);player.position.set(0,0,-7);for(let i=0;i<12;i++)makeBot(i);for(let i=0;i<24;i++){let x,z,tries=0;do{x=rand(-47,47);z=rand(-47,47);tries++}while((Math.hypot(x,z)<8||collides(x,z,.7))&&tries<30);if(tries<30)makeLoot(["ammo","ammo","medkit","armor","weapon"][i%5],x,z)}health=100;armor=0;activeWeaponId="p92";fireMode="SINGLE";weaponMagazines={p92:15};reserveByAmmo={"556":120,"762":90,"45":100,"9":60};ammo=15;reserve=60;weapon="P92";weaponType="pistol";triggerLocked=false;setPersonWeapon(player,"p92");medkits=2;kills=0;totalDamage=0;elapsed=0;zoneRadius=47;zoneStage=0;zoneTimer=180;yaw=0;pitch=.18;gameOver=false;paused=false;running=true;player.rotation.set(0,0,0);updateHud();closeScreens();lastFrame=performance.now();showToast("Найдите оружие и выживите")}
-function animate(now){requestAnimationFrame(animate);if(!renderer||!scene||!camera)return;const dt=Math.min(clock.getDelta(),.05);if(running&&!paused&&!gameOver){gyro.apply();playerController.updatePlayer(dt);botAI.updateBots(dt);zoneSystem.updateZone(dt);combat.pickLoot();const nearLoot=loot.some(item=>item.active&&Math.hypot(player.position.x-item.x,player.position.z-item.z)<2.8);$("lootButton").classList.toggle("available",nearLoot&&!settings.autoLoot);if(fireHeld)combat.shoot();zoneSystem.checkWin();for(let i=particles.length-1;i>=0;i--){particles[i].life-=dt;if(particles[i].life<=0){scene.remove(particles[i].mesh);particles.splice(i,1)}}}drawMiniMap();renderer.render(scene,camera)}
+const gameLoop=createGameLoop({
+  state:{
+    get renderer(){return renderer},
+    get scene(){return scene},
+    get camera(){return camera},
+    get clock(){return clock},
+    get running(){return running},
+    get paused(){return paused},
+    get gameOver(){return gameOver},
+    get loot(){return loot},
+    get player(){return player},
+    get settings(){return settings},
+    get fireHeld(){return fireHeld},
+    get particles(){return particles}
+  },
+  actions:{
+    gyroApply:()=>gyro.apply(),
+    updatePlayer:dt=>playerController.updatePlayer(dt),
+    updateBots:dt=>botAI.updateBots(dt),
+    updateZone:dt=>zoneSystem.updateZone(dt),
+    pickLoot:()=>combat.pickLoot(),
+    setLootAvailable:value=>$("lootButton").classList.toggle("available",value),
+    shoot:()=>combat.shoot(),
+    checkWin:()=>zoneSystem.checkWin(),
+    drawMiniMap
+  }
+});
+function animate(now){gameLoop.animate(now)}
 function startMatch(){unlockAudio();const gyroRequest=gyro.requestAccess();resetMatch();gyroRequest.then(gyroReady=>{if(!gyroReady&&running)showToast("Гироскоп недоступен: проверьте разрешение датчика")})}
 function pauseMatch(){if(!running)return;paused=true;fireHeld=false;sprinting=false;move={x:0,y:0};openScreen("pause")}
 function resumeMatch(){paused=false;closeScreens()}
