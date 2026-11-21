@@ -52,6 +52,47 @@ p.write_text(s)
 
 # Mobile player selection: touch coordinates choose the airplane actually tapped.
 # The original game has two players and four airplane choices.
+playerSource = Path('/tmp/airplanes/archetype/player.go')
+playerCode = playerSource.read_text()
+playerMapEnd = '\t},\n}\n\nfunc playerSpawn'
+if playerMapEnd not in playerCode:
+    raise SystemExit('Original player map layout changed')
+playerCode = playerCode.replace(playerMapEnd, '''\t},
+\t3: { Inputs: PlayerInputs{Up: ebiten.KeyI, Right: ebiten.KeyL, Down: ebiten.KeyK, Left: ebiten.KeyJ, Shoot: ebiten.KeyU} },
+\t4: { Inputs: PlayerInputs{Up: ebiten.KeyT, Right: ebiten.KeyH, Down: ebiten.KeyG, Left: ebiten.KeyF, Shoot: ebiten.KeyY} },
+}\n\nfunc playerSpawn''', 1)
+
+spawnOld = '''switch playerNumber {
+\tcase 1:
+\t\treturn math.Vec2{
+\t\t\tX: float64(game.Settings.ScreenWidth) * 0.25,
+\t\t\tY: cameraPos.Y + float64(game.Settings.ScreenHeight)*0.9,
+\t\t}
+\tcase 2:
+\t\treturn math.Vec2{
+\t\t\tX: float64(game.Settings.ScreenWidth) * 0.75,
+\t\t\tY: cameraPos.Y + float64(game.Settings.ScreenHeight)*0.9,
+\t\t}
+\tdefault:
+\t\tpanic(fmt.Sprintf("unknown player number: %v", playerNumber))
+\t}'''
+spawnNew = '''switch playerNumber {
+\tcase 1:
+\t\treturn math.Vec2{X: float64(game.Settings.ScreenWidth) * 0.125, Y: cameraPos.Y + float64(game.Settings.ScreenHeight)*0.9}
+\tcase 2:
+\t\treturn math.Vec2{X: float64(game.Settings.ScreenWidth) * 0.375, Y: cameraPos.Y + float64(game.Settings.ScreenHeight)*0.9}
+\tcase 3:
+\t\treturn math.Vec2{X: float64(game.Settings.ScreenWidth) * 0.625, Y: cameraPos.Y + float64(game.Settings.ScreenHeight)*0.9}
+\tcase 4:
+\t\treturn math.Vec2{X: float64(game.Settings.ScreenWidth) * 0.875, Y: cameraPos.Y + float64(game.Settings.ScreenHeight)*0.9}
+\tdefault:
+\t\tpanic(fmt.Sprintf("unknown player number: %v", playerNumber))
+\t}'''
+if spawnOld not in playerCode:
+    raise SystemExit('Original player spawn switch changed')
+playerCode = playerCode.replace(spawnOld, spawnNew, 1)
+playerSource.write_text(playerCode)
+
 p = Path('/tmp/airplanes/system/playerselect.go')
 s = p.read_text()
 
@@ -60,12 +101,12 @@ end = s.index("\n\tfor number, settings := range archetype.Players", start)
 
 new_touch = """\tjs.Global().Call("__airplanes5SelectionScreen", true)
 	localPlayer := js.Global().Call("__airplanes5LocalPlayer").Int()
-\\tif localPlayer < 1 || localPlayer > 2 {
+\\tif localPlayer < 1 || localPlayer > 4 {
 \\t\\tlocalPlayer = 1
 \\t}
 
 \\t// Mirror every other room member into this local selection screen.
-\\tfor playerNumber := 1; playerNumber <= 2; playerNumber++ {
+\\tfor playerNumber := 1; playerNumber <= 4; playerNumber++ {
 \\t\\tif playerNumber == localPlayer {
 \\t\\t\\tcontinue
 \\t\\t}
@@ -165,6 +206,7 @@ s = s.replace('''if len(chosenPlayers) > 0 && js.Global().Call("__airplanes5CanS
 	}''', '''if len(chosenPlayers) > 0 && js.Global().Call("__airplanes5CanStart").Bool() {
 		s.chosenPlayers = chosenPlayers
 		s.started = true
+		js.Global().Call("__airplanes5SetGameStarted")
 		s.startCallback(s.chosenPlayers)
 		return
 	}''', 1)
