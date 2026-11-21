@@ -64,7 +64,7 @@ function buildWorld(){
   addObstacle(-40,-5,6,12,2.7,"#777b69");
   addObstacle(40,4,7,11,3.2,"#857d68");
   zoneRing=new THREE.Mesh(new THREE.TorusGeometry(47,.22,6,128),new THREE.MeshBasicMaterial({color:"#a9d8ee",transparent:true,opacity:.78}));
-  zoneRing.rotation.x=Math.PI/2;zoneRing.position.y=.24;scene.add(zoneRing);
+  zoneRing.rotation.x=-Math.PI/2;zoneRing.position.y=.24;scene.add(zoneRing);
   camera.position.set(0,5,1);camera.lookAt(0,1,-8);
 }
 function makeLoot(type,x,z){
