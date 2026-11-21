@@ -102,6 +102,7 @@ func issueAuthTicket(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	if r.Method == http.MethodOptions { w.WriteHeader(http.StatusNoContent); return }
 	if r.Method != http.MethodPost { http.Error(w, "method not allowed", http.StatusMethodNotAllowed); return }
+	// CORS preflight is not an authentication attempt and must not consume the rate limit.
 	if !allowTicketAttempt(clientIP(r)) { http.Error(w, "too many attempts", http.StatusTooManyRequests); return }
 	auth := strings.TrimSpace(r.Header.Get("Authorization"))
 	if !strings.HasPrefix(auth, "Bearer ") { http.Error(w, "unauthorized", http.StatusUnauthorized); return }
@@ -329,6 +330,13 @@ func (r *Room) update(m ClientMessage, id int) {
 
 	switch m.Type {
 	case "selection":
+		if m.Selection == -1 {
+			if !p.Ready {
+				p.Selection = -1
+				p.Ready = false
+			}
+			break
+		}
 		if m.Selection < 0 || m.Selection >= 4 || p.Ready {
 			return
 		}
