@@ -7,6 +7,7 @@ import { updateHud as updateHudModule, drawMiniMap as drawMiniMapModule, drawMap
 import { bindScreenScroll as bindScreenScrollModule } from "./screen-scroll.js";
 import { createGyroSystem } from "./gyro.js";
 import { applySettingsToHud as applySettingsToHudModule, bindSettings as bindSettingsModule } from "./settings-ui.js";
+import { createControls } from "./controls.js";
 import { setEditMode as setHudEditMode, saveLayout as saveHudLayout, loadLayout as loadHudLayout, bindEditor as bindHudEditor } from "./hud-layout.js";
 
 const $ = id => document.getElementById(id);
@@ -52,6 +53,27 @@ const gyro=createGyroSystem({
 
 
 
+
+const controls=createControls({
+  $,root,settings,screenToGamePoint,clamp,
+  state:{
+    get move(){return move},set move(value){move=value},
+    get lookPointer(){return lookPointer},set lookPointer(value){lookPointer=value},
+    get aiming(){return aiming},set aiming(value){aiming=value},
+    get yaw(){return yaw},set yaw(value){yaw=value},
+    get pitch(){return pitch},set pitch(value){pitch=value},
+    get fireHeld(){return fireHeld},set fireHeld(value){fireHeld=value},
+    get triggerLocked(){return triggerLocked},set triggerLocked(value){triggerLocked=value},
+    get jumpUntil(){return jumpUntil},set jumpUntil(value){jumpUntil=value},
+    get crouching(){return crouching},set crouching(value){crouching=value},
+    get prone(){return prone},set prone(value){prone=value},
+    get sprinting(){return sprinting},set sprinting(value){sprinting=value},
+    keys,
+    get running(){return running},
+    get paused(){return paused}
+  },
+  actions:{cycleWeapon,cycleFireMode,sound,reload,heal,pickLoot,pauseMatch}
+});
 
 function mat(color,roughness=.9){const k=color+":"+roughness;if(!materials[k])materials[k]=new THREE.MeshStandardMaterial({color,roughness});return materials[k]}
 const {createWeaponModel,setPersonWeapon,makePerson}=createCharacterModels({THREE,mat});
@@ -125,12 +147,6 @@ function animate(now){requestAnimationFrame(animate);if(!renderer||!scene||!came
 function startMatch(){unlockAudio();const gyroRequest=gyro.requestAccess();resetMatch();gyroRequest.then(gyroReady=>{if(!gyroReady&&running)showToast("Гироскоп недоступен: проверьте разрешение датчика")})}
 function pauseMatch(){if(!running)return;paused=true;fireHeld=false;sprinting=false;move={x:0,y:0};openScreen("pause")}
 function resumeMatch(){paused=false;closeScreens()}
-function bindHold(id,down,up){const el=$(id);el.addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();el.setPointerCapture?.(e.pointerId);down()});["pointerup","pointercancel","lostpointercapture"].forEach(n=>el.addEventListener(n,e=>{e.preventDefault();up()}))}
-function bindControls(){const joy=$("joystick"),knob=joy.querySelector(".joy-knob");let joyId=null;joy.addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();joyId=e.pointerId;if(settings.joystickMode==="floating"){const p=screenToGamePoint(e.clientX,e.clientY),size=joy.offsetWidth;joy.style.left=clamp(p.x-size/2,0,root.clientWidth-size)+"px";joy.style.top=clamp(p.y-size/2,0,root.clientHeight-size)+"px";joy.style.right="auto";joy.style.bottom="auto"}joy.setPointerCapture(e.pointerId);moveJoy(e)});joy.addEventListener("pointermove",e=>{if(e.pointerId===joyId)moveJoy(e)});function moveJoy(e){const r=joy.getBoundingClientRect(),center=screenToGamePoint(r.left+r.width/2,r.top+r.height/2),point=screenToGamePoint(e.clientX,e.clientY),dx=point.x-center.x,dy=point.y-center.y,max=joy.clientWidth*.34,l=Math.hypot(dx,dy),k=Math.min(1,max/(l||1));move={x:dx*k/max,y:dy*k/max};knob.style.left=(50+move.x*34)+"%";knob.style.top=(50+move.y*34)+"%"}function resetJoy(){joyId=null;move={x:0,y:0};knob.style.left="50%";knob.style.top="50%"}["pointerup","pointercancel","lostpointercapture"].forEach(n=>joy.addEventListener(n,resetJoy));
-const look=$("lookZone");look.addEventListener("pointerdown",e=>{if(root.classList.contains("editing")||!running)return;const p=screenToGamePoint(e.clientX,e.clientY);lookPointer={id:e.pointerId,x:p.x,y:p.y};look.setPointerCapture(e.pointerId)});look.addEventListener("pointermove",e=>{if(!lookPointer||lookPointer.id!==e.pointerId)return;const p=screenToGamePoint(e.clientX,e.clientY),dx=p.x-lookPointer.x,dy=p.y-lookPointer.y;lookPointer.x=p.x;lookPointer.y=p.y;const s=(aiming?settings.adsSensitivity:settings.cameraSensitivity)/55*.003;yaw-=dx*s;pitch=clamp(pitch-dy*s*.7,-.32,.55)});["pointerup","pointercancel","lostpointercapture"].forEach(n=>look.addEventListener(n,()=>lookPointer=null));
-bindHold("fireButton",()=>{fireHeld=true;triggerLocked=false},()=>{fireHeld=false;triggerLocked=false});$("weaponPrevButton").addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();cycleWeapon(-1)});$("weaponNextButton").addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();cycleWeapon(1)});$("fireModeButton").addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();cycleFireMode()});$("aimButton").addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();aiming=!aiming;$("aimButton").classList.toggle("active",aiming)});$("jumpButton").addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();jumpUntil=performance.now()+420;sound(300,.06)});$("crouchButton").addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();crouching=!crouching;prone=false;$("crouchButton").classList.toggle("active",crouching);$("proneButton").classList.remove("active")});$("proneButton").addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();prone=!prone;crouching=false;$("proneButton").classList.toggle("active",prone);$("crouchButton").classList.remove("active")});bindHold("sprintButton",()=>sprinting=true,()=>sprinting=false);$("reloadButton").addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();reload()});$("healButton").addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();heal()});$("lootButton").addEventListener("pointerdown",e=>{if(root.classList.contains("editing"))return;e.preventDefault();pickLoot(true)});
-window.addEventListener("keydown",e=>{keys.add(e.code);if(e.code==="Space"){jumpUntil=performance.now()+420;e.preventDefault()}if(e.code==="KeyR")reload();if(e.code==="KeyF")heal();if(e.code==="KeyC")crouching=!crouching;if(e.code==="ShiftLeft"||e.code==="ShiftRight")sprinting=true;if(e.code==="KeyQ")aiming=!aiming;if(e.code==="Escape"&&running&&!paused)pauseMatch()});
-window.addEventListener("keyup",e=>{keys.delete(e.code);if(e.code==="ShiftLeft"||e.code==="ShiftRight")sprinting=false});}
 function applySettingsToHud(){applySettingsToHudModule({root,settings,$})}
 function bindSettings(){bindSettingsModule({
   $,settings,applySettingsToHud,saveSettings,getRenderer:()=>renderer,getSunLight:()=>sunLight,
@@ -144,5 +160,5 @@ function saveLayout(){saveHudLayout({layoutKey,root})}
 function loadLayout(){loadHudLayout({layoutKey,isPortraitGame})}
 function bindEditor(){bindHudEditor({root,screenToGamePoint,clamp,saveLayout})}
 function bindUI(){$("startButton").onclick=startMatch;$("quickSettings").onclick=()=>{if(root.classList.contains("editing"))setEditMode(false);openScreen("settings")};$("settingsButton").onclick=()=>openScreen("settings");$("howButton").onclick=()=>openScreen("how");$("pauseButton").onclick=pauseMatch;$("resumeButton").onclick=resumeMatch;$("pauseSettings").onclick=()=>openScreen("settings");$("quitButton").onclick=()=>{running=false;paused=false;gameOver=false;openScreen("menu")};$("againButton").onclick=startMatch;$("resultMenuButton").onclick=()=>openScreen("menu");$("mapButton").onclick=()=>{if(root.classList.contains("editing")||!running||paused)return;drawMap();openScreen("map")};$("exitMenuButton").onclick=()=>{if(root.classList.contains("editing"))return;running=false;paused=false;gameOver=false;fireHeld=false;move={x:0,y:0};openScreen("menu")};document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>{const id=b.dataset.close;ui[id].classList.remove("visible");if(id==="settings"||id==="how"){if(paused)openScreen("pause");else if(!running&&!gameOver)openScreen("menu")}});$("hudEdit").onchange=e=>{setEditMode(e.target.checked);if(e.target.checked)closeScreens()};$("saveLayout").onclick=()=>{saveLayout();showToast("Раскладка сохранена")};$("resetLayout").onclick=()=>{localStorage.removeItem(layoutKey);document.querySelectorAll("[data-hud]").forEach(el=>{el.style.left="";el.style.top="";el.style.right="";el.style.bottom=""});showToast("Стандартная раскладка восстановлена")};$("pauseButton").addEventListener("click",()=>{if(root.classList.contains("editing"))setEditMode(false)})}
-function init(){try{bindUI();initWorld();bindControls();gyro.bind();bindSettings();bindScreenScroll();bindEditor();loadLayout();applySettingsToHud();updateHud();window.addEventListener("resize",resize);window.addEventListener("orientationchange",resize);document.addEventListener("visibilitychange",()=>{if(document.hidden&&running&&!paused)pauseMatch()})}catch(err){console.error(err);showToast("Не удалось запустить 3D-графику. Попробуйте другой браузер.")}}
+function init(){try{bindUI();initWorld();controls.bind();gyro.bind();bindSettings();bindScreenScroll();bindEditor();loadLayout();applySettingsToHud();updateHud();window.addEventListener("resize",resize);window.addEventListener("orientationchange",resize);document.addEventListener("visibilitychange",()=>{if(document.hidden&&running&&!paused)pauseMatch()})}catch(err){console.error(err);showToast("Не удалось запустить 3D-графику. Попробуйте другой браузер.")}}
 init();
