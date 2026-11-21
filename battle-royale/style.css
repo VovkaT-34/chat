@@ -23,11 +23,11 @@ button,input,select{font:inherit}button{cursor:pointer;touch-action:manipulation
 .action-btn:active,.action-btn.active{background:#b17c39d9;border-color:#ffe2a1}
 .action-btn.fire{width:78px;height:78px;right:0;bottom:25px;background:#8b3b32c9;border-width:2px;font-size:12px}
 .action-btn.aim{width:57px;height:57px;right:88px;bottom:76px}
-.action-btn.jump{width:54px;height:54px;right:15px;bottom:118px}
+.action-btn.jump{width:54px;height:54px;right:15px;bottom:118px}.action-btn.sprint{width:48px;height:48px;left:5px;bottom:128px}.action-btn.prone{width:45px;height:45px;right:145px;bottom:28px}
 .action-btn.crouch{width:51px;height:51px;right:81px;bottom:13px}
 .action-btn.reload{width:42px;height:42px;right:151px;bottom:21px;font-size:24px}
 .action-btn.heal{width:54px;height:54px;right:145px;bottom:91px;font-size:9px}
-.bottom-left-info{position:absolute;z-index:4;left:18px;bottom:calc(10px + var(--safe));display:flex;flex-direction:column;gap:4px;font-size:9px;letter-spacing:1px;text-shadow:0 1px 4px #000;pointer-events:none}
+.action-btn[data-hud]{position:fixed}#crosshair{position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--reticle-color,#f6efc7);font-size:25px;font-weight:400;text-shadow:0 1px 3px #000;pointer-events:none;opacity:.9}#crosshair::before{content:"";position:absolute;left:50%;top:50%;width:3px;height:3px;border-radius:50%;background:currentColor;transform:translate(-50%,-50%)}.bottom-left-info{position:absolute;z-index:4;left:18px;bottom:calc(10px + var(--safe));display:flex;flex-direction:column;gap:4px;font-size:9px;letter-spacing:1px;text-shadow:0 1px 4px #000;pointer-events:none}
 #zoneWarning{color:#ffad75;font-weight:800}.toast{position:absolute;z-index:12;left:50%;top:18%;transform:translate(-50%,-10px);padding:9px 15px;border-radius:9px;background:#101a1be8;border:1px solid #e7c47766;color:#f7e7bd;font-size:12px;opacity:0;transition:.2s;pointer-events:none}.toast.show{opacity:1;transform:translate(-50%,0)}
 .screen{position:absolute;z-index:20;inset:0;display:none;align-items:center;justify-content:center;padding:18px;background:#071012c9;backdrop-filter:blur(7px);overflow:auto}.screen.visible{display:flex}
 .menu-panel{width:min(430px,92vw);padding:clamp(20px,5vh,42px);border:1px solid #e7c47755;border-radius:24px;background:linear-gradient(145deg,#202f2bF2,#10191bf2);box-shadow:0 25px 80px #0009;text-align:center}
@@ -49,7 +49,7 @@ button,input,select{font:inherit}button{cursor:pointer;touch-action:manipulation
 .pause-dialog,.result-dialog{text-align:center;width:min(360px,92vw)}.pause-dialog h2,.result-dialog h2{margin:5px 0 20px;font-size:32px}.pause-dialog button,.result-dialog button{margin-top:10px}
 .result-stats{display:flex;justify-content:space-around;margin:20px 0}.result-stats div{display:flex;flex-direction:column;gap:4px}.result-stats b{font-size:24px;color:var(--gold)}.result-stats span{font-size:9px;color:#aeb8ad;letter-spacing:1px}
 .rotate-notice{position:absolute;z-index:50;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:#111c1c;color:#f2e7cc;text-align:center}.rotate-icon{font-size:50px;color:var(--gold)}.rotate-notice span{font-size:12px;color:#aeb8ad}
-#gameRoot.editing .hud-control{outline:2px dashed #f1d38a;cursor:move;touch-action:none}#gameRoot.editing #lookZone{display:none}
+#gameRoot.editing .hud-control{outline:2px dashed #f1d38a;cursor:move;touch-action:none}#gameRoot.editing .action-btn{position:fixed}#gameRoot.editing .hud-control{opacity:1!important}#gameRoot.editing #lookZone{display:none}
 @media(orientation:portrait) and (max-width:900px){.rotate-notice{display:flex}#gameRoot .screen.visible{display:none}}
 @media(max-height:430px){.menu-panel{padding:13px 20px}.brand-mark{width:38px;height:38px;margin-bottom:7px}.menu-panel h1{font-size:32px}.menu-copy{margin:8px auto 12px}.menu-panel small{margin-top:10px}.dialog{padding:12px}.settings-page{min-height:120px}.action-cluster{bottom:calc(12px + var(--safe))}.joystick{bottom:calc(16px + var(--safe))}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
