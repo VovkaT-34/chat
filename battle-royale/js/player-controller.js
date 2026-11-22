@@ -23,10 +23,10 @@ export function createPlayerController({v3,playerSpeed,state,actions}){
     const nx=player.position.x+delta.x,nz=player.position.z+delta.z;
     if(!actions.collides(nx,player.position.z))player.position.x=nx;
     if(!actions.collides(player.position.x,nz))player.position.z=nz;
-    player.rotation.y=state.yaw;
+    player.rotation.y=state.yaw+Math.PI;
     if(performance.now()<state.jumpUntil)player.position.y=Math.sin((state.jumpUntil-performance.now())/420*Math.PI)*.8;
     else player.position.y=0;
-    player.scale.y=state.prone?.52:state.crouching?.78:1;
+    player.scale.y=state.prone?.52:state.crouching?.78:1;\n    if(player.userData.animate)player.userData.animate(dt,len>0.18?speed:0);
     const target=v3(player.position.x+Math.sin(state.yaw)*9,2.6+state.pitch*7,player.position.z+Math.cos(state.yaw)*9);
     const desired=v3(player.position.x+Math.sin(state.yaw)*8,2.8+state.pitch*7,player.position.z+Math.cos(state.yaw)*8);
     const offset=v3(Math.sin(state.yaw)*7,state.aiming?2.35:3.25,Math.cos(state.yaw)*7);
