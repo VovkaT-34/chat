@@ -4,10 +4,10 @@ export function createWorldSystem({THREE,worldSize,settings,rand,createWeaponMod
  function addObstacle(x,z,w,d,h=3,c="#a99c80"){const g=new THREE.Group();g.position.set(x,0,z);box(w,h,d,c,0,h/2,0,g);state.scene.add(g);state.obstacles.push({x,z,w,d,h,mesh:g});return g}
  function house(cx,cz,w=18,d=15,h=5){const floor=box(w-.5,.18,d-.5,"#716a57",cx,.03,cz);floor.receiveShadow=true;box(w+1,.45,d+1,"#493e33",cx,h+.15,cz);
   const t=.65,door=3.4,front=cz+d/2,sideLen=(w-door)/2,sideOffset=(w+door)/4;
-  addObstacle(cx-w/2+t/2,cz,t,d,h,"#80765f");addObstacle(cx+w/2-t/2,cz,t,d,h,"#80765f");
+  const sideGap=4.4,sideSeg=(d-sideGap)/2,sideCenter=cz-d/2+sideGap/2;addObstacle(cx-w/2+t/2,sideCenter,t,sideSeg,h,"#80765f");addObstacle(cx-w/2+t/2,sideCenter+sideSeg+sideGap,t,sideSeg,h,"#80765f");addObstacle(cx+w/2-t/2,sideCenter,t,sideSeg,h,"#80765f");addObstacle(cx+w/2-t/2,sideCenter+sideSeg+sideGap,t,sideSeg,h,"#80765f");
   addObstacle(cx,cz-d/2+t/2,w,t,h,"#80765f");
   addObstacle(cx-sideOffset,front-t/2,sideLen,t,h,"#80765f");addObstacle(cx+sideOffset,front-t/2,sideLen,t,h,"#80765f");
-  // Side window gaps are kept open; split walls around each opening.
+  // Split side walls leave window-like openings that can be viewed and fired through.
   for(const s of [-1,1]){const wx=cx+s*(w/2-t/2),gapZ=cz-d/2+5,seg=(d-4)/2;addObstacle(wx,gapZ-seg/2,t,seg,h,"#80765f");addObstacle(wx,gapZ+seg/2,t,seg,h,"#80765f");box(.12,1.3,3,"#b6a583",cx+s*(w/2+.08),1.8,gapZ)}
   return {cx,cz,w,d}
  }
