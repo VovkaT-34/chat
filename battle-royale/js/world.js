@@ -8,11 +8,11 @@ export function createWorldSystem({THREE,worldSize,settings,rand,createWeaponMod
   addObstacle(cx,cz-d/2+t/2,w,t,h,"#80765f");
   addObstacle(cx-sideOffset,front-t/2,sideLen,t,h,"#80765f");addObstacle(cx+sideOffset,front-t/2,sideLen,t,h,"#80765f");
   // Split side walls leave window-like openings that can be viewed and fired through.
-  for(const s of [-1,1]){const wx=cx+s*(w/2-t/2),gapZ=cz-d/2+5,seg=(d-4)/2;addObstacle(wx,gapZ-seg/2,t,seg,h,"#80765f");addObstacle(wx,gapZ+seg/2,t,seg,h,"#80765f");box(.12,1.3,3,"#b6a583",cx+s*(w/2+.08),1.8,gapZ)}
+  for(const s of [-1,1]){const gapZ=cz-d/2+5;box(.12,1.3,3,"#b6a583",cx+s*(w/2+.08),1.8,gapZ)}
   return {cx,cz,w,d}
  }
  function tree(x,z,s=1){const g=new THREE.Group(),tr=new THREE.Mesh(new THREE.CylinderGeometry(.22*s,.32*s,2.2*s,6),mat("#554330")),leaf=new THREE.Mesh(new THREE.ConeGeometry(2*s,4.1*s,7),mat("#345238"));tr.position.y=1.1*s;leaf.position.y=3.7*s;g.add(tr,leaf);g.position.set(x,0,z);state.scene.add(g);state.obstacles.push({x,z,w:.7*s,d:.7*s,h:2.2*s,mesh:g})}
- function mountain(x,z,r,h){const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,7,2),mat("#777d76"));m.position.set(x,h/2-1,z);m.castShadow=settings.shadows;m.receiveShadow=true;state.scene.add(m)}
+ function mountain(x,z,r,h){const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,7,2),mat("#777d76"));m.position.set(x,h/2-1,z);m.castShadow=settings.shadows;m.receiveShadow=true;state.scene.add(m);state.obstacles.push({x,z,w:r*1.25,d:r*1.25,h,mesh:m})}
  function buildWorld(){const ground=new THREE.Mesh(new THREE.PlaneGeometry(worldSize,worldSize),mat("#536b49"));ground.rotation.x=-Math.PI/2;ground.position.y=-.08;ground.receiveShadow=true;state.scene.add(ground);
   state.scene.add(new THREE.HemisphereLight("#dce8d0","#46513b",1.9));const sun=new THREE.DirectionalLight("#fff0d0",2);sun.position.set(-120,170,-90);sun.castShadow=settings.shadows;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-140;sun.shadow.camera.right=140;sun.shadow.camera.top=140;sun.shadow.camera.bottom=-140;state.sunLight=sun;state.scene.add(sun);
   for(let i=0;i<24;i++){const a=i/24*Math.PI*2,r=rand(185,230);mountain(Math.cos(a)*r,Math.sin(a)*r,rand(20,38),rand(35,72))}
