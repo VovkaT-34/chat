@@ -1,53 +1,14 @@
 export function createBotAI({v3,rand,state,actions}){
-  function lineBlocked(ax,az,bx,bz){
-    for(let i=1;i<9;i++){
-      const t=i/9,x=ax+(bx-ax)*t,z=az+(bz-az)*t;
-      if(actions.collides(x,z,.12))return true;
-    }
-    return false;
-  }
-
-  function updateBots(dt){
-    const bots=state.bots,player=state.player;
-    for(const b of bots){
-      if(!b.alive)continue;
-      const dx=player.position.x-b.x,dz=player.position.z-b.z,dist=Math.hypot(dx,dz);
-      b.shoot-=dt;
-      b.wander-=dt;
-      if(dist<34){
-        const speed=dist>11?2.3:dist<7?-1.1:0;
-        const nx=b.x+dx/(dist||1)*speed*dt,nz=b.z+dz/(dist||1)*speed*dt;
-        if(!actions.collides(nx,b.z,.45))b.x=nx;
-        if(!actions.collides(b.x,nz,.45))b.z=nz;
-        if(dist>2)b.mesh.rotation.y=Math.atan2(dx,dz);
-        if(dist<30&&b.shoot<=0&&!lineBlocked(b.x,b.z,player.position.x,player.position.z)){
-          b.shoot=rand(1.1,2.5);
-          actions.playSfx("botGun");
-          const chance=dist<12?.48:.23;
-          if(Math.random()<chance){
-            let dmg=rand(5,11);
-            const absorbed=Math.min(state.armor,dmg*.55);
-            state.armor-=absorbed;
-            state.health=Math.max(0,state.health-(dmg-absorbed));
-            actions.updateHud();
-            actions.playSfx("damage");
-            if(state.health<=0){actions.finish(false);return}
-          }
-        }
-      }else if(b.wander<=0){
-        b.wander=rand(2,5);
-        b.target=v3(rand(-45,45),0,rand(-45,45));
-      }else if(b.target){
-        const d=b.target.clone().sub(v3(b.x,0,b.z));
-        if(d.length()>1){
-          d.normalize().multiplyScalar(dt*1.2);
-          b.x+=d.x;b.z+=d.z;
-          b.mesh.rotation.y=Math.atan2(d.x,d.z);
-        }
-      }
-      b.mesh.position.set(b.x,0,b.z);
-    }
-  }
-
-  return {lineBlocked,updateBots};
+ function lineBlocked(ax,az,bx,bz){const n=Math.max(8,Math.ceil(Math.hypot(bx-ax,bz-az)/2.5));for(let i=1;i<n;i++){const t=i/n;if(actions.collides(ax+(bx-ax)*t,az+(bz-az)*t,.18))return true}return false}
+ function hasSight(b,player,dist){if(dist>42)return false;const dx=player.position.x-b.x,dz=player.position.z-b.z,angle=Math.atan2(dx,dz),diff=Math.atan2(Math.sin(angle-b.mesh.rotation.y),Math.cos(angle-b.mesh.rotation.y));if(Math.abs(diff)>.95&&dist>8)return false;return !lineBlocked(b.x,b.z,player.position.x,player.position.z)}
+ function roamTarget(b){b.target=v3(rand(-225,225),0,rand(-225,225));b.wander=rand(5,12);b.idle=rand(.5,3)}
+ function updateBots(dt){for(const b of state.bots){if(!b.alive)continue;const player=state.player,dx=player.position.x-b.x,dz=player.position.z-b.z,dist=Math.hypot(dx,dz),seen=hasSight(b,player,dist);
+  if(seen){b.alert=7;b.mode="alert";b.target=v3(player.position.x,0,player.position.z)}else b.alert=Math.max(0,b.alert-dt);
+  b.shoot-=dt;b.wander-=dt;b.idle=Math.max(0,(b.idle||0)-dt);let speed=0;
+  if(b.alert>0&&dist<30){const approach=dist>13?1:dist<6?-1:0;speed=approach*2.1;if(dist>1)b.mesh.rotation.y=Math.atan2(dx,dz)+Math.PI;if(dist<27&&b.shoot<=0&&!lineBlocked(b.x,b.z,player.position.x,player.position.z)){b.shoot=rand(1.8,3.6);actions.playSfx("botGun");if(Math.random()<(dist<10?.3:.12)){const dmg=rand(4,8),abs=Math.min(state.armor,dmg*.4);state.armor-=abs;state.health=Math.max(0,state.health-(dmg-abs));actions.updateHud();actions.playSfx("damage");if(state.health<=0){actions.finish(false);return}}}}
+  else if(b.alert>0){const to=v3(player.position.x,0,player.position.z).sub(v3(b.x,0,b.z));if(to.length()>3){to.normalize();speed=1.7;b.mesh.rotation.y=Math.atan2(to.x,to.z)+Math.PI}}
+  else{b.mode="roam";if(!b.target||b.wander<=0||Math.hypot(b.target.x-b.x,b.target.z-b.z)<2)roamTarget(b);if(b.idle===0&&b.target){const dir=b.target.clone().sub(v3(b.x,0,b.z));if(dir.length()>1){dir.normalize();speed=rand(1.2,2);b.mesh.rotation.y=Math.atan2(dir.x,dir.z)+Math.PI}}}
+  if(speed){const nx=b.x-Math.sin(b.mesh.rotation.y)*speed*dt,nz=b.z-Math.cos(b.mesh.rotation.y)*speed*dt;if(!actions.collides(nx,b.z,.48))b.x=nx;if(!actions.collides(b.x,nz,.48))b.z=nz}
+  if(b.mesh.userData.animate)b.mesh.userData.animate(dt,Math.abs(speed));b.mesh.position.set(b.x,0,b.z)
+ }}return {lineBlocked,updateBots}
 }
