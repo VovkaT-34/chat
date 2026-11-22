@@ -16,7 +16,7 @@ body{padding:14px 12px 24px;min-height:100svh}.volk-page{width:min(760px,100%);m
 .overlay.game-over .overlay-card p{margin:0;font-size:14px;color:#fff2c6}
 .overlay-card{width:min(360px,95%);padding:20px 18px;text-align:center;border:2px solid #ffc35b;border-radius:18px;background:linear-gradient(145deg,#31583b,#172c21);box-shadow:0 10px 30px #0008;line-height:1.35}
 .overlay.paused{background:transparent;pointer-events:none}.overlay.paused .overlay-card{width:100%;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}.overlay.paused .wolf-mark,.overlay.paused .overlay-card p{display:none}.overlay.paused .overlay-card h2{margin:0;color:#fff2c6;font-size:clamp(32px,8vw,52px);text-shadow:0 2px 5px #172c21}
-.wolf-mark{font-size:54px;filter:drop-shadow(0 4px 2px #0006)}.overlay-card h2{margin:4px 0 8px;color:#ffe49a;font-size:27px}.overlay-card p{margin:0 0 16px;color:#e8f0dd;font-size:14px}
+.wolf-mark{font-size:26px;font-weight:900;letter-spacing:1px;filter:drop-shadow(0 4px 2px #0006)}.overlay-card h2{margin:4px 0 8px;color:#ffe49a;font-size:27px}.overlay-card p{margin:0 0 16px;color:#e8f0dd;font-size:14px}
 .start-btn,.game-actions button{border:0;border-radius:11px;background:linear-gradient(#ffcf62,#e68a24);color:#39220d;font-weight:900;letter-spacing:.5px;padding:13px 18px;font-size:14px;box-shadow:0 3px 0 #8c4b17}
 .lane-controls{position:relative;height:40px;margin:8px 0 10px}
 .lane-controls button{position:absolute;top:0;width:15%;height:36px;min-height:36px;border:1px solid #ffffff3d;border-radius:8px;background:linear-gradient(145deg,#497a4d,#294b32);color:#fff2c6;font-size:19px;font-weight:900;touch-action:manipulation;padding:2px 0;transform:translateX(-50%)}

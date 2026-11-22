@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="robots" content="noindex,nofollow,noarchive">
 <meta name="theme-color" content="#172b20">
-<title>🐺</title>
+<title>Каменский — ловля яиц</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="game-volk.css">
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -15,7 +15,7 @@
 <main class="volk-page">
   <header class="volk-top">
     <button class="back" type="button" onclick="location.href='games.html'">← Игры</button>
-    <h1 style="display:flex;align-items:center;gap:8px"><img src="wolf-full.svg" alt="Мультяшный волк" width="44" height="44" style="object-fit:contain"></h1>
+    <h1>Каменский</h1>
     <div class="mode-picker"><button id="modeToggle" class="mode-toggle" type="button" aria-haspopup="true" aria-expanded="false">Реж 1 ▾</button><div id="modeOptions" class="mode-options hidden"><button type="button" data-mode="1">Режим 1</button><button type="button" data-mode="2">Режим 2</button></div></div>
   </header>
   <section class="game-shell" aria-label="Игра">
@@ -26,10 +26,10 @@
       <button id="soundToggle" class="sound-toggle" type="button" aria-label="Звук включён">♫ ЗВУК</button>
     </div>
     <div class="stage-wrap">
-      <canvas id="volkCanvas" width="640" height="520" aria-label="Волк ловит падающие яйца"></canvas>
+      <canvas id="volkCanvas" width="640" height="520" aria-label="Каменский ловит падающие яйца"></canvas>
       <div id="volkOverlay" class="overlay hidden">
         <div class="overlay-card">
-          <div class="wolf-mark">🐺</div>
+          <div class="wolf-mark">КАМЕНСКИЙ</div>
           <h2 id="overlayTitle"></h2>
           <p id="overlayText">Лови яйца в четырёх лотках. Переключайся между дорожками и не дай яйцам разбиться!</p>
         </div>

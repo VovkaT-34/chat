@@ -84,64 +84,61 @@ function rollClick(step){tone(430+step*28,.035,'square',.055);tone(650+step*22,.
 function drawHen(x,remaining){var active=remaining>0,progress=active?1-remaining/.48:0,bob=active?Math.sin(progress*Math.PI*4)*2.5:0,wing=active?Math.sin(progress*Math.PI*5)*.45:0;ctx.save();ctx.translate(x,29+bob);ctx.fillStyle='#00000030';ctx.beginPath();ctx.ellipse(0,20,27,4,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#c96b19';ctx.beginPath();ctx.moveTo(-19,-3);ctx.quadraticCurveTo(-34,-17,-31,-8);ctx.quadraticCurveTo(-29,1,-18,4);ctx.closePath();ctx.fill();ctx.fillStyle='#e99a22';ctx.strokeStyle='#9b501b';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(-1,1,25,17,-.08,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#f8b936';ctx.beginPath();ctx.ellipse(-9,-1,13,10,wing,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d47b1e';ctx.lineWidth=1.5;ctx.stroke();ctx.strokeStyle='#b96820';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-8,13);ctx.lineTo(-10,19);ctx.lineTo(-15,20);ctx.moveTo(7,13);ctx.lineTo(8,19);ctx.lineTo(13,20);ctx.stroke();ctx.fillStyle='#f6c34e';ctx.beginPath();ctx.arc(17,-9,11,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#a95a1c';ctx.lineWidth=1.8;ctx.stroke();ctx.fillStyle='#d9362d';ctx.beginPath();ctx.arc(12,-20,4,0,Math.PI*2);ctx.arc(18,-22,4,0,Math.PI*2);ctx.arc(24,-19,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d9362d';ctx.beginPath();ctx.moveTo(21,-4);ctx.quadraticCurveTo(30,0,24,7);ctx.quadraticCurveTo(19,5,21,-4);ctx.fill();ctx.fillStyle='#f18a20';ctx.beginPath();ctx.moveTo(26,-10);ctx.lineTo(37,-6);ctx.lineTo(26,-2);ctx.closePath();ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(20,-12,3.2,0,Math.PI*2);ctx.fill();ctx.fillStyle='#222';ctx.beginPath();ctx.arc(21,-12,1.5,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#9d5c20';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(20,-7);ctx.lineTo(25,-7);ctx.stroke();if(active&&progress>.68){ctx.fillStyle='#fffdf2';ctx.beginPath();ctx.ellipse(1,19,6,8,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d9d7c6';ctx.lineWidth=1;ctx.stroke()}ctx.restore()}
 function drawEgg(e){ctx.save();ctx.translate(e.x+Math.sin(e.rollStep*1.35)*2,e.y-e.bump*18);ctx.rotate((e.rollStep%2?1:-1)*.16+Math.sin(e.y/22)*.05);if(e.golden){ctx.shadowColor='#ffdf32';ctx.shadowBlur=24;var gold=ctx.createLinearGradient(-13,-19,13,19);gold.addColorStop(0,'#fffbd0');gold.addColorStop(.2,'#fff08a');gold.addColorStop(.48,'#ffbf16');gold.addColorStop(.72,'#e99408');gold.addColorStop(1,'#fff2a0');ctx.fillStyle=gold;ctx.beginPath();ctx.ellipse(0,0,12,17,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#fff8bd';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,0,12,17,0,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#fffde2';ctx.beginPath();ctx.ellipse(-4,-7,3,5,-.35,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff4a6';ctx.lineWidth=2;for(var z=0;z<4;z++){var a=z*Math.PI/2+e.rollStep*.18,px=Math.cos(a)*19,py=Math.sin(a)*22;ctx.beginPath();ctx.moveTo(px-Math.cos(a)*3,py-Math.sin(a)*3);ctx.lineTo(px+Math.cos(a)*3,py+Math.sin(a)*3);ctx.stroke()}}else{ctx.shadowColor='#3c4d2c66';ctx.shadowBlur=5;ctx.shadowOffsetY=3;var g=ctx.createLinearGradient(-12,-18,12,18);g.addColorStop(0,'#fffef1');g.addColorStop(.5,'#fff');g.addColorStop(1,'#d9dfc7');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,0,11,16,0,0,Math.PI*2);ctx.fill();ctx.shadowColor='transparent';ctx.fillStyle='#e7a64a';ctx.beginPath();ctx.ellipse(-3,-5,2,3,0,0,Math.PI*2);ctx.fill()}ctx.restore()}
 function drawSplat(s){ctx.save();ctx.globalAlpha=Math.min(1,s.life/12);ctx.translate(s.x,s.y);ctx.fillStyle='#fff9df';ctx.beginPath();ctx.moveTo(-27,1);ctx.quadraticCurveTo(-31,-5,-22,-7);ctx.quadraticCurveTo(-18,-12,-9,-8);ctx.quadraticCurveTo(0,-13,8,-7);ctx.quadraticCurveTo(19,-11,23,-5);ctx.quadraticCurveTo(32,0,23,5);ctx.quadraticCurveTo(15,9,5,6);ctx.quadraticCurveTo(-6,11,-15,6);ctx.quadraticCurveTo(-26,9,-27,1);ctx.closePath();ctx.fill();ctx.fillStyle='#f5c52e';ctx.beginPath();ctx.ellipse(0,0,12,4.5,-.08,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ffe36a';ctx.beginPath();ctx.ellipse(-2,-1,6,2,0,0,Math.PI*2);ctx.fill();ctx.restore()}function drawBasket(x,y){ctx.save();ctx.translate(x,y);ctx.fillStyle='#a85c27';ctx.beginPath();ctx.moveTo(-31,-4);ctx.lineTo(31,-4);ctx.lineTo(24,19);ctx.quadraticCurveTo(0,27,-24,19);ctx.closePath();ctx.fill();ctx.strokeStyle='#f0b45d';ctx.lineWidth=4;ctx.stroke();ctx.strokeStyle='#6c3d22';ctx.lineWidth=2;for(var i=-18;i<=18;i+=9){ctx.beginPath();ctx.moveTo(i,-2);ctx.lineTo(i*.72,20);ctx.stroke()}ctx.restore()}
-function drawWolf(){var x=lanes[lane],y=400;ctx.save();ctx.translate(x,y);
-/* Четыре самостоятельные позы: волк по-разному бросается к каждому лотку.
-   Корзина рисуется после восстановления canvas и остаётся строго на прежних координатах. */
-if(mode===1){
-  if(lane===0){ctx.translate(19,-5);ctx.scale(-1,1);ctx.rotate(-.25);ctx.scale(1.03,.98)}
-  else if(lane===1){ctx.translate(8,-2);ctx.rotate(-.11);ctx.scale(1.02,1)}
-  else if(lane===2){ctx.translate(-9,-4);ctx.rotate(-.08);ctx.scale(1.02,1)}
-  else if(lane===3){ctx.translate(-19,-8);ctx.rotate(-.23);ctx.scale(1.04,.97)}
-}
-ctx.fillStyle='#243b2b55';ctx.beginPath();ctx.ellipse(-2,36,48,9,0,0,Math.PI*2);ctx.fill();
-/* Пушистый хвост и корпус — профиль волка, направленный вправо. */
-ctx.fillStyle='#596873';ctx.strokeStyle='#303d43';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-24,-20);ctx.quadraticCurveTo(-48,-31,-57,-12);ctx.quadraticCurveTo(-63,1,-47,8);ctx.quadraticCurveTo(-35,12,-24,1);ctx.lineTo(-17,-3);ctx.closePath();ctx.fill();ctx.stroke();
-ctx.fillStyle='#75818a';ctx.beginPath();ctx.moveTo(-23,-27);ctx.quadraticCurveTo(-8,-43,15,-35);ctx.quadraticCurveTo(31,-28,27,-5);ctx.lineTo(20,12);ctx.lineTo(-20,12);ctx.quadraticCurveTo(-31,-4,-23,-27);ctx.closePath();ctx.fill();ctx.stroke();
-ctx.fillStyle='#3c494f';ctx.beginPath();ctx.moveTo(-18,7);ctx.lineTo(-13,29);ctx.lineTo(-25,31);ctx.lineTo(-30,8);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(11,7);ctx.lineTo(17,29);ctx.lineTo(6,31);ctx.lineTo(1,8);ctx.closePath();ctx.fill();
-ctx.fillStyle='#252e33';ctx.beginPath();ctx.moveTo(-30,29);ctx.lineTo(-10,29);ctx.lineTo(-8,35);ctx.lineTo(-34,35);ctx.closePath();ctx.fill();ctx.beginPath();ctx.moveTo(2,29);ctx.lineTo(22,29);ctx.lineTo(25,35);ctx.lineTo(0,35);ctx.closePath();ctx.fill();
-/* Шея и голова с характерными волчьими ушами и вытянутой мордой. */
-ctx.fillStyle='#596873';ctx.beginPath();ctx.moveTo(-9,-31);ctx.quadraticCurveTo(-4,-62,18,-69);ctx.lineTo(37,-58);ctx.quadraticCurveTo(49,-49,45,-35);ctx.lineTo(31,-20);ctx.lineTo(1,-17);ctx.closePath();ctx.fill();ctx.stroke();
-ctx.fillStyle='#e0a06a';ctx.beginPath();ctx.moveTo(-8,-61);ctx.lineTo(-17,-91);ctx.quadraticCurveTo(1,-85,9,-66);ctx.closePath();ctx.fill();ctx.stroke();
-ctx.fillStyle='#596873';ctx.beginPath();ctx.moveTo(8,-65);ctx.lineTo(14,-99);ctx.quadraticCurveTo(34,-84,32,-54);ctx.closePath();ctx.fill();ctx.stroke();
-ctx.fillStyle='#e9b17a';ctx.beginPath();ctx.moveTo(14,-84);ctx.lineTo(17,-91);ctx.lineTo(25,-62);ctx.closePath();ctx.fill();
-ctx.fillStyle='#e6b17c';ctx.beginPath();ctx.moveTo(26,-48);ctx.quadraticCurveTo(47,-50,58,-39);ctx.quadraticCurveTo(54,-24,30,-27);ctx.quadraticCurveTo(17,-31,14,-39);ctx.closePath();ctx.fill();ctx.stroke();
-ctx.fillStyle='#303a3e';ctx.beginPath();ctx.ellipse(57,-39,6,4,.15,0,Math.PI*2);ctx.fill();
-/* Глаза, брови и рот меняются вместе с позой: азарт, напряжение,
-   удивление и решительный оскал вместо одного и того же выражения. */
-ctx.fillStyle='#fff4d5';ctx.beginPath();ctx.ellipse(28,-56,6.2,5.1,-.12,0,Math.PI*2);ctx.fill();
-ctx.fillStyle='#171f22';ctx.beginPath();ctx.arc(lane===0?30:29,-56,2.5,0,Math.PI*2);ctx.fill();
-ctx.strokeStyle='#283238';ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();
-if(lane===0){ctx.moveTo(21,-64);ctx.lineTo(34,-60)}
-else if(lane===1){ctx.moveTo(21,-62);ctx.lineTo(34,-65)}
-else if(lane===2){ctx.moveTo(21,-66);ctx.lineTo(34,-67)}
-else{ctx.moveTo(21,-63);ctx.lineTo(34,-60)}
+function drawWolf(){
+var x=lanes[lane],y=400;
+ctx.save();ctx.translate(x,y);
+var lean=[-.16,-.06,.08,.18][lane]||0;
+ctx.rotate(lean);
+ctx.fillStyle='#243b2b55';ctx.beginPath();ctx.ellipse(0,36,48,9,0,0,Math.PI*2);ctx.fill();
+/* Каменский: карикатурный профиль с короткими тёмными волосами и щетиной. */
+ctx.fillStyle='#252a2d';ctx.beginPath();ctx.moveTo(-27,-37);ctx.quadraticCurveTo(-22,-62,-4,-66);ctx.lineTo(23,-61);ctx.quadraticCurveTo(40,-52,39,-35);ctx.lineTo(28,-22);ctx.lineTo(-24,-22);ctx.closePath();ctx.fill();
+ctx.fillStyle='#d5a07e';ctx.strokeStyle='#855d4a';ctx.lineWidth=2.2;
+ctx.beginPath();ctx.moveTo(-25,-45);ctx.quadraticCurveTo(-19,-75,7,-74);ctx.quadraticCurveTo(31,-73,35,-51);ctx.lineTo(34,-36);ctx.quadraticCurveTo(47,-30,54,-23);ctx.quadraticCurveTo(58,-17,49,-14);ctx.lineTo(35,-12);ctx.quadraticCurveTo(31,2,13,5);ctx.lineTo(-12,0);ctx.quadraticCurveTo(-29,-12,-25,-45);ctx.closePath();ctx.fill();ctx.stroke();
+/* Ухо, короткая стрижка и тёмная щетина. */
+ctx.fillStyle='#c78e70';ctx.beginPath();ctx.ellipse(-21,-34,10,13,-.1,0,Math.PI*2);ctx.fill();ctx.stroke();
+ctx.fillStyle='#754f43';ctx.beginPath();ctx.arc(-21,-34,5,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#252a2d';ctx.beginPath();ctx.moveTo(-28,-39);ctx.quadraticCurveTo(-32,-70,-4,-79);ctx.quadraticCurveTo(25,-84,39,-58);ctx.lineTo(32,-53);ctx.quadraticCurveTo(9,-66,-11,-54);ctx.lineTo(-22,-43);ctx.closePath();ctx.fill();
+ctx.fillStyle='#6e5145';ctx.beginPath();ctx.moveTo(8,-8);ctx.quadraticCurveTo(27,-15,42,-17);ctx.quadraticCurveTo(36,-1,18,2);ctx.closePath();ctx.fill();
+/* Глаза и брови: четыре разных предельно выразительных состояния. */
+ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(17,-47,lane===2?7:6,lane===1?4:7,-.12,0,Math.PI*2);ctx.fill();
+ctx.fillStyle='#17191b';ctx.beginPath();ctx.arc(20,-47,lane===0?3.2:2.5,0,Math.PI*2);ctx.fill();
+ctx.strokeStyle='#282321';ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();
+if(lane===0){ctx.moveTo(8,-59);ctx.lineTo(27,-62)}
+else if(lane===1){ctx.moveTo(8,-55);ctx.lineTo(27,-49)}
+else if(lane===2){ctx.moveTo(8,-63);ctx.lineTo(27,-64)}
+else{ctx.moveTo(8,-56);ctx.lineTo(27,-58)}
 ctx.stroke();
-ctx.fillStyle='#6d302b';ctx.beginPath();
-if(lane===2){ctx.ellipse(48,-29,5.5,7,0,0,Math.PI*2)}
-else if(lane===3){ctx.ellipse(47,-28,7,4.2,-.12,0,Math.PI*2)}
-else{ctx.ellipse(47,-28,lane===0?7:5.5,lane===0?5.5:3.5,-.12,0,Math.PI*2)}
+/* Нос в профиль. */
+ctx.fillStyle='#3b2925';ctx.beginPath();ctx.ellipse(52,-23,6,4,.1,0,Math.PI*2);ctx.fill();
+/* Рот и зубы меняются по каждой из четырёх позиций. */
+ctx.fillStyle='#552b2a';ctx.beginPath();
+if(lane===0){ctx.ellipse(40,-9,8,11,-.12,0,Math.PI*2)}
+else if(lane===1){ctx.rect(34,-10,14,5)}
+else if(lane===2){ctx.ellipse(39,-8,8,12,0,0,Math.PI*2)}
+else{ctx.ellipse(39,-8,9,5,.08,0,Math.PI*2)}
 ctx.fill();
-ctx.strokeStyle='#f8dfbd';ctx.lineWidth=1.5;ctx.beginPath();
-if(lane===2){ctx.moveTo(44,-31);ctx.lineTo(51,-31)}
-else{ctx.moveTo(42,-27);ctx.quadraticCurveTo(47,-24,52,-28)}
-ctx.stroke();
-ctx.fillStyle='#fff0d8';ctx.beginPath();
-if(lane===0){ctx.moveTo(43,-27);ctx.lineTo(46,-20);ctx.lineTo(49,-27)}
-else if(lane===3){ctx.moveTo(45,-27);ctx.lineTo(48,-21);ctx.lineTo(51,-27)}
-else{ctx.moveTo(44,-27);ctx.lineTo(47,-22);ctx.lineTo(50,-27)}
-ctx.closePath();ctx.fill();
-if(lane===0||lane===3){
-  ctx.strokeStyle='#e8f0f2';ctx.lineWidth=2;ctx.beginPath();
-  ctx.moveTo(39,-72);ctx.lineTo(43,-78);ctx.moveTo(46,-70);ctx.lineTo(52,-74);ctx.stroke();
+ctx.fillStyle='#fff5e8';ctx.beginPath();
+if(lane===1){ctx.rect(35,-10,12,2)}
+else if(lane===3){ctx.moveTo(33,-10);ctx.quadraticCurveTo(40,-5,47,-11);ctx.lineTo(45,-7);ctx.quadraticCurveTo(39,-3,34,-7)}
+else{ctx.moveTo(34,-14);ctx.lineTo(38,-8);ctx.lineTo(42,-14);ctx.closePath()}
+ctx.fill();
+/* Тёмная футболка и руки, вытянутые к падающим яйцам. */
+ctx.fillStyle='#26313a';ctx.strokeStyle='#111b22';ctx.lineWidth=2.5;
+ctx.beginPath();ctx.moveTo(-23,-8);ctx.quadraticCurveTo(0,-22,25,-8);ctx.lineTo(31,24);ctx.lineTo(-31,24);ctx.closePath();ctx.fill();ctx.stroke();
+ctx.strokeStyle='#d5a07e';ctx.lineWidth=15;ctx.lineCap='round';ctx.beginPath();
+ctx.moveTo(-17,-2);ctx.lineTo(-43,13);ctx.lineTo(-55,4);
+ctx.moveTo(18,-3);ctx.lineTo(43,9);ctx.lineTo(57,-1);ctx.stroke();
+ctx.strokeStyle='#d5a23c';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-37,9);ctx.lineTo(-42,13);ctx.stroke();
+ctx.fillStyle='#d5a07e';ctx.beginPath();ctx.arc(-57,3,8,0,Math.PI*2);ctx.arc(59,-2,8,0,Math.PI*2);ctx.fill();
+/* Ноги и обувь. */
+ctx.fillStyle='#202a35';ctx.beginPath();ctx.moveTo(-20,19);ctx.lineTo(0,19);ctx.lineTo(-5,43);ctx.lineTo(-25,43);ctx.closePath();ctx.fill();
+ctx.beginPath();ctx.moveTo(5,19);ctx.lineTo(24,19);ctx.lineTo(29,43);ctx.lineTo(8,43);ctx.closePath();ctx.fill();
+ctx.fillStyle='#493426';ctx.beginPath();ctx.ellipse(-17,43,14,5,0,0,Math.PI*2);ctx.ellipse(19,43,14,5,0,0,Math.PI*2);ctx.fill();
+/* Пот и линии движения усиливают азарт ловли. */
+if(lane===0||lane===2){ctx.strokeStyle='#e7f6ff';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-34,-58);ctx.lineTo(-43,-65);ctx.moveTo(1,-83);ctx.lineTo(-2,-91);ctx.stroke()}
+ctx.restore();
+if(mode!==2){ctx.save();ctx.translate(x,y);drawBasket(0,8);ctx.restore()}
 }
-if(lane===2){
-  ctx.fillStyle='#d9f2ff';ctx.beginPath();ctx.ellipse(39,-67,2.2,4,-.3,0,Math.PI*2);ctx.fill();
-}
-/* Красная одежда сохранена; корзина остаётся на прежнем месте. */
-ctx.fillStyle='#d94735';ctx.beginPath();ctx.moveTo(-22,-22);ctx.quadraticCurveTo(0,-32,25,-20);ctx.lineTo(20,8);ctx.lineTo(-18,8);ctx.closePath();ctx.fill();ctx.strokeStyle='#8d3028';ctx.lineWidth=2;ctx.stroke();
-ctx.fillStyle='#f3bd45';ctx.fillRect(-20,-20,40,5);
-ctx.strokeStyle='#596873';ctx.lineWidth=9;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-13,-15);ctx.lineTo(-25,3);ctx.moveTo(19,-14);ctx.lineTo(31,2);ctx.stroke();
-if(mode===2){drawBasket(0,8);ctx.restore()}else{ctx.restore();ctx.save();ctx.translate(x,y);drawBasket(0,8);ctx.restore()}}
 function render(){drawBackground();for(var i=0;i<4;i++)drawHen(lanes[i],laying[i]);drawWolf();eggs.forEach(drawEgg);if(mode===2)drawBasket(lanes[lane],408);splats.forEach(drawSplat);particles.forEach(function(p){ctx.globalAlpha=Math.max(0,p.life/25);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1})}
 function eggsPerStage(){if(caughtEggs<=3)return 1;if(caughtEggs<=11)return 2;if(caughtEggs<=22)return 3;if(caughtEggs<=44)return 4;if(caughtEggs<=100)return 5;return Math.floor((caughtEggs-1)/50)+4}
 function updateClassic(dt){var speed=Math.min(300,124+caughtEggs*.8);spawn+=dt;if(goldenEggQueued&&!pendingEgg&&eggs.length===0)launchGoldenEgg(speed);if(!goldenEggQueued&&!goldenEggActive&&!pendingEgg&&spawn>Math.max(1.15,1.55-caughtEggs*.0015)){spawn=0;var ln=Math.floor(Math.random()*4);pendingEgg={lane:ln,remaining:.48};laying[ln]=.48;}if(pendingEgg){pendingEgg.remaining-=dt;laying[pendingEgg.lane]=Math.max(0,pendingEgg.remaining);if(pendingEgg.remaining<=0){var eggLane=pendingEgg.lane;eggs.push({lane:eggLane,x:lanes[eggLane],y:78,vy:speed,rollStep:0,bump:0,checked:false,missed:false,done:false});pendingEgg=null;}}for(var h=0;h<4;h++)if(!pendingEgg||pendingEgg.lane!==h)laying[h]=Math.max(0,laying[h]-dt);eggs.forEach(function(e){e.y+=e.vy*dt;e.bump=Math.max(0,e.bump-dt);while(e.rollStep<6&&e.y>=78+(e.rollStep+1)*(308/6)){e.rollStep++;e.bump=.12;rollClick(e.rollStep)}if(!e.checked&&e.y>386){e.checked=true;if(e.lane===lane){e.done=true;eggCaught(e)}else{e.missed=true;lives--;livesEl.textContent='♥ '.repeat(lives).trim()||'—';crack();queueGoldenEgg()}}if(e.missed&&e.y>=419){e.done=true;if(e.golden)goldenEggActive=false;splats.push({x:e.x,y:437,life:55})}});eggs=eggs.filter(function(e){return !e.done});splats.forEach(function(s){s.life--});splats=splats.filter(function(s){return s.life>0});particles.forEach(function(p){p.y-=.5;p.life--});particles=particles.filter(function(p){return p.life>0});if(lives<=0)endGame()}
