@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 var canvas=document.getElementById('volkCanvas'),ctx=canvas.getContext('2d'),scoreEl=document.getElementById('volkScore'),bestEl=document.getElementById('volkBest'),livesEl=document.getElementById('volkLives'),overlay=document.getElementById('volkOverlay'),overlayTitle=document.getElementById('overlayTitle'),overlayText=document.getElementById('overlayText'),startBtn=document.getElementById('startVolk'),exitBtn=document.getElementById('exitVolk'),soundBtn=document.getElementById('soundToggle');
-var kamenskyImage=new Image();kamenskyImage.src='kamensky-poses.webp';
+var kamenskyImage=new Image();kamenskyImage.onload=function(){render()};kamenskyImage.src='kamensky-poses.webp';
 var lanes=[105,248,392,535],lane=0,eggs=[],score=0,lives=4,best=0,running=false,paused=false,last=0,spawn=0,raf=0,soundOn=true,audio=null,caughtEggs=0,particles=[],splats=[],laying=[0,0,0,0],pendingEgg=null,breakPause=0,batchSize=1,batchLaunched=0,shortWaveGap=false,mode=1,goldenEggQueued=false,goldenEggActive=false,goldenEggWindowUsed=-1;
 try{localStorage.removeItem('volk-best');best=Number(localStorage.getItem('volk-best-v2')||0)}catch(e){}bestEl.textContent=best;
 function audioReady(){if(!soundOn)return null;try{var A=window.AudioContext||window.webkitAudioContext;if(!A)return null;if(!audio)audio=new A();if(audio.state==='suspended')audio.resume();return audio}catch(e){return null}}
