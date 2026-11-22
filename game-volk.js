@@ -1,6 +1,7 @@
 (function(){
 'use strict';
 var canvas=document.getElementById('volkCanvas'),ctx=canvas.getContext('2d'),scoreEl=document.getElementById('volkScore'),bestEl=document.getElementById('volkBest'),livesEl=document.getElementById('volkLives'),overlay=document.getElementById('volkOverlay'),overlayTitle=document.getElementById('overlayTitle'),overlayText=document.getElementById('overlayText'),startBtn=document.getElementById('startVolk'),exitBtn=document.getElementById('exitVolk'),soundBtn=document.getElementById('soundToggle');
+var kamenskyImage=new Image();kamenskyImage.src='kamensky-poses.webp';
 var lanes=[105,248,392,535],lane=0,eggs=[],score=0,lives=4,best=0,running=false,paused=false,last=0,spawn=0,raf=0,soundOn=true,audio=null,caughtEggs=0,particles=[],splats=[],laying=[0,0,0,0],pendingEgg=null,breakPause=0,batchSize=1,batchLaunched=0,shortWaveGap=false,mode=1,goldenEggQueued=false,goldenEggActive=false,goldenEggWindowUsed=-1;
 try{localStorage.removeItem('volk-best');best=Number(localStorage.getItem('volk-best-v2')||0)}catch(e){}bestEl.textContent=best;
 function audioReady(){if(!soundOn)return null;try{var A=window.AudioContext||window.webkitAudioContext;if(!A)return null;if(!audio)audio=new A();if(audio.state==='suspended')audio.resume();return audio}catch(e){return null}}
@@ -85,59 +86,14 @@ function drawHen(x,remaining){var active=remaining>0,progress=active?1-remaining
 function drawEgg(e){ctx.save();ctx.translate(e.x+Math.sin(e.rollStep*1.35)*2,e.y-e.bump*18);ctx.rotate((e.rollStep%2?1:-1)*.16+Math.sin(e.y/22)*.05);if(e.golden){ctx.shadowColor='#ffdf32';ctx.shadowBlur=24;var gold=ctx.createLinearGradient(-13,-19,13,19);gold.addColorStop(0,'#fffbd0');gold.addColorStop(.2,'#fff08a');gold.addColorStop(.48,'#ffbf16');gold.addColorStop(.72,'#e99408');gold.addColorStop(1,'#fff2a0');ctx.fillStyle=gold;ctx.beginPath();ctx.ellipse(0,0,12,17,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#fff8bd';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,0,12,17,0,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#fffde2';ctx.beginPath();ctx.ellipse(-4,-7,3,5,-.35,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff4a6';ctx.lineWidth=2;for(var z=0;z<4;z++){var a=z*Math.PI/2+e.rollStep*.18,px=Math.cos(a)*19,py=Math.sin(a)*22;ctx.beginPath();ctx.moveTo(px-Math.cos(a)*3,py-Math.sin(a)*3);ctx.lineTo(px+Math.cos(a)*3,py+Math.sin(a)*3);ctx.stroke()}}else{ctx.shadowColor='#3c4d2c66';ctx.shadowBlur=5;ctx.shadowOffsetY=3;var g=ctx.createLinearGradient(-12,-18,12,18);g.addColorStop(0,'#fffef1');g.addColorStop(.5,'#fff');g.addColorStop(1,'#d9dfc7');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,0,11,16,0,0,Math.PI*2);ctx.fill();ctx.shadowColor='transparent';ctx.fillStyle='#e7a64a';ctx.beginPath();ctx.ellipse(-3,-5,2,3,0,0,Math.PI*2);ctx.fill()}ctx.restore()}
 function drawSplat(s){ctx.save();ctx.globalAlpha=Math.min(1,s.life/12);ctx.translate(s.x,s.y);ctx.fillStyle='#fff9df';ctx.beginPath();ctx.moveTo(-27,1);ctx.quadraticCurveTo(-31,-5,-22,-7);ctx.quadraticCurveTo(-18,-12,-9,-8);ctx.quadraticCurveTo(0,-13,8,-7);ctx.quadraticCurveTo(19,-11,23,-5);ctx.quadraticCurveTo(32,0,23,5);ctx.quadraticCurveTo(15,9,5,6);ctx.quadraticCurveTo(-6,11,-15,6);ctx.quadraticCurveTo(-26,9,-27,1);ctx.closePath();ctx.fill();ctx.fillStyle='#f5c52e';ctx.beginPath();ctx.ellipse(0,0,12,4.5,-.08,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ffe36a';ctx.beginPath();ctx.ellipse(-2,-1,6,2,0,0,Math.PI*2);ctx.fill();ctx.restore()}function drawBasket(x,y){ctx.save();ctx.translate(x,y);ctx.fillStyle='#a85c27';ctx.beginPath();ctx.moveTo(-31,-4);ctx.lineTo(31,-4);ctx.lineTo(24,19);ctx.quadraticCurveTo(0,27,-24,19);ctx.closePath();ctx.fill();ctx.strokeStyle='#f0b45d';ctx.lineWidth=4;ctx.stroke();ctx.strokeStyle='#6c3d22';ctx.lineWidth=2;for(var i=-18;i<=18;i+=9){ctx.beginPath();ctx.moveTo(i,-2);ctx.lineTo(i*.72,20);ctx.stroke()}ctx.restore()}
 function drawWolf(){
-var x=lanes[lane],y=400;
-ctx.save();ctx.translate(x,y);
-var lean=[-.16,-.06,.08,.18][lane]||0;
-ctx.rotate(lean);
-ctx.fillStyle='#243b2b55';ctx.beginPath();ctx.ellipse(0,36,48,9,0,0,Math.PI*2);ctx.fill();
-/* Каменский: карикатурный профиль с короткими тёмными волосами и щетиной. */
-ctx.fillStyle='#252a2d';ctx.beginPath();ctx.moveTo(-27,-37);ctx.quadraticCurveTo(-22,-62,-4,-66);ctx.lineTo(23,-61);ctx.quadraticCurveTo(40,-52,39,-35);ctx.lineTo(28,-22);ctx.lineTo(-24,-22);ctx.closePath();ctx.fill();
-ctx.fillStyle='#d5a07e';ctx.strokeStyle='#855d4a';ctx.lineWidth=2.2;
-ctx.beginPath();ctx.moveTo(-25,-45);ctx.quadraticCurveTo(-19,-75,7,-74);ctx.quadraticCurveTo(31,-73,35,-51);ctx.lineTo(34,-36);ctx.quadraticCurveTo(47,-30,54,-23);ctx.quadraticCurveTo(58,-17,49,-14);ctx.lineTo(35,-12);ctx.quadraticCurveTo(31,2,13,5);ctx.lineTo(-12,0);ctx.quadraticCurveTo(-29,-12,-25,-45);ctx.closePath();ctx.fill();ctx.stroke();
-/* Ухо, короткая стрижка и тёмная щетина. */
-ctx.fillStyle='#c78e70';ctx.beginPath();ctx.ellipse(-21,-34,10,13,-.1,0,Math.PI*2);ctx.fill();ctx.stroke();
-ctx.fillStyle='#754f43';ctx.beginPath();ctx.arc(-21,-34,5,0,Math.PI*2);ctx.fill();
-ctx.fillStyle='#252a2d';ctx.beginPath();ctx.moveTo(-28,-39);ctx.quadraticCurveTo(-32,-70,-4,-79);ctx.quadraticCurveTo(25,-84,39,-58);ctx.lineTo(32,-53);ctx.quadraticCurveTo(9,-66,-11,-54);ctx.lineTo(-22,-43);ctx.closePath();ctx.fill();
-ctx.fillStyle='#6e5145';ctx.beginPath();ctx.moveTo(8,-8);ctx.quadraticCurveTo(27,-15,42,-17);ctx.quadraticCurveTo(36,-1,18,2);ctx.closePath();ctx.fill();
-/* Глаза и брови: четыре разных предельно выразительных состояния. */
-ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(17,-47,lane===2?7:6,lane===1?4:7,-.12,0,Math.PI*2);ctx.fill();
-ctx.fillStyle='#17191b';ctx.beginPath();ctx.arc(20,-47,lane===0?3.2:2.5,0,Math.PI*2);ctx.fill();
-ctx.strokeStyle='#282321';ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();
-if(lane===0){ctx.moveTo(8,-59);ctx.lineTo(27,-62)}
-else if(lane===1){ctx.moveTo(8,-55);ctx.lineTo(27,-49)}
-else if(lane===2){ctx.moveTo(8,-63);ctx.lineTo(27,-64)}
-else{ctx.moveTo(8,-56);ctx.lineTo(27,-58)}
-ctx.stroke();
-/* Нос в профиль. */
-ctx.fillStyle='#3b2925';ctx.beginPath();ctx.ellipse(52,-23,6,4,.1,0,Math.PI*2);ctx.fill();
-/* Рот и зубы меняются по каждой из четырёх позиций. */
-ctx.fillStyle='#552b2a';ctx.beginPath();
-if(lane===0){ctx.ellipse(40,-9,8,11,-.12,0,Math.PI*2)}
-else if(lane===1){ctx.rect(34,-10,14,5)}
-else if(lane===2){ctx.ellipse(39,-8,8,12,0,0,Math.PI*2)}
-else{ctx.ellipse(39,-8,9,5,.08,0,Math.PI*2)}
-ctx.fill();
-ctx.fillStyle='#fff5e8';ctx.beginPath();
-if(lane===1){ctx.rect(35,-10,12,2)}
-else if(lane===3){ctx.moveTo(33,-10);ctx.quadraticCurveTo(40,-5,47,-11);ctx.lineTo(45,-7);ctx.quadraticCurveTo(39,-3,34,-7)}
-else{ctx.moveTo(34,-14);ctx.lineTo(38,-8);ctx.lineTo(42,-14);ctx.closePath()}
-ctx.fill();
-/* Тёмная футболка и руки, вытянутые к падающим яйцам. */
-ctx.fillStyle='#26313a';ctx.strokeStyle='#111b22';ctx.lineWidth=2.5;
-ctx.beginPath();ctx.moveTo(-23,-8);ctx.quadraticCurveTo(0,-22,25,-8);ctx.lineTo(31,24);ctx.lineTo(-31,24);ctx.closePath();ctx.fill();ctx.stroke();
-ctx.strokeStyle='#d5a07e';ctx.lineWidth=15;ctx.lineCap='round';ctx.beginPath();
-ctx.moveTo(-17,-2);ctx.lineTo(-43,13);ctx.lineTo(-55,4);
-ctx.moveTo(18,-3);ctx.lineTo(43,9);ctx.lineTo(57,-1);ctx.stroke();
-ctx.strokeStyle='#d5a23c';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-37,9);ctx.lineTo(-42,13);ctx.stroke();
-ctx.fillStyle='#d5a07e';ctx.beginPath();ctx.arc(-57,3,8,0,Math.PI*2);ctx.arc(59,-2,8,0,Math.PI*2);ctx.fill();
-/* Ноги и обувь. */
-ctx.fillStyle='#202a35';ctx.beginPath();ctx.moveTo(-20,19);ctx.lineTo(0,19);ctx.lineTo(-5,43);ctx.lineTo(-25,43);ctx.closePath();ctx.fill();
-ctx.beginPath();ctx.moveTo(5,19);ctx.lineTo(24,19);ctx.lineTo(29,43);ctx.lineTo(8,43);ctx.closePath();ctx.fill();
-ctx.fillStyle='#493426';ctx.beginPath();ctx.ellipse(-17,43,14,5,0,0,Math.PI*2);ctx.ellipse(19,43,14,5,0,0,Math.PI*2);ctx.fill();
-/* Пот и линии движения усиливают азарт ловли. */
-if(lane===0||lane===2){ctx.strokeStyle='#e7f6ff';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(-34,-58);ctx.lineTo(-43,-65);ctx.moveTo(1,-83);ctx.lineTo(-2,-91);ctx.stroke()}
+var x=lanes[lane];
+if(kamenskyImage.complete&&kamenskyImage.naturalWidth){
+ctx.save();
+ctx.fillStyle='#243b2b55';ctx.beginPath();ctx.ellipse(x,438,48,8,0,0,Math.PI*2);ctx.fill();
+ctx.drawImage(kamenskyImage,lane*72,0,72,72,x-59,320,118,118);
 ctx.restore();
-if(mode!==2){ctx.save();ctx.translate(x,y);drawBasket(0,8);ctx.restore()}
+}
+if(mode!==2){ctx.save();ctx.translate(x,400);drawBasket(0,8);ctx.restore()}
 }
 function render(){drawBackground();for(var i=0;i<4;i++)drawHen(lanes[i],laying[i]);drawWolf();eggs.forEach(drawEgg);if(mode===2)drawBasket(lanes[lane],408);splats.forEach(drawSplat);particles.forEach(function(p){ctx.globalAlpha=Math.max(0,p.life/25);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1})}
 function eggsPerStage(){if(caughtEggs<=3)return 1;if(caughtEggs<=11)return 2;if(caughtEggs<=22)return 3;if(caughtEggs<=44)return 4;if(caughtEggs<=100)return 5;return Math.floor((caughtEggs-1)/50)+4}
