@@ -5,7 +5,7 @@ function makePerson(color="#496b78",isBot=false,weaponId="p92"){
  const g=new THREE.Group(),torso=new THREE.Mesh(new THREE.CapsuleGeometry(.42,.8,4,8),mat(color));torso.position.y=1.2;torso.castShadow=true;g.add(torso);
  const head=new THREE.Mesh(new THREE.SphereGeometry(.28,12,10),mat("#d7b58d"));head.position.y=2.05;head.castShadow=true;g.add(head);
  const faceMat=mat("#4a3025"),eyeMat=mat("#171717"),whiteMat=mat("#eee4d2"),hairMat=mat(isBot?"#30251f":"#252b31");
- const hair=new THREE.Mesh(new THREE.SphereGeometry(.285,12,8,0,Math.PI*2,0,Math.PI*.58),hairMat);hair.position.set(0,2.09,-.035);hair.rotation.x=Math.PI;g.add(hair);
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.285,12,8,0,Math.PI*2,0,Math.PI*.58),hairMat);hair.position.set(0,2.09,-.035);g.add(hair);
  for(const side of [-1,1]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,8,6),whiteMat);eye.position.set(side*.105,2.09,.249);g.add(eye);const pupil=new THREE.Mesh(new THREE.SphereGeometry(.018,6,5),eyeMat);pupil.position.set(side*.105,2.09,.279);g.add(pupil);const brow=new THREE.Mesh(new THREE.BoxGeometry(.09,.018,.025),hairMat);brow.position.set(side*.105,2.145,.25);g.add(brow)}
  const nose=new THREE.Mesh(new THREE.ConeGeometry(.045,.105,6),mat("#b98f70"));nose.position.set(0,2.035,.275);nose.rotation.x=Math.PI/2;g.add(nose);
  const mouth=new THREE.Mesh(new THREE.BoxGeometry(.105,.018,.018),faceMat);mouth.position.set(0,1.975,.265);g.add(mouth);
