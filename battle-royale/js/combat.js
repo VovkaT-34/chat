@@ -33,6 +33,7 @@ export function createCombatSystem({THREE,v3,state,actions}){
     state.weaponMagazines[state.activeWeaponId]=state.ammo;
     actions.updateHud();
     actions.playSfx("gun");
+    actions.emitNoise(state.player.position.x,state.player.position.z,90);
     const camera=state.camera,raycaster=state.raycaster,bots=state.bots;
     camera.updateMatrixWorld();
     const aimDirection=new THREE.Vector3();
