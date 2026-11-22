@@ -29,6 +29,7 @@ const {getAudio,unlockAudio,tone,noiseBurst,playSfx,sound}=audio;
 let renderer,scene,camera,clock,raycaster,sunLight;
 let player,bots=[],loot=[],obstacles=[],bullets=[],particles=[],zoneRing;
 let running=false,paused=false,gameOver=false,elapsed=0,zoneRadius=200,zoneStage=0,zoneTimer=180;
+let playerNoise={x:0,z:0,expires:0,range:90,serial:0};
 let kills=0,totalDamage=0,health=100,armor=0,ammo=12,reserve=48,weapon="ПИСТОЛЕТ",weaponType="pistol",medkits=2;
 
 let activeWeaponId="p92",fireMode="SINGLE",weaponMagazines={p92:15},reserveByAmmo={"556":120,"762":90,"45":100,"9":60},triggerLocked=false;
@@ -48,6 +49,7 @@ const v3=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
 
 
 
+function emitNoise(x,z,range=90){playerNoise={x,z,expires:6,range,serial:playerNoise.serial+1}}
 function showToast(message){ui.toast.textContent=message;ui.toast.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>ui.toast.classList.remove("show"),1900)}
 function openScreen(id){Object.values(ui).forEach(x=>x.classList?.remove("visible"));ui[id].classList.add("visible")}
 function closeScreens(){Object.values(ui).forEach(x=>x.classList?.remove("visible"))}
@@ -113,7 +115,7 @@ const combat=createCombatSystem({
     get loot(){return loot},
     get player(){return player}
   },
-  actions:{root,getWeapon,showToast,playSfx,updateHud,makeLoot,cycleWeapon}
+  actions:{root,getWeapon,showToast,playSfx,updateHud,makeLoot,cycleWeapon,emitNoise}
 });
 
 const controls=createControls({
@@ -154,6 +156,7 @@ const botAI=createBotAI({
   state:{
     get bots(){return bots},
     get player(){return player},
+    get playerNoise(){return playerNoise},
     get health(){return health},set health(value){health=value},
     get armor(){return armor},set armor(value){armor=value}
   },
