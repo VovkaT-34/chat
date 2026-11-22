@@ -5,12 +5,12 @@ export function createZoneSystem({$,state,actions}){
     state.zoneTimer-=dt;
     if(state.zoneTimer<=0&&state.zoneStage<4){
       state.zoneStage++;
-      state.zoneRadius=[35,25,17,10][state.zoneStage-1];
+      state.zoneRadius=[150,105,65,35][state.zoneStage-1];
       state.zoneTimer=state.zoneStage===4?999:75;
       actions.showToast("Безопасная зона сужается");
       actions.playSfx("zone");
     }
-    zoneRing.scale.set(state.zoneRadius/47,state.zoneRadius/47,1);
+    zoneRing.scale.set(state.zoneRadius/200,state.zoneRadius/200,1);
     zoneRing.position.set(0,.22,0);
     const distance=Math.hypot(player.position.x,player.position.z);
     if(distance>state.zoneRadius){
