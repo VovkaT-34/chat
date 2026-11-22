@@ -1,136 +1,29 @@
-export function createWorldSystem({THREE,worldSize,settings,rand,createWeaponModel,makePerson,state}) {
-  const materials={};
-
-  function mat(color,roughness=.9){
-    const key=color+":"+roughness;
-    if(!materials[key])materials[key]=new THREE.MeshStandardMaterial({color,roughness});
-    return materials[key];
-  }
-
-  function box(w,h,d,color,x,y,z,group=state.scene){
-    const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));
-    mesh.position.set(x,y,z);
-    mesh.castShadow=settings.shadows;
-    mesh.receiveShadow=true;
-    group.add(mesh);
-    return mesh;
-  }
-
-  function addObstacle(x,z,w,d,h=3,color="#a99c80"){
-    const group=new THREE.Group();
-    group.position.set(x,0,z);
-    box(w,h,d,color,0,h/2,0,group);
-    state.scene.add(group);
-    state.obstacles.push({x,z,w,d,h,mesh:group});
-    return group;
-  }
-
-  function buildWorld(){
-    const ground=new THREE.Mesh(new THREE.PlaneGeometry(worldSize,worldSize),mat("#536b49"));
-    ground.rotation.x=-Math.PI/2;
-    ground.position.y=-.08;
-    ground.receiveShadow=true;
-    state.scene.add(ground);
-
-    const path=new THREE.Mesh(new THREE.PlaneGeometry(13,worldSize),mat("#77745c"));
-    path.rotation.x=-Math.PI/2;
-    path.position.set(0,-.055,0);
-    path.receiveShadow=true;
-    state.scene.add(path);
-
-    const hemi=new THREE.HemisphereLight("#dce8d0","#46513b",2.0);
-    state.scene.add(hemi);
-    const sunLight=new THREE.DirectionalLight("#fff0d0",2.25);
-    sunLight.position.set(-28,48,-22);
-    sunLight.castShadow=settings.shadows;
-    sunLight.shadow.mapSize.set(1024,1024);
-    sunLight.shadow.camera.left=-62;
-    sunLight.shadow.camera.right=62;
-    sunLight.shadow.camera.top=62;
-    sunLight.shadow.camera.bottom=-62;
-    state.sunLight=sunLight;
-    state.scene.add(sunLight);
-
-    addObstacle(-19,-22,12,8,3.2,"#817c68");
-    addObstacle(21,-25,10,9,3.5,"#8b8068");
-    addObstacle(-28,13,9,12,3.1,"#777b68");
-    addObstacle(24,19,12,8,3.4,"#8a806d");
-    addObstacle(-3,31,15,6,2.8,"#777866");
-    addObstacle(3,-38,8,7,3.1,"#817965");
-    addObstacle(-40,-5,6,12,2.7,"#777b69");
-    addObstacle(40,4,7,11,3.2,"#857d68");
-
-    const zoneRing=new THREE.Mesh(
-      new THREE.TorusGeometry(47,.22,6,128),
-      new THREE.MeshBasicMaterial({color:"#a9d8ee",transparent:true,opacity:.78})
-    );
-    zoneRing.rotation.x=-Math.PI/2;
-    zoneRing.position.y=.24;
-    state.zoneRing=zoneRing;
-    state.scene.add(zoneRing);
-    state.camera.position.set(0,5,1);
-    state.camera.lookAt(0,1,-8);
-  }
-
-  function makeLoot(type,x,z){
-    const colors={ammo:"#d7b95f",medkit:"#d36f61",armor:"#668fa0",weapon:"#b58b50"};
-    const group=new THREE.Group();
-    const base=new THREE.Mesh(new THREE.CylinderGeometry(.38,.42,.12,12),mat("#303b32"));
-    base.position.y=.12;
-    base.castShadow=true;
-    group.add(base);
-    const crate=new THREE.Mesh(new THREE.BoxGeometry(.48,.36,.42),mat(colors[type]||"#b58b50"));
-    crate.position.y=.36;
-    crate.castShadow=true;
-    crate.receiveShadow=true;
-    group.add(crate);
-    if(type==="medkit"){
-      const crossV=new THREE.Mesh(new THREE.BoxGeometry(.10,.25,.035),mat("#fff0dc"));
-      const crossH=new THREE.Mesh(new THREE.BoxGeometry(.25,.10,.035),mat("#fff0dc"));
-      crossV.position.set(0,.38,.224);
-      crossH.position.set(0,.38,.224);
-      group.add(crossV,crossH);
-    }else if(type==="weapon"){
-      const weaponModel=createWeaponModel("p92");
-      weaponModel.scale.setScalar(.38);
-      weaponModel.position.set(0,.53,0);
-      group.add(weaponModel);
-    }else{
-      const stripe=new THREE.Mesh(new THREE.BoxGeometry(.08,.38,.44),mat("#e9e2c9"));
-      stripe.position.y=.36;
-      group.add(stripe);
-    }
-    group.position.set(x,0,z);
-    state.scene.add(group);
-    state.loot.push({type,x,z,mesh:group,active:true});
-    return group;
-  }
-
-  function collides(x,z,r=.55){
-    for(const obstacle of state.obstacles){
-      if(
-        x>obstacle.x-obstacle.w/2-r&&x<obstacle.x+obstacle.w/2+r&&
-        z>obstacle.z-obstacle.d/2-r&&z<obstacle.z+obstacle.d/2+r
-      )return true;
-    }
-    return Math.abs(x)>53||Math.abs(z)>53;
-  }
-
-  function makeBot(i){
-    const botWeapon=["scar","m416","akm","m16","mk14","mk12","svd","kar98k","ump45"][i%9];
-    const group=makePerson(["#725b4b","#536a52","#6b5865","#526778"][i%4],true,botWeapon);
-    let x,z;
-    do{
-      x=rand(-45,45);
-      z=rand(-45,45);
-    }while(Math.hypot(x,z)<15||collides(x,z,.8));
-    group.position.set(x,0,z);
-    state.scene.add(group);
-    state.bots.push({
-      mesh:group,x,z,health:100,armor:i%3===0?25:0,alive:true,
-      shoot:rand(1,4),wander:rand(0,6),target:null
-    });
-  }
-
-  return {mat,box,addObstacle,buildWorld,makeLoot,makeBot,collides};
+export function createWorldSystem({THREE,worldSize,settings,rand,createWeaponModel,makePerson,state}){
+ const materials={};function mat(c,r=.9){const k=c+":"+r;if(!materials[k])materials[k]=new THREE.MeshStandardMaterial({color:c,roughness:r});return materials[k]}
+ function box(w,h,d,c,x,y,z,g=state.scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c));m.position.set(x,y,z);m.castShadow=settings.shadows;m.receiveShadow=true;g.add(m);return m}
+ function addObstacle(x,z,w,d,h=3,c="#a99c80"){const g=new THREE.Group();g.position.set(x,0,z);box(w,h,d,c,0,h/2,0,g);state.scene.add(g);state.obstacles.push({x,z,w,d,h,mesh:g});return g}
+ function house(cx,cz,w=18,d=15,h=5){const floor=box(w-.5,.18,d-.5,"#716a57",cx,.03,cz);floor.receiveShadow=true;box(w+1,.45,d+1,"#493e33",cx,h+.15,cz);
+  const t=.65,door=3.4,front=cz+d/2,sideLen=(w-door)/2,sideOffset=(w+door)/4;
+  addObstacle(cx-w/2+t/2,cz,t,d,h,"#80765f");addObstacle(cx+w/2-t/2,cz,t,d,h,"#80765f");
+  addObstacle(cx,cz-d/2+t/2,w,t,h,"#80765f");
+  addObstacle(cx-sideOffset,front-t/2,sideLen,t,h,"#80765f");addObstacle(cx+sideOffset,front-t/2,sideLen,t,h,"#80765f");
+  // Side window gaps are kept open; split walls around each opening.
+  for(const s of [-1,1]){const wx=cx+s*(w/2-t/2),gapZ=cz-d/2+5,seg=(d-4)/2;addObstacle(wx,gapZ-seg/2,t,seg,h,"#80765f");addObstacle(wx,gapZ+seg/2,t,seg,h,"#80765f");box(.12,1.3,3,"#b6a583",cx+s*(w/2+.08),1.8,gapZ)}
+  return {cx,cz,w,d}
+ }
+ function tree(x,z,s=1){const g=new THREE.Group(),tr=new THREE.Mesh(new THREE.CylinderGeometry(.22*s,.32*s,2.2*s,6),mat("#554330")),leaf=new THREE.Mesh(new THREE.ConeGeometry(2*s,4.1*s,7),mat("#345238"));tr.position.y=1.1*s;leaf.position.y=3.7*s;g.add(tr,leaf);g.position.set(x,0,z);state.scene.add(g);state.obstacles.push({x,z,w:.7*s,d:.7*s,h:2.2*s,mesh:g})}
+ function mountain(x,z,r,h){const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,7,2),mat("#777d76"));m.position.set(x,h/2-1,z);m.castShadow=settings.shadows;m.receiveShadow=true;state.scene.add(m)}
+ function buildWorld(){const ground=new THREE.Mesh(new THREE.PlaneGeometry(worldSize,worldSize),mat("#536b49"));ground.rotation.x=-Math.PI/2;ground.position.y=-.08;ground.receiveShadow=true;state.scene.add(ground);
+  state.scene.add(new THREE.HemisphereLight("#dce8d0","#46513b",1.9));const sun=new THREE.DirectionalLight("#fff0d0",2);sun.position.set(-120,170,-90);sun.castShadow=settings.shadows;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-140;sun.shadow.camera.right=140;sun.shadow.camera.top=140;sun.shadow.camera.bottom=-140;state.sunLight=sun;state.scene.add(sun);
+  for(let i=0;i<24;i++){const a=i/24*Math.PI*2,r=rand(185,230);mountain(Math.cos(a)*r,Math.sin(a)*r,rand(20,38),rand(35,72))}
+  for(let i=0;i<9;i++)mountain(rand(-130,130),rand(-130,130),rand(13,25),rand(18,42));
+  const roadmat=mat("#77745c");for(const [x,z,w,d] of [[0,0,9,worldSize],[0,0,worldSize,9],[-85,-85,8,140],[95,80,8,120]]){const road=new THREE.Mesh(new THREE.PlaneGeometry(w,d),roadmat);road.rotation.x=-Math.PI/2;road.position.set(x,-.045,z);state.scene.add(road)}
+  house(-60,-70,22,18,5.5);house(-35,-80,18,15,5);house(70,55,24,20,6);house(95,70,20,17,5.5);house(65,82,16,15,5);house(-100,80,24,20,6);
+  for(const [cx,cz] of [[-145,-40],[135,-105],[-115,135],[155,100],[35,-150]])for(let i=0;i<17;i++){const x=cx+rand(-30,30),z=cz+rand(-28,28);if(!state.obstacles.some(o=>Math.abs(x-o.x)<o.w/2+3&&Math.abs(z-o.z)<o.d/2+3))tree(x,z,rand(.8,1.35))}
+  for(let i=0;i<28;i++){const x=rand(-220,220),z=rand(-220,220);addObstacle(x,z,rand(2.5,5),rand(2.5,5),rand(1.2,3.2),"#777b76")}
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(200,.3,6,160),new THREE.MeshBasicMaterial({color:"#a9d8ee",transparent:true,opacity:.75}));ring.rotation.x=-Math.PI/2;ring.position.y=.24;state.zoneRing=ring;state.scene.add(ring);state.camera.position.set(0,5,1);state.camera.lookAt(0,1,-8)}
+ function makeLoot(type,x,z){const colors={ammo:"#d7b95f",medkit:"#d36f61",armor:"#668fa0",weapon:"#b58b50"},g=new THREE.Group();const base=new THREE.Mesh(new THREE.CylinderGeometry(.38,.42,.12,12),mat("#303b32"));base.position.y=.12;g.add(base);const crate=new THREE.Mesh(new THREE.BoxGeometry(.48,.36,.42),mat(colors[type]||"#b58b50"));crate.position.y=.36;g.add(crate);if(type==="medkit"){const a=new THREE.Mesh(new THREE.BoxGeometry(.1,.25,.035),mat("#fff0dc")),b=new THREE.Mesh(new THREE.BoxGeometry(.25,.1,.035),mat("#fff0dc"));a.position.set(0,.38,.224);b.position.set(0,.38,.224);g.add(a,b)}else if(type==="weapon"){const gun=createWeaponModel("p92");gun.scale.setScalar(.38);gun.position.set(0,.53,0);g.add(gun)}else{const stripe=new THREE.Mesh(new THREE.BoxGeometry(.08,.38,.44),mat("#e9e2c9"));stripe.position.y=.36;g.add(stripe)}g.position.set(x,0,z);state.scene.add(g);state.loot.push({type,x,z,mesh:g,active:true});return g}
+ function collides(x,z,r=.55){for(const o of state.obstacles)if(x>o.x-o.w/2-r&&x<o.x+o.w/2+r&&z>o.z-o.d/2-r&&z<o.z+o.d/2+r)return true;return Math.abs(x)>worldSize/2-r||Math.abs(z)>worldSize/2-r}
+ function makeBot(i){const weapons=["scar","m416","akm","m16","mk14","mk12","svd","kar98k","ump45"],g=makePerson(["#725b4b","#536a52","#6b5865","#526778"][i%4],true,weapons[i%weapons.length]);let x,z,tries=0;do{x=rand(-225,225);z=rand(-225,225);tries++}while((Math.hypot(x,z)<24||collides(x,z,.9))&&tries<80);if(tries>=80){x=rand(-220,220);z=rand(-220,220)}g.position.set(x,0,z);g.rotation.y=rand(-Math.PI,Math.PI);state.scene.add(g);state.bots.push({mesh:g,x,z,health:100,armor:i%3===0?25:0,alive:true,shoot:rand(1,4),wander:rand(0,6),target:null,mode:"roam",alert:0,idle:rand(.5,3)})}
+ return {mat,box,addObstacle,buildWorld,makeLoot,makeBot,collides}
 }
