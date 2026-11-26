@@ -3,6 +3,11 @@
 // Совместимо со старыми Safari / Android WebView.
 // =========================================
 
+function isKamenskyFolder() {
+    try { return decodeURIComponent(window.location.pathname).toLowerCase().includes("/золотая мания/"); }
+    catch (error) { return window.location.pathname.toLowerCase().includes("/золотая%20мания/"); }
+}
+
 async function getStoredLoginSession() {
     try {
         const raw = localStorage.getItem("sb-sxkukrqjtgkxmzuzondm-auth-token");
@@ -18,7 +23,7 @@ async function getStoredLoginSession() {
 
 async function loadSupabaseIfNeeded() {
     if (window.supabaseClient) return true;
-    const src = window.location.pathname.includes("/airplanes5/") ? "../supabase.js" : "./supabase.js";
+    const src = window.location.pathname.includes("/airplanes5/") || isKamenskyFolder() ? "../supabase.js" : "./supabase.js";
     await new Promise((resolve, reject) => {
         const script = document.createElement("script");
         script.src = src;
@@ -63,7 +68,7 @@ function installOsintAuthFetch() {
 }
 
 async function checkAuth() {
-    const loginPath = window.location.pathname.includes("/airplanes5/") ? "../login.html" : "./login.html";
+    const loginPath = window.location.pathname.includes("/airplanes5/") || isKamenskyFolder() ? "../login.html" : "./login.html";
     try {
         try { await loadSupabaseIfNeeded(); } catch (error) {}
         if (!window.supabaseClient) { window.location.replace(loginPath); return; }
@@ -89,7 +94,7 @@ async function checkAuth() {
         if (requiredApp) {
             const { data: hasAccess, error: accessError } = await supabaseClient.rpc("has_app_access", { p_app_id: requiredApp });
             if (accessError || hasAccess !== true) {
-                const gamesPath = currentPath.includes("/airplanes5/") ? "../games.html" : "./games.html";
+                const gamesPath = currentPath.includes("/airplanes5/") || isKamenskyFolder() ? "../games.html" : "./games.html";
                 window.location.replace(gamesPath);
                 return;
             }

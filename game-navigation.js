@@ -18,6 +18,6 @@
         event.stopPropagation();
         if (button.dataset.navigationStarted === "true") return;
         button.dataset.navigationStarted = "true";
-        window.location.assign(button.dataset.gameBack === "chat" ? "index.html" : "games.html");
+        window.location.assign(button.dataset.gameBack === "chat" ? "index.html" : (isKamenskyFolder() ? "../games.html" : "games.html"));
     }, true);
 })();
