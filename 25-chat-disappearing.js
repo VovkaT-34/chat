@@ -218,14 +218,12 @@
                     renderTimer();
                 }));
             }
-            backButton.style.display = "block";
             doneButton.style.display = "none";
             footer.style.justifyContent = "flex-start";
         }
         function renderTimer() {
             stage = "timer";
             status.textContent = "";
-            backButton.style.display = "block";
             doneButton.style.display = "block";
             footer.style.justifyContent = "space-between";
             content.replaceChildren();
@@ -244,8 +242,6 @@
                 });
                 content.appendChild(button);
             });
-            doneButton.disabled = false;
-            doneButton.style.opacity = "1";
         }
 
         window.supabaseClient.rpc("get_chat_disappearing_settings", { p_chat_id: chatId }).then(function (result) {
