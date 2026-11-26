@@ -130,6 +130,7 @@ BEGIN
     END IF;
 
     IF target_approved IS DISTINCT FROM true
+       OR p_role IS NULL
        OR p_role NOT IN ('user', 'admin')
        OR target_role = 'superadmin' THEN
       RAISE EXCEPTION 'Недопустимое изменение роли';
