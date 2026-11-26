@@ -128,7 +128,7 @@
         overlay.id = "chatDisappearingSettingsOverlay";
         overlay.style.cssText = "position:fixed;inset:0;z-index:100004;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
         var panel = document.createElement("div");
-        panel.style.cssText = "width:min(300px,calc(100vw - 28px));max-height:min(82vh,680px);overflow-y:auto;background:#000;color:#fff;border:1px solid #333;border-radius:12px;padding:6px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+        panel.style.cssText = "width:min(280px,calc(100vw - 28px));max-height:min(82vh,680px);overflow-y:auto;background:#000;color:#fff;border:1px solid #333;border-radius:12px;padding:6px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
         var content = document.createElement("div");
         var status = document.createElement("div");
         status.style.cssText = "margin:0 12px;color:#ddd;font-size:12px;line-height:1.4";
@@ -219,7 +219,7 @@
             if (swatchColor) {
                 var swatch = document.createElement("span");
                 swatch.textContent = formatSettingDuration(durationSeconds);
-                swatch.style.cssText = "display:inline-flex;align-items:center;justify-content:center;min-width:58px;min-height:22px;padding:2px 8px;margin-left:auto;border:1px solid " + (swatchColor === "#604080" ? "#9475b3" : "#c05a00") + ";border-radius:6px;background:" + swatchColor + ";color:#fff;vertical-align:middle;box-sizing:border-box;white-space:nowrap;font-size:12px;font-weight:600";
+                swatch.style.cssText = "display:inline-flex;align-items:center;justify-content:center;min-width:58px;min-height:22px;padding:2px 8px;margin-left:auto;border:1px solid " + (swatchColor === "#604080" ? "#9475b3" : "#c05a00") + ";border-radius:999px;background:" + swatchColor + ";color:#fff;vertical-align:middle;box-sizing:border-box;white-space:nowrap;font-size:12px;font-weight:600";
                 button.appendChild(swatch);
             }
             button.addEventListener("click", function (event) {
