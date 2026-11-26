@@ -37,7 +37,7 @@ async function showChatActionMenu(chatId,anchor){
  var chatType=item.dataset.chatType||"";
  if(chatType==="private"||chatType==="group"){
   var notificationSettings=await supabaseClient.from("chat_notification_settings").select("push_enabled").eq("user_id",currentUser.id).eq("chat_id",Number(chatId)).maybeSingle();
-  if(notificationSettings.error){console.warn("Не удалось загрузить настройку push-уведомлений:",notificationSettings.error);alert("Не удалось проверить настройку уведомлений. Попробуйте ещё раз.");return;}
+  if(notificationSettings.error)console.warn("Не удалось загрузить настройку push-уведомлений; меню будет показано, настройка по умолчанию — включена:",notificationSettings.error);
   var pushEnabled=!(notificationSettings.data&&notificationSettings.data.push_enabled===false);
   add(pushEnabled?"Отключить уведомления":"Включить уведомления",CHAT_MENU_ACTION_ICON_SVG.notification,function(){void setChatPushNotifications(chatId,!pushEnabled);});
  }
