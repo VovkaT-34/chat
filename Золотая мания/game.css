@@ -9,11 +9,14 @@ body{padding:14px 12px 24px;min-height:100svh}.volk-page{width:min(760px,100%);m
 .stage-wrap{position:relative;border:3px solid #f2bd60;border-radius:12px;overflow:hidden;background:#b7d78a;line-height:0}
 #volkCanvas{display:block;width:100%;height:auto;aspect-ratio:640/520;touch-action:manipulation}
 .overlay{position:absolute;inset:0;display:grid;place-items:center;background:#102116b8;padding:14px}.overlay.hidden{display:none}
-.overlay.game-over{background:transparent}
-.overlay.game-over .overlay-card{width:min(230px,82%);padding:12px 14px;border-width:1px;border-radius:13px;box-shadow:0 5px 16px #0006}
+.overlay.game-over{background:rgba(8,18,11,.48);padding:5px;overflow:hidden}
+.overlay.game-over .game-over-character{position:absolute;z-index:1;bottom:0;height:96%;width:35%;object-fit:contain;object-position:center bottom;pointer-events:none;filter:drop-shadow(0 3px 5px #0008)}
+.overlay.game-over .game-over-man{left:-1%}
+.overlay.game-over .game-over-woman{right:-1%}
+.overlay.game-over .overlay-card{position:relative;z-index:2;width:min(58%,410px);padding:clamp(10px,2.2%,18px);border:3px solid #e9a83d;border-radius:16px;background:linear-gradient(145deg,#75421fef,#3d2418f5 55%,#75421fef);box-shadow:0 6px 20px #000a,inset 0 0 0 2px #ffd16b66}
 .overlay.game-over .wolf-mark{display:none}
-.overlay.game-over .overlay-card h2{margin:0 0 5px;font-size:19px}
-.overlay.game-over .overlay-card p{margin:0;font-size:14px;color:#fff2c6}
+.overlay.game-over .overlay-card h2{margin:0 0 9px;font-size:clamp(17px,3.5vw,27px);line-height:1.08;color:#ffdb70;text-shadow:0 2px 2px #542b0c}
+.overlay.game-over .overlay-card p{margin:0;font-size:clamp(14px,2.6vw,20px);font-weight:800;color:#fff2c6;text-shadow:0 1px 2px #000}
 .overlay-card{width:min(360px,95%);padding:20px 18px;text-align:center;border:2px solid #ffc35b;border-radius:18px;background:linear-gradient(145deg,#31583b,#172c21);box-shadow:0 10px 30px #0008;line-height:1.35}
 .overlay.paused{background:transparent;pointer-events:none}.overlay.paused .overlay-card{width:100%;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}.overlay.paused .wolf-mark,.overlay.paused .overlay-card p{display:none}.overlay.paused .overlay-card h2{margin:0;color:#fff2c6;font-size:clamp(32px,8vw,52px);text-shadow:0 2px 5px #172c21}
 .wolf-mark{font-size:26px;font-weight:900;letter-spacing:1px;filter:drop-shadow(0 4px 2px #0006)}.overlay-card h2{margin:4px 0 8px;color:#ffe49a;font-size:27px}.overlay-card p{margin:0 0 16px;color:#e8f0dd;font-size:14px}
