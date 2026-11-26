@@ -41,7 +41,7 @@ async function showChatActionMenu(chatId,anchor){
  add(pinned?"Открепить":"Прикрепить",CHAT_MENU_ACTION_ICON_SVG.pin,function(){toggleChatPin(chatId);});
  var chatType=item.dataset.chatType||"";
  if(chatType==="private"||chatType==="group"){
-  var notificationButton=add("Отключить оповещение",CHAT_MENU_ACTION_ICON_SVG.notification,function(){void setChatPushNotifications(chatId,notificationButton.dataset.pushEnabled!=="false");});
+  var notificationButton=add("Отключить оповещение",CHAT_MENU_ACTION_ICON_SVG.notification,function(){void setChatPushNotifications(chatId,notificationButton.dataset.pushEnabled!=="true");});
   notificationButton.dataset.pushEnabled="true";
  }
  if(isGroup){
