@@ -84,7 +84,9 @@
         }, delay);
     }
     function startCountdownTimer() {
-        if (!timer && !document.hidden) scheduleCountdownUpdate(1000);
+        if (document.hidden) return;
+        stopCountdownTimer();
+        scheduleCountdownUpdate(1000);
     }
     function updateCountdowns() {
         stopCountdownTimer();
