@@ -44,7 +44,8 @@
         if (seconds < 60) return seconds + "с";
         if (seconds < 3600) return Math.ceil(seconds / 60) + "м";
         if (seconds < 86400) return Math.ceil(seconds / 3600) + "ч";
-        return Math.ceil(seconds / 86400) + "д";
+        var days = Math.ceil(seconds / 86400);
+        return days + (days === 1 ? " день" : " дн");
     }
     function updateCountdowns() {
         var box = document.getElementById("messages");
@@ -78,10 +79,10 @@
             var header = element.firstElementChild;
             if (header) {
                 header.style.position = "relative";
-                header.style.paddingRight = "40px";
+                header.style.paddingRight = "56px";
                 var indicator = document.createElement("span");
                 indicator.className = "chat-disappearing-countdown";
-                indicator.style.cssText = "position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin:0;border:1px solid rgba(255,255,255,.55);border-radius:50%;background:#111;color:#fff;font:700 10px Arial,sans-serif;box-sizing:border-box;white-space:nowrap";
+                indicator.style.cssText = "position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:20px;padding:0 8px;margin:0;border:1px solid #39264f;border-radius:999px;background:#170d26;color:#f7f4ff;font:700 10px Arial,sans-serif;box-sizing:border-box;white-space:nowrap";
                 indicator.textContent = formatRemaining(expires - Date.now());
                 indicator.title = "Сообщение исчезнет через " + indicator.textContent;
                 indicator.setAttribute("aria-label", indicator.title);
