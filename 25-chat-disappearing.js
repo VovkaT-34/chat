@@ -46,8 +46,8 @@
     }
     function formatSettingDuration(seconds) {
         var option = OPTIONS.find(function (item) { return item.seconds === Number(seconds); });
-        if (!option) return "7 дней";
-        return option.seconds === 604800 ? "7 дней" : option.label;
+        if (!option) return "7 дн.";
+        return option.seconds === 604800 ? "7 дн." : option.label;
     }
     function formatRemaining(milliseconds) {
         var seconds = Math.max(0, Math.ceil(milliseconds / 1000));
@@ -55,7 +55,7 @@
         if (seconds < 3600) return Math.ceil(seconds / 60) + "м";
         if (seconds < 86400) return Math.ceil(seconds / 3600) + "ч";
         var days = Math.ceil(seconds / 86400);
-        return days + (days === 1 ? " день" : " дн");
+        return days + (days === 1 ? " день" : " дн.");
     }
     function updateCountdowns() {
         var box = document.getElementById("messages");
@@ -95,8 +95,8 @@
                 var indicator = document.createElement("span");
                 indicator.className = "chat-disappearing-countdown";
                 var personalMode = expiryInfo.mode === "self";
-                var badgeBackground = personalMode ? "#8a3b00" : "#2b1c3a";
-                var badgeBorder = personalMode ? "#c05a00" : "#59416e";
+                var badgeBackground = personalMode ? "#8a3b00" : "#49345f";
+                var badgeBorder = personalMode ? "#c05a00" : "#765b91";
                 var badgeColor = personalMode ? "#fff1e5" : "#f7f4ff";
                 indicator.style.cssText = "position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:20px;padding:0 8px;margin:0;border:1px solid " + badgeBorder + ";border-radius:999px;background:" + badgeBackground + ";color:" + badgeColor + ";font:700 10px Arial,sans-serif;box-sizing:border-box;white-space:nowrap";
                 indicator.textContent = formatRemaining(expires - Date.now());
@@ -212,7 +212,7 @@
             if (swatchColor) {
                 var swatch = document.createElement("span");
                 swatch.textContent = formatSettingDuration(durationSeconds);
-                swatch.style.cssText = "display:inline-flex;align-items:center;justify-content:center;min-width:58px;min-height:22px;padding:2px 8px;margin-left:auto;border:1px solid " + (swatchColor === "#2b1c3a" ? "#59416e" : "#c05a00") + ";border-radius:6px;background:" + swatchColor + ";color:#fff;vertical-align:middle;box-sizing:border-box;white-space:nowrap;font-size:12px;font-weight:600";
+                swatch.style.cssText = "display:inline-flex;align-items:center;justify-content:center;min-width:58px;min-height:22px;padding:2px 8px;margin-left:auto;border:1px solid " + (swatchColor === "#49345f" ? "#765b91" : "#c05a00") + ";border-radius:6px;background:" + swatchColor + ";color:#fff;vertical-align:middle;box-sizing:border-box;white-space:nowrap;font-size:12px;font-weight:600";
                 button.appendChild(swatch);
             }
             button.addEventListener("click", function (event) {
@@ -236,7 +236,7 @@
                     selectedMode = "all";
                     selectedDuration = sharedDuration;
                     renderTimer();
-                }, "#2b1c3a", sharedDuration));
+                }, "#49345f", sharedDuration));
             }
             content.appendChild(backButton);
             footer.style.display = "none";
@@ -249,7 +249,9 @@
                 var button = document.createElement("button");
                 button.type = "button";
                 button.textContent = option.label + (option.seconds === selectedDuration ? "  ✓" : "");
-                button.style.cssText = "display:block;width:100%;padding:11px 12px;border:0;border-radius:8px;background:" + (option.seconds === selectedDuration ? "#242424" : "none") + ";color:#fff;text-align:left;font:inherit;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+                var selectedColor = selectedMode === "all" ? "#49345f" : "#8a3b00";
+                var selectedBorder = selectedMode === "all" ? "#765b91" : "#c05a00";
+                button.style.cssText = "display:block;width:100%;padding:11px 12px;border:1px solid " + (option.seconds === selectedDuration ? selectedBorder : "transparent") + ";border-radius:8px;background:" + (option.seconds === selectedDuration ? selectedColor : "none") + ";color:#fff;text-align:left;font:inherit;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
                 button.addEventListener("click", function () {
                     selectedDuration = option.seconds;
                     renderTimer();
