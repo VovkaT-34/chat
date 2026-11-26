@@ -207,6 +207,21 @@ async function subscribeToMessages() {
                 }
             }
         )
+        .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "chat_disappearing_events" },
+            function (payload) {
+                const event = payload && payload.new ? payload.new : null;
+                if (!event || Number(event.chat_id) !== Number(currentChatId)) return;
+                const box = document.getElementById("messages");
+                if (!box || typeof window.renderChatDisappearingEvent !== "function") return;
+                if (box.querySelector('[data-disappearing-event-id="' + Number(event.id) + '"]')) return;
+                const node = window.renderChatDisappearingEvent(event);
+                if (!node) return;
+                box.appendChild(node);
+                if (typeof window.sortChatTimeline === "function") window.sortChatTimeline(box);
+            }
+        )
         .subscribe(function (status, error) {
             console.log("Realtime сообщений:", status, error || "");
 
@@ -586,6 +601,7 @@ function renderMessage(message){
     div.className="message";
     div.dataset.messageId=message.id;
     div.dataset.userId=message.user_id;
+    div.dataset.createdAt=String(message.created_at||"");
     div.style.setProperty("-webkit-user-select","none");
     div.style.setProperty("user-select","none");
     div.style.setProperty("-webkit-touch-callout","none");

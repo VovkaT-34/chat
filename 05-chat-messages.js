@@ -61,6 +61,58 @@ function getMessageSenderName(message) {
     return "Пользователь";
 }
 
+
+function formatDisappearingEventDuration(seconds) {
+    return ({
+        30: "30 секунд", 300: "5 минут", 3600: "1 час",
+        10800: "3 часа", 86400: "1 день", 259200: "3 дня", 604800: "7 дней"
+    })[Number(seconds)] || "";
+}
+function renderChatDisappearingEvent(event) {
+    if (!event || !currentUser) return null;
+    var duration = formatDisappearingEventDuration(event.duration_seconds);
+    var ownEvent = String(event.actor_id || "") === String(currentUser.id);
+    var enabled = event.enabled !== false;
+    var action = enabled ? "установил" : "отключил";
+    var text;
+    if (ownEvent) {
+        text = enabled
+            ? "Вы установили исчезающие сообщения" + (event.mode === "all" ? " для всех" : "") + (duration ? " на " + duration : "")
+            : "Вы отключили исчезающие сообщения" + (event.mode === "all" ? " для всех" : "");
+    } else {
+        var actor = String(event.actor_name || "Пользователь");
+        if (event.actor_role_label && actor.toLowerCase().indexOf(String(event.actor_role_label).toLowerCase()) === -1) actor += " — " + String(event.actor_role_label);
+        text = actor + " " + action + " исчезающие сообщения" + (duration ? " на " + duration : "");
+    }
+    var node = document.createElement("div");
+    node.className = "chat-disappearing-event";
+    node.dataset.disappearingEventId = String(event.id);
+    node.dataset.createdAt = String(event.created_at || "");
+    node.textContent = text;
+    node.style.cssText = "display:block;max-width:90%;margin:9px auto;padding:3px 10px;color:var(--chat-message-text,#888);font-size:11px;line-height:1.4;text-align:center;opacity:.88;overflow-wrap:anywhere;pointer-events:none";
+    return node;
+}
+function sortChatTimeline(box) {
+    if (!box) return;
+    var nodes = Array.prototype.slice.call(box.children).filter(function (node) {
+        return node.classList.contains("message") || node.classList.contains("chat-disappearing-event") || node.classList.contains("unread-divider");
+    });
+    if (nodes.length < 2) return;
+    nodes.sort(function (a, b) {
+        var aTime = Date.parse(a.dataset.createdAt || "") || 0;
+        var bTime = Date.parse(b.dataset.createdAt || "") || 0;
+        if (aTime !== bTime) return aTime - bTime;
+        var aPriority = a.classList.contains("chat-disappearing-event") ? 0 : (a.classList.contains("unread-divider") ? 1 : 2);
+        var bPriority = b.classList.contains("chat-disappearing-event") ? 0 : (b.classList.contains("unread-divider") ? 1 : 2);
+        return aPriority - bPriority;
+    });
+    var fragment = document.createDocumentFragment();
+    nodes.forEach(function (node) { fragment.appendChild(node); });
+    box.appendChild(fragment);
+}
+window.renderChatDisappearingEvent = renderChatDisappearingEvent;
+window.sortChatTimeline = sortChatTimeline;
+
 let messagesLoadToken = 0;
 let olderMessagesLoading = false;
 let olderMessagesDone = false;
@@ -80,11 +132,16 @@ async function loadMessages(){
     olderMessagesLoading=false;
     olderMessagesDone=false;
     olderMessagesChatId=chatIdAtLoad;
-    const [readResult,result]=await Promise.all([
+    const eventsQuery = window.chatDisappearing && window.chatDisappearing.isSupportedChat(chatIdAtLoad)
+        ? supabaseClient.rpc("get_chat_disappearing_events", { p_chat_id: chatIdAtLoad })
+        : Promise.resolve({ data: [], error: null });
+    const [readResult,result,eventsResult]=await Promise.all([
         supabaseClient.from("user_chat_reads").select("last_read_message_id").eq("user_id",currentUser.id).eq("chat_id",chatIdAtLoad).maybeSingle(),
-        supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,expires_at,message_user_expirations(expires_at)`).eq("chat_id",chatIdAtLoad).order("id",{ascending:false}).limit(10)
+        supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,expires_at,message_user_expirations(expires_at)`).eq("chat_id",chatIdAtLoad).order("id",{ascending:false}).limit(10),
+        eventsQuery
     ]);
     if(readResult.error)console.log(readResult.error);
+    if(eventsResult.error)console.warn("Не удалось загрузить системные события исчезающих сообщений:",eventsResult.error);
     const readInfo=readResult.data;
     const lastReadId=readInfo&&readInfo.last_read_message_id?Number(readInfo.last_read_message_id):0;
     localLastReadMessageId=lastReadId;
@@ -98,14 +155,41 @@ async function loadMessages(){
     await hydrateMessageSenderNames(loadedData,chatIdAtLoad);
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
     let unreadDivider=null,firstUnreadMessage=null;
+    const timeline=[];
+    loadedData.forEach(function(message){timeline.push({type:"message",value:message,time:Date.parse(message.created_at)||0});});
+    (eventsResult.data||[]).forEach(function(event){timeline.push({type:"event",value:event,time:Date.parse(event.created_at)||0});});
+    timeline.sort(function(a,b){if(a.time!==b.time)return a.time-b.time;if(a.type===b.type)return 0;return a.type==="event"?-1:1;});
     const fragment=document.createDocumentFragment();
-    loadedData.forEach(function(message){var div=renderMessage(message);if(!div)return;var isUnread=Number(message.id)>lastReadId&&message.user_id!==currentUser.id;if(isUnread&&!unreadDivider){unreadDivider=document.createElement("div");unreadDivider.className="unread-divider";unreadDivider.textContent="Непрочитанные сообщения";fragment.appendChild(unreadDivider);}fragment.appendChild(div);if(isUnread&&!firstUnreadMessage)firstUnreadMessage=div;});
+    timeline.forEach(function(entry){
+        if(entry.type==="event"){
+            var eventNode=renderChatDisappearingEvent(entry.value);
+            if(eventNode)fragment.appendChild(eventNode);
+            return;
+        }
+        var message=entry.value,div=renderMessage(message);
+        if(!div)return;
+        var isUnread=Number(message.id)>lastReadId&&message.user_id!==currentUser.id;
+        if(isUnread&&!unreadDivider){
+            unreadDivider=document.createElement("div");
+            unreadDivider.className="unread-divider";
+            unreadDivider.dataset.createdAt=String(message.created_at||"");
+            unreadDivider.textContent="Непрочитанные сообщения";
+            fragment.appendChild(unreadDivider);
+        }
+        fragment.appendChild(div);
+        if(isUnread&&!firstUnreadMessage)firstUnreadMessage=div;
+    });
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
     box.querySelectorAll("[data-message-id]").forEach(function(existing){
         var id=existing.getAttribute("data-message-id");
         if(id&&!fragment.querySelector('[data-message-id="'+id+'"]'))fragment.appendChild(existing);
     });
+    box.querySelectorAll(".chat-disappearing-event").forEach(function(existing){
+        var id=existing.getAttribute("data-disappearing-event-id");
+        if(id&&!fragment.querySelector('[data-disappearing-event-id="'+id+'"]'))fragment.appendChild(existing);
+    });
     box.replaceChildren(fragment);
+    sortChatTimeline(box);
     const centerUnreadDivider=function(){if(!unreadDivider)return;if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;var br=box.getBoundingClientRect(),dr=unreadDivider.getBoundingClientRect(),delta=(dr.top+dr.height/2)-(br.top+box.clientHeight/2);if(Math.abs(delta)>0.5)box.scrollTop+=delta;};
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
     if(unreadDivider){centerUnreadDivider();}else if(typeof scrollMessagesToBottom==="function"){scrollMessagesToBottom();}else{box.scrollTop=box.scrollHeight;}
@@ -135,6 +219,7 @@ async function loadOlderMessages(){
     const fragment=document.createDocumentFragment();
     older.forEach(function(message){if(box.querySelector('[data-message-id="'+message.id+'"]'))return;const div=renderMessage(message);if(div)fragment.appendChild(div);});
     box.insertBefore(fragment,box.firstChild);
+    sortChatTimeline(box);
     box.scrollTop+=box.scrollHeight-beforeHeight;
     if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();
 }
@@ -155,7 +240,7 @@ async function appendMessage(message){
     const fullMessage=result.data,error=result.error;if(error||!fullMessage||Number(currentChatId)!==chatIdAtStart)return;if(box.querySelector('[data-message-id="'+fullMessage.id+'"]'))return;
     await hydrateMessageSenderNames([fullMessage],chatIdAtStart);
     if(Number(currentChatId)!==chatIdAtStart)return;
-    const div=renderMessage(fullMessage);if(!div)return;box.appendChild(div);
+    const div=renderMessage(fullMessage);if(!div)return;box.appendChild(div);sortChatTimeline(box);
     if(wasNearBottom)box.scrollTop=box.scrollHeight;else{box.scrollTop=previousScrollTop;requestAnimationFrame(function(){box.scrollTop=previousScrollTop;if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();});}
     if(fullMessage.user_id===currentUser.id)await updateMessageStatus(fullMessage.id);if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();if(fullMessage.user_id!==currentUser.id&&Number(currentChatId)===Number(fullMessage.chat_id))setTimeout(function(){if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();},80);
 }
