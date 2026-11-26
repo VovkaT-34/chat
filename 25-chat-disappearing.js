@@ -77,9 +77,11 @@
             element.setAttribute("data-message-expires-at", new Date(expires).toISOString());
             var header = element.firstElementChild;
             if (header) {
+                header.style.position = "relative";
+                header.style.paddingRight = "40px";
                 var indicator = document.createElement("span");
                 indicator.className = "chat-disappearing-countdown";
-                indicator.style.cssText = "display:inline-flex;align-items:center;justify-content:center;flex:0 0 32px;width:32px;height:32px;margin-left:8px;border:1px solid rgba(255,255,255,.55);border-radius:50%;background:#111;color:#fff;font:700 10px Arial,sans-serif;box-sizing:border-box;white-space:nowrap";
+                indicator.style.cssText = "position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;margin:0;border:1px solid rgba(255,255,255,.55);border-radius:50%;background:#111;color:#fff;font:700 10px Arial,sans-serif;box-sizing:border-box;white-space:nowrap";
                 indicator.textContent = formatRemaining(expires - Date.now());
                 indicator.title = "Сообщение исчезнет через " + indicator.textContent;
                 indicator.setAttribute("aria-label", indicator.title);
