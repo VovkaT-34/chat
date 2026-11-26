@@ -22,16 +22,16 @@ async function loadMessages(){
     olderMessagesChatId=chatIdAtLoad;
     const [readResult,result]=await Promise.all([
         supabaseClient.from("user_chat_reads").select("last_read_message_id").eq("user_id",currentUser.id).eq("chat_id",chatIdAtLoad).maybeSingle(),
-        supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,expires_at,message_user_expirations!message_user_expirations_message_id_fkey(expires_at),profiles!messages_user_id_fkey(username),reply_message:messages!messages_reply_to_fkey(text,profiles!messages_user_id_fkey(username))`).eq("chat_id",chatIdAtLoad).order("id",{ascending:false}).limit(10)
+        supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,expires_at`).eq("chat_id",chatIdAtLoad).order("id",{ascending:false}).limit(10)
     ]);
     if(readResult.error)console.log(readResult.error);
     const readInfo=readResult.data;
     const lastReadId=readInfo&&readInfo.last_read_message_id?Number(readInfo.last_read_message_id):0;
     localLastReadMessageId=lastReadId;
     let data=result.data||[],error=result.error;
-    if(error){console.log(error);return;}
+    if(error){console.error("Ошибка загрузки сообщений:",error);box.replaceChildren();const failed=document.createElement("div");failed.className="messages-loading";failed.textContent="Не удалось загрузить сообщения. Попробуйте открыть чат ещё раз.";failed.style.cssText="padding:18px;text-align:center;color:var(--chat-message-text,#777)";box.appendChild(failed);return;}
     if(data.length<10)olderMessagesDone=true;
-    if(lastReadId>0&&data.length){const oldestRecentId=Number(data[data.length-1].id);if(oldestRecentId>lastReadId){const unreadResult=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,expires_at,message_user_expirations!message_user_expirations_message_id_fkey(expires_at),profiles!messages_user_id_fkey(username),reply_message:messages!messages_reply_to_fkey(text,profiles!messages_user_id_fkey(username))`).eq("chat_id",chatIdAtLoad).gt("id",lastReadId).order("id",{ascending:true});if(unreadResult.error)console.log(unreadResult.error);else data=data.concat(unreadResult.data||[]);}}
+    if(lastReadId>0&&data.length){const oldestRecentId=Number(data[data.length-1].id);if(oldestRecentId>lastReadId){const unreadResult=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,expires_at`).eq("chat_id",chatIdAtLoad).gt("id",lastReadId).order("id",{ascending:true});if(unreadResult.error)console.log(unreadResult.error);else data=data.concat(unreadResult.data||[]);}}
     const unique={};data.forEach(function(message){unique[Number(message.id)]=message;});
     const loadedData=Object.keys(unique).map(function(id){return unique[id];}).sort(function(a,b){return Number(a.id)-Number(b.id);});
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
@@ -62,7 +62,7 @@ async function loadOlderMessages(){
     const oldestId=Number(firstMessage.getAttribute("data-message-id"));if(!oldestId)return;
     olderMessagesLoading=true;
     const beforeHeight=box.scrollHeight;
-    const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,expires_at,message_user_expirations!message_user_expirations_message_id_fkey(expires_at),profiles!messages_user_id_fkey(username),reply_message:messages!messages_reply_to_fkey(text,profiles!messages_user_id_fkey(username))`).eq("chat_id",chatIdAtLoad).lt("id",oldestId).order("id",{ascending:false}).limit(5);
+    const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,expires_at`).eq("chat_id",chatIdAtLoad).lt("id",oldestId).order("id",{ascending:false}).limit(5);
     olderMessagesLoading=false;
     if(result.error){console.log(result.error);return;}
     const older=(result.data||[]).reverse();
@@ -87,7 +87,7 @@ async function appendMessage(message){
     try{if(currentUser&&message.user_id!==currentUser.id){const delivery=await supabaseClient.rpc("mark_message_delivered",{p_message_id:Number(message.id)});if(delivery.error)console.log("Ошибка подтверждения доставки:",delivery.error);}}catch(error){console.warn("Ошибка подтверждения доставки:",error);}
     if(Number(currentChatId)!==chatIdAtStart)return;
     const wasNearBottom=isMessagesBoxNearBottom(),previousScrollTop=box.scrollTop;
-    const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,expires_at,message_user_expirations!message_user_expirations_message_id_fkey(expires_at),profiles!messages_user_id_fkey(username),reply_message:messages!messages_reply_to_fkey(text,profiles!messages_user_id_fkey(username))`).eq("id",message.id).single();
+    const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,expires_at`).eq("id",message.id).single();
     const fullMessage=result.data,error=result.error;if(error||!fullMessage||Number(currentChatId)!==chatIdAtStart)return;if(box.querySelector('[data-message-id="'+fullMessage.id+'"]'))return;
     const div=renderMessage(fullMessage);if(!div)return;box.appendChild(div);
     if(wasNearBottom)box.scrollTop=box.scrollHeight;else{box.scrollTop=previousScrollTop;requestAnimationFrame(function(){box.scrollTop=previousScrollTop;if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();});}
