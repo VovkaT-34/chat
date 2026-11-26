@@ -64,25 +64,63 @@
         var days = Math.ceil(seconds / 86400);
         return days + " дн.";
     }
+    function stopCountdownTimer() {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+    }
+    function getCountdownRefreshDelay(remaining) {
+        if (remaining <= 60000) return 1000;
+        var unit = remaining < 3600000 ? 60000 : (remaining < 86400000 ? 3600000 : 86400000);
+        var untilChange = remaining % unit;
+        return Math.max(1000, Math.min(unit, untilChange || unit));
+    }
+    function scheduleCountdownUpdate(delay) {
+        if (timer || document.hidden) return;
+        timer = setTimeout(function () {
+            timer = null;
+            updateCountdowns();
+        }, delay);
+    }
+    function startCountdownTimer() {
+        if (!timer && !document.hidden) scheduleCountdownUpdate(1000);
+    }
     function updateCountdowns() {
+        stopCountdownTimer();
+        if (document.hidden) return;
         var box = document.getElementById("messages");
         if (!box) return;
-        box.querySelectorAll(".message[data-message-expires-at]").forEach(function (node) {
+        var nodes = box.querySelectorAll(".message[data-message-expires-at]");
+        if (!nodes.length) return;
+        var nextDelay = 86400000;
+        var removedExpired = false;
+        var hasActiveCountdown = false;
+        nodes.forEach(function (node) {
             var expires = Date.parse(node.getAttribute("data-message-expires-at") || "");
             if (!expires) return;
             var remaining = expires - Date.now();
             if (remaining <= 0) {
                 node.remove();
+                removedExpired = true;
                 return;
             }
+            hasActiveCountdown = true;
             var indicator = node.querySelector(".chat-disappearing-countdown");
             if (indicator) {
-                indicator.textContent = formatRemaining(remaining);
-                indicator.title = "Сообщение исчезнет через " + indicator.textContent;
-                indicator.setAttribute("aria-label", indicator.title);
+                var label = formatRemaining(remaining);
+                if (indicator.textContent !== label) {
+                    indicator.textContent = label;
+                    indicator.title = "Сообщение исчезнет через " + label;
+                    indicator.setAttribute("aria-label", indicator.title);
+                }
             }
+            nextDelay = Math.min(nextDelay, getCountdownRefreshDelay(remaining));
         });
-        if (typeof window.updatePinnedMessagesBar === "function") window.updatePinnedMessagesBar();
+        if (removedExpired && typeof window.updatePinnedMessagesBar === "function") {
+            window.updatePinnedMessagesBar();
+        }
+        if (hasActiveCountdown) scheduleCountdownUpdate(nextDelay);
     }
     function wrapRender() {
         if (typeof window.renderMessage !== "function" || window.__chatDisappearingRenderWrapped) return;
@@ -111,6 +149,7 @@
                 indicator.setAttribute("aria-label", indicator.title);
                 header.appendChild(indicator);
             }
+            startCountdownTimer();
             return element;
         };
         window.__chatDisappearingRenderWrapped = true;
@@ -302,14 +341,14 @@
     };
     function init() {
         wrapRender();
-        if (timer) clearInterval(timer);
-        timer = setInterval(updateCountdowns, 1000);
+        stopCountdownTimer();
         updateCountdowns();
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
     else init();
     document.addEventListener("visibilitychange", function () {
-        if (!document.hidden) updateCountdowns();
+        if (document.hidden) stopCountdownTimer();
+        else updateCountdowns();
     });
     setTimeout(wrapRender, 0);
 })();
