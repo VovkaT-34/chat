@@ -26,18 +26,23 @@
         var type = item && item.dataset ? item.dataset.chatType : "";
         return type === "private" || type === "group";
     }
-    function getExpiry(message) {
-        if (!message) return 0;
-        var values = [];
-        var shared = Date.parse(message.expires_at || "");
-        if (shared) values.push(shared);
+    function getExpiryInfo(message) {
+        if (!message) return { expiresAt: 0, mode: "all" };
+        var shared = Date.parse(message.expires_at || "") || 0;
+        var personalExpiry = 0;
         var personal = message.message_user_expirations;
         if (personal && !Array.isArray(personal)) personal = [personal];
         (personal || []).forEach(function (row) {
             var value = Date.parse(row && row.expires_at ? row.expires_at : "");
-            if (value) values.push(value);
+            if (value && (!personalExpiry || value < personalExpiry)) personalExpiry = value;
         });
-        return values.length ? Math.min.apply(Math, values) : 0;
+        if (personalExpiry && (!shared || personalExpiry < shared)) {
+            return { expiresAt: personalExpiry, mode: "self" };
+        }
+        return { expiresAt: shared, mode: "all" };
+    }
+    function getExpiry(message) {
+        return getExpiryInfo(message).expiresAt;
     }
     function formatRemaining(milliseconds) {
         var seconds = Math.max(0, Math.ceil(milliseconds / 1000));
@@ -71,18 +76,24 @@
         if (typeof window.renderMessage !== "function" || window.__chatDisappearingRenderWrapped) return;
         var originalRenderMessage = window.renderMessage;
         window.renderMessage = function (message) {
-            var expires = getExpiry(message);
+            var expiryInfo = getExpiryInfo(message);
+            var expires = expiryInfo.expiresAt;
             if (expires && expires <= Date.now()) return null;
             var element = originalRenderMessage(message);
             if (!element || !expires) return element;
             element.setAttribute("data-message-expires-at", new Date(expires).toISOString());
+            element.setAttribute("data-message-expiry-mode", expiryInfo.mode);
             var header = element.firstElementChild;
             if (header) {
                 header.style.position = "relative";
                 header.style.paddingRight = "56px";
                 var indicator = document.createElement("span");
                 indicator.className = "chat-disappearing-countdown";
-                indicator.style.cssText = "position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:20px;padding:0 8px;margin:0;border:1px solid #39264f;border-radius:999px;background:#170d26;color:#f7f4ff;font:700 10px Arial,sans-serif;box-sizing:border-box;white-space:nowrap";
+                var personalMode = expiryInfo.mode === "self";
+                var badgeBackground = personalMode ? "#8a3b00" : "#170d26";
+                var badgeBorder = personalMode ? "#c05a00" : "#39264f";
+                var badgeColor = personalMode ? "#fff1e5" : "#f7f4ff";
+                indicator.style.cssText = "position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:20px;padding:0 8px;margin:0;border:1px solid " + badgeBorder + ";border-radius:999px;background:" + badgeBackground + ";color:" + badgeColor + ";font:700 10px Arial,sans-serif;box-sizing:border-box;white-space:nowrap";
                 indicator.textContent = formatRemaining(expires - Date.now());
                 indicator.title = "Сообщение исчезнет через " + indicator.textContent;
                 indicator.setAttribute("aria-label", indicator.title);
@@ -118,7 +129,7 @@
             button.style.cssText = "display:block;min-width:90px;border:0;background:none;color:#fff;text-align:center;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
             return button;
         }
-        var backButton = makeButton("Назад");
+        var backButton = makeButton("← Назад");
         var doneButton = makeButton("Готово");
         panel.appendChild(content);
         panel.appendChild(status);
@@ -174,6 +185,7 @@
                     return;
                 }
                 closeAndReturn(onClose);
+                if (selectedMode === "self" && typeof window.loadMessages === "function") void window.loadMessages();
             }).catch(function (error) {
                 if (closed) return;
                 saving = false;
@@ -185,11 +197,16 @@
             if (event.target === overlay && !saving) closeAndReturn(onClose);
         });
 
-        function makeChoice(label, callback) {
+        function makeChoice(label, callback, swatchColor) {
             var button = document.createElement("button");
             button.type = "button";
             button.textContent = label;
             button.style.cssText = "display:block;width:100%;border:0;background:none;color:#fff;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+            if (swatchColor) {
+                var swatch = document.createElement("span");
+                swatch.style.cssText = "display:inline-block;width:26px;height:12px;margin-left:10px;border:1px solid " + (swatchColor === "#170d26" ? "#39264f" : "#c05a00") + ";border-radius:999px;background:" + swatchColor + ";vertical-align:middle;box-sizing:border-box";
+                button.appendChild(swatch);
+            }
             button.addEventListener("click", function (event) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -205,13 +222,13 @@
                 selectedMode = "self";
                 selectedDuration = personalDuration;
                 renderTimer();
-            }));
+            }, "#8a3b00"));
             if (canManageShared) {
                 content.appendChild(makeChoice("Для всех", function () {
                     selectedMode = "all";
                     selectedDuration = sharedDuration;
                     renderTimer();
-                }));
+                }, "#170d26"));
             }
             content.appendChild(backButton);
             footer.style.display = "none";
