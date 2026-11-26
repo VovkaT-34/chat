@@ -58,6 +58,10 @@ Deno.serve(async (req) => {
     const { data: profile, error: profileError } = await admin.from("profiles").select("approved").eq("id", userId).maybeSingle();
     if (profileError || !profile || profile.approved !== true) return json({ error: "Recipient is not approved" }, 403, origin);
 
+    const { data: notificationSettings, error: notificationSettingsError } = await admin.from("chat_notification_settings").select("push_enabled").eq("user_id", userId).eq("chat_id", message.chat_id).maybeSingle();
+    if (notificationSettingsError) return json({ error: "Unable to verify notification settings" }, 500, origin);
+    if (notificationSettings?.push_enabled === false) return json({ ok: true, skipped: "notifications_disabled" }, 200, origin);
+
     const { error } = await admin.from("message_deliveries").insert(
       { message_id: messageId, user_id: userId, delivered_at: new Date().toISOString() }
     );

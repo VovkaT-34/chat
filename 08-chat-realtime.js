@@ -7,6 +7,28 @@ let realtimeReconnectBusy = false;
 let messageStatusRefreshBusy = false;
 let incomingMessageSyncBusy = false;
 
+async function isChatPushEnabledForCurrentUser(chatId){
+    if(!currentUser||!supabaseClient)return false;
+    try{
+        const result=await supabaseClient.from("chat_notification_settings").select("push_enabled").eq("user_id",currentUser.id).eq("chat_id",Number(chatId)).maybeSingle();
+        if(result.error){console.warn("Не удалось проверить настройку push-уведомлений:",result.error);return false;}
+        return !result.data||result.data.push_enabled!==false;
+    }catch(error){
+        console.warn("Ошибка проверки push-настроек чата:",error);
+        return false;
+    }
+}
+
+async function markMutedChatMessagesDeliveredOnOpen(){
+    if(document.hidden||!currentUser||!supabaseClient)return;
+    try{
+        const result=await supabaseClient.rpc("mark_muted_chat_messages_delivered");
+        if(result.error)console.warn("Не удалось подтвердить доставку сообщений из чатов без push:",result.error);
+    }catch(error){
+        console.warn("Ошибка подтверждения доставки сообщений без push:",error);
+    }
+}
+
 // ===============================
 // Android FCM token
 // ===============================
@@ -46,6 +68,7 @@ window.addEventListener("androidfcmtoken", function (event) {
 // ===============================
 async function subscribeToMessages() {
     if (!supabaseClient || !currentUser) return;
+    if(!document.hidden)await markMutedChatMessagesDeliveredOnOpen();
 
     if (realtimeChannel) {
         try {
@@ -98,7 +121,11 @@ async function subscribeToMessages() {
                     const isCurrentChat =
                         Number(newMessage.chat_id) === Number(currentChatId);
 
-                    if (isIncoming) {
+                    const chatPushEnabled = isIncoming
+                        ? await isChatPushEnabledForCurrentUser(newMessage.chat_id)
+                        : true;
+
+                    if (isIncoming && (chatPushEnabled || !document.hidden)) {
                         try {
                             const delivery = await supabaseClient.rpc(
                                 "mark_message_delivered",
@@ -116,7 +143,7 @@ async function subscribeToMessages() {
                     }
 
                     if (isCurrentChat) {
-                        if (isIncoming && typeof appendMessage === "function") {
+                        if (isIncoming && typeof appendMessage === "function" && (chatPushEnabled || !document.hidden)) {
                             await appendMessage(newMessage);
                         }
                     } else if (
@@ -132,6 +159,7 @@ async function subscribeToMessages() {
 
                     if (
                         isIncoming &&
+                        chatPushEnabled &&
                         window.AndroidNotifications &&
                         typeof window.AndroidNotifications.showMessageNotification === "function" &&
                         (!isCurrentChat || document.hidden)

@@ -69,6 +69,9 @@ Deno.serve(async(req:Request)=>{
    if(!member.user_id)continue;
    const {data:profile}=await admin.from("profiles").select("approved").eq("id",member.user_id).maybeSingle();
    if(!profile||profile.approved!==true)continue;
+   const {data:notificationSettings,error:notificationSettingsError}=await admin.from("chat_notification_settings").select("push_enabled").eq("user_id",member.user_id).eq("chat_id",message.chat_id).maybeSingle();
+   if(notificationSettingsError){console.error("Unable to verify chat push settings:",notificationSettingsError);continue;}
+   if(notificationSettings?.push_enabled===false)continue;
    const {data:readRow}=await admin.from("user_chat_reads").select("last_read_message_id").eq("user_id",member.user_id).eq("chat_id",message.chat_id).maybeSingle();
    let unreadQuery=admin.from("messages").select("id",{count:"exact",head:true}).eq("chat_id",message.chat_id).neq("user_id",member.user_id);
    if(readRow?.last_read_message_id){const {data:lastRead}=await admin.from("messages").select("created_at").eq("id",readRow.last_read_message_id).maybeSingle();if(lastRead?.created_at)unreadQuery=unreadQuery.gt("created_at",lastRead.created_at);}
