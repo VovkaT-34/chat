@@ -17,7 +17,7 @@ async function startChat() {
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="22-chat-remove-users.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="23-public-chat-labels.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="24-chat-themes.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
-    await new Promise(function (resolve) { var script=document.createElement("script"); script.src="25-chat-disappearing.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
+    await new Promise(function (resolve) { var script=document.createElement("script"); script.src="25-chat-disappearing.js?v=rounded-pill-20261127"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="15-chat-list-batch.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
     await loadChats();
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="16-message-status-batch.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
