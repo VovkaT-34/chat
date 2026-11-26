@@ -320,7 +320,7 @@ async function syncCurrentChatMessages() {
         const result = await supabaseClient
             .from("messages")
             .select(
-                "id,user_id,text,created_at,reply_to,profiles(username),reply_message:reply_to(text,profiles(username))"
+                "id,user_id,text,created_at,reply_to,expires_at,message_user_expirations(expires_at),profiles(username),reply_message:reply_to(text,profiles(username))"
             )
             .eq("chat_id", chatId)
             .order("created_at", { ascending: false })

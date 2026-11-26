@@ -1,199 +1,259 @@
 // =========================================
 // ИСЧЕЗАЮЩИЕ СООБЩЕНИЯ
-// Локальная настройка для Общего чата и групп (3+).
-// Supabase сообщения этим механизмом не удаляются.
+// Серверные настройки для личных и групповых чатов.
+// Общие чаты не используют этот механизм.
 // =========================================
-
 (function () {
     "use strict";
-
-    var STORAGE_PREFIX = "chatDisappearing:";
     var OPTIONS = [
-        { id: "1h", hours: 1, label: "1 час" },
-        { id: "3h", hours: 3, label: "3 часа" },
-        { id: "3d", hours: 72, label: "3 суток" },
-        { id: "1w", hours: 168, label: "1 неделю" }
+        { id: "30s", seconds: 30, label: "30 секунд" },
+        { id: "5m", seconds: 300, label: "5 минут" },
+        { id: "1h", seconds: 3600, label: "1 час" },
+        { id: "3h", seconds: 10800, label: "3 часа" },
+        { id: "1d", seconds: 86400, label: "1 сутки" },
+        { id: "3d", seconds: 259200, label: "3 суток" },
+        { id: "1w", seconds: 604800, label: "1 неделю" }
     ];
-    var DEFAULT_ID = "1w";
+    var DEFAULT_SECONDS = 604800;
     var timer = null;
 
-    function getCurrentChatItem() {
-        var id = Number(window.currentChatId || 0);
-        if (!id) return null;
-        return document.querySelector('.chat-item[data-chat-id="' + id + '"]');
+    function getChatItem(chatId) {
+        var id = Number(chatId || window.currentChatId || 0);
+        return id ? document.querySelector('.chat-item[data-chat-id="' + id + '"]') : null;
     }
-
     function isSupportedChat(chatId) {
-        var item = chatId ? document.querySelector('.chat-item[data-chat-id="' + Number(chatId) + '"]') : getCurrentChatItem();
-        if (!item) return false;
-        var type = item.dataset.chatType || "";
-        if (type === "group") return true;
-        if (type === "public") {
-            var name = item.querySelector(".chat-item-name");
-            return !!name && name.textContent.trim() === "Общий чат";
-        }
-        return false;
+        var item = getChatItem(chatId);
+        var type = item && item.dataset ? item.dataset.chatType : "";
+        return type === "private" || type === "group";
     }
-
-    function storageKey(chatId) {
-        var userId = window.currentUser && window.currentUser.id ? window.currentUser.id : "guest";
-        return STORAGE_PREFIX + userId + ":" + Number(chatId || window.currentChatId || 0);
+    function getExpiry(message) {
+        if (!message) return 0;
+        var values = [];
+        var shared = Date.parse(message.expires_at || "");
+        if (shared) values.push(shared);
+        var personal = message.message_user_expirations;
+        if (personal && !Array.isArray(personal)) personal = [personal];
+        (personal || []).forEach(function (row) {
+            var value = Date.parse(row && row.expires_at ? row.expires_at : "");
+            if (value) values.push(value);
+        });
+        return values.length ? Math.min.apply(Math, values) : 0;
     }
-
-    function getOption(id) {
-        return OPTIONS.find(function (item) { return item.id === id; }) || OPTIONS.find(function (item) { return item.id === DEFAULT_ID; });
+    function formatRemaining(milliseconds) {
+        var seconds = Math.max(0, Math.ceil(milliseconds / 1000));
+        if (seconds < 60) return seconds + "с";
+        if (seconds < 3600) return Math.ceil(seconds / 60) + "м";
+        if (seconds < 86400) return Math.ceil(seconds / 3600) + "ч";
+        return Math.ceil(seconds / 86400) + "д";
     }
-
-    function loadId(chatId) {
-        try { return getOption(localStorage.getItem(storageKey(chatId)) || DEFAULT_ID).id; }
-        catch (error) { return DEFAULT_ID; }
-    }
-
-    function saveId(chatId, id) {
-        var option = getOption(id);
-        try { localStorage.setItem(storageKey(chatId), option.id); } catch (error) {}
-        return option;
-    }
-
-    function getHours(chatId) { return getOption(loadId(chatId)).hours; }
-
-    function isExpired(message, chatId) {
-        if (!isSupportedChat(chatId)) return false;
-        var created = Date.parse(message && message.created_at ? message.created_at : "");
-        return !!created && Date.now() - created >= getHours(chatId) * 60 * 60 * 1000;
-    }
-
-    function removeExpiredDomMessages() {
-        if (!isSupportedChat()) return;
+    function updateCountdowns() {
         var box = document.getElementById("messages");
         if (!box) return;
-        var cutoff = Date.now() - getHours() * 60 * 60 * 1000;
-        box.querySelectorAll(".message[data-message-created-at]").forEach(function (node) {
-            var created = Date.parse(node.getAttribute("data-message-created-at") || "");
-            if (created && created <= cutoff) node.remove();
+        box.querySelectorAll(".message[data-message-expires-at]").forEach(function (node) {
+            var expires = Date.parse(node.getAttribute("data-message-expires-at") || "");
+            if (!expires) return;
+            var remaining = expires - Date.now();
+            if (remaining <= 0) {
+                node.remove();
+                return;
+            }
+            var indicator = node.querySelector(".chat-disappearing-countdown");
+            if (indicator) {
+                indicator.textContent = formatRemaining(remaining);
+                indicator.title = "Сообщение исчезнет через " + indicator.textContent;
+                indicator.setAttribute("aria-label", indicator.title);
+            }
         });
         if (typeof window.updatePinnedMessagesBar === "function") window.updatePinnedMessagesBar();
     }
-
-    function restartTimer() {
-        if (timer) clearInterval(timer);
-        timer = setInterval(removeExpiredDomMessages, 30000);
-        removeExpiredDomMessages();
-    }
-
-    function refreshAfterChange() {
-        restartTimer();
-        if (typeof window.updateScrollToBottomButton === "function") window.updateScrollToBottomButton();
-    }
-
     function wrapRender() {
         if (typeof window.renderMessage !== "function" || window.__chatDisappearingRenderWrapped) return;
         var originalRenderMessage = window.renderMessage;
         window.renderMessage = function (message) {
-            if (isExpired(message)) return null;
+            var expires = getExpiry(message);
+            if (expires && expires <= Date.now()) return null;
             var element = originalRenderMessage(message);
-            if (element && message && message.created_at) element.setAttribute("data-message-created-at", message.created_at);
+            if (!element || !expires) return element;
+            element.setAttribute("data-message-expires-at", new Date(expires).toISOString());
+            var header = element.firstElementChild;
+            if (header) {
+                var indicator = document.createElement("span");
+                indicator.className = "chat-disappearing-countdown";
+                indicator.style.cssText = "display:inline-flex;align-items:center;justify-content:center;flex:0 0 32px;width:32px;height:32px;margin-left:8px;border:1px solid rgba(255,255,255,.55);border-radius:50%;background:#111;color:#fff;font:700 10px Arial,sans-serif;box-sizing:border-box;white-space:nowrap";
+                indicator.textContent = formatRemaining(expires - Date.now());
+                indicator.title = "Сообщение исчезнет через " + indicator.textContent;
+                indicator.setAttribute("aria-label", indicator.title);
+                header.appendChild(indicator);
+            }
             return element;
         };
         window.__chatDisappearingRenderWrapped = true;
     }
-
     function closeDisappearingSettings() {
         var overlay = document.getElementById("chatDisappearingSettingsOverlay");
         if (overlay) overlay.remove();
     }
-
     function openDisappearingSettings(onBack, onClose) {
+        var chatId = Number(window.currentChatId || 0);
+        if (!chatId || !isSupportedChat(chatId) || !window.supabaseClient) return;
         closeDisappearingSettings();
         var overlay = document.createElement("div");
         overlay.id = "chatDisappearingSettingsOverlay";
-        overlay.style.cssText = "position:fixed;inset:0;z-index:100004;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box;pointer-events:auto";
-
+        overlay.style.cssText = "position:fixed;inset:0;z-index:100004;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.68);box-sizing:border-box";
         var panel = document.createElement("div");
-        panel.style.cssText = "width:min(420px,calc(100vw - 28px));background:#fff;color:#222;border-radius:16px;box-shadow:0 18px 55px rgba(0,0,0,.30);padding:18px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:auto";
-
-        var backButton = document.createElement("button");
-        backButton.type = "button";
-        backButton.textContent = "← Назад";
-        backButton.style.cssText = "border:0;background:#eee;color:#222;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-weight:700;cursor:pointer";
+        panel.style.cssText = "width:min(430px,calc(100vw - 28px));max-height:min(82vh,680px);overflow-y:auto;background:#000;color:#fff;border:1px solid #444;border-radius:14px;box-shadow:0 18px 55px rgba(0,0,0,.45);padding:17px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none";
+        var title = document.createElement("h3");
+        title.textContent = "Исчезающие сообщения";
+        title.style.cssText = "margin:0 0 14px;font-size:20px;color:#fff";
+        var explanation = document.createElement("div");
+        explanation.textContent = "Настройка применяется только к новым сообщениям. Уже отправленные сообщения не меняются.";
+        explanation.style.cssText = "margin-bottom:14px;color:#ddd;font-size:13px;line-height:1.45";
+        var status = document.createElement("div");
+        status.style.cssText = "min-height:20px;margin:10px 0;color:#ddd;font-size:13px;line-height:1.4";
+        var sections = document.createElement("div");
+        sections.style.cssText = "display:flex;flex-direction:column;gap:12px";
+        var footer = document.createElement("div");
+        footer.style.cssText = "display:flex;justify-content:space-between;gap:10px;margin-top:12px";
+        function makeButton(label, background) {
+            var button = document.createElement("button");
+            button.type = "button";
+            button.textContent = label;
+            button.style.cssText = "border:1px solid #666;border-radius:9px;background:" + background + ";color:#fff;padding:10px 13px;font:700 14px Arial,sans-serif;cursor:pointer";
+            return button;
+        }
+        var backButton = makeButton("← Назад", "#171717");
         backButton.addEventListener("click", function () {
             closeDisappearingSettings();
             if (typeof onBack === "function") onBack();
         });
-        var title = document.createElement("h3");
-        title.textContent = "Исчезающие сообщения";
-        title.style.cssText = "margin:0 0 16px;font-size:20px";
-        panel.appendChild(title);
-
-        var grid = document.createElement("div");
-        grid.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:9px";
-        var chatId = Number(window.currentChatId || 0);
-        var current = loadId(chatId);
-        OPTIONS.forEach(function (option) {
-            var button = document.createElement("button");
-            button.type = "button";
-            button.textContent = option.label;
-            button.style.cssText = "border:1px solid #d5d5d5;background:#fff;color:#222;border-radius:10px;padding:11px 8px;cursor:pointer;font:700 14px Arial,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
-            if (current === option.id) {
-                button.style.background = "#8b5a3c";
-                button.style.color = "#fff";
-                button.style.borderColor = "#8b5a3c";
-            }
-            button.addEventListener("click", function () {
-                saveId(chatId, option.id);
-                grid.querySelectorAll("button").forEach(function (item) {
-                    item.style.background = "#fff";
-                    item.style.color = "#222";
-                    item.style.borderColor = "#d5d5d5";
-                });
-                button.style.background = "#8b5a3c";
-                button.style.color = "#fff";
-                button.style.borderColor = "#8b5a3c";
-                refreshAfterChange();
-                if (typeof window.loadMessages === "function") void window.loadMessages();
-            });
-            grid.appendChild(button);
-        });
-        panel.appendChild(grid);
-
-        var footer = document.createElement("div");
-        footer.style.cssText = "display:flex;justify-content:space-between;margin-top:18px";
-        var closeButton = document.createElement("button");
-        closeButton.type = "button";
-        closeButton.textContent = "Готово";
-        closeButton.style.cssText = "border:0;background:#8b5a3c;color:#fff;padding:9px 15px;border-radius:9px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
-        closeButton.addEventListener("click", function () {
+        var doneButton = makeButton("Готово", "#333");
+        doneButton.addEventListener("click", function () {
             closeDisappearingSettings();
             if (typeof onClose === "function") onClose();
         });
-        backButton.style.marginBottom = "0";
+        panel.appendChild(title);
+        panel.appendChild(explanation);
+        panel.appendChild(sections);
+        panel.appendChild(status);
         footer.appendChild(backButton);
-        footer.appendChild(closeButton);
+        footer.appendChild(doneButton);
         panel.appendChild(footer);
-
         overlay.appendChild(panel);
         document.body.appendChild(overlay);
-        overlay.addEventListener("click", function (event) { if (event.target === overlay) closeDisappearingSettings(); });
+        var closed = false;
+        function closeFromBackdrop() {
+            if (closed) return;
+            closed = true;
+            closeDisappearingSettings();
+            if (typeof onClose === "function") onClose();
+        }
+        overlay.addEventListener("click", function (event) {
+            if (event.target === overlay) closeFromBackdrop();
+        });
+        function renderSection(mode, label, enabled, duration) {
+            var section = document.createElement("div");
+            section.style.cssText = "padding:13px;border:1px solid #444;border-radius:11px;background:#101010";
+            var heading = document.createElement("div");
+            heading.textContent = label;
+            heading.style.cssText = "margin-bottom:9px;color:#fff;font-size:16px;font-weight:700";
+            var select = document.createElement("select");
+            select.style.cssText = "width:100%;padding:10px;border:1px solid #555;border-radius:8px;background:#050505;color:#fff;font:14px Arial,sans-serif;box-sizing:border-box";
+            OPTIONS.forEach(function (option) {
+                var item = document.createElement("option");
+                item.value = String(option.seconds);
+                item.textContent = option.label;
+                item.selected = option.seconds === Number(duration || DEFAULT_SECONDS);
+                select.appendChild(item);
+            });
+            var action = makeButton(enabled ? "Выключить" : "Включить", enabled ? "#4b2727" : "#343434");
+            action.style.marginTop = "10px";
+            action.style.width = "100%";
+            select.addEventListener("change", function () {
+                save(mode, enabled, Number(select.value), action);
+            });
+            action.addEventListener("click", function () {
+                save(mode, !enabled, Number(select.value), action);
+            });
+            var state = document.createElement("div");
+            state.textContent = enabled ? "Включено" : "Выключено";
+            state.style.cssText = "margin-top:8px;color:#ccc;font-size:12px";
+            section.appendChild(heading);
+            section.appendChild(select);
+            section.appendChild(action);
+            section.appendChild(state);
+            sections.appendChild(section);
+        }
+        function save(mode, enabled, duration, action) {
+            if (action.disabled) return;
+            action.disabled = true;
+            status.textContent = "Сохранение…";
+            window.supabaseClient.rpc("set_chat_disappearing_settings", {
+                p_chat_id: chatId,
+                p_mode: mode,
+                p_enabled: enabled,
+                p_duration_seconds: duration
+            }).then(function (result) {
+                action.disabled = false;
+                if (result.error) {
+                    console.error("Ошибка настройки исчезающих сообщений:", result.error);
+                    status.textContent = result.error.message || "Не удалось сохранить настройку.";
+                    return;
+                }
+                status.textContent = "Сохранено. Настройка применяется к новым сообщениям.";
+                loadSettings();
+            }).catch(function (error) {
+                action.disabled = false;
+                status.textContent = error && error.message ? error.message : "Не удалось сохранить настройку.";
+            });
+        }
+        function loadSettings() {
+            window.supabaseClient.rpc("get_chat_disappearing_settings", { p_chat_id: chatId }).then(function (result) {
+                if (closed) return;
+                if (result.error) {
+                    console.error("Ошибка загрузки настроек исчезающих сообщений:", result.error);
+                    status.textContent = result.error.message || "Не удалось загрузить настройки.";
+                    return;
+                }
+                var data = Array.isArray(result.data) ? result.data[0] : result.data;
+                if (!data) {
+                    status.textContent = "Настройки не найдены.";
+                    return;
+                }
+                sections.replaceChildren();
+                renderSection("self", "Для себя", !!data.personal_enabled, data.personal_duration_seconds);
+                if (data.can_manage_shared) {
+                    renderSection("all", "Для всех", !!data.shared_enabled, data.shared_duration_seconds);
+                }
+                status.textContent = data.shared_enabled && !data.can_manage_shared
+                    ? "Общий режим «Для всех» включён владельцем группы."
+                    : "По умолчанию режим выключен, срок — одна неделя.";
+            }).catch(function (error) {
+                if (!closed) status.textContent = error && error.message ? error.message : "Не удалось загрузить настройки.";
+            });
+        }
+        loadSettings();
     }
-
     window.openChatDisappearingSettings = openDisappearingSettings;
     window.chatDisappearing = {
         options: OPTIONS,
         isSupportedChat: isSupportedChat,
-        loadId: loadId,
-        saveId: saveId,
-        getHours: getHours,
-        isExpired: isExpired,
-        refresh: refreshAfterChange
+        getExpiry: getExpiry,
+        isExpired: function (message) {
+            var expires = getExpiry(message);
+            return !!expires && expires <= Date.now();
+        },
+        refresh: updateCountdowns
     };
-
     function init() {
         wrapRender();
-        restartTimer();
+        if (timer) clearInterval(timer);
+        timer = setInterval(updateCountdowns, 1000);
+        updateCountdowns();
     }
-
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
     else init();
-
+    document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) updateCountdowns();
+    });
     setTimeout(wrapRender, 0);
 })();

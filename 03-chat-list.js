@@ -18,7 +18,33 @@ function toggleChatPin(chatId){var map=readChatMenuMap(CHAT_MENU_PIN_KEY),key=St
 function hideChat(chatId){if(!window.confirm("Удалить этот чат из списка?"))return;var map=readChatMenuMap(CHAT_MENU_HIDDEN_KEY);map[String(chatId)]=true;writeChatMenuMap(CHAT_MENU_HIDDEN_KEY,map);closeChatActionMenu();var item=document.querySelector('.chat-item[data-chat-id="'+Number(chatId)+'"]');if(item)item.remove();if(Number(currentChatId)===Number(chatId)){currentChatId=0;var title=document.getElementById("chatTitle");if(title)title.textContent="Выберите чат";}}
 function closeChatActionMenu(){var menu=document.getElementById("chatActionMenu");if(menu)menu.remove();}
 function triggerChatMenuHaptic(){try{if(navigator.vibrate)navigator.vibrate(10);}catch(error){}}
-function showChatActionMenu(chatId,anchor){closeChatActionMenu();var menu=document.createElement("div");menu.id="chatActionMenu";menu.style.cssText="position:fixed;z-index:99999;min-width:190px;background:#000;border:1px solid #333;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:6px;font-size:15px;color:#fff;";function add(text,icon,handler){var b=document.createElement("button");b.type="button";b.innerHTML=icon+'<span>'+text+'</span>';b.style.cssText="display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;color:#fff;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;";b.addEventListener("click",function(e){e.stopPropagation();handler();});menu.appendChild(b);}var pinned=!!readChatMenuMap(CHAT_MENU_PIN_KEY)[String(chatId)];add(pinned?"Открепить":"Прикрепить",CHAT_MENU_ACTION_ICON_SVG.pin,function(){toggleChatPin(chatId);});add("Удалить",CHAT_MENU_ACTION_ICON_SVG.delete,function(){hideChat(chatId);});document.body.appendChild(menu);triggerChatMenuHaptic();var r=anchor.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(r.left,window.innerWidth-205))+"px";menu.style.top=Math.max(8,Math.min(r.bottom+4,window.innerHeight-180))+"px";setTimeout(function(){document.addEventListener("click",closeChatActionMenu,{once:true});},0);}
+async function showChatActionMenu(chatId,anchor){
+ closeChatActionMenu();
+ var item=document.querySelector('.chat-item[data-chat-id="'+Number(chatId)+'"]');
+ var isGroup=!!(item&&item.dataset.chatType==="group");
+ var isOwner=isGroup&&typeof window.isCurrentGroupOwner==="function"&&await window.isCurrentGroupOwner(chatId);
+ if(!item||!item.isConnected)return;
+ var menu=document.createElement("div");menu.id="chatActionMenu";
+ menu.style.cssText="position:fixed;z-index:99999;min-width:190px;background:#000;border:1px solid #333;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:6px;font-size:15px;color:#fff;";
+ function add(text,icon,handler){
+  var b=document.createElement("button");b.type="button";b.innerHTML=icon+'<span>'+text+'</span>';
+  b.style.cssText="display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;color:#fff;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;";
+  b.addEventListener("click",function(e){e.stopPropagation();handler();});menu.appendChild(b);
+ }
+ var pinned=!!readChatMenuMap(CHAT_MENU_PIN_KEY)[String(chatId)];
+ add(pinned?"Открепить":"Прикрепить",CHAT_MENU_ACTION_ICON_SVG.pin,function(){toggleChatPin(chatId);});
+ if(isGroup){
+  add("Выйти из группы","",function(){closeChatActionMenu();if(typeof window.leaveChatById==="function")void window.leaveChatById(chatId);});
+  if(isOwner)add("Удалить группу",CHAT_MENU_ACTION_ICON_SVG.delete,function(){closeChatActionMenu();if(typeof window.deleteGroupChat==="function")void window.deleteGroupChat(chatId);});
+ }else{
+  add("Удалить",CHAT_MENU_ACTION_ICON_SVG.delete,function(){hideChat(chatId);});
+ }
+ document.body.appendChild(menu);triggerChatMenuHaptic();
+ var r=anchor.getBoundingClientRect(),height=menu.children.length*44+16;
+ menu.style.left=Math.max(8,Math.min(r.left,window.innerWidth-205))+"px";
+ menu.style.top=Math.max(8,Math.min(r.bottom+4,window.innerHeight-height-8))+"px";
+ setTimeout(function(){document.addEventListener("click",closeChatActionMenu,{once:true});},0);
+}
 function updateCallButtonsForChat(chatId,chatType){var audio=document.getElementById("callAudioButton"),video=document.getElementById("callVideoButton");if(!audio||!video)return;var visible=Number(chatId)>0&&String(chatType||"")==="private",display=visible?"inline-flex":"none";audio.style.setProperty("display",display,"important");video.style.setProperty("display",display,"important");}
 function isMobileChatLayout(){return window.matchMedia&&window.matchMedia("(max-width: 900px)").matches;}
 function isWindowsDesktop(){return /Windows NT/i.test(navigator.userAgent||"");}

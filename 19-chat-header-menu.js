@@ -78,14 +78,16 @@
             addChoice("Изменить ник группы", openGroupRename);
         }
         addChoice("Настройка оформления данного чата", openAppearanceChoice);
-        addChoice("Исчезающие сообщения", function () {
-            if (typeof window.openChatDisappearingSettings === "function") {
-                window.openChatDisappearingSettings(function () {}, function () {
-                    closeSettingsChoice();
-                    closeMenu();
-                });
-            }
-        });
+        if (getCurrentChatType() === "private" || getCurrentChatType() === "group") {
+            addChoice("Исчезающие сообщения", function () {
+                if (typeof window.openChatDisappearingSettings === "function") {
+                    window.openChatDisappearingSettings(function () {}, function () {
+                        closeSettingsChoice();
+                        closeMenu();
+                    });
+                }
+            });
+        }
         addChoice("← Назад", function () { closeSettingsChoice(); });
 
         overlay.appendChild(panel);
@@ -104,8 +106,14 @@
         item.style.cssText = ["display:block","width:100%","border:0","background:none","color:#fff","text-align:left","padding:11px 12px","border-radius:8px","cursor:pointer","font:inherit","user-select:none","-webkit-user-select:none","-webkit-touch-callout:none"].join(";");
         item.addEventListener("click", function (event) { event.stopPropagation(); handler(event); }); return item;
     }
-    function showMenu(button) {
-        closeMenu(); var type = getCurrentChatType();
+    async function showMenu(button) {
+        closeMenu();
+        var type = getCurrentChatType();
+        var chatId = Number(window.currentChatId || 0);
+        var isGroupOwner = false;
+        if (type === "group" && typeof window.isCurrentGroupOwner === "function") {
+            isGroupOwner = await window.isCurrentGroupOwner(chatId);
+        }
         if (type !== "private" && type !== "group" && type !== "public") return;
         var menu = document.createElement("div"); menu.id = "chatHeaderMenu"; menu.setAttribute("role", "menu");
         menu.style.cssText = ["position:fixed","z-index:100000","min-width:210px","background:#000","border:1px solid #333","border-radius:12px","box-shadow:0 8px 28px rgba(0,0,0,.28)","padding:6px","font-size:15px","color:#fff","user-select:none","-webkit-user-select:none","-webkit-touch-callout:none"].join(";");
@@ -116,10 +124,20 @@
         }
         menu.appendChild(createMenuButton(settingsTitle, function () { openSettingsFromMenu(); }));
         if (type !== "public") {
-            menu.appendChild(createMenuButton(leaveTitle, function () { closeMenu(); if (typeof window.leaveCurrentChat === "function") window.leaveCurrentChat(); else console.error("Механизм выхода из чата не найден: window.leaveCurrentChat"); }));
+            menu.appendChild(createMenuButton(leaveTitle, function () {
+                closeMenu();
+                if (typeof window.leaveCurrentChat === "function") window.leaveCurrentChat();
+                else console.error("Механизм выхода из чата не найден: window.leaveCurrentChat");
+            }));
+        }
+        if (type === "group" && isGroupOwner) {
+            menu.appendChild(createMenuButton("Удалить группу", function () {
+                closeMenu();
+                if (typeof window.deleteGroupChat === "function") window.deleteGroupChat(chatId);
+            }));
         }
         document.body.appendChild(menu);
-        var rect = button.getBoundingClientRect(), menuHeight = type === "public" ? 58 : 155;
+        var rect = button.getBoundingClientRect(), menuHeight = menu.children.length * 44 + 16;
         menu.style.left = Math.max(8, Math.min(rect.right - 210, window.innerWidth - 218)) + "px";
         menu.style.top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - menuHeight - 8)) + "px";
         setTimeout(function () { document.addEventListener("click", closeMenu, { once: true }); }, 0);

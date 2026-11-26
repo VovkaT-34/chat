@@ -127,34 +127,193 @@
         button.style.display = "inline-block";
     }
 
-    async function leaveCurrentChat() {
-        const chatId = Number(currentChatId);
-        if (!chatId || isPublicChat(chatId)) return;
+    async function isCurrentGroupOwner(chatId) {
+        const item = getChatItem(chatId);
+        if (!item || !item.classList.contains("group-chat") || !window.currentUser) return false;
+        try {
+            const result = await supabaseClient.from("chats").select("created_by,is_group").eq("id", Number(chatId)).maybeSingle();
+            return !result.error && result.data && result.data.is_group === true &&
+                String(result.data.created_by) === String(window.currentUser.id);
+        } catch (error) {
+            console.warn("Не удалось проверить владельца группы:", error);
+            return false;
+        }
+    }
 
-        if (!window.confirm("Выйти из этого чата?")) return;
-
-        const { error } = await supabaseClient.rpc("leave_chat", {
-            p_chat_id: chatId
+    async function finishLeaveChat(chatId, transferToUserId) {
+        const result = await supabaseClient.rpc("leave_chat", {
+            p_chat_id: Number(chatId),
+            p_transfer_to_user_id: transferToUserId || null
         });
+        if (result.error) throw result.error;
 
-        if (error) {
-            console.error("Ошибка выхода из чата:", error);
-            alert("Не удалось выйти из чата.");
-            return;
+        if (Number(currentChatId) === Number(chatId)) {
+            currentChatId = null;
+            const messages = document.getElementById("messages");
+            if (messages) messages.replaceChildren();
+            const chatTitle = document.getElementById("chatTitle");
+            if (chatTitle) chatTitle.textContent = "Выберите чат";
+            updateLeaveChatButton();
         }
 
-        currentChatId = null;
-
-        const messages = document.getElementById("messages");
-        if (messages) messages.innerHTML = "";
-
-        const chatTitle = document.getElementById("chatTitle");
-        if (chatTitle) chatTitle.textContent = "Выберите чат";
-
-        updateLeaveChatButton();
-
         await loadChats();
-        await openDefaultPublicChat();
+        if (!currentChatId) await openDefaultPublicChat();
+    }
+
+    function openGroupOwnerTransferDialog(chatId) {
+        const root = document.createElement("div");
+        root.id = "groupOwnerTransferOverlay";
+        root.style.cssText = "position:fixed;inset:0;z-index:100006;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.68);box-sizing:border-box";
+        const box = document.createElement("div");
+        box.style.cssText = "width:min(440px,100%);max-height:min(78vh,620px);display:flex;flex-direction:column;background:#000;color:#fff;border:1px solid #444;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.45);overflow:hidden";
+        const title = document.createElement("div");
+        title.textContent = "Передать администратора";
+        title.style.cssText = "padding:17px 18px 10px;font-size:19px;font-weight:700";
+        const note = document.createElement("div");
+        note.textContent = "Перед выходом выберите участника, которому передадутся права владельца группы.";
+        note.style.cssText = "padding:0 18px 12px;color:#ddd;font-size:13px;line-height:1.4";
+        const status = document.createElement("div");
+        status.textContent = "Загрузка участников…";
+        status.style.cssText = "padding:12px 18px;color:#ddd;font-size:14px;text-align:center";
+        const list = document.createElement("div");
+        list.style.cssText = "overflow-y:auto;padding:0 10px 10px";
+        const footer = document.createElement("div");
+        footer.style.cssText = "display:flex;justify-content:flex-end;gap:8px;padding:12px 14px;border-top:1px solid #444";
+        const cancel = document.createElement("button");
+        cancel.type = "button";
+        cancel.textContent = "Отмена";
+        cancel.style.cssText = "border:1px solid #555;border-radius:8px;background:#171717;color:#fff;padding:10px 13px;font-size:14px;cursor:pointer";
+        const submit = document.createElement("button");
+        submit.type = "button";
+        submit.textContent = "Передать и выйти";
+        submit.disabled = true;
+        submit.style.cssText = "border:1px solid #777;border-radius:8px;background:#333;color:#fff;padding:10px 13px;font-size:14px;font-weight:700;cursor:pointer;opacity:.55";
+        footer.appendChild(cancel);
+        footer.appendChild(submit);
+        box.appendChild(title);
+        box.appendChild(note);
+        box.appendChild(status);
+        box.appendChild(list);
+        box.appendChild(footer);
+        root.appendChild(box);
+        document.body.appendChild(root);
+
+        let selectedUserId = null;
+        let busy = false;
+        function close() { if (!busy) root.remove(); }
+        cancel.addEventListener("click", close);
+        root.addEventListener("click", function (event) { if (event.target === root) close(); });
+
+        supabaseClient.rpc("get_chat_members", { p_chat_id: Number(chatId) }).then(function (result) {
+            if (!root.isConnected) return;
+            if (result.error) {
+                status.textContent = result.error.message || "Не удалось загрузить участников.";
+                return;
+            }
+            const currentId = String(window.currentUser && window.currentUser.id);
+            const members = (result.data || []).filter(function (member) {
+                return String(member.user_id) !== currentId;
+            });
+            list.replaceChildren();
+            if (!members.length) {
+                status.textContent = "В группе нет другого участника. Чтобы завершить её, используйте «Удалить группу».";
+                return;
+            }
+            status.textContent = "В группе " + (members.length + 1) + " участников. Выберите нового владельца:";
+            members.forEach(function (member) {
+                const row = document.createElement("button");
+                row.type = "button";
+                row.setAttribute("aria-pressed", "false");
+                row.style.cssText = "display:flex;width:100%;align-items:center;gap:10px;margin:3px 0;padding:12px;border:1px solid #444;border-radius:9px;background:#101010;color:#fff;text-align:left;font:14px Arial,sans-serif;cursor:pointer";
+                const name = document.createElement("span");
+                name.textContent = (member.nickname || member.username || "Пользователь") + "  @" + (member.username || "");
+                name.style.cssText = "flex:1;min-width:0;overflow-wrap:anywhere";
+                const marker = document.createElement("span");
+                marker.textContent = "○";
+                marker.style.cssText = "font-size:19px";
+                row.appendChild(name);
+                row.appendChild(marker);
+                row.addEventListener("click", function () {
+                    selectedUserId = member.user_id;
+                    list.querySelectorAll("button").forEach(function (button) {
+                        button.style.borderColor = "#444";
+                        button.style.background = "#101010";
+                        button.setAttribute("aria-pressed", "false");
+                        if (button.lastElementChild) button.lastElementChild.textContent = "○";
+                    });
+                    row.style.borderColor = "#fff";
+                    row.style.background = "#242424";
+                    row.setAttribute("aria-pressed", "true");
+                    marker.textContent = "●";
+                    submit.disabled = false;
+                    submit.style.opacity = "1";
+                });
+                list.appendChild(row);
+            });
+        }).catch(function (error) {
+            status.textContent = error && error.message ? error.message : "Не удалось загрузить участников.";
+        });
+
+        submit.addEventListener("click", async function () {
+            if (busy || !selectedUserId) return;
+            busy = true;
+            submit.disabled = true;
+            status.textContent = "Передача управления и выход из группы…";
+            try {
+                await finishLeaveChat(chatId, selectedUserId);
+                root.remove();
+            } catch (error) {
+                busy = false;
+                submit.disabled = false;
+                status.textContent = error && error.message ? error.message : "Не удалось передать управление.";
+            }
+        });
+    }
+
+    async function leaveChatById(chatId) {
+        chatId = Number(chatId);
+        if (!chatId || isPublicChat(chatId)) return;
+        const item = getChatItem(chatId);
+        const isGroup = !!(item && item.classList.contains("group-chat"));
+        const isOwner = isGroup && await isCurrentGroupOwner(chatId);
+        if (isOwner) {
+            openGroupOwnerTransferDialog(chatId);
+            return;
+        }
+        if (!window.confirm(isGroup ? "Выйти из группы?" : "Выйти из этого чата?")) return;
+        try {
+            await finishLeaveChat(chatId, null);
+        } catch (error) {
+            console.error("Ошибка выхода из чата:", error);
+            alert(error && error.message ? error.message : "Не удалось выйти из чата.");
+        }
+    }
+
+    async function deleteGroupChat(chatId) {
+        chatId = Number(chatId);
+        if (!chatId || !await isCurrentGroupOwner(chatId)) return;
+        if (!window.confirm("Вы точно хотите удалить группу? Все сообщения и участники этой группы будут удалены.")) return;
+        try {
+            const result = await supabaseClient.rpc("delete_group_chat", { p_chat_id: chatId });
+            if (result.error) throw result.error;
+            if (Number(currentChatId) === chatId) {
+                currentChatId = null;
+                const messages = document.getElementById("messages");
+                if (messages) messages.replaceChildren();
+                const chatTitle = document.getElementById("chatTitle");
+                if (chatTitle) chatTitle.textContent = "Выберите чат";
+                updateLeaveChatButton();
+            }
+            await loadChats();
+            if (!currentChatId) await openDefaultPublicChat();
+        } catch (error) {
+            console.error("Ошибка удаления группы:", error);
+            alert(error && error.message ? error.message : "Не удалось удалить группу.");
+        }
+    }
+
+    async function leaveCurrentChat() {
+        await leaveChatById(Number(currentChatId || 0));
     }
 
     function sortChats() {
@@ -239,6 +398,9 @@
     setTimeout(() => clearInterval(waitForChatList), 10000);
 
     window.leaveCurrentChat = leaveCurrentChat;
+    window.leaveChatById = leaveChatById;
+    window.deleteGroupChat = deleteGroupChat;
+    window.isCurrentGroupOwner = isCurrentGroupOwner;
     window.updateLeaveChatButton = updateLeaveChatButton;
 
 })();
