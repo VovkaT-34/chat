@@ -229,6 +229,7 @@
                 });
                 content.appendChild(button);
             });
+            footer.insertBefore(backButton, doneButton);
             footer.style.display = "flex";
         }
 
