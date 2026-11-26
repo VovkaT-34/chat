@@ -97,141 +97,173 @@
         var chatId = Number(window.currentChatId || 0);
         if (!chatId || !isSupportedChat(chatId) || !window.supabaseClient) return;
         closeDisappearingSettings();
+
         var overlay = document.createElement("div");
         overlay.id = "chatDisappearingSettingsOverlay";
         overlay.style.cssText = "position:fixed;inset:0;z-index:100004;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.68);box-sizing:border-box";
         var panel = document.createElement("div");
-        panel.style.cssText = "width:min(430px,calc(100vw - 28px));max-height:min(82vh,680px);overflow-y:auto;background:#000;color:#fff;border:1px solid #444;border-radius:14px;box-shadow:0 18px 55px rgba(0,0,0,.45);padding:17px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none";
+        panel.style.cssText = "width:min(430px,calc(100vw - 28px));max-height:min(82vh,680px);overflow-y:auto;background:#000;color:#fff;border:1px solid #333;border-radius:12px;padding:6px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none";
         var title = document.createElement("h3");
         title.textContent = "Исчезающие сообщения";
-        title.style.cssText = "margin:0 0 14px;font-size:20px;color:#fff";
+        title.style.cssText = "margin:8px 12px 12px;font-size:18px;color:#fff";
         var explanation = document.createElement("div");
         explanation.textContent = "Настройка применяется только к новым сообщениям. Уже отправленные сообщения не меняются.";
-        explanation.style.cssText = "margin-bottom:14px;color:#ddd;font-size:13px;line-height:1.45";
+        explanation.style.cssText = "margin:0 12px 12px;color:#ccc;font-size:13px;line-height:1.45";
+        var content = document.createElement("div");
         var status = document.createElement("div");
-        status.style.cssText = "min-height:20px;margin:10px 0;color:#ddd;font-size:13px;line-height:1.4";
-        var sections = document.createElement("div");
-        sections.style.cssText = "display:flex;flex-direction:column;gap:12px";
+        status.style.cssText = "min-height:18px;margin:8px 12px;color:#ddd;font-size:12px;line-height:1.4";
         var footer = document.createElement("div");
-        footer.style.cssText = "display:flex;justify-content:space-between;gap:10px;margin-top:12px";
-        function makeButton(label, background) {
+        footer.style.cssText = "display:flex;justify-content:space-between;gap:10px;margin:8px 6px 4px";
+        function makeButton(label) {
             var button = document.createElement("button");
             button.type = "button";
             button.textContent = label;
-            button.style.cssText = "border:1px solid #666;border-radius:9px;background:" + background + ";color:#fff;padding:10px 13px;font:700 14px Arial,sans-serif;cursor:pointer";
+            button.style.cssText = "border:1px solid #555;border-radius:8px;background:#171717;color:#fff;padding:10px 14px;font:14px Arial,sans-serif;cursor:pointer";
             return button;
         }
-        var backButton = makeButton("← Назад", "#171717");
-        backButton.addEventListener("click", function () {
-            closeDisappearingSettings();
-            if (typeof onBack === "function") onBack();
-        });
-        var doneButton = makeButton("Готово", "#333");
-        doneButton.addEventListener("click", function () {
-            closeDisappearingSettings();
-            if (typeof onClose === "function") onClose();
-        });
+        var backButton = makeButton("Назад");
+        var doneButton = makeButton("Готово");
+        doneButton.style.background = "#333";
         panel.appendChild(title);
         panel.appendChild(explanation);
-        panel.appendChild(sections);
+        panel.appendChild(content);
         panel.appendChild(status);
         footer.appendChild(backButton);
         footer.appendChild(doneButton);
         panel.appendChild(footer);
         overlay.appendChild(panel);
         document.body.appendChild(overlay);
+
         var closed = false;
-        function closeFromBackdrop() {
+        var stage = "mode";
+        var selectedMode = "self";
+        var selectedDuration = DEFAULT_SECONDS;
+        var canManageShared = false;
+        var personalDuration = DEFAULT_SECONDS;
+        var sharedDuration = DEFAULT_SECONDS;
+        var saving = false;
+
+        function closeAndReturn(callback) {
             if (closed) return;
             closed = true;
             closeDisappearingSettings();
-            if (typeof onClose === "function") onClose();
+            if (typeof callback === "function") callback();
         }
-        overlay.addEventListener("click", function (event) {
-            if (event.target === overlay) closeFromBackdrop();
+        backButton.addEventListener("click", function () {
+            if (saving) return;
+            if (stage === "timer") {
+                renderMode();
+            } else {
+                closeAndReturn(onBack);
+            }
         });
-        function renderSection(mode, label, enabled, duration) {
-            var section = document.createElement("div");
-            section.style.cssText = "padding:13px;border:1px solid #444;border-radius:11px;background:#101010";
-            var heading = document.createElement("div");
-            heading.textContent = label;
-            heading.style.cssText = "margin-bottom:9px;color:#fff;font-size:16px;font-weight:700";
-            var select = document.createElement("select");
-            select.style.cssText = "width:100%;padding:10px;border:1px solid #555;border-radius:8px;background:#050505;color:#fff;font:14px Arial,sans-serif;box-sizing:border-box";
-            OPTIONS.forEach(function (option) {
-                var item = document.createElement("option");
-                item.value = String(option.seconds);
-                item.textContent = option.label;
-                item.selected = option.seconds === Number(duration || DEFAULT_SECONDS);
-                select.appendChild(item);
-            });
-            var action = makeButton(enabled ? "Выключить" : "Включить", enabled ? "#4b2727" : "#343434");
-            action.style.marginTop = "10px";
-            action.style.width = "100%";
-            select.addEventListener("change", function () {
-                save(mode, enabled, Number(select.value), action);
-            });
-            action.addEventListener("click", function () {
-                save(mode, !enabled, Number(select.value), action);
-            });
-            var state = document.createElement("div");
-            state.textContent = enabled ? "Включено" : "Выключено";
-            state.style.cssText = "margin-top:8px;color:#ccc;font-size:12px";
-            section.appendChild(heading);
-            section.appendChild(select);
-            section.appendChild(action);
-            section.appendChild(state);
-            sections.appendChild(section);
-        }
-        function save(mode, enabled, duration, action) {
-            if (action.disabled) return;
-            action.disabled = true;
+        doneButton.addEventListener("click", function () {
+            if (saving || stage !== "timer") return;
+            saving = true;
+            doneButton.disabled = true;
             status.textContent = "Сохранение…";
             window.supabaseClient.rpc("set_chat_disappearing_settings", {
                 p_chat_id: chatId,
-                p_mode: mode,
-                p_enabled: enabled,
-                p_duration_seconds: duration
+                p_mode: selectedMode,
+                p_enabled: true,
+                p_duration_seconds: selectedDuration
             }).then(function (result) {
-                action.disabled = false;
+                if (closed) return;
+                saving = false;
+                doneButton.disabled = false;
                 if (result.error) {
                     console.error("Ошибка настройки исчезающих сообщений:", result.error);
                     status.textContent = result.error.message || "Не удалось сохранить настройку.";
                     return;
                 }
-                status.textContent = "Сохранено. Настройка применяется к новым сообщениям.";
-                loadSettings();
+                closeAndReturn(onClose);
             }).catch(function (error) {
-                action.disabled = false;
+                if (closed) return;
+                saving = false;
+                doneButton.disabled = false;
                 status.textContent = error && error.message ? error.message : "Не удалось сохранить настройку.";
             });
+        });
+        overlay.addEventListener("click", function (event) {
+            if (event.target === overlay && !saving) closeAndReturn(onClose);
+        });
+
+        function makeChoice(label, description, callback) {
+            var button = document.createElement("button");
+            button.type = "button";
+            button.style.cssText = "display:block;width:100%;padding:12px;border:0;border-radius:8px;background:transparent;color:#fff;text-align:left;font:15px Arial,sans-serif;cursor:pointer";
+            var heading = document.createElement("div");
+            heading.textContent = label;
+            heading.style.cssText = "font-weight:600";
+            var sub = document.createElement("div");
+            sub.textContent = description;
+            sub.style.cssText = "margin-top:4px;color:#aaa;font-size:12px";
+            button.appendChild(heading);
+            button.appendChild(sub);
+            button.addEventListener("click", callback);
+            return button;
         }
-        function loadSettings() {
-            window.supabaseClient.rpc("get_chat_disappearing_settings", { p_chat_id: chatId }).then(function (result) {
-                if (closed) return;
-                if (result.error) {
-                    console.error("Ошибка загрузки настроек исчезающих сообщений:", result.error);
-                    status.textContent = result.error.message || "Не удалось загрузить настройки.";
-                    return;
-                }
-                var data = Array.isArray(result.data) ? result.data[0] : result.data;
-                if (!data) {
-                    status.textContent = "Настройки не найдены.";
-                    return;
-                }
-                sections.replaceChildren();
-                renderSection("self", "Для себя", !!data.personal_enabled, data.personal_duration_seconds);
-                if (data.can_manage_shared) {
-                    renderSection("all", "Для всех", !!data.shared_enabled, data.shared_duration_seconds);
-                }
-                status.textContent = data.shared_enabled && !data.can_manage_shared
-                    ? "Общий режим «Для всех» включён владельцем группы."
-                    : "По умолчанию режим выключен, срок — одна неделя.";
-            }).catch(function (error) {
-                if (!closed) status.textContent = error && error.message ? error.message : "Не удалось загрузить настройки.";
+        function renderMode() {
+            stage = "mode";
+            status.textContent = "";
+            content.replaceChildren();
+            content.appendChild(makeChoice("Для себя", "Удалять сообщения только у меня", function () {
+                selectedMode = "self";
+                selectedDuration = personalDuration;
+                renderTimer();
+            }));
+            if (canManageShared) {
+                content.appendChild(makeChoice("Для всех", "Удалять сообщения у всех участников чата", function () {
+                    selectedMode = "all";
+                    selectedDuration = sharedDuration;
+                    renderTimer();
+                }));
+            }
+            doneButton.disabled = true;
+            doneButton.style.opacity = ".45";
+        }
+        function renderTimer() {
+            stage = "timer";
+            status.textContent = "";
+            content.replaceChildren();
+            var heading = document.createElement("div");
+            heading.textContent = selectedMode === "self" ? "Для себя" : "Для всех";
+            heading.style.cssText = "padding:8px 12px 10px;color:#ddd;font-size:14px;font-weight:600";
+            content.appendChild(heading);
+            OPTIONS.forEach(function (option) {
+                var button = document.createElement("button");
+                button.type = "button";
+                button.textContent = option.label + (option.seconds === selectedDuration ? "  ✓" : "");
+                button.style.cssText = "display:block;width:100%;padding:11px 12px;border:0;border-radius:8px;background:" + (option.seconds === selectedDuration ? "#242424" : "transparent") + ";color:#fff;text-align:left;font:15px Arial,sans-serif;cursor:pointer";
+                button.addEventListener("click", function () {
+                    selectedDuration = option.seconds;
+                    renderTimer();
+                });
+                content.appendChild(button);
             });
+            doneButton.disabled = false;
+            doneButton.style.opacity = "1";
         }
-        loadSettings();
+
+        window.supabaseClient.rpc("get_chat_disappearing_settings", { p_chat_id: chatId }).then(function (result) {
+            if (closed) return;
+            if (result.error) {
+                console.error("Ошибка загрузки настроек исчезающих сообщений:", result.error);
+                status.textContent = result.error.message || "Не удалось загрузить настройки.";
+                return;
+            }
+            var data = Array.isArray(result.data) ? result.data[0] : result.data;
+            if (!data) {
+                status.textContent = "Настройки не найдены.";
+                return;
+            }
+            canManageShared = !!data.can_manage_shared;
+            personalDuration = Number(data.personal_duration_seconds) || DEFAULT_SECONDS;
+            sharedDuration = Number(data.shared_duration_seconds) || DEFAULT_SECONDS;
+            renderMode();
+        }).catch(function (error) {
+            if (!closed) status.textContent = error && error.message ? error.message : "Не удалось загрузить настройки.";
+        });
     }
     window.openChatDisappearingSettings = openDisappearingSettings;
     window.chatDisappearing = {
