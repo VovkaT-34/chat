@@ -11,14 +11,14 @@ async function sendMessage(){
     const result=await supabaseClient.from("messages").insert({chat_id:chatId,user_id:currentUser.id,text:text,reply_to:replyTo}).select("id,text,created_at,reply_to,expires_at,message_user_expirations(expires_at)").single();
     const data=result.data,error=result.error;
     if(error){console.log("Ошибка отправки сообщения:",error);if(temporaryMessage){const status=temporaryMessage.querySelector(".message-status");if(status){status.textContent="!";status.title="Ошибка отправки";status.style.color="#d32f2f";}}return;}
-    if(temporaryMessage)temporaryMessage.remove();input.value="";
+    input.value="";
     let messageData=data;
     if(!Array.isArray(data.message_user_expirations)||data.message_user_expirations.length===0){
         const expiryResult=await supabaseClient.from("messages").select("id,user_id,text,created_at,reply_to,expires_at,message_user_expirations(expires_at)").eq("id",data.id).single();
         if(!expiryResult.error&&expiryResult.data)messageData=expiryResult.data;
     }
     const messageForRender={id:messageData.id,user_id:currentUser.id,text:messageData.text,created_at:messageData.created_at,reply_to:messageData.reply_to,expires_at:messageData.expires_at,message_user_expirations:messageData.message_user_expirations,profiles:{username:senderName},reply_message:messageData.reply_message};
-    if(box){const div=renderMessage(messageForRender);if(div){box.appendChild(div);box.scrollTop=box.scrollHeight;}}
+    if(box){const div=renderMessage(messageForRender);if(div){if(temporaryMessage&&temporaryMessage.parentNode)temporaryMessage.parentNode.replaceChild(div,temporaryMessage);else box.appendChild(div);box.scrollTop=box.scrollHeight;}else if(temporaryMessage)temporaryMessage.remove();}else if(temporaryMessage)temporaryMessage.remove();
     const statusElement=document.querySelector('[data-status-message-id="'+data.id+'"]');if(statusElement)setMessageStatus(statusElement,"sent");const chatStatusElement=document.querySelector('[data-chat-status-id="'+chatId+'"]');if(chatStatusElement)setMessageStatus(chatStatusElement,"sent");
     const ownRead=await supabaseClient.from("user_chat_reads").upsert({user_id:currentUser.id,chat_id:chatId,last_read_message_id:data.id},{onConflict:"user_id,chat_id"});if(ownRead.error)console.log("Ошибка отметки собственного сообщения:",ownRead.error);
     if(typeof sendChatPushForMessage==="function")void sendChatPushForMessage(data.id);else if(window.supabaseClient&&window.supabaseClient.functions)void window.supabaseClient.functions.invoke("send-message-push",{body:{messageId:data.id}}).catch(function(error){console.warn("Web Push не отправлен:",error);});
