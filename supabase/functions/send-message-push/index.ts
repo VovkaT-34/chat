@@ -54,6 +54,9 @@ Deno.serve(async(req:Request)=>{
   const {data:message,error:messageError}=await admin.from("messages").select("id,chat_id,user_id,text,created_at").eq("id",id).single();
   if(messageError||!message)return json({error:"Message not found"},404);
   if(message.user_id!==authData.user.id)return json({error:"Forbidden"},403);
+  const {data:chat,error:chatError}=await admin.from("chats").select("type").eq("id",message.chat_id).maybeSingle();
+  if(chatError)console.error("Chat type lookup error:",chatError);
+  if(chat?.type==="public")return json({ok:true,skipped:"public_chat",sent:0,removed:0,fcmSent:0,fcmRemoved:0});
   const {data:sender}=await admin.from("profiles").select("username,approved").eq("id",message.user_id).maybeSingle();
   if(!sender||sender.approved!==true)return json({error:"Sender is not approved"},403);
   const senderName=sender.username||"Новое сообщение";
