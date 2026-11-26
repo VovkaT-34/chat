@@ -219,7 +219,7 @@
             if (swatchColor) {
                 var swatch = document.createElement("span");
                 swatch.textContent = formatSettingDuration(durationSeconds);
-                swatch.style.cssText = "display:inline-flex;align-items:center;justify-content:center;min-width:58px;min-height:22px;padding:2px 8px;margin-left:auto;border:1px solid " + (swatchColor === "#49345f" ? "#765b91" : "#c05a00") + ";border-radius:6px;background:" + swatchColor + ";color:#fff;vertical-align:middle;box-sizing:border-box;white-space:nowrap;font-size:12px;font-weight:600";
+                swatch.style.cssText = "display:inline-flex;align-items:center;justify-content:center;min-width:58px;min-height:22px;padding:2px 8px;margin-left:auto;border:1px solid " + (swatchColor === "#604080" ? "#9475b3" : "#c05a00") + ";border-radius:6px;background:" + swatchColor + ";color:#fff;vertical-align:middle;box-sizing:border-box;white-space:nowrap;font-size:12px;font-weight:600";
                 button.appendChild(swatch);
             }
             button.addEventListener("click", function (event) {
@@ -243,7 +243,7 @@
                     selectedMode = "all";
                     selectedDuration = sharedDuration;
                     renderTimer();
-                }, "#49345f", sharedDuration));
+                }, "#604080", sharedDuration));
             }
             content.appendChild(backButton);
             footer.style.display = "none";
@@ -256,8 +256,8 @@
                 var button = document.createElement("button");
                 button.type = "button";
                 button.textContent = option.label + (option.seconds === selectedDuration ? "  ✓" : "");
-                var selectedColor = selectedMode === "all" ? "#49345f" : "#8a3b00";
-                var selectedBorder = selectedMode === "all" ? "#765b91" : "#c05a00";
+                var selectedColor = selectedMode === "all" ? "#604080" : "#8a3b00";
+                var selectedBorder = selectedMode === "all" ? "#9475b3" : "#c05a00";
                 button.style.cssText = "display:block;width:100%;padding:11px 12px;border:1px solid " + (option.seconds === selectedDuration ? selectedBorder : "transparent") + ";border-radius:8px;background:" + (option.seconds === selectedDuration ? selectedColor : "none") + ";color:#fff;text-align:left;font:inherit;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
                 button.addEventListener("click", function () {
                     selectedDuration = option.seconds;
