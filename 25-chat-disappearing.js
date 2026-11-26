@@ -100,31 +100,23 @@
 
         var overlay = document.createElement("div");
         overlay.id = "chatDisappearingSettingsOverlay";
-        overlay.style.cssText = "position:fixed;inset:0;z-index:100004;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.68);box-sizing:border-box";
+        overlay.style.cssText = "position:fixed;inset:0;z-index:100004;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.52);box-sizing:border-box";
         var panel = document.createElement("div");
-        panel.style.cssText = "width:min(430px,calc(100vw - 28px));max-height:min(82vh,680px);overflow-y:auto;background:#000;color:#fff;border:1px solid #333;border-radius:12px;padding:6px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none";
-        var title = document.createElement("h3");
-        title.textContent = "Исчезающие сообщения";
-        title.style.cssText = "margin:8px 12px 12px;font-size:18px;color:#fff";
-        var explanation = document.createElement("div");
-        explanation.textContent = "Настройка применяется только к новым сообщениям. Уже отправленные сообщения не меняются.";
-        explanation.style.cssText = "margin:0 12px 12px;color:#ccc;font-size:13px;line-height:1.45";
+        panel.style.cssText = "width:min(300px,calc(100vw - 28px));max-height:min(82vh,680px);overflow-y:auto;background:#000;color:#fff;border:1px solid #333;border-radius:12px;padding:6px;font-family:Arial,sans-serif;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
         var content = document.createElement("div");
         var status = document.createElement("div");
-        status.style.cssText = "min-height:18px;margin:8px 12px;color:#ddd;font-size:12px;line-height:1.4";
+        status.style.cssText = "margin:0 12px;color:#ddd;font-size:12px;line-height:1.4";
         var footer = document.createElement("div");
-        footer.style.cssText = "display:flex;justify-content:space-between;gap:10px;margin:8px 6px 4px";
+        footer.style.cssText = "display:none;justify-content:space-between;gap:10px;margin:8px 6px 4px";
         function makeButton(label) {
             var button = document.createElement("button");
             button.type = "button";
             button.textContent = label;
-            button.style.cssText = "display:block;min-width:90px;border:0;background:none;color:#fff;text-align:center;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none";
+            button.style.cssText = "display:block;min-width:90px;border:0;background:none;color:#fff;text-align:center;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
             return button;
         }
         var backButton = makeButton("Назад");
         var doneButton = makeButton("Готово");
-        panel.appendChild(title);
-        panel.appendChild(explanation);
         panel.appendChild(content);
         panel.appendChild(status);
         footer.appendChild(backButton);
@@ -187,45 +179,40 @@
             if (event.target === overlay && !saving) closeAndReturn(onClose);
         });
 
-        function makeChoice(label, description, callback) {
+        function makeChoice(label, callback) {
             var button = document.createElement("button");
             button.type = "button";
-            button.style.cssText = "display:block;width:100%;padding:12px;border:0;border-radius:8px;background:transparent;color:#fff;text-align:left;font:15px Arial,sans-serif;cursor:pointer";
-            var heading = document.createElement("div");
-            heading.textContent = label;
-            heading.style.cssText = "font-weight:600";
-            var sub = document.createElement("div");
-            sub.textContent = description;
-            sub.style.cssText = "margin-top:4px;color:#aaa;font-size:12px";
-            button.appendChild(heading);
-            button.appendChild(sub);
-            button.addEventListener("click", callback);
+            button.textContent = label;
+            button.style.cssText = "display:block;width:100%;border:0;background:none;color:#fff;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+            button.addEventListener("click", function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                callback();
+            });
             return button;
         }
         function renderMode() {
             stage = "mode";
             status.textContent = "";
             content.replaceChildren();
-            content.appendChild(makeChoice("Для себя", "Удалять сообщения только у меня", function () {
+            content.appendChild(makeChoice("Для себя", function () {
                 selectedMode = "self";
                 selectedDuration = personalDuration;
                 renderTimer();
             }));
             if (canManageShared) {
-                content.appendChild(makeChoice("Для всех", "Удалять сообщения у всех участников чата", function () {
+                content.appendChild(makeChoice("Для всех", function () {
                     selectedMode = "all";
                     selectedDuration = sharedDuration;
                     renderTimer();
                 }));
             }
-            doneButton.style.display = "none";
-            footer.style.justifyContent = "flex-start";
+            content.appendChild(backButton);
+            footer.style.display = "none";
         }
         function renderTimer() {
             stage = "timer";
             status.textContent = "";
-            doneButton.style.display = "block";
-            footer.style.justifyContent = "space-between";
             content.replaceChildren();
             var heading = document.createElement("div");
             heading.textContent = selectedMode === "self" ? "Для себя" : "Для всех";
@@ -242,6 +229,7 @@
                 });
                 content.appendChild(button);
             });
+            footer.style.display = "flex";
         }
 
         window.supabaseClient.rpc("get_chat_disappearing_settings", { p_chat_id: chatId }).then(function (result) {
