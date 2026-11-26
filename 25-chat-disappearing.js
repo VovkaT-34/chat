@@ -118,12 +118,11 @@
             var button = document.createElement("button");
             button.type = "button";
             button.textContent = label;
-            button.style.cssText = "border:1px solid #555;border-radius:8px;background:#171717;color:#fff;padding:10px 14px;font:14px Arial,sans-serif;cursor:pointer";
+            button.style.cssText = "display:block;min-width:90px;border:0;background:none;color:#fff;text-align:center;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none";
             return button;
         }
         var backButton = makeButton("Назад");
         var doneButton = makeButton("Готово");
-        doneButton.style.background = "#333";
         panel.appendChild(title);
         panel.appendChild(explanation);
         panel.appendChild(content);
@@ -219,12 +218,16 @@
                     renderTimer();
                 }));
             }
-            doneButton.disabled = true;
-            doneButton.style.opacity = ".45";
+            backButton.style.display = "block";
+            doneButton.style.display = "none";
+            footer.style.justifyContent = "flex-start";
         }
         function renderTimer() {
             stage = "timer";
             status.textContent = "";
+            backButton.style.display = "block";
+            doneButton.style.display = "block";
+            footer.style.justifyContent = "space-between";
             content.replaceChildren();
             var heading = document.createElement("div");
             heading.textContent = selectedMode === "self" ? "Для себя" : "Для всех";
@@ -234,7 +237,7 @@
                 var button = document.createElement("button");
                 button.type = "button";
                 button.textContent = option.label + (option.seconds === selectedDuration ? "  ✓" : "");
-                button.style.cssText = "display:block;width:100%;padding:11px 12px;border:0;border-radius:8px;background:" + (option.seconds === selectedDuration ? "#242424" : "transparent") + ";color:#fff;text-align:left;font:15px Arial,sans-serif;cursor:pointer";
+                button.style.cssText = "display:block;width:100%;padding:11px 12px;border:0;border-radius:8px;background:" + (option.seconds === selectedDuration ? "#242424" : "none") + ";color:#fff;text-align:left;font:inherit;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
                 button.addEventListener("click", function () {
                     selectedDuration = option.seconds;
                     renderTimer();
