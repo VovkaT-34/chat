@@ -39,7 +39,7 @@ async function showChatActionMenu(chatId,anchor){
   var notificationSettings=await supabaseClient.from("chat_notification_settings").select("push_enabled").eq("user_id",currentUser.id).eq("chat_id",Number(chatId)).maybeSingle();
   if(notificationSettings.error)console.warn("Не удалось загрузить настройку push-уведомлений; меню будет показано, настройка по умолчанию — включена:",notificationSettings.error);
   var pushEnabled=!(notificationSettings.data&&notificationSettings.data.push_enabled===false);
-  add(pushEnabled?"Отключить уведомления":"Включить уведомления",CHAT_MENU_ACTION_ICON_SVG.notification,function(){void setChatPushNotifications(chatId,!pushEnabled);});
+  add(pushEnabled?"Отключить оповещение":"Включить оповещение",CHAT_MENU_ACTION_ICON_SVG.notification,function(){void setChatPushNotifications(chatId,!pushEnabled);});
  }
  if(isGroup){
   add("Выйти из чата","",function(){closeChatActionMenu();if(typeof window.leaveChatById==="function")void window.leaveChatById(chatId);});
