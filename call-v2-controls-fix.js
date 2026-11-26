@@ -40,11 +40,27 @@
         return Boolean(local?.srcObject?.getVideoTracks?.().some(track => track.enabled));
     }
 
+    let phoneAudioSessionPrepared = false;
     function preparePhoneAudioSession() {
+        if (phoneAudioSessionPrepared) return;
         try {
-            if (navigator.audioSession && "type" in navigator.audioSession) navigator.audioSession.type = "play-and-record";
+            if (navigator.audioSession && "type" in navigator.audioSession) {
+                navigator.audioSession.type = "play-and-record";
+                phoneAudioSessionPrepared = true;
+            }
         } catch (error) {
             console.warn("Не удалось включить телефонный Audio Session:", error);
+        }
+    }
+    function resetPhoneAudioSession() {
+        if (!phoneAudioSessionPrepared) return;
+        try {
+            if (typeof window.__chatCallResetAudioSession === "function") window.__chatCallResetAudioSession();
+            else if (navigator.audioSession && "type" in navigator.audioSession) navigator.audioSession.type = "auto";
+        } catch (error) {
+            console.warn("Не удалось сбросить телефонный Audio Session:", error);
+        } finally {
+            phoneAudioSessionPrepared = false;
         }
     }
 
@@ -154,6 +170,11 @@
     }
 
     function install() {
+        const callRoot = document.getElementById("chatCallV2");
+        if (!callRoot || !callRoot.classList.contains("open")) {
+            resetPhoneAudioSession();
+            return;
+        }
         replaceCallButtonIcons();
         const button = document.getElementById("cv2Speaker");
         if (button && button.dataset.fixedHandler !== "1") {
@@ -166,6 +187,14 @@
 
     setInterval(install, 500);
     document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) { preparePhoneAudioSession(); sync(); replaceCallButtonIcons(); }
+        if (document.hidden) return;
+        const callRoot = document.getElementById("chatCallV2");
+        if (callRoot && callRoot.classList.contains("open")) {
+            preparePhoneAudioSession();
+            sync();
+            replaceCallButtonIcons();
+        } else {
+            resetPhoneAudioSession();
+        }
     });
 })();
