@@ -637,7 +637,7 @@ async function refreshChatMessageStatuses(chatId,messageIds){
         if(!deliveryResult.error)(deliveryResult.data||[]).forEach(function(row){delivered.add(Number(row.message_id));});
         ids.forEach(function(messageId){
             if(messageId<=readBoundary)cacheAndApplyMessageStatus(messageId,"read",!readsResult.error);
-            else if(delivered.has(messageId))cacheAndApplyMessageStatus(messageId,"delivered",!deliveryResult.error);
+            else if(delivered.has(messageId))cacheAndApplyMessageStatus(messageId,"delivered",!readsResult.error&&!deliveryResult.error);
             else if(!readsResult.error&&!deliveryResult.error)cacheAndApplyMessageStatus(messageId,"sent",true);
         });
     }catch(error){console.warn("Ошибка массового обновления статусов:",error);}
