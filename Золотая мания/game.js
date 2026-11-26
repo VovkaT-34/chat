@@ -119,7 +119,7 @@ for(var h=0;h<4;h++)if(!pendingIngot||pendingIngot.lane!==h)laying[h]=Math.max(0
 var ingotMissed=false;
 ingots.forEach(function(e){e.y+=e.vy*dt;e.bump=Math.max(0,e.bump-dt);while(e.rollStep<6&&e.y>=78+(e.rollStep+1)*(308/6)){e.rollStep++;e.bump=.12;rollClick(e.rollStep)}
 if(!e.checked&&e.y>386){e.checked=true;if(e.lane===lane){e.done=true;ingotCaught(e)}else{e.missed=true;lives--;livesEl.textContent='♥ '.repeat(lives).trim()||'—';crack();queueBonusIngot()}}
-if(e.missed&&e.y>=419){e.done=true;if(e.golden)bonusIngotActive=false;splats.push({x:e.x,y:437,life:55});ingotMissed=true}});
+if(e.missed&&e.y>=419){e.done=true;if(e.golden)bonusIngotActive=false;splats.push({x:e.x,y:437,life:55,ingot:{x:e.x,y:436,rollStep:e.rollStep,bump:0,w:e.w,h:e.h,golden:!!e.golden}});ingotMissed=true}});
 if(ingotMissed){ingots=[];pendingIngot=null;batchLaunched=0;laying=[0,0,0,0];spawn=0;breakPause=.72}
 ingots=ingots.filter(function(e){return !e.done});
 if(!ingotMissed&&!bonusIngotQueued&&!bonusIngotActive&&!pendingIngot&&batchLaunched===batchSize&&ingots.length===0){batchSize=ingotsPerStage();batchLaunched=0;spawn=0;shortWaveGap=true}
