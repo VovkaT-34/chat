@@ -74,6 +74,7 @@
         if (remaining <= 60000) return 1000;
         var unit = remaining < 3600000 ? 60000 : (remaining < 86400000 ? 3600000 : 86400000);
         var untilChange = remaining % unit;
+        if (remaining === unit) return 1000;
         return Math.max(1000, Math.min(unit, untilChange || unit));
     }
     function scheduleCountdownUpdate(delay) {
