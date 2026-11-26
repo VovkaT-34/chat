@@ -46,6 +46,8 @@ async function showChatActionMenu(chatId,anchor){
  }
  if(isGroup){
   add("Выйти из чата","",function(){closeChatActionMenu();if(typeof window.leaveChatById==="function")void window.leaveChatById(chatId);});
+ }else if(chatType==="private"){
+  add("Выйти из чата","",function(){closeChatActionMenu();if(typeof window.leaveChatById==="function")void window.leaveChatById(chatId);});
  }
  document.body.appendChild(menu);triggerChatMenuHaptic();positionMenu();
  if(chatType==="private"||chatType==="group"){
