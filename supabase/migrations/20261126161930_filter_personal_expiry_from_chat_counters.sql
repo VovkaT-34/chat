@@ -14,7 +14,6 @@ AS $function$
    WHERE e.message_id=p_message_id AND e.user_id=(SELECT auth.uid()) AND e.expires_at<=now()
   );
 $function$;
-
 REVOKE ALL ON FUNCTION public.message_visible_to_current_user(bigint,timestamptz)
  FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.message_visible_to_current_user(bigint,timestamptz) TO authenticated;
