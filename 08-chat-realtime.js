@@ -454,7 +454,13 @@ subscribeToMessageReads();
 
 document.addEventListener("visibilitychange", function () {
     if (!document.hidden) {
-        void reconnectChatRealtime();
+        if (typeof window.loadChats === "function") {
+            void window.loadChats().catch(function (error) {
+                console.warn("Ошибка обновления списка чатов:", error);
+            });
+        } else {
+            void reconnectChatRealtime();
+        }
         void syncCurrentChatMessages();
         void refreshOwnMessageStatuses();
     }
