@@ -33,7 +33,7 @@ async function loadChatMessageSenderNames(chatId) {
             chatMessageSenderNameRequests.delete(key);
         });
 
-    chatMessageSenderRequests.set(key, request);
+    chatMessageSenderNameRequests.set(key, request);
     return request;
 }
 
