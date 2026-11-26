@@ -268,6 +268,8 @@
 
     function installCameraSwitch() {
         if (!isSupportedMobile) return;
+        const callRoot = document.getElementById("chatCallV2");
+        if (!callRoot || !callRoot.classList.contains("open")) return;
         ensureCameraSwitchButton();
         if (localVideoEnabled()) positionCameraSwitchButton();
     }
