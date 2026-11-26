@@ -33,7 +33,8 @@
     if (mediaDevices?.getUserMedia) {
         const originalGetUserMedia = mediaDevices.getUserMedia.bind(mediaDevices);
         mediaDevices.getUserMedia = function (constraints) {
-            if (constraints?.audio) prepareCallAudioSession();
+            const callRoot = document.getElementById("chatCallV2");
+            if (constraints?.audio && callRoot && callRoot.classList.contains("open")) prepareCallAudioSession();
             if (requestedFacingMode && constraints?.video) {
                 constraints = {
                     ...constraints,
