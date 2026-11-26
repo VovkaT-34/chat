@@ -235,7 +235,7 @@ async function reconnectChatRealtime() {
 // ===============================
 // Безопасное применение статуса
 // ===============================
-function applyMessageStatus(element, status) {
+function applyMessageStatus(element, status, force) {
     if (!element || !status) return;
 
     status = String(status).toLowerCase();
@@ -243,7 +243,7 @@ function applyMessageStatus(element, status) {
     const current =
         order[String(element.dataset.messageStatus || "sent").toLowerCase()] || 1;
 
-    if ((order[status] || 0) < current) return;
+    if (!force && (order[status] || 0) < current) return;
 
     element.dataset.messageStatus = status;
 
@@ -262,7 +262,7 @@ function applyMessageStatus(element, status) {
     }
 }
 
-function cacheAndApplyMessageStatus(id, status) {
+function cacheAndApplyMessageStatus(id, status, force) {
     id = Number(id);
     if (!id || !status) return;
 
@@ -270,14 +270,14 @@ function cacheAndApplyMessageStatus(id, status) {
     const normalized = String(status).toLowerCase();
     const old = messageStatusCache.get(id);
 
-    if ((order[normalized] || 0) < (order[old] || 0)) return;
+    if (!force && (order[normalized] || 0) < (order[old] || 0)) return;
 
     messageStatusCache.set(id, normalized);
 
     document
         .querySelectorAll('[data-status-message-id="' + id + '"]')
         .forEach(function (element) {
-            applyMessageStatus(element, normalized);
+            applyMessageStatus(element, normalized, force);
         });
 }
 
@@ -636,8 +636,9 @@ async function refreshChatMessageStatuses(chatId,messageIds){
         var delivered=new Set();
         if(!deliveryResult.error)(deliveryResult.data||[]).forEach(function(row){delivered.add(Number(row.message_id));});
         ids.forEach(function(messageId){
-            if(messageId<=readBoundary)cacheAndApplyMessageStatus(messageId,"read");
-            else if(delivered.has(messageId))cacheAndApplyMessageStatus(messageId,"delivered");
+            if(messageId<=readBoundary)cacheAndApplyMessageStatus(messageId,"read",!readsResult.error);
+            else if(delivered.has(messageId))cacheAndApplyMessageStatus(messageId,"delivered",!deliveryResult.error);
+            else if(!readsResult.error&&!deliveryResult.error)cacheAndApplyMessageStatus(messageId,"sent",true);
         });
     }catch(error){console.warn("Ошибка массового обновления статусов:",error);}
 }
