@@ -11,11 +11,11 @@ async function isChatPushEnabledForCurrentUser(chatId){
     if(!currentUser||!supabaseClient)return false;
     try{
         const result=await supabaseClient.from("chat_notification_settings").select("push_enabled").eq("user_id",currentUser.id).eq("chat_id",Number(chatId)).maybeSingle();
-        if(result.error){console.warn("Не удалось проверить настройку push-уведомлений:",result.error);return false;}
+        if(result.error){console.warn("Не удалось проверить настройку push-уведомлений:",result.error);return true;}
         return !result.data||result.data.push_enabled!==false;
     }catch(error){
         console.warn("Ошибка проверки push-настроек чата:",error);
-        return false;
+        return true;
     }
 }
 
