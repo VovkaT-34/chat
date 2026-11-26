@@ -214,10 +214,6 @@
             stage = "timer";
             status.textContent = "";
             content.replaceChildren();
-            var heading = document.createElement("div");
-            heading.textContent = selectedMode === "self" ? "Для себя" : "Для всех";
-            heading.style.cssText = "padding:8px 12px 10px;color:#ddd;font-size:14px;font-weight:600";
-            content.appendChild(heading);
             OPTIONS.forEach(function (option) {
                 var button = document.createElement("button");
                 button.type = "button";
