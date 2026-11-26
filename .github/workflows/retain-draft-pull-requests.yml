@@ -1,0 +1,23 @@
+name: Keep latest 20 draft pull requests
+
+on:
+  pull_request_target:
+    types: [opened, reopened, converted_to_draft]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  retain-latest-drafts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close drafts older than the latest 20
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          old_drafts="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 1000 --json number,isDraft,createdAt --jq '[.[] | select(.isDraft)] | sort_by(.createdAt) | if length > 20 then .[0:-20] else [] end | .[].number')"
+
+          while IFS= read -r number; do
+            [ -z "$number" ] && continue
+            gh pr close "$number" --repo "$GITHUB_REPOSITORY" --comment "Автоматически закрыт: сохраняются 20 последних открытых черновиков PR. Номер PR и история изменений остаются без изменений."
+          done <<< "$old_drafts"
