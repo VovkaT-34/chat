@@ -118,7 +118,7 @@
         var menu = document.createElement("div"); menu.id = "chatHeaderMenu"; menu.setAttribute("role", "menu");
         menu.style.cssText = ["position:fixed","z-index:100000","min-width:210px","background:#000","border:1px solid #333","border-radius:12px","box-shadow:0 8px 28px rgba(0,0,0,.28)","padding:6px","font-size:15px","color:#fff","user-select:none","-webkit-user-select:none","-webkit-touch-callout:none"].join(";");
         var settingsTitle = type === "group" ? "Настройки группы" : "Настройки чата";
-        var leaveTitle = type === "group" ? "Выйти из группы" : "Выйти из чата";
+        var leaveTitle = "Выйти из чата";
         if (type !== "public") {
             menu.appendChild(createMenuButton("Пользователи", function () { closeMenu(); if (typeof window.openChatUsers === "function") window.openChatUsers(); else console.error("Интерфейс пользователей не найден: window.openChatUsers"); }));
         }
@@ -131,7 +131,7 @@
             }));
         }
         if (type === "group" && isGroupOwner) {
-            menu.appendChild(createMenuButton("Удалить группу", function () {
+            menu.appendChild(createMenuButton("Удалить чат", function () {
                 closeMenu();
                 if (typeof window.deleteGroupChat === "function") window.deleteGroupChat(chatId);
             }));
