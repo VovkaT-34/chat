@@ -34,10 +34,10 @@ async function showChatActionMenu(chatId,anchor){
  var pinned=!!readChatMenuMap(CHAT_MENU_PIN_KEY)[String(chatId)];
  add(pinned?"Открепить":"Прикрепить",CHAT_MENU_ACTION_ICON_SVG.pin,function(){toggleChatPin(chatId);});
  if(isGroup){
-  add("Выйти из группы","",function(){closeChatActionMenu();if(typeof window.leaveChatById==="function")void window.leaveChatById(chatId);});
-  if(isOwner)add("Удалить группу",CHAT_MENU_ACTION_ICON_SVG.delete,function(){closeChatActionMenu();if(typeof window.deleteGroupChat==="function")void window.deleteGroupChat(chatId);});
+  add("Выйти из чата","",function(){closeChatActionMenu();if(typeof window.leaveChatById==="function")void window.leaveChatById(chatId);});
+  if(isOwner)add("Удалить чат",CHAT_MENU_ACTION_ICON_SVG.delete,function(){closeChatActionMenu();if(typeof window.deleteGroupChat==="function")void window.deleteGroupChat(chatId);});
  }else{
-  add("Удалить",CHAT_MENU_ACTION_ICON_SVG.delete,function(){hideChat(chatId);});
+  add("Выйти из чата","",function(){closeChatActionMenu();if(typeof window.leaveChatById==="function")void window.leaveChatById(chatId);});
  }
  document.body.appendChild(menu);triggerChatMenuHaptic();
  var r=anchor.getBoundingClientRect(),height=menu.children.length*44+16;
