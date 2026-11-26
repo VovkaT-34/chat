@@ -80,8 +80,12 @@
         addChoice("Настройка оформления данного чата", openAppearanceChoice);
         if (getCurrentChatType() === "private" || getCurrentChatType() === "group") {
             addChoice("Исчезающие сообщения", function () {
+                closeSettingsChoice();
+                closeMenu();
                 if (typeof window.openChatDisappearingSettings === "function") {
-                    window.openChatDisappearingSettings(function () {}, function () {
+                    window.openChatDisappearingSettings(function () {
+                        openSettingsChoice();
+                    }, function () {
                         closeSettingsChoice();
                         closeMenu();
                     });
