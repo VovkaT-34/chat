@@ -129,10 +129,13 @@
         var stage = "mode";
         var selectedMode = "self";
         var selectedDuration = DEFAULT_SECONDS;
-        var canManageShared = false;
+        var chatItem = getChatItem(chatId);
+        var isGroupChat = !!(chatItem && chatItem.dataset && chatItem.dataset.chatType === "group");
+        var canManageShared = !isGroupChat;
         var personalDuration = DEFAULT_SECONDS;
         var sharedDuration = DEFAULT_SECONDS;
         var saving = false;
+        if (!isGroupChat) renderMode();
 
         function closeAndReturn(callback) {
             if (closed) return;
@@ -241,7 +244,7 @@
                 status.textContent = "Настройки не найдены.";
                 return;
             }
-            canManageShared = !!data.can_manage_shared;
+            canManageShared = !isGroupChat || !!data.can_manage_shared;
             personalDuration = Number(data.personal_duration_seconds) || DEFAULT_SECONDS;
             sharedDuration = Number(data.shared_duration_seconds) || DEFAULT_SECONDS;
             renderMode();
