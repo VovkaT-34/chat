@@ -44,13 +44,25 @@
     function getExpiry(message) {
         return getExpiryInfo(message).expiresAt;
     }
+    function formatSettingDuration(seconds) {
+        var option = OPTIONS.find(function (item) { return item.seconds === Number(seconds); });
+        if (!option) return "—";
+        if (option.seconds === 86400) return "1 дн.";
+        if (option.seconds === 259200) return "3 дн.";
+        if (option.seconds === 604800) return "7 дн.";
+        if (option.seconds === 30) return "30 с";
+        if (option.seconds === 300) return "5 мин";
+        if (option.seconds === 3600) return "1 ч";
+        if (option.seconds === 10800) return "3 ч";
+        return option.label;
+    }
     function formatRemaining(milliseconds) {
         var seconds = Math.max(0, Math.ceil(milliseconds / 1000));
         if (seconds < 60) return seconds + "с";
         if (seconds < 3600) return Math.ceil(seconds / 60) + "м";
         if (seconds < 86400) return Math.ceil(seconds / 3600) + "ч";
         var days = Math.ceil(seconds / 86400);
-        return days + (days === 1 ? " день" : " дн");
+        return days + " дн.";
     }
     function updateCountdowns() {
         var box = document.getElementById("messages");
@@ -90,8 +102,8 @@
                 var indicator = document.createElement("span");
                 indicator.className = "chat-disappearing-countdown";
                 var personalMode = expiryInfo.mode === "self";
-                var badgeBackground = personalMode ? "#8a3b00" : "#170d26";
-                var badgeBorder = personalMode ? "#c05a00" : "#39264f";
+                var badgeBackground = personalMode ? "#8a3b00" : "#604080";
+                var badgeBorder = personalMode ? "#c05a00" : "#9475b3";
                 var badgeColor = personalMode ? "#fff1e5" : "#f7f4ff";
                 indicator.style.cssText = "position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:20px;padding:0 8px;margin:0;border:1px solid " + badgeBorder + ";border-radius:999px;background:" + badgeBackground + ";color:" + badgeColor + ";font:700 10px Arial,sans-serif;box-sizing:border-box;white-space:nowrap";
                 indicator.textContent = formatRemaining(expires - Date.now());
@@ -197,14 +209,17 @@
             if (event.target === overlay && !saving) closeAndReturn(onClose);
         });
 
-        function makeChoice(label, callback, swatchColor) {
+        function makeChoice(label, callback, swatchColor, durationSeconds) {
             var button = document.createElement("button");
             button.type = "button";
-            button.textContent = label;
-            button.style.cssText = "display:block;width:100%;border:0;background:none;color:#fff;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+            button.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:0;background:none;color:#fff;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;font:inherit;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+            var labelText = document.createElement("span");
+            labelText.textContent = label;
+            button.appendChild(labelText);
             if (swatchColor) {
                 var swatch = document.createElement("span");
-                swatch.style.cssText = "display:inline-block;width:26px;height:12px;margin-left:10px;border:1px solid " + (swatchColor === "#170d26" ? "#39264f" : "#c05a00") + ";border-radius:999px;background:" + swatchColor + ";vertical-align:middle;box-sizing:border-box";
+                swatch.textContent = formatSettingDuration(durationSeconds);
+                swatch.style.cssText = "display:inline-flex;align-items:center;justify-content:center;min-width:58px;min-height:22px;padding:2px 8px;margin-left:auto;border:1px solid " + (swatchColor === "#604080" ? "#9475b3" : "#c05a00") + ";border-radius:6px;background:" + swatchColor + ";color:#fff;vertical-align:middle;box-sizing:border-box;white-space:nowrap;font-size:12px;font-weight:600";
                 button.appendChild(swatch);
             }
             button.addEventListener("click", function (event) {
@@ -222,13 +237,13 @@
                 selectedMode = "self";
                 selectedDuration = personalDuration;
                 renderTimer();
-            }, "#8a3b00"));
+            }, "#8a3b00", personalDuration));
             if (canManageShared) {
                 content.appendChild(makeChoice("Для всех", function () {
                     selectedMode = "all";
                     selectedDuration = sharedDuration;
                     renderTimer();
-                }, "#170d26"));
+                }, "#604080", sharedDuration));
             }
             content.appendChild(backButton);
             footer.style.display = "none";
@@ -241,7 +256,9 @@
                 var button = document.createElement("button");
                 button.type = "button";
                 button.textContent = option.label + (option.seconds === selectedDuration ? "  ✓" : "");
-                button.style.cssText = "display:block;width:100%;padding:11px 12px;border:0;border-radius:8px;background:" + (option.seconds === selectedDuration ? "#242424" : "none") + ";color:#fff;text-align:left;font:inherit;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
+                var selectedColor = selectedMode === "all" ? "#604080" : "#8a3b00";
+                var selectedBorder = selectedMode === "all" ? "#9475b3" : "#c05a00";
+                button.style.cssText = "display:block;width:100%;padding:11px 12px;border:1px solid " + (option.seconds === selectedDuration ? selectedBorder : "transparent") + ";border-radius:8px;background:" + (option.seconds === selectedDuration ? selectedColor : "none") + ";color:#fff;text-align:left;font:inherit;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none";
                 button.addEventListener("click", function () {
                     selectedDuration = option.seconds;
                     renderTimer();
