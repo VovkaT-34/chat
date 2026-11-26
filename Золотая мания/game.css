@@ -10,7 +10,7 @@ body{padding:14px 12px 24px;min-height:100svh}.volk-page{width:min(760px,100%);m
 #volkCanvas{display:block;width:100%;height:auto;aspect-ratio:640/520;touch-action:manipulation}
 .overlay{position:absolute;inset:0;display:grid;place-items:center;background:#102116b8;padding:14px}.overlay.hidden{display:none}
 .overlay.game-over{background:rgba(8,18,11,.48);padding:5px;overflow:hidden}
-.overlay.game-over .game-over-character{position:absolute;z-index:1;bottom:0;height:96%;width:35%;object-fit:contain;object-position:center bottom;pointer-events:none;filter:drop-shadow(0 3px 5px #0008)}
+.overlay.game-over .game-over-character{position:absolute;z-index:1;bottom:0;height:82%;width:35%;object-fit:contain;object-position:center bottom;pointer-events:none;filter:drop-shadow(0 3px 5px #0008)}
 .overlay.game-over .game-over-man{left:-1%}
 .overlay.game-over .game-over-woman{right:-1%}
 .overlay.game-over .overlay-card{position:relative;z-index:2;width:min(58%,410px);padding:clamp(10px,2.2%,18px);border:3px solid #e9a83d;border-radius:16px;background:linear-gradient(145deg,#75421fef,#3d2418f5 55%,#75421fef);box-shadow:0 6px 20px #000a,inset 0 0 0 2px #ffd16b66}
