@@ -46,8 +46,15 @@
     }
     function formatSettingDuration(seconds) {
         var option = OPTIONS.find(function (item) { return item.seconds === Number(seconds); });
-        if (!option) return "7 дн.";
-        return option.seconds === 604800 ? "7 дн." : option.label;
+        if (!option) return "—";
+        if (option.seconds === 86400) return "1 дн.";
+        if (option.seconds === 259200) return "3 дн.";
+        if (option.seconds === 604800) return "7 дн.";
+        if (option.seconds === 30) return "30 с";
+        if (option.seconds === 300) return "5 мин";
+        if (option.seconds === 3600) return "1 ч";
+        if (option.seconds === 10800) return "3 ч";
+        return option.label;
     }
     function formatRemaining(milliseconds) {
         var seconds = Math.max(0, Math.ceil(milliseconds / 1000));
@@ -55,7 +62,7 @@
         if (seconds < 3600) return Math.ceil(seconds / 60) + "м";
         if (seconds < 86400) return Math.ceil(seconds / 3600) + "ч";
         var days = Math.ceil(seconds / 86400);
-        return days + (days === 1 ? " день" : " дн.");
+        return days + " дн.";
     }
     function updateCountdowns() {
         var box = document.getElementById("messages");
@@ -95,8 +102,8 @@
                 var indicator = document.createElement("span");
                 indicator.className = "chat-disappearing-countdown";
                 var personalMode = expiryInfo.mode === "self";
-                var badgeBackground = personalMode ? "#8a3b00" : "#49345f";
-                var badgeBorder = personalMode ? "#c05a00" : "#765b91";
+                var badgeBackground = personalMode ? "#8a3b00" : "#604080";
+                var badgeBorder = personalMode ? "#c05a00" : "#9475b3";
                 var badgeColor = personalMode ? "#fff1e5" : "#f7f4ff";
                 indicator.style.cssText = "position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:20px;padding:0 8px;margin:0;border:1px solid " + badgeBorder + ";border-radius:999px;background:" + badgeBackground + ";color:" + badgeColor + ";font:700 10px Arial,sans-serif;box-sizing:border-box;white-space:nowrap";
                 indicator.textContent = formatRemaining(expires - Date.now());
