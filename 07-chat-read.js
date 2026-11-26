@@ -9,6 +9,8 @@ function getLastVisibleMessage() {
     const boxRect = box.getBoundingClientRect();
     let lastVisibleMessage = null;
     messages.forEach(message => {
+        const expiresAt = Date.parse(message.getAttribute("data-message-expires-at") || "");
+        if (expiresAt && expiresAt <= Date.now()) return;
         const rect = message.getBoundingClientRect();
         const center = rect.top + rect.height / 2;
         if (center >= boxRect.top && center <= boxRect.bottom) lastVisibleMessage = message;
