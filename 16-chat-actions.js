@@ -219,7 +219,7 @@
                 status.textContent = "В группе нет другого участника. Чтобы завершить её, используйте «Удалить группу».";
                 return;
             }
-            status.textContent = "Участники группы: " + members.length + ". Выберите нового владельца.";
+            status.textContent = "В группе " + (members.length + 1) + " участников. Выберите нового владельца:";
             members.forEach(function (member) {
                 const row = document.createElement("button");
                 row.type = "button";
