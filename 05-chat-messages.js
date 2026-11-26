@@ -1,6 +1,66 @@
 // ===============================
 // Загрузка сообщений
 // ===============================
+// ===============================
+// Имена отправителей сообщений
+// ===============================
+const chatMessageSenderNameCache = new Map();
+const chatMessageSenderNameRequests = new Map();
+
+async function loadChatMessageSenderNames(chatId) {
+    const key = String(Number(chatId) || 0);
+    if (!key || key === "0") return new Map();
+    if (chatMessageSenderNameCache.has(key)) return chatMessageSenderNameCache.get(key);
+    if (chatMessageSenderNameRequests.has(key)) return chatMessageSenderNameRequests.get(key);
+
+    const request = supabaseClient.rpc("get_chat_message_senders", { p_chat_id: Number(key) })
+        .then(function (result) {
+            if (result.error) throw result.error;
+            const names = new Map();
+            (result.data || []).forEach(function (sender) {
+                if (sender && sender.user_id && sender.username) {
+                    names.set(String(sender.user_id), String(sender.username));
+                }
+            });
+            chatMessageSenderNameCache.set(key, names);
+            return names;
+        })
+        .catch(function (error) {
+            console.warn("Не удалось загрузить имена отправителей:", error);
+            return new Map();
+        })
+        .finally(function () {
+            chatMessageSenderNameRequests.delete(key);
+        });
+
+    chatMessageSenderRequests.set(key, request);
+    return request;
+}
+
+async function hydrateMessageSenderNames(messages, chatId) {
+    if (!Array.isArray(messages) || !messages.length) return messages;
+    const names = await loadChatMessageSenderNames(chatId);
+    messages.forEach(function (message) {
+        if (!message) return;
+        const name = names.get(String(message.user_id)) ||
+            (currentUser && String(message.user_id) === String(currentUser.id) && currentUsername && currentUsername !== "Пользователь" ? currentUsername : "");
+        if (name) {
+            message.profiles = Object.assign({}, message.profiles || {}, { username: name });
+        }
+    });
+    return messages;
+}
+
+function getMessageSenderName(message) {
+    if (!message) return "Пользователь";
+    if (message.profiles && message.profiles.username) return String(message.profiles.username);
+    const names = chatMessageSenderNameCache.get(String(Number(currentChatId) || 0));
+    const cachedName = names && names.get(String(message.user_id));
+    if (cachedName) return cachedName;
+    if (currentUser && String(message.user_id) === String(currentUser.id) && currentUsername && currentUsername !== "Пользователь") return String(currentUsername);
+    return "Пользователь";
+}
+
 let messagesLoadToken = 0;
 let olderMessagesLoading = false;
 let olderMessagesDone = false;
@@ -35,6 +95,8 @@ async function loadMessages(){
     const unique={};data.forEach(function(message){unique[Number(message.id)]=message;});
     const loadedData=Object.keys(unique).map(function(id){return unique[id];}).sort(function(a,b){return Number(a.id)-Number(b.id);});
     if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
+    await hydrateMessageSenderNames(loadedData,chatIdAtLoad);
+    if(Number(currentChatId)!==chatIdAtLoad||loadToken!==messagesLoadToken)return;
     let unreadDivider=null,firstUnreadMessage=null;
     const fragment=document.createDocumentFragment();
     loadedData.forEach(function(message){var div=renderMessage(message);if(!div)return;var isUnread=Number(message.id)>lastReadId&&message.user_id!==currentUser.id;if(isUnread&&!unreadDivider){unreadDivider=document.createElement("div");unreadDivider.className="unread-divider";unreadDivider.textContent="Непрочитанные сообщения";fragment.appendChild(unreadDivider);}fragment.appendChild(div);if(isUnread&&!firstUnreadMessage)firstUnreadMessage=div;});
@@ -68,6 +130,8 @@ async function loadOlderMessages(){
     const older=(result.data||[]).reverse();
     if(older.length<5)olderMessagesDone=true;
     if(Number(currentChatId)!==chatIdAtLoad||olderMessagesChatId!==chatIdAtLoad)return;
+    await hydrateMessageSenderNames(older,chatIdAtLoad);
+    if(Number(currentChatId)!==chatIdAtLoad||olderMessagesChatId!==chatIdAtLoad)return;
     const fragment=document.createDocumentFragment();
     older.forEach(function(message){if(box.querySelector('[data-message-id="'+message.id+'"]'))return;const div=renderMessage(message);if(div)fragment.appendChild(div);});
     box.insertBefore(fragment,box.firstChild);
@@ -89,6 +153,8 @@ async function appendMessage(message){
     const wasNearBottom=isMessagesBoxNearBottom(),previousScrollTop=box.scrollTop;
     const result=await supabaseClient.from("messages").select(`id,user_id,text,created_at,reply_to,expires_at,message_user_expirations(expires_at)`).eq("id",message.id).single();
     const fullMessage=result.data,error=result.error;if(error||!fullMessage||Number(currentChatId)!==chatIdAtStart)return;if(box.querySelector('[data-message-id="'+fullMessage.id+'"]'))return;
+    await hydrateMessageSenderNames([fullMessage],chatIdAtStart);
+    if(Number(currentChatId)!==chatIdAtStart)return;
     const div=renderMessage(fullMessage);if(!div)return;box.appendChild(div);
     if(wasNearBottom)box.scrollTop=box.scrollHeight;else{box.scrollTop=previousScrollTop;requestAnimationFrame(function(){box.scrollTop=previousScrollTop;if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();});}
     if(fullMessage.user_id===currentUser.id)await updateMessageStatus(fullMessage.id);if(typeof updateScrollToBottomButton==="function")updateScrollToBottomButton();if(fullMessage.user_id!==currentUser.id&&Number(currentChatId)===Number(fullMessage.chat_id))setTimeout(function(){if(typeof scheduleReadReceipt==="function")scheduleReadReceipt();},80);
