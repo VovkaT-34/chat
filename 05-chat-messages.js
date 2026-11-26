@@ -68,6 +68,15 @@ function formatDisappearingEventDuration(seconds) {
         10800: "3 часа", 86400: "1 день", 259200: "3 дня", 604800: "7 дней"
     })[Number(seconds)] || "";
 }
+function getChatDisappearingEventTextColor() {
+    var box = document.getElementById("messages");
+    if (!box) return "#222";
+    var background = window.getComputedStyle(box).backgroundColor || "";
+    var channels = background.match(/\d+(?:\.\d+)?/g);
+    if (!channels || channels.length < 3) return "#222";
+    var brightness = Number(channels[0]) * 0.299 + Number(channels[1]) * 0.587 + Number(channels[2]) * 0.114;
+    return brightness < 145 ? "#f5f5f5" : "#222";
+}
 function renderChatDisappearingEvent(event) {
     if (!event || !currentUser) return null;
     var duration = formatDisappearingEventDuration(event.duration_seconds);
@@ -89,7 +98,7 @@ function renderChatDisappearingEvent(event) {
     node.dataset.disappearingEventId = String(event.id);
     node.dataset.createdAt = String(event.created_at || "");
     node.textContent = text;
-    node.style.cssText = "display:block;max-width:90%;margin:9px auto;padding:3px 10px;color:var(--chat-message-text,#888);font-size:11px;line-height:1.4;text-align:center;opacity:.88;overflow-wrap:anywhere;pointer-events:none";
+    node.style.cssText = "display:block;max-width:90%;margin:9px auto;padding:3px 10px;color:" + getChatDisappearingEventTextColor() + ";font-size:13px;font-weight:600;line-height:1.4;text-align:center;opacity:.96;overflow-wrap:anywhere;pointer-events:none";
     return node;
 }
 function sortChatTimeline(box) {
