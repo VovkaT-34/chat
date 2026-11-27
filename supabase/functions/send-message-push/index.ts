@@ -81,7 +81,17 @@ Deno.serve(async(req:Request)=>{
    const deliveryToken=await sign(`${id}.${member.user_id}.${exp}`);
    const {data:subscriptions,error:subscriptionError}=await admin.from("web_push_subscriptions").select("id,endpoint,p256dh,auth,active_until").eq("user_id",member.user_id);
    if(!subscriptionError){
-    const activeSubscriptions=(subscriptions||[]).filter(subscription=>!String(subscription.endpoint||"").startsWith("https://web.push.apple.com/")&&subscription.active_until&&Date.parse(subscription.active_until)>Date.now());
+    const appleSubscriptions=(subscriptions||[]).filter(subscription=>String(subscription.endpoint||"").startsWith("https://web.push.apple.com/"));
+    const otherSubscriptions=(subscriptions||[]).filter(subscription=>!String(subscription.endpoint||"").startsWith("https://web.push.apple.com/"));
+    async function sendWebPushSubscription(subscription){
+     const webPushStartedAt=Date.now();try{
+      await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:senderName,body:message.text||"Новое сообщение",icon:"https://vovkat-34.github.io/chat/favicon.svg",badge:"https://vovkat-34.github.io/chat/favicon.svg",tag:`chat-${message.chat_id}`,chatId:message.chat_id,messageId:message.id,count:unreadCount,userId:member.user_id,exp,deliveryToken,url:`./index.html?chat=${encodeURIComponent(message.chat_id)}`}),{TTL:86400,urgency:"high"}); const webPushElapsed=Date.now()-webPushStartedAt;webPushSendDurationMs+=webPushElapsed;webPushSendMaxMs=Math.max(webPushSendMaxMs,webPushElapsed);
+      sent++;
+     }catch(error){const webPushElapsed=Date.now()-webPushStartedAt;webPushSendDurationMs+=webPushElapsed;webPushSendMaxMs=Math.max(webPushSendMaxMs,webPushElapsed);const statusCode=Number((error as {statusCode?:number})?.statusCode||0);if(statusCode===404||statusCode===410){await admin.from("web_push_subscriptions").delete().eq("id",subscription.id);removed++;}else console.error("Web Push send error:",error);}
+    }
+    // Apple Push отправляем до ожидания подтверждения Realtime для других платформ.
+    for(const subscription of appleSubscriptions)await sendWebPushSubscription(subscription);
+    const activeSubscriptions=otherSubscriptions.filter(subscription=>subscription.active_until&&Date.parse(subscription.active_until)>Date.now());
     let activeMessageDelivered=false;
     if(activeSubscriptions.length){
      await new Promise(resolve=>setTimeout(resolve,1500));
@@ -89,12 +99,9 @@ Deno.serve(async(req:Request)=>{
      if(activeDeliveryError)console.warn("Unable to confirm active Realtime delivery; sending push fallback:",activeDeliveryError);
      activeMessageDelivered=Boolean(activeDelivery);
     }
-    for(const subscription of subscriptions||[]){
-     if(!String(subscription.endpoint||"").startsWith("https://web.push.apple.com/")&&subscription.active_until&&Date.parse(subscription.active_until)>Date.now()&&activeMessageDelivered)continue;
-     const webPushStartedAt=Date.now();try{
-      await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:senderName,body:message.text||"Новое сообщение",icon:"https://vovkat-34.github.io/chat/favicon.svg",badge:"https://vovkat-34.github.io/chat/favicon.svg",tag:`chat-${message.chat_id}`,chatId:message.chat_id,messageId:message.id,count:unreadCount,userId:member.user_id,exp,deliveryToken,url:`./index.html?chat=${encodeURIComponent(message.chat_id)}`}),{TTL:86400,urgency:"high"}); const webPushElapsed=Date.now()-webPushStartedAt;webPushSendDurationMs+=webPushElapsed;webPushSendMaxMs=Math.max(webPushSendMaxMs,webPushElapsed);
-      sent++;
-     }catch(error){const webPushElapsed=Date.now()-webPushStartedAt;webPushSendDurationMs+=webPushElapsed;webPushSendMaxMs=Math.max(webPushSendMaxMs,webPushElapsed);const statusCode=Number((error as {statusCode?:number})?.statusCode||0);if(statusCode===404||statusCode===410){await admin.from("web_push_subscriptions").delete().eq("id",subscription.id);removed++;}else console.error("Web Push send error:",error);}
+    for(const subscription of otherSubscriptions){
+     if(subscription.active_until&&Date.parse(subscription.active_until)>Date.now()&&activeMessageDelivered)continue;
+     await sendWebPushSubscription(subscription);
     }
    }
    const {data:fcmTokens,error:fcmTokenError}=await admin.from("android_push_tokens").select("id,token").eq("user_id",member.user_id);
