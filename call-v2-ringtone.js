@@ -129,16 +129,27 @@
         }, { passive: true });
     });
 
+    let detectTimer = null;
+    function startDetectTimer() {
+        if (document.hidden || detectTimer) return;
+        detectTimer = setInterval(detect, 250);
+    }
+    function stopDetectTimer() {
+        if (detectTimer) clearInterval(detectTimer);
+        detectTimer = null;
+    }
+
     document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
+            startDetectTimer();
             void unlockAudio().then(detect);
         } else {
-            // Do not destroy the AudioContext. iOS may suspend it temporarily;
-            // playNow() will attempt to resume it when the page becomes active.
+            stopDetectTimer();
             if (timer) clearInterval(timer);
             timer = null;
+            if (audioContext?.state === "running") void audioContext.suspend().catch(() => {});
         }
     });
 
-    setInterval(detect, 250);
+    startDetectTimer();
 })();
