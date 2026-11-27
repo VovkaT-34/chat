@@ -83,8 +83,8 @@ Deno.serve(async(req:Request)=>{
    if(!subscriptionError){
     for(const subscription of subscriptions||[]){
      if(subscription.active_until&&Date.parse(subscription.active_until)>Date.now())continue;
-     try{
-      const webPushStartedAt=Date.now(); await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:senderName,body:message.text||"Новое сообщение",icon:"https://vovkat-34.github.io/chat/favicon.svg",badge:"https://vovkat-34.github.io/chat/favicon.svg",tag:`chat-${message.chat_id}`,chatId:message.chat_id,messageId:message.id,count:unreadCount,userId:member.user_id,exp,deliveryToken,url:`./index.html?chat=${encodeURIComponent(message.chat_id)}`}),{TTL:86400,urgency:"high"}); const webPushElapsed=Date.now()-webPushStartedAt;webPushSendDurationMs+=webPushElapsed;webPushSendMaxMs=Math.max(webPushSendMaxMs,webPushElapsed;
+     const webPushStartedAt=Date.now();try{
+      await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:senderName,body:message.text||"Новое сообщение",icon:"https://vovkat-34.github.io/chat/favicon.svg",badge:"https://vovkat-34.github.io/chat/favicon.svg",tag:`chat-${message.chat_id}`,chatId:message.chat_id,messageId:message.id,count:unreadCount,userId:member.user_id,exp,deliveryToken,url:`./index.html?chat=${encodeURIComponent(message.chat_id)}`}),{TTL:86400,urgency:"high"}); const webPushElapsed=Date.now()-webPushStartedAt;webPushSendDurationMs+=webPushElapsed;webPushSendMaxMs=Math.max(webPushSendMaxMs,webPushElapsed);
       sent++;
      }catch(error){const webPushElapsed=Date.now()-webPushStartedAt;webPushSendDurationMs+=webPushElapsed;webPushSendMaxMs=Math.max(webPushSendMaxMs,webPushElapsed);const statusCode=Number((error as {statusCode?:number})?.statusCode||0);if(statusCode===404||statusCode===410){await admin.from("web_push_subscriptions").delete().eq("id",subscription.id);removed++;}else console.error("Web Push send error:",error);}
     }
