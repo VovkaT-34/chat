@@ -1,3 +1,15 @@
+// Звук разрешён только для действительно новых входящих событий во время активной сессии.
+const incomingSoundMessageIds = new Set();
+function isRecentUniqueIncomingSound(message) {
+    if (document.hidden || !message || !message.id) return false;
+    const createdAt = Date.parse(message.created_at || "");
+    if (!Number.isFinite(createdAt) || Date.now() - createdAt > 30000 || createdAt - Date.now() > 5000) return false;
+    const id = String(message.id);
+    if (incomingSoundMessageIds.has(id)) return false;
+    incomingSoundMessageIds.add(id);
+    if (incomingSoundMessageIds.size > 500) incomingSoundMessageIds.delete(incomingSoundMessageIds.values().next().value);
+    return true;
+}
 // ===============================
 // Realtime сообщений
 // ===============================
@@ -151,7 +163,9 @@ async function subscribeToMessagesNow() {
                         }
                     } else if (
                         isIncoming &&
-                        typeof playMessageSound === "function"
+                        !document.hidden &&
+                        typeof playMessageSound === "function" &&
+                        isRecentUniqueIncomingSound(newMessage)
                     ) {
                         try {
                             playMessageSound(newMessage.chat_id);
