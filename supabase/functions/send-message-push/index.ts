@@ -42,16 +42,17 @@ async function sendFcm(token:string,title:string,body:string,chatId:number,messa
  return {sent:false,invalid};
 }
 Deno.serve(async(req:Request)=>{
+ const requestStartedAt=Date.now();let authDurationMs=0,messageLookupDurationMs=0,webPushSendDurationMs=0,webPushSendMaxMs=0,fcmSendDurationMs=0;
  if(req.method==="OPTIONS")return new Response("ok",{status:200,headers:corsHeaders});
  if(req.method!=="POST")return json({error:"Method not allowed"},405);
  try{
   const authHeader=req.headers.get("Authorization")||""; const token=authHeader.replace(/^Bearer\s+/i,"").trim();
   if(!token)return json({error:"Missing authorization"},401);
-  const {data:authData,error:authError}=await admin.auth.getUser(token);
+  const {data:authData,error:authError}=await admin.auth.getUser(token); authDurationMs=Date.now()-requestStartedAt;
   if(authError||!authData.user)return json({error:"Unauthorized"},401);
   const {messageId}=await req.json(); const id=Number(messageId);
   if(!Number.isInteger(id)||id<=0)return json({error:"Invalid messageId"},400);
-  const {data:message,error:messageError}=await admin.from("messages").select("id,chat_id,user_id,text,created_at").eq("id",id).single();
+  const messageLookupStartedAt=Date.now(); const {data:message,error:messageError}=await admin.from("messages").select("id,chat_id,user_id,text,created_at").eq("id",id).single(); messageLookupDurationMs=Date.now()-messageLookupStartedAt;
   if(messageError||!message)return json({error:"Message not found"},404);
   if(message.user_id!==authData.user.id)return json({error:"Forbidden"},403);
   const {data:chat,error:chatError}=await admin.from("chats").select("type").eq("id",message.chat_id).maybeSingle();
@@ -82,10 +83,10 @@ Deno.serve(async(req:Request)=>{
    if(!subscriptionError){
     for(const subscription of subscriptions||[]){
      if(subscription.active_until&&Date.parse(subscription.active_until)>Date.now())continue;
-     try{
-      await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:senderName,body:message.text||"Новое сообщение",icon:"https://vovkat-34.github.io/chat/favicon.svg",badge:"https://vovkat-34.github.io/chat/favicon.svg",tag:`chat-${message.chat_id}`,chatId:message.chat_id,messageId:message.id,count:unreadCount,userId:member.user_id,exp,deliveryToken,url:`./index.html?chat=${encodeURIComponent(message.chat_id)}`}),{TTL:86400,urgency:"high"});
+     const webPushStartedAt=Date.now();try{
+      await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:senderName,body:message.text||"Новое сообщение",icon:"https://vovkat-34.github.io/chat/favicon.svg",badge:"https://vovkat-34.github.io/chat/favicon.svg",tag:`chat-${message.chat_id}`,chatId:message.chat_id,messageId:message.id,count:unreadCount,userId:member.user_id,exp,deliveryToken,url:`./index.html?chat=${encodeURIComponent(message.chat_id)}`}),{TTL:86400,urgency:"high"}); const webPushElapsed=Date.now()-webPushStartedAt;webPushSendDurationMs+=webPushElapsed;webPushSendMaxMs=Math.max(webPushSendMaxMs,webPushElapsed);
       sent++;
-     }catch(error){const statusCode=Number((error as {statusCode?:number})?.statusCode||0);if(statusCode===404||statusCode===410){await admin.from("web_push_subscriptions").delete().eq("id",subscription.id);removed++;}else console.error("Web Push send error:",error);}
+     }catch(error){const webPushElapsed=Date.now()-webPushStartedAt;webPushSendDurationMs+=webPushElapsed;webPushSendMaxMs=Math.max(webPushSendMaxMs,webPushElapsed);const statusCode=Number((error as {statusCode?:number})?.statusCode||0);if(statusCode===404||statusCode===410){await admin.from("web_push_subscriptions").delete().eq("id",subscription.id);removed++;}else console.error("Web Push send error:",error);}
     }
    }
    const {data:fcmTokens,error:fcmTokenError}=await admin.from("android_push_tokens").select("id,token").eq("user_id",member.user_id);
@@ -95,13 +96,14 @@ Deno.serve(async(req:Request)=>{
     if(fcmAccessToken){
      for(const fcmTokenRow of fcmTokens){
       try{
-       const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${fcmAccessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token:fcmTokenRow.token,data:{type:"message",title:senderName,body:message.text||"Новое сообщение",chatId:String(message.chat_id),messageId:String(message.id),userId:member.user_id,exp:String(exp),deliveryToken},android:{priority:"high"}}})});
+       const fcmSendStartedAt=Date.now(); const response=await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(fcmProjectId)}/messages:send`,{method:"POST",headers:{Authorization:`Bearer ${fcmAccessToken}`,"Content-Type":"application/json"},body:JSON.stringify({message:{token:fcmTokenRow.token,data:{type:"message",title:senderName,body:message.text||"Новое сообщение",chatId:String(message.chat_id),messageId:String(message.id),userId:member.user_id,exp:String(exp),deliveryToken},android:{priority:"high"}}})}); fcmSendDurationMs+=Date.now()-fcmSendStartedAt;
        if(response.ok){fcmSent++;}else{const errorText=await response.text();if(/UNREGISTERED|registration-token-not-registered|INVALID_ARGUMENT/.test(errorText)){await admin.from("android_push_tokens").delete().eq("id",fcmTokenRow.id);fcmRemoved++;}else console.error("FCM send error:",errorText);}
       }catch(error){console.error("FCM send exception:",error);}
      }
     }
    }
   }
+  console.log(JSON.stringify({event:"message_push_timing",totalMs:Date.now()-requestStartedAt,authMs:authDurationMs,messageLookupMs:messageLookupDurationMs,webPushSendTotalMs:webPushSendDurationMs,webPushSendMaxMs,fcmSendTotalMs:fcmSendDurationMs,webPushSent:sent,webPushRemoved:removed,fcmSent,fcmRemoved}));
   return json({ok:true,sent,removed,fcmSent,fcmRemoved});
  }catch(error){console.error("send-message-push error:",error);return json({error:"Internal server error"},500);}
 });
