@@ -71,15 +71,6 @@
         tone(740, now + 0.81, 0.34, 0.54);
     }
 
-    async function playNow() {
-        // If iOS suspended the context after backgrounding/locking,
-        // try to resume it before producing the next ringtone phrase.
-        if (!unlocked || audioContext?.state !== "running") {
-            await unlockAudio();
-        }
-        playPhrase();
-    }
-
     // Invalidates any pending async resume/play operation when ringing stops.
     let playbackGeneration = 0;
 
@@ -154,7 +145,7 @@
             const controls = document.getElementById("cv2Controls");
             const status = document.getElementById("cv2Status")?.textContent || "";
             const ringing = (incoming && getComputedStyle(incoming).display !== "none") ||
-                (controls && getComputedStyle(controls).display !== "none" && status === "Вызов…");
+                (controls && getComputedStyle(controls).display !== "none" && status.startsWith("Вызов…"));
             if (ringing) void unlockAudio().then(detect);
         }, { passive: true });
     });
