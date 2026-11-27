@@ -39,7 +39,9 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
         if ("incoming_call".equals(message.getData().get("type"))) {
-            showIncomingCall(message.getData());
+            if (!MainActivity.isAppInForeground()) {
+                showIncomingCall(message.getData());
+            }
             return;
         }
 
@@ -48,7 +50,9 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         String body = notification != null ? notification.getBody() : message.getData().get("body");
         if (title == null || title.trim().isEmpty()) title = "Новое сообщение";
         if (body == null) body = "";
-        showMessageNotification(title, body);
+        if (!MainActivity.isAppInForeground()) {
+            showMessageNotification(title, body);
+        }
         confirmPushDelivery(message.getData());
     }
 
