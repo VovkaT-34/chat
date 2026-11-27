@@ -123,6 +123,6 @@
     window.refreshChatHeaderMenu = refresh;
     document.addEventListener("click", function () { setTimeout(refresh, 0); });
     var observer = new MutationObserver(function () { ensureButton(); });
-    function start() { ensureButton(); if (document.body) observer.observe(document.body, { childList: true, subtree: true }); }
+    function start() { ensureButton(); if (document.querySelector(".chat-header-actions")) observer.observe(document.querySelector(".chat-header-actions"), { childList: true, subtree: true }); }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true }); else start();
 })();
