@@ -125,7 +125,7 @@ async function subscribeToMessagesNow() {
                         ? await isChatPushEnabledForCurrentUser(newMessage.chat_id)
                         : true;
 
-                    if (isIncoming && (chatPushEnabled || !document.hidden)) {
+                    if (isIncoming && !isCurrentChat && (chatPushEnabled || !document.hidden)) {
                         try {
                             const delivery = await supabaseClient.rpc(
                                 "mark_message_delivered",
@@ -509,8 +509,7 @@ function subscribeToMessageReads() {
         .subscribe();
 }
 
-subscribeToMessageDeliveries();
-subscribeToMessageReads();
+// Delivery and read channels are created after authentication and Realtime filters are installed.
 
 document.addEventListener("visibilitychange", function () {
     if (!document.hidden) {
