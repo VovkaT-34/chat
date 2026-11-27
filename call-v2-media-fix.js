@@ -275,8 +275,21 @@
         if (localVideoEnabled()) positionCameraSwitchButton();
     }
 
+    let cameraInstallTimer = null;
+    function startCameraInstallTimer() {
+        if (!isSupportedMobile || document.hidden || cameraInstallTimer) return;
+        cameraInstallTimer = setInterval(installCameraSwitch, 500);
+    }
+    function stopCameraInstallTimer() {
+        if (cameraInstallTimer) clearInterval(cameraInstallTimer);
+        cameraInstallTimer = null;
+    }
     if (typeof RTCPeerConnection === "undefined") {
-        if (isSupportedMobile) setInterval(installCameraSwitch, 500);
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) stopCameraInstallTimer();
+            else { startCameraInstallTimer(); installCameraSwitch(); }
+        });
+        startCameraInstallTimer();
         return;
     }
 
@@ -329,8 +342,16 @@
     };
 
     if (isSupportedMobile) {
-        setInterval(installCameraSwitch, 500);
-        document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(installCameraSwitch, 100); });
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) stopCameraInstallTimer();
+            else {
+                startCameraInstallTimer();
+                setTimeout(installCameraSwitch, 100);
+            }
+        });
+        window.addEventListener("pagehide", stopCameraInstallTimer);
+        window.addEventListener("pageshow", startCameraInstallTimer);
         window.addEventListener("resize", () => { if (localVideoEnabled()) positionCameraSwitchButton(); });
+        startCameraInstallTimer();
     }
 })();
