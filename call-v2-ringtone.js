@@ -125,31 +125,35 @@
     // touchend/mousedown-only variant could miss the first gesture on Safari.
     ["pointerdown", "touchstart", "touchend", "mousedown", "click", "keydown"].forEach(type => {
         document.addEventListener(type, () => {
-            void unlockAudio().then(detect);
+            const root = document.getElementById("chatCallV2");
+            if (!root?.classList.contains("open")) return;
+            const incoming = document.getElementById("cv2Incoming");
+            const controls = document.getElementById("cv2Controls");
+            const status = document.getElementById("cv2Status")?.textContent || "";
+            const ringing = (incoming && getComputedStyle(incoming).display !== "none") ||
+                (controls && getComputedStyle(controls).display !== "none" && status === "Вызов…");
+            if (ringing) void unlockAudio().then(detect);
         }, { passive: true });
     });
 
-    let detectTimer = null;
-    function startDetectTimer() {
-        if (document.hidden || detectTimer) return;
-        detectTimer = setInterval(detect, 250);
+    const callRoot = document.getElementById("chatCallV2");
+    if (callRoot) {
+        const observer = new MutationObserver(detect);
+        observer.observe(callRoot, {
+            subtree: true,
+            childList: true,
+            characterData: true,
+            attributes: true,
+            attributeFilter: ["class", "style"]
+        });
     }
-    function stopDetectTimer() {
-        if (detectTimer) clearInterval(detectTimer);
-        detectTimer = null;
-    }
-
     document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
-            startDetectTimer();
-            void unlockAudio().then(detect);
+            detect();
         } else {
-            stopDetectTimer();
-            if (timer) clearInterval(timer);
-            timer = null;
+            stop();
             if (audioContext?.state === "running") void audioContext.suspend().catch(() => {});
         }
     });
-
-    startDetectTimer();
+    detect();
 })();
