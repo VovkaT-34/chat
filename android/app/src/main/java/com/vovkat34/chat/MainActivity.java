@@ -39,6 +39,9 @@ public class MainActivity extends Activity {
     private static final String PREF_NOTIFICATION_REQUESTED = "notification_permission_requested";
     private static final String PREF_FCM_TOKEN = "fcm_token";
 
+    private static volatile boolean appInForeground = false;
+    private boolean activityResumed = false;
+
     private WebView webView;
     private PermissionRequest pendingWebPermission;
     private Intent pendingCallActionIntent;
@@ -96,6 +99,7 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 webPageReady = true;
+                appInForeground = activityResumed;
                 requestNotificationPermissionOnce();
                 dispatchFcmTokenToWeb();
                 dispatchPendingCallAction();
@@ -294,7 +298,7 @@ public class MainActivity extends Activity {
     }
 
     private void showMessageNotification(String title, String body) {
-        if (!areNotificationsEnabled()) return;
+        if (appInForeground || !areNotificationsEnabled()) return;
 
         String safeTitle = title == null || title.trim().isEmpty() ? "Новое сообщение" : title.trim();
         String safeBody = body == null ? "" : body.trim();
@@ -449,9 +453,15 @@ public class MainActivity extends Activity {
         }
     }
 
+    public static boolean isAppInForeground() {
+        return appInForeground;
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        activityResumed = true;
+        appInForeground = webPageReady;
         if (webView != null) {
             webView.onResume();
             webView.post(() -> webView.evaluateJavascript(
@@ -464,6 +474,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
+        activityResumed = false;
+        appInForeground = false;
         if (webView != null) {
             webView.onPause();
         }
@@ -481,6 +493,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        activityResumed = false;
+        appInForeground = false;
         webPageReady = false;
         if (webView != null) {
             webView.stopLoading();

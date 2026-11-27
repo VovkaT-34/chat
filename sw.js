@@ -51,9 +51,16 @@ self.addEventListener("push",function(event){
     };
     if(!isCall&&count>1)options.body=(data.body||"Новое сообщение")+"\nНепрочитанных: "+count;
     if(isCall){options.requireInteraction=true;options.vibrate=[300,150,300,150,500];}
-    var work=[self.registration.showNotification(title,options)];
-    if(data.messageId&&data.deliveryToken)work.push(work[0].then(function(){return confirmPushDelivery(data);}));
-    event.waitUntil(Promise.all(work));
+    event.waitUntil((async function(){
+        var windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
+        var appVisible=windows.some(function(client){return client.visibilityState==="visible";});
+        if(appVisible){
+            if(data.messageId&&data.deliveryToken)await confirmPushDelivery(data);
+            return;
+        }
+        await self.registration.showNotification(title,options);
+        if(data.messageId&&data.deliveryToken)await confirmPushDelivery(data);
+    })());
 });
 
 self.addEventListener("notificationclick",function(event){
