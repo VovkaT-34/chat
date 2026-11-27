@@ -120,7 +120,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: subscriptions, error: subscriptionsError } = await admin
       .from("web_push_subscriptions")
-      .select("id, endpoint, p256dh, auth")
+      .select("id, endpoint, p256dh, auth, active_until")
       .eq("user_id", recipientId);
     if (subscriptionsError) return json({ error: subscriptionsError.message }, 500, origin);
 
@@ -133,6 +133,7 @@ Deno.serve(async (req: Request) => {
     let fcmSent = 0;
     let fcmRemoved = 0;
     for (const subscription of subscriptions || []) {
+      if (subscription.active_until && Date.parse(subscription.active_until) > Date.now()) continue;
       try {
         await webpush.sendNotification(
           { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
