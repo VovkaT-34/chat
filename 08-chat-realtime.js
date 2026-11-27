@@ -96,9 +96,12 @@ async function subscribeToMessagesNow() {
                 const messageElement = document.querySelector(
                     '.message[data-message-id="' + deletedId + '"]'
                 );
-                if (messageElement) messageElement.remove();
-                if (typeof updatePinnedMessagesBar === "function") {
-                    updatePinnedMessagesBar();
+                if (messageElement) {
+                    const wasPinned = !!getPinnedMessages()[String(deletedId)];
+                    messageElement.remove();
+                    if (wasPinned && typeof updatePinnedMessagesBar === "function") {
+                        updatePinnedMessagesBar();
+                    }
                 }
             }
         )
