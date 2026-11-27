@@ -326,7 +326,7 @@ body{background-color:#92999d!important;background-image:linear-gradient(90deg,r
     }
     moveButtons();
     const observer=new MutationObserver(moveButtons);
-    observer.observe(document.body,{childList:true,subtree:true});
+    observer.observe(document.querySelector(".chat-header-actions") || document.body,{childList:true,subtree:true});
 })();
 </script>
 <script>
