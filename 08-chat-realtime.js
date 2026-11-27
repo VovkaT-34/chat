@@ -2,8 +2,6 @@
 const incomingSoundMessageIds = new Set();
 function isRecentUniqueIncomingSound(message) {
     if (document.hidden || !message || !message.id) return false;
-    const createdAt = Date.parse(message.created_at || "");
-    if (!Number.isFinite(createdAt) || Date.now() - createdAt > 30000 || createdAt - Date.now() > 5000) return false;
     const id = String(message.id);
     if (incomingSoundMessageIds.has(id)) return false;
     incomingSoundMessageIds.add(id);
