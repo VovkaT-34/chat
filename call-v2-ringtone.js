@@ -71,16 +71,11 @@
         tone(740, now + 0.81, 0.34, 0.54);
     }
 
-    async function playNow() {
-        // If iOS suspended the context after backgrounding/locking,
-        // try to resume it before producing the next ringtone phrase.
-        if (!unlocked || audioContext?.state !== "running") {
-            await unlockAudio();
-        }
-        playPhrase();
-    }
+    // Invalidates any pending async resume/play operation when ringing stops.
+    let playbackGeneration = 0;
 
     function stop(suspendAudio = true) {
+        playbackGeneration++;
         if (timer) clearInterval(timer);
         timer = null;
         lastState = "";
@@ -89,14 +84,30 @@
         }
     }
 
+    async function playNow(generation) {
+        if (generation !== playbackGeneration || !lastState) return;
+        if (!unlocked || audioContext?.state !== "running") {
+            await unlockAudio();
+        }
+        // A call may have been answered/ended while AudioContext.resume() was pending.
+        if (generation !== playbackGeneration || !lastState) {
+            if (!lastState && audioContext?.state === "running") {
+                void audioContext.suspend().catch(() => {});
+            }
+            return;
+        }
+        playPhrase();
+    }
+
     function start(kind) {
         if (!kind) return stop();
         if (kind === lastState && timer) return;
 
         stop(false);
         lastState = kind;
-        void playNow();
-        timer = setInterval(() => void playNow(), 1700);
+        const generation = playbackGeneration;
+        void playNow(generation);
+        timer = setInterval(() => void playNow(generation), 1700);
     }
 
     function detect() {
@@ -116,7 +127,7 @@
         if (
             controls &&
             getComputedStyle(controls).display !== "none" &&
-            status === "Вызов…"
+            status.startsWith("Вызов…")
         ) {
             return start("outgoing");
         }
@@ -127,28 +138,55 @@
     // Keep the broader set of iOS user-gesture events. The previous
     // touchend/mousedown-only variant could miss the first gesture on Safari.
     ["pointerdown", "touchstart", "touchend", "mousedown", "click", "keydown"].forEach(type => {
-        document.addEventListener(type, () => {
+        document.addEventListener(type, event => {
+            // Unlock Web Audio during the actual user gesture that starts an outgoing call.
+            // The call dialog opens only after the peer lookup completes.
+            if (event.target?.closest?.("#callAudioButton, #callVideoButton")) {
+                void unlockAudio();
+                return;
+            }
             const root = document.getElementById("chatCallV2");
             if (!root?.classList.contains("open")) return;
             const incoming = document.getElementById("cv2Incoming");
             const controls = document.getElementById("cv2Controls");
             const status = document.getElementById("cv2Status")?.textContent || "";
             const ringing = (incoming && getComputedStyle(incoming).display !== "none") ||
-                (controls && getComputedStyle(controls).display !== "none" && status === "Вызов…");
+                (controls && getComputedStyle(controls).display !== "none" && status.startsWith("Вызов…"));
             if (ringing) void unlockAudio().then(detect);
         }, { passive: true });
     });
 
-    const callRoot = document.getElementById("chatCallV2");
-    if (callRoot) {
-        const observer = new MutationObserver(detect);
-        observer.observe(callRoot, {
+    let observedCallRoot = null;
+    let callRootObserver = null;
+
+    function observeCallRoot(root) {
+        if (!root || root === observedCallRoot) return;
+        if (callRootObserver) callRootObserver.disconnect();
+        observedCallRoot = root;
+        callRootObserver = new MutationObserver(detect);
+        callRootObserver.observe(root, {
             subtree: true,
             childList: true,
             characterData: true,
             attributes: true,
             attributeFilter: ["class", "style"]
         });
+        detect();
+    }
+
+    const existingCallRoot = document.getElementById("chatCallV2");
+    if (existingCallRoot) {
+        observeCallRoot(existingCallRoot);
+    } else if (document.body) {
+        // call-v2.js normally creates the root before this file loads.
+        // Keep a one-shot discovery observer as a safe fallback.
+        const rootDiscoveryObserver = new MutationObserver(() => {
+            const root = document.getElementById("chatCallV2");
+            if (!root) return;
+            rootDiscoveryObserver.disconnect();
+            observeCallRoot(root);
+        });
+        rootDiscoveryObserver.observe(document.body, { childList: true, subtree: true });
     }
     document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
