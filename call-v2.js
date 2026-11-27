@@ -433,7 +433,7 @@
         }
         if(signal.signal_type==="ice"){await addIce(signal.call_id,signal.payload?.candidate);return;}
         if(signal.call_id!==callId)return;
-        if(signal.signal_type==="answer"&&pc){await pc.setRemoteDescription(signal.payload.description);await flushIce();}
+        if(signal.signal_type==="answer"&&pc){setStatus("Соединение…");await pc.setRemoteDescription(signal.payload.description);await flushIce();}
         else if(signal.signal_type==="video-offer")await handleVideoOffer(signal);
         else if(signal.signal_type==="video-answer"&&pc){if(pc.signalingState!=="have-local-offer")return;await pc.setRemoteDescription(signal.payload.description);await flushIce();mode="video";updateVideoUi(true);setRemoteMedia();setStatus("Видеозвонок");}
         else if(signal.signal_type==="reject"){setStatus("Звонок отклонён");setTimeout(()=>void end(false),700);}
