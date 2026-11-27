@@ -185,31 +185,18 @@
         sync();
     }
 
-    let installTimer = null;
-    function startInstallTimer() {
-        if (document.hidden || installTimer) return;
-        installTimer = setInterval(install, 500);
-    }
-    function stopInstallTimer() {
-        if (installTimer) clearInterval(installTimer);
-        installTimer = null;
+    const callRoot = document.getElementById("chatCallV2");
+    if (callRoot) {
+        const observer = new MutationObserver(install);
+        observer.observe(callRoot, {
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["class", "style"]
+        });
     }
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden) {
-            stopInstallTimer();
-            return;
-        }
-        startInstallTimer();
-        const callRoot = document.getElementById("chatCallV2");
-        if (callRoot && callRoot.classList.contains("open")) {
-            preparePhoneAudioSession();
-            sync();
-            replaceCallButtonIcons();
-        } else {
-            resetPhoneAudioSession();
-        }
+        if (document.hidden) return;
+        install();
     });
-    window.addEventListener("pagehide", stopInstallTimer);
-    window.addEventListener("pageshow", startInstallTimer);
-    startInstallTimer();
+    install();
 })();
