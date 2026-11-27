@@ -81,7 +81,7 @@ Deno.serve(async(req:Request)=>{
    const deliveryToken=await sign(`${id}.${member.user_id}.${exp}`);
    const {data:subscriptions,error:subscriptionError}=await admin.from("web_push_subscriptions").select("id,endpoint,p256dh,auth,active_until").eq("user_id",member.user_id);
    if(!subscriptionError){
-    const activeSubscriptions=(subscriptions||[]).filter(subscription=>subscription.active_until&&Date.parse(subscription.active_until)>Date.now());
+    const activeSubscriptions=(subscriptions||[]).filter(subscription=>!String(subscription.endpoint||"").startsWith("https://web.push.apple.com/")&&subscription.active_until&&Date.parse(subscription.active_until)>Date.now());
     let activeMessageDelivered=false;
     if(activeSubscriptions.length){
      await new Promise(resolve=>setTimeout(resolve,1500));
@@ -90,7 +90,7 @@ Deno.serve(async(req:Request)=>{
      activeMessageDelivered=Boolean(activeDelivery);
     }
     for(const subscription of subscriptions||[]){
-     if(subscription.active_until&&Date.parse(subscription.active_until)>Date.now()&&activeMessageDelivered)continue;
+     if(!String(subscription.endpoint||"").startsWith("https://web.push.apple.com/")&&subscription.active_until&&Date.parse(subscription.active_until)>Date.now()&&activeMessageDelivered)continue;
      const webPushStartedAt=Date.now();try{
       await webpush.sendNotification({endpoint:subscription.endpoint,keys:{p256dh:subscription.p256dh,auth:subscription.auth}},JSON.stringify({title:senderName,body:message.text||"Новое сообщение",icon:"https://vovkat-34.github.io/chat/favicon.svg",badge:"https://vovkat-34.github.io/chat/favicon.svg",tag:`chat-${message.chat_id}`,chatId:message.chat_id,messageId:message.id,count:unreadCount,userId:member.user_id,exp,deliveryToken,url:`./index.html?chat=${encodeURIComponent(message.chat_id)}`}),{TTL:86400,urgency:"high"}); const webPushElapsed=Date.now()-webPushStartedAt;webPushSendDurationMs+=webPushElapsed;webPushSendMaxMs=Math.max(webPushSendMaxMs,webPushElapsed);
       sent++;
