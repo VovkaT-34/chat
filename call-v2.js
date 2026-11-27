@@ -543,8 +543,12 @@
     async function recoverLocalAudio(){if(!pc||!localStream||!navigator.mediaDevices?.getUserMedia)return;try{const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});const track=stream.getAudioTracks()[0];if(!track)return;const sender=pc.getSenders().find(item=>item.track?.kind==="audio");if(sender)await sender.replaceTrack(track);const old=localStream.getAudioTracks()[0];if(old&&old!==track)old.stop();localStream.addTrack(track);$("cv2Mute").textContent=track.enabled?"🎙️":"🔇";setStatus(mode==="video"?"Видеозвонок":"Звонок");}catch(error){console.warn("Не удалось восстановить микрофон после блокировки/возврата:",error);}}
 
     window.updateChatCallButtonVisibility=updateChatCallButtonVisibility;window.updateChatCallButton=updateChatCallButtonVisibility;window.startAudioCall=()=>void startCall("audio");window.startVideoCall=()=>void startCall("video");
-    document.addEventListener("visibilitychange",handleVisibilityChange);window.addEventListener("pageshow",()=>{pageVisible=true;if(callId)void resumeRemoteAudio();});window.addEventListener("pagehide",()=>{pageVisible=false;});
-    function boot(){ensureUi();addButtons();updateChatCallButtonVisibility();void subscribe();setTimeout(()=>void subscribe(),1500);setTimeout(()=>void recoverOffer(),700);}
+    let uiPollTimer=null;
+    function stopUiPoll(){if(uiPollTimer){clearInterval(uiPollTimer);uiPollTimer=null;}}
+    function startUiPoll(){if(document.hidden||uiPollTimer)return;uiPollTimer=setInterval(()=>{addButtons();updateChatCallButtonVisibility();if(!channel&&window.currentUser?.id)void subscribe();},1000);}
+    document.addEventListener("visibilitychange",()=>{if(document.hidden)stopUiPoll();else startUiPoll();handleVisibilityChange();});
+    window.addEventListener("pageshow",()=>{pageVisible=true;startUiPoll();if(callId)void resumeRemoteAudio();});
+    window.addEventListener("pagehide",()=>{pageVisible=false;stopUiPoll();});
+    function boot(){ensureUi();addButtons();updateChatCallButtonVisibility();void subscribe();setTimeout(()=>void subscribe(),1500);setTimeout(()=>void recoverOffer(),700);startUiPoll();}
     if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
-    setInterval(()=>{addButtons();updateChatCallButtonVisibility();if(!channel&&window.currentUser?.id)void subscribe();},1000);
 })();
