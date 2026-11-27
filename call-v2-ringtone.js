@@ -80,17 +80,20 @@
         playPhrase();
     }
 
-    function stop() {
+    function stop(suspendAudio = true) {
         if (timer) clearInterval(timer);
         timer = null;
         lastState = "";
+        if (suspendAudio && audioContext?.state === "running") {
+            void audioContext.suspend().catch(() => {});
+        }
     }
 
     function start(kind) {
         if (!kind) return stop();
         if (kind === lastState && timer) return;
 
-        stop();
+        stop(false);
         lastState = kind;
         void playNow();
         timer = setInterval(() => void playNow(), 1700);
