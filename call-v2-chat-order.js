@@ -51,5 +51,18 @@
         lastOpenState = activeCall;
     }
 
-    setInterval(resetIfClosed, 250);
+    let pollTimer = null;
+    function startPoll() {
+        if (document.hidden || pollTimer) return;
+        pollTimer = setInterval(resetIfClosed, 250);
+    }
+    function stopPoll() {
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = null;
+    }
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) stopPoll();
+        else { startPoll(); resetIfClosed(); }
+    });
+    startPoll();
 })();
