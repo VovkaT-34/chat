@@ -52,11 +52,14 @@ self.addEventListener("push",function(event){
     if(!isCall&&count>1)options.body=(data.body||"Новое сообщение")+"\nНепрочитанных: "+count;
     if(isCall){options.requireInteraction=true;options.vibrate=[300,150,300,150,500];}
     event.waitUntil((async function(){
-        var windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
-        var appVisible=windows.some(function(client){return client.visibilityState==="visible"&&client.focused===true;});
-        if(appVisible){
-            if(data.messageId&&data.deliveryToken)await confirmPushDelivery(data);
-            return;
+        var isIOSWebPush=/iPhone|iPad|iPod/.test(self.navigator.userAgent||"");
+        if(!isIOSWebPush){
+            var windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
+            var appVisible=windows.some(function(client){return client.visibilityState==="visible"&&client.focused===true;});
+            if(appVisible){
+                if(data.messageId&&data.deliveryToken)await confirmPushDelivery(data);
+                return;
+            }
         }
         await self.registration.showNotification(title,options);
         if(data.messageId&&data.deliveryToken)await confirmPushDelivery(data);
