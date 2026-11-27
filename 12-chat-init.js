@@ -21,8 +21,9 @@ async function startChat() {
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="15-chat-list-batch.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
     await loadChats();
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="16-message-status-batch.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
-    await new Promise(function (resolve) { var script=document.createElement("script"); script.src="17-message-read-realtime-optimized.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
     await new Promise(function (resolve) { var script=document.createElement("script"); script.src="13-realtime-filter.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
+    await new Promise(function (resolve) { var script=document.createElement("script"); script.src="17-message-read-realtime-optimized.js"; script.onload=resolve; script.onerror=resolve; document.head.appendChild(script); });
+    subscribeToMessageDeliveries();
     await subscribeToMessages();
     await subscribeToTyping();
 }
