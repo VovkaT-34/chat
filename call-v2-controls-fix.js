@@ -185,9 +185,21 @@
         sync();
     }
 
-    setInterval(install, 500);
+    let installTimer = null;
+    function startInstallTimer() {
+        if (document.hidden || installTimer) return;
+        installTimer = setInterval(install, 500);
+    }
+    function stopInstallTimer() {
+        if (installTimer) clearInterval(installTimer);
+        installTimer = null;
+    }
     document.addEventListener("visibilitychange", () => {
-        if (document.hidden) return;
+        if (document.hidden) {
+            stopInstallTimer();
+            return;
+        }
+        startInstallTimer();
         const callRoot = document.getElementById("chatCallV2");
         if (callRoot && callRoot.classList.contains("open")) {
             preparePhoneAudioSession();
@@ -197,4 +209,7 @@
             resetPhoneAudioSession();
         }
     });
+    window.addEventListener("pagehide", stopInstallTimer);
+    window.addEventListener("pageshow", startInstallTimer);
+    startInstallTimer();
 })();
