@@ -138,7 +138,13 @@
     // Keep the broader set of iOS user-gesture events. The previous
     // touchend/mousedown-only variant could miss the first gesture on Safari.
     ["pointerdown", "touchstart", "touchend", "mousedown", "click", "keydown"].forEach(type => {
-        document.addEventListener(type, () => {
+        document.addEventListener(type, event => {
+            // Unlock Web Audio during the actual user gesture that starts an outgoing call.
+            // The call dialog opens only after the peer lookup completes.
+            if (event.target?.closest?.("#callAudioButton, #callVideoButton")) {
+                void unlockAudio();
+                return;
+            }
             const root = document.getElementById("chatCallV2");
             if (!root?.classList.contains("open")) return;
             const incoming = document.getElementById("cv2Incoming");
