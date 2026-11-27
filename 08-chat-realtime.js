@@ -66,7 +66,7 @@ window.addEventListener("androidfcmtoken", function (event) {
 // ===============================
 // Realtime сообщений
 // ===============================
-async function subscribeToMessages() {
+async function subscribeToMessagesNow() {
     if (!supabaseClient || !currentUser) return;
     if(!document.hidden)await markMutedChatMessagesDeliveredOnOpen();
 
@@ -244,6 +244,20 @@ async function subscribeToMessages() {
         });
 }
 
+let realtimeSubscribePromise = null;
+let realtimeLastReconnectAt = 0;
+
+async function subscribeToMessages() {
+    if (realtimeSubscribePromise) return realtimeSubscribePromise;
+    const pending = subscribeToMessagesNow();
+    realtimeSubscribePromise = pending;
+    try {
+        return await pending;
+    } finally {
+        if (realtimeSubscribePromise === pending) realtimeSubscribePromise = null;
+    }
+}
+
 function scheduleRealtimeReconnect() {
     if (realtimeReconnectBusy || realtimeReconnectTimer) return;
 
@@ -265,7 +279,10 @@ function scheduleRealtimeReconnect() {
 }
 
 async function reconnectChatRealtime() {
-    if (!currentUser || !supabaseClient) return;
+    if (!currentUser || !supabaseClient || realtimeSubscribePromise) return;
+    const now = Date.now();
+    if (now - realtimeLastReconnectAt < 2000) return;
+    realtimeLastReconnectAt = now;
 
     try {
         await subscribeToMessages();
